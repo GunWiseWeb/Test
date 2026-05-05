@@ -130,15 +130,10 @@ class _setupwizard extends \IPS\Dispatcher\Controller
     {
         $cfg = $this->loadFeedConfig();
         $highest = isset( $cfg['wizard_step'] ) ? (int) $cfg['wizard_step'] : 0;
-        /* Completed dealers shouldn't see the wizard at all - redirect
-         * to dashboard. They can re-enter via the explicit step links. */
-        if ( !empty( $cfg['wizard_completed_at'] ) )
-        {
-            \IPS\Output::i()->redirect(
-                \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=overview', 'front', 'dealer_dashboard' )
-            );
-            return;
-        }
+
+        /* v160: Completed dealers can re-enter the wizard to reconfigure.
+         * They land on step 5 (their highest step) where they can review
+         * their current setup and navigate back to make changes. */
 
         if ( $highest >= 4 )      { $this->step5(); }
         elseif ( $highest >= 3 )  { $this->step4(); }
@@ -863,6 +858,8 @@ class _setupwizard extends \IPS\Dispatcher\Controller
             if ( $row['is_auto_suggested'] ) { $autoCount++; }
         }
 
+        $completedAt = isset( $cfg['wizard_completed_at'] ) ? (string) $cfg['wizard_completed_at'] : '';
+
         return [
             'urls'              => $this->wizardUrls(),
             'csrfKey'           => \IPS\Session::i()->csrfKey,
@@ -1252,6 +1249,8 @@ class _setupwizard extends \IPS\Dispatcher\Controller
         $warningRecords = isset( $report['summary']['warning_records'] ) ? (int) $report['summary']['warning_records'] : 0;
         $totalRecords   = isset( $report['summary']['total_records'] ) ? (int) $report['summary']['total_records'] : 0;
 
+        $completedAt = isset( $cfg['wizard_completed_at'] ) ? (string) $cfg['wizard_completed_at'] : '';
+
         return [
             'urls'              => $this->wizardUrls(),
             'csrfKey'           => \IPS\Session::i()->csrfKey,
@@ -1265,6 +1264,8 @@ class _setupwizard extends \IPS\Dispatcher\Controller
             'total_records'     => $totalRecords,
             'has_errors'        => $errorRecords > 0,
             'errors'            => $errors,
+            'is_completed'      => $completedAt !== '',
+            'completed_at'      => $completedAt,
         ];
     }
 
