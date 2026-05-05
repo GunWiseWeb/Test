@@ -27,6 +27,7 @@ namespace IPS\gddealer\modules\front\dealers;
 use IPS\gddealer\Dealer\Dealer;
 use IPS\gddealer\Feed\FeedFetcher;
 use IPS\gddealer\Feed\CanonicalFields;
+use IPS\gddealer\Feed\FieldMapper;
 use IPS\gddealer\Feed\Validator;
 use IPS\gddealer\Feed\Parser\XmlParser;
 use IPS\gddealer\Feed\Parser\JsonParser;
