@@ -376,6 +376,12 @@ class _setupwizard extends \IPS\Dispatcher\Controller
             try { \IPS\Log::log( 'wizard saveStep2 update failed: ' . $e->getMessage(), 'gddealer_setupwizard' ); } catch ( \Throwable ) {}
         }
 
+        /* v159: invalidate downstream cached validation. New parsed
+         * records mean step 4's prior report is stale. */
+        $state = $this->loadWizardState();
+        unset( $state['step4_report'], $state['step4_rows'] );
+        $this->saveWizardState( $state );
+
         \IPS\Output::i()->redirect(
             \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=setupwizard&do=step3', 'front', 'dealers_setup_wizard' )
         );
@@ -651,6 +657,12 @@ class _setupwizard extends \IPS\Dispatcher\Controller
             $this->output( 'setupWizard', $body );
             return;
         }
+
+        /* v159: invalidate cached step 4 validation. The new field
+         * mapping changes which canonical fields each record produces,
+         * so the prior report is stale. */
+        unset( $state['step4_report'], $state['step4_rows'] );
+        $this->saveWizardState( $state );
 
         \IPS\Output::i()->redirect(
             \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=setupwizard&do=step4', 'front', 'dealers_setup_wizard' )
