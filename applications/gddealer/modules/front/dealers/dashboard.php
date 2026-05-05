@@ -640,65 +640,46 @@ class _dashboard extends \IPS\Dispatcher\Controller
 
 	protected function feedSettings()
 	{
+		/* v158: read-only feed settings page. All editing happens in the
+		 * setup wizard now. This page shows current config + the manual
+		 * upload widget + recent activity. */
 		$dealer = $this->dealer;
-
 		$currentMode = (string) ( $dealer->feed_delivery_mode ?? 'url' );
 
-		$form = new \IPS\Helpers\Form( 'form', 'gddealer_front_feed_save' );
-		$form->add( new \IPS\Helpers\Form\Radio( 'gddealer_front_feed_delivery_mode', $currentMode, TRUE, [
-			'options' => [
-				'url'    => 'Hosted URL — system polls your feed on a schedule (Magento, WooCommerce, RSR, custom platforms)',
-				'manual' => 'Manual upload — you upload a file when your data changes (BigCommerce, Square, Shopify Lite, anything without API access)',
-			],
-		] ) );
-		$form->add( new \IPS\Helpers\Form\Url( 'gddealer_front_feed_url', $dealer->feed_url, FALSE ) );
-		$form->add( new \IPS\Helpers\Form\Select( 'gddealer_front_feed_format', $dealer->feed_format, TRUE, [
-			'options' => [ 'xml' => 'XML', 'json' => 'JSON', 'csv' => 'CSV' ],
-		] ) );
-		$form->add( new \IPS\Helpers\Form\Select( 'gddealer_front_auth_type', $dealer->auth_type, FALSE, [
-			'options' => [ 'none' => 'None', 'basic' => 'Basic Auth', 'apikey' => 'API Key', 'ftp' => 'FTP' ],
-		] ) );
-		$form->add( new \IPS\Helpers\Form\TextArea( 'gddealer_front_auth_credentials', $dealer->getCredentials() ?? '', FALSE, [
-			'placeholder' => 'JSON: {"username":"...","password":"..."} or {"api_key":"..."}',
-		] ) );
-		$form->add( new \IPS\Helpers\Form\TextArea( 'gddealer_front_field_mapping', $dealer->field_mapping ?? '', FALSE, [
-			'rows' => 10, 'placeholder' => '{"DEALER_FIELD":"canonical_field", "UPC":"upc", "PRICE":"dealer_price"}',
-		] ) );
-
-		if ( $values = $form->values() )
+		/* Pull wizard config row to surface completion status + mapping. */
+		$wizardCfg = [];
+		try
 		{
-			$newMode = (string) $values['gddealer_front_feed_delivery_mode'];
-			if ( !in_array( $newMode, [ 'url', 'manual' ], TRUE ) ) { $newMode = 'url'; }
-
-			if ( $newMode === 'url' && trim( (string) $values['gddealer_front_feed_url'] ) === '' )
-			{
-				\IPS\Output::i()->error( 'Hosted URL mode requires a feed URL. Either enter a URL or switch to Manual upload mode.', '3S401/F', 400 );
-				return;
-			}
-
-			$dealer->feed_delivery_mode = $newMode;
-			$dealer->feed_url    = (string) $values['gddealer_front_feed_url'];
-			$dealer->feed_format = $values['gddealer_front_feed_format'];
-			$dealer->auth_type   = $values['gddealer_front_auth_type'];
-
-			$creds = trim( (string) $values['gddealer_front_auth_credentials'] );
-			$dealer->setCredentials( $creds !== '' ? $creds : null );
-
-			$mapJson = trim( (string) $values['gddealer_front_field_mapping'] );
-			$dealer->field_mapping = ( $mapJson !== '' && json_decode( $mapJson ) !== null ) ? $mapJson : null;
-
-			if ( !$dealer->active )
-			{
-				$dealer->active = 1;
-			}
-
-			$dealer->save();
-
-			\IPS\Output::i()->redirect(
-				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=feedSettings' )
-			);
-			return;
+			$row = \IPS\Db::i()->select( '*', 'gd_dealer_feed_config',
+				[ 'dealer_id=?', (int) $dealer->dealer_id ]
+			)->first();
+			$wizardCfg = is_array( $row ) ? $row : [];
 		}
+		catch ( \Throwable ) {}
+
+		/* Count mapped fields + defaults from the saved field_mapping JSON. */
+		$mappedCount  = 0;
+		$defaultCount = 0;
+		$rawMappingJson = (string) ( $dealer->field_mapping ?? '' );
+		if ( $rawMappingJson !== '' )
+		{
+			$decoded = json_decode( $rawMappingJson, true );
+			if ( is_array( $decoded ) )
+			{
+				if ( isset( $decoded['_defaults'] ) && is_array( $decoded['_defaults'] ) )
+				{
+					$defaultCount = count( $decoded['_defaults'] );
+				}
+				foreach ( $decoded as $key => $value )
+				{
+					if ( $key === '_defaults' ) { continue; }
+					$mappedCount++;
+				}
+			}
+		}
+
+		$creds = $dealer->getCredentials() ?? '';
+		$hasCredentials = trim( (string) $creds ) !== '';
 
 		$recentUploads = [];
 		try
@@ -747,7 +728,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			$syncTitle  = 'Feed not configured yet';
 			$syncSub    = $currentMode === 'manual'
 				? 'Upload your first feed file to start syncing'
-				: 'Enter your feed URL below to start syncing';
+				: 'Run the Setup Wizard to configure your feed';
 		} elseif ( $latest['status'] === 'failed' ) {
 			$syncHealth = 'error';
 			$syncTitle  = 'Last import failed';
@@ -761,20 +742,36 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			$syncSub    = 'Last imported ' . $latest['when_ago'];
 		}
 
+		$wizardUrl = (string) \IPS\Http\Url::internal(
+			'app=gddealer&module=dealers&controller=setupwizard',
+			'front',
+			'dealers_setup_wizard'
+		);
+
+		$wizardDoneFlash = (int) ( \IPS\Request::i()->wizard_done ?? 0 ) === 1;
+
 		$data = [
-			'dealer'         => $this->dealerSummary(),
-			'tab_urls'       => $this->tabUrls(),
-			'form'           => (string) $form,
-			'delivery_mode'  => $currentMode,
-			'import_log'     => $importLog,
-			'recent_uploads' => $recentUploads,
-			'upload_url'     => (string) \IPS\Http\Url::internal(
+			'dealer'              => $this->dealerSummary(),
+			'tab_urls'            => $this->tabUrls(),
+			'delivery_mode'       => $currentMode,
+			'feed_url'            => (string) ( $dealer->feed_url ?? '' ),
+			'feed_format'         => (string) ( $dealer->feed_format ?? '' ),
+			'auth_type'           => (string) ( $dealer->auth_type ?? 'none' ),
+			'has_credentials'     => $hasCredentials,
+			'mapped_count'        => $mappedCount,
+			'default_count'       => $defaultCount,
+			'wizard_url'          => $wizardUrl,
+			'wizard_completed_at' => isset( $wizardCfg['wizard_completed_at'] ) ? (string) $wizardCfg['wizard_completed_at'] : '',
+			'wizard_done_flash'   => $wizardDoneFlash,
+			'import_log'          => $importLog,
+			'recent_uploads'      => $recentUploads,
+			'upload_url'          => (string) \IPS\Http\Url::internal(
 				'app=gddealer&module=dealers&controller=dashboard&do=uploadFeed'
 			)->csrf(),
-			'latest'         => $latest,
-			'sync_health'    => $syncHealth,
-			'sync_title'     => $syncTitle,
-			'sync_sub'       => $syncSub,
+			'latest'              => $latest,
+			'sync_health'         => $syncHealth,
+			'sync_title'          => $syncTitle,
+			'sync_sub'            => $syncSub,
 		];
 
 		$this->output( 'feedSettings',
