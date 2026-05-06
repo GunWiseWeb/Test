@@ -794,7 +794,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		$form = new \IPS\Helpers\Form( 'gd_feed_upload_form', 'gddealer_front_feed_upload_save' );
 		$form->add( new \IPS\Helpers\Form\Upload( 'gddealer_front_feed_file', NULL, TRUE, [
 			'storageExtension' => 'gddealer_FeedUpload',
-			'allowedFileTypes' => [ 'csv', 'xml', 'json', 'tsv', 'txt' ],
+			'allowedFileTypes' => [ 'csv', 'xml', 'json', 'tsv' ],
 			'maxFileSize'      => 50,
 		] ) );
 
@@ -813,7 +813,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			{
 				'xml'         => 'xml',
 				'json'        => 'json',
-				'csv','tsv','txt' => 'csv',
+				'csv','tsv' => 'csv',
 				default       => (string) ( $dealer->feed_format ?? 'csv' ),
 			};
 

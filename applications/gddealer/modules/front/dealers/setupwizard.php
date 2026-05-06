@@ -208,7 +208,7 @@ class _setupwizard extends \IPS\Dispatcher\Controller
                 $files = \IPS\File::createFromUploads(
                     'gddealer_FeedUpload',
                     'upload_file',
-                    [ 'csv', 'xml', 'json', 'tsv', 'txt' ],
+                    [ 'csv', 'xml', 'json', 'tsv' ],
                     50
                 );
             }
@@ -220,7 +220,7 @@ class _setupwizard extends \IPS\Dispatcher\Controller
 
             if ( empty( $files ) )
             {
-                $errors[] = 'Please choose a feed file to upload (CSV, XML, JSON, TSV, or TXT, up to 50 MB).';
+                $errors[] = 'Please choose a feed file to upload (CSV, XML, JSON, or TSV, up to 50 MB).';
             }
             else
             {
@@ -235,7 +235,7 @@ class _setupwizard extends \IPS\Dispatcher\Controller
                 {
                     'xml'  => 'xml',
                     'json' => 'json',
-                    'csv', 'tsv', 'txt' => 'csv',
+                    'csv', 'tsv' => 'csv',
                     default => 'csv',
                 };
 
