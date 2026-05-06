@@ -121,9 +121,13 @@ class _products extends \IPS\Dispatcher\Controller
 			$perPage
 		);
 
+		$productCount  = \count( $products );
+		$categoryCount = \count( $categories );
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_products_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->productList(
-			$products, $categories, $search, $status, $catId, $total, $pagination, $formActionUrl
+			$products, $categories, $search, $status, $catId, $total, $pagination, $formActionUrl,
+			$productCount, $categoryCount
 		);
 	}
 
@@ -218,26 +222,29 @@ class _products extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title = $product->title . ' (' . $product->upc . ')';
 
-		$html  = '<h2>' . htmlspecialchars( $product->title ?? '' ) . ' <small>(' . htmlspecialchars( $product->upc ) . ')</small></h2>';
-
+		/* Render a small "Locked Fields" notice above the Form output, if any.
+		 * Rule #8: admin form page uses \IPS\Helpers\Form — the form itself is
+		 * unchanged; only an informational banner is prepended. No raw-HTML
+		 * form markup. */
+		$lockNotice = '';
 		if ( \count( $locks ) )
 		{
-			$html .= '<h3>Locked Fields</h3><ul>';
+			$lockNotice = '<div class="ipsBox ipsPull"><div class="ipsBox_body ipsPad"><h2 class="ipsType_sectionHead" style="margin:0 0 12px">'
+				. \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_product_locked_fields' )
+				. '</h2><ul class="ipsList_reset">';
 			foreach ( $locks as $lock )
 			{
 				$unlockUrl = (string) \IPS\Http\Url::internal(
 					'app=gdcatalog&module=catalog&controller=compliance&do=unlock&id=' . (int) $lock->id
 				)->csrf();
-				$html .= '<li>' . htmlspecialchars( $lock->field_name ?? '' )
-					. ' (' . htmlspecialchars( $lock->lock_type ?? '' ) . ')'
-					. ' <a href="' . htmlspecialchars( $unlockUrl ) . '">unlock</a></li>';
+				$lockNotice .= '<li style="margin-bottom:6px"><code>' . htmlspecialchars( $lock->field_name ?? '' ) . '</code>'
+					. ' <span class="ipsBadge ipsBadge--neutral">' . htmlspecialchars( $lock->lock_type ?? '' ) . '</span> '
+					. '<a href="' . htmlspecialchars( $unlockUrl ) . '" class="ipsButton ipsButton--negative ipsButton--small">Unlock</a></li>';
 			}
-			$html .= '</ul>';
+			$lockNotice .= '</ul></div></div>';
 		}
 
-		$html .= (string) $form;
-
-		\IPS\Output::i()->output = $html;
+		\IPS\Output::i()->output = $lockNotice . (string) $form;
 	}
 
 	/**

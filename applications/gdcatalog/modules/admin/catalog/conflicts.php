@@ -70,8 +70,23 @@ class _conflicts extends \IPS\Dispatcher\Controller
 			\IPS\Db::i()->select( '*', 'gd_conflict_log', $where, 'resolved_at DESC', [ ( $page - 1 ) * $perPage, $perPage ] ) as $row
 		)
 		{
-			$entries[] = $row;
+			$entries[] = [
+				'upc'            => (string) ( $row['upc'] ?? '' ),
+				'field_name'     => (string) ( $row['field_name'] ?? '' ),
+				'winning_source' => (string) ( $row['winning_source'] ?? '' ),
+				'winning_value'  => htmlspecialchars( mb_substr( (string) ( $row['winning_value'] ?? '' ), 0, 80 ) ),
+				'losing_source'  => (string) ( $row['losing_source'] ?? '' ),
+				'losing_value'   => htmlspecialchars( mb_substr( (string) ( $row['losing_value'] ?? '' ), 0, 80 ) ),
+				'rule_applied'   => (string) ( $row['rule_applied'] ?? '' ),
+				'resolved_at'    => $row['resolved_at'] ?? null,
+			];
 		}
+
+		$entryCount = \count( $entries );
+
+		$formActionUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=conflicts'
+		);
 
 		$pagination = \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
 			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts' ),
@@ -82,7 +97,7 @@ class _conflicts extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_conflicts_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->conflictLog(
-			$entries, $filterField, $filterSource, $filterRule, $filterUpc, $total, $pagination
+			$entries, $filterField, $filterSource, $filterRule, $filterUpc, $total, $pagination, $entryCount, $formActionUrl
 		);
 	}
 }

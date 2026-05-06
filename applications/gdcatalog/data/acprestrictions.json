@@ -1,0 +1,22 @@
+{
+	"catalog": {
+		"dashboard": {
+			"catalog_manage": "catalog_manage"
+		},
+		"products": {
+			"catalog_manage": "catalog_manage"
+		},
+		"feeds": {
+			"catalog_manage": "catalog_manage"
+		},
+		"conflicts": {
+			"catalog_manage": "catalog_manage"
+		},
+		"compliance": {
+			"catalog_manage": "catalog_manage"
+		},
+		"settings": {
+			"catalog_manage": "catalog_manage"
+		}
+	}
+}

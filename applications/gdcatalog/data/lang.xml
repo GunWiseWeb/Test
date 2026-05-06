@@ -37,6 +37,14 @@
     <word key="gdcatalog_product_status"><![CDATA[Status]]></word>
     <word key="gdcatalog_product_primary_source"><![CDATA[Primary Source]]></word>
     <word key="gdcatalog_product_locked_fields"><![CDATA[Locked Fields]]></word>
+    <word key="gdcatalog_feeds_empty"><![CDATA[No distributor feeds configured yet.]]></word>
+    <word key="gdcatalog_conflicts_empty"><![CDATA[No conflict log entries match the current filter.]]></word>
+    <word key="gdcatalog_products_empty"><![CDATA[No products match the current filter.]]></word>
+    <word key="gdcatalog_compliance_empty_new"><![CDATA[No pending compliance restrictions awaiting review.]]></word>
+    <word key="gdcatalog_compliance_empty_conflicts"><![CDATA[No pending feed conflicts awaiting resolution.]]></word>
+    <word key="gdcatalog_compliance_empty_locks"><![CDATA[No field locks are currently in place.]]></word>
+    <word key="gdcatalog_compliance_empty_admin"><![CDATA[No admin-set restrictions recorded yet.]]></word>
+    <word key="gdcatalog_dash_feeds_empty"><![CDATA[No distributor feeds have been configured yet.]]></word>
     <word key="gdcatalog_product_lock_field"><![CDATA[Lock This Field]]></word>
     <word key="gdcatalog_product_unlock_field"><![CDATA[Unlock]]></word>
     <word key="gdcatalog_product_admin_review"><![CDATA[Admin Review Required]]></word>
@@ -124,6 +132,12 @@
     <word key="gdcatalog_opensearch_index"><![CDATA[OpenSearch Index Name]]></word>
     <word key="gdcatalog_auto_resolve_hours"><![CDATA[Auto-Resolve Conflicts After (Hours)]]></word>
     <word key="gdcatalog_discontinue_threshold"><![CDATA[Discontinue Threshold (Missing Feeds)]]></word>
+    <word key="gdcatalog_digest_email_enabled"><![CDATA[Daily Compliance Digest Email]]></word>
+    <word key="gdcatalog_digest_email_enabled_desc"><![CDATA[When enabled, a daily email summarising new flags, feed conflicts, and lock changes is sent to the recipient below (Spec 2.10.5).]]></word>
+    <word key="gdcatalog_digest_email_recipient"><![CDATA[Digest Email Recipient]]></word>
+    <word key="gdcatalog_digest_email_recipient_desc"><![CDATA[Email address that receives the daily compliance digest. Leave empty to disable delivery even if the toggle above is on.]]></word>
+    <word key="r__gdcatalog"><![CDATA[GD Master Catalog]]></word>
+    <word key="r__catalog_manage"><![CDATA[Can manage Master Catalog (dashboard, products, feeds, conflicts, compliance, settings)?]]></word>
     <word key="gdcatalog_restriction_states"><![CDATA[Restricted States (comma-separated)]]></word>
     <word key="gdcatalog_custom_value"><![CDATA[Custom Value]]></word>
     <word key="gdcatalog_product_action_type"><![CDATA[Action Type]]></word>

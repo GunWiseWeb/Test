@@ -74,7 +74,7 @@ class _compliance extends \IPS\Dispatcher\Controller
 		{
 			$pendingFlags[] = [
 				'upc'             => (string) ( $flag->upc ?? '' ),
-				'flag_type'       => (string) ( $flag->flag_type ?? '' ),
+				'flag_type'       => self::formatType( (string) ( $flag->flag_type ?? '' ) ),
 				'flag_value'      => (string) ( $flag->flag_value ?? '' ),
 				'distributor_id'  => (string) ( $flag->distributor_id ?? '' ),
 				'first_seen_at'   => $flag->first_seen_at ?? null,
@@ -121,11 +121,11 @@ class _compliance extends \IPS\Dispatcher\Controller
 			$adminFlags[] = [
 				'upc'                => (string) ( $flag->upc ?? '' ),
 				'listing_id'         => (int) ( $flag->listing_id ?? 0 ),
-				'flag_type'          => (string) ( $flag->flag_type ?? '' ),
+				'flag_type'          => self::formatType( (string) ( $flag->flag_type ?? '' ) ),
 				'flag_value'         => (string) ( $flag->flag_value ?? '' ),
 				'admin_reviewed_by'  => (string) ( $flag->admin_reviewed_by ?? '' ),
 				'admin_reviewed_at'  => $flag->admin_reviewed_at ?? null,
-				'source'             => (string) ( $flag->source ?? '' ),
+				'source'             => self::formatSource( (string) ( $flag->source ?? '' ) ),
 			];
 		}
 
@@ -303,6 +303,34 @@ class _compliance extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title  = 'Add State Restriction';
 		\IPS\Output::i()->output = (string) $form;
+	}
+
+	/**
+	 * Map raw flag_type enum values to human-readable labels.
+	 */
+	private static function formatType( string $val ): string
+	{
+		return match( $val ) {
+			'state_restriction' => 'State Restriction',
+			'ffl_required'      => 'FFL Required',
+			'age_restriction'   => 'Age Restriction',
+			'hazmat'            => 'Hazmat',
+			'consumer_banned'   => 'Consumer Banned',
+			default             => ucwords( str_replace( '_', ' ', $val ) ),
+		};
+	}
+
+	/**
+	 * Map raw source enum values to human-readable labels.
+	 */
+	private static function formatSource( string $val ): string
+	{
+		return match( $val ) {
+			'admin_manual'    => 'Admin (Manual)',
+			'admin_override'  => 'Admin (Override)',
+			'distributor'     => 'Distributor Feed',
+			default           => ucwords( str_replace( '_', ' ', $val ) ),
+		};
 	}
 }
 

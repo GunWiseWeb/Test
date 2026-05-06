@@ -57,6 +57,16 @@ class _settings extends \IPS\Dispatcher\Controller
 			TRUE,
 			[ 'min' => 1, 'max' => 10 ]
 		));
+		$form->add( new \IPS\Helpers\Form\YesNo(
+			'gdcatalog_digest_email_enabled',
+			(bool) \IPS\Settings::i()->gdcatalog_digest_email_enabled,
+			FALSE
+		));
+		$form->add( new \IPS\Helpers\Form\Text(
+			'gdcatalog_digest_email_recipient',
+			\IPS\Settings::i()->gdcatalog_digest_email_recipient ?: '',
+			FALSE
+		));
 
 		if ( $values = $form->values() )
 		{

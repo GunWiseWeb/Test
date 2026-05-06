@@ -14,5 +14,13 @@
 	{
 		"key": "gdcatalog_discontinue_threshold",
 		"default": "3"
+	},
+	{
+		"key": "gdcatalog_digest_email_enabled",
+		"default": "0"
+	},
+	{
+		"key": "gdcatalog_digest_email_recipient",
+		"default": ""
 	}
 ]
