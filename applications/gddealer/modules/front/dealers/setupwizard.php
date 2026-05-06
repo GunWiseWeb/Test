@@ -201,6 +201,10 @@ class _setupwizard extends \IPS\Dispatcher\Controller
         $uploadFileSize = 0;
         $uploadFormat   = '';
 
+        $pasteFileUrl  = '';
+        $pasteFileName = '';
+        $pasteFileSize = 0;
+
         if ( $mode === 'upload' )
         {
             try
@@ -278,6 +282,28 @@ class _setupwizard extends \IPS\Dispatcher\Controller
             }
         }
 
+        /* Paste mode: save body to storage so it acts like an upload.
+         * Only do this AFTER validation passes (otherwise we'd write
+         * orphan files for failed submissions). */
+        if ( $mode === 'paste' && empty( $errors ) && $pasteBody !== '' )
+        {
+            $ts        = date( 'Y-m-d-His' );
+            $ext       = in_array( $feedFormat, [ 'xml', 'json', 'csv' ], true ) ? $feedFormat : 'csv';
+            $filename  = "pasted-feed-{$ts}.{$ext}";
+
+            try
+            {
+                $pastedFile = \IPS\File::create( 'gddealer_FeedUpload', $filename, $pasteBody );
+                $pasteFileUrl  = (string) $pastedFile;
+                $pasteFileName = $filename;
+                $pasteFileSize = strlen( $pasteBody );
+            }
+            catch ( \Throwable $e )
+            {
+                $errors[] = 'Could not save your pasted feed body: ' . $e->getMessage();
+            }
+        }
+
         if ( !empty( $errors ) )
         {
             $values = [
@@ -297,26 +323,44 @@ class _setupwizard extends \IPS\Dispatcher\Controller
         }
 
         $update = [ 'feed_format' => $feedFormat ];
-        if ( $mode === 'upload' )
+        if ( $mode === 'upload' || $mode === 'paste' )
         {
-            /* Upload mode forces delivery to manual + clears any URL/auth
-             * that might have been previously configured. */
+            /* Upload AND paste modes both force delivery to manual +
+             * clear any URL/auth that might have been previously
+             * configured. The pasted body has already been written to
+             * storage above. */
             $update['feed_delivery_mode'] = 'manual';
             $update['feed_url']           = '';
             $update['auth_type']          = 'none';
             $update['auth_credentials']   = '';
 
-            /* Record the upload in gd_dealer_feed_uploads so it shows
-             * up in upload history AND the import scheduler picks it
-             * up on its next run. */
+            /* Pick the right metadata depending on mode. */
+            if ( $mode === 'upload' )
+            {
+                $insertFormat = $uploadFormat;
+                $insertUrl    = $uploadFileUrl;
+                $insertName   = $uploadFileName;
+                $insertSize   = $uploadFileSize;
+            }
+            else
+            {
+                $insertFormat = $feedFormat;
+                $insertUrl    = $pasteFileUrl;
+                $insertName   = $pasteFileName;
+                $insertSize   = $pasteFileSize;
+            }
+
+            /* Record in gd_dealer_feed_uploads so it shows up in upload
+             * history AND the import scheduler picks it up on its next
+             * run. */
             try
             {
                 \IPS\Db::i()->insert( 'gd_dealer_feed_uploads', [
                     'dealer_id'       => (int) $this->dealer->dealer_id,
-                    'upload_format'   => $uploadFormat,
-                    'file_url'        => $uploadFileUrl,
-                    'file_name'       => $uploadFileName,
-                    'file_size_bytes' => $uploadFileSize,
+                    'upload_format'   => $insertFormat,
+                    'file_url'        => $insertUrl,
+                    'file_name'       => $insertName,
+                    'file_size_bytes' => $insertSize,
                     'uploaded_at'     => time(),
                     'uploaded_by'     => (int) \IPS\Member::loggedIn()->member_id,
                 ] );
@@ -361,7 +405,8 @@ class _setupwizard extends \IPS\Dispatcher\Controller
 
         $state = $this->loadWizardState();
         $state['mode']            = $mode;
-        $state['paste_body']      = $mode === 'paste'  ? $pasteBody     : '';
+        $state['paste_body']      = '';
+        $state['paste_file_url']  = $mode === 'paste'  ? $pasteFileUrl  : '';
         $state['upload_file_url'] = $mode === 'upload' ? $uploadFileUrl : '';
         unset( $state['step2_fetch'], $state['step2_records'], $state['step2_fields'], $state['step4_report'], $state['step4_rows'] );
         $this->saveWizardState( $state );
@@ -528,15 +573,43 @@ class _setupwizard extends \IPS\Dispatcher\Controller
         }
         else
         {
-            $body = isset( $state['paste_body'] ) ? (string) $state['paste_body'] : '';
+            $pasteFileUrl = isset( $state['paste_file_url'] ) ? (string) $state['paste_file_url'] : '';
+            $body = '';
+            $err  = null;
+            $fileName = '(pasted feed)';
+
+            if ( $pasteFileUrl !== '' )
+            {
+                try
+                {
+                    $file = \IPS\File::get( 'gddealer_FeedUpload', $pasteFileUrl );
+                    $body = (string) $file->contents();
+                    $fileName = (string) ( $file->originalFilename ?? $file->filename ?? '(pasted feed)' );
+                }
+                catch ( \Throwable $e )
+                {
+                    $err = 'Could not read saved paste body: ' . $e->getMessage();
+                }
+            }
+            else
+            {
+                /* Backward-compat: if state was saved before v164, the
+                 * body might still be in the inline paste_body field. */
+                $body = isset( $state['paste_body'] ) ? (string) $state['paste_body'] : '';
+                if ( $body === '' )
+                {
+                    $err = 'No pasted feed body found. Go back to step 1 and paste again.';
+                }
+            }
+
             $fetchMeta = [
-                'ok'           => $body !== '',
+                'ok'           => $err === null && $body !== '',
                 'http_status'  => 0,
-                'content_type' => '(pasted)',
+                'content_type' => '(pasted as ' . $fileName . ')',
                 'body_bytes'   => strlen( $body ),
                 'truncated'    => false,
                 'duration_ms'  => 0,
-                'error'        => $body === '' ? 'No pasted feed body found.' : null,
+                'error'        => $err,
                 'preview'      => substr( $body, 0, 800 ),
             ];
         }
