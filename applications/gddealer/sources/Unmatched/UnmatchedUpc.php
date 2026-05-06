@@ -101,10 +101,11 @@ class UnmatchedUpc
 	 */
 	public static function sweepMatched(): int
 	{
-		$stmt = \IPS\Db::i()->delete(
+		/* v168: \IPS\Db::i()->delete() returns the affected row count
+		 * directly (an int). Calling ->rowCount() on it threw fatal. */
+		return (int) \IPS\Db::i()->delete(
 			'gd_unmatched_upcs',
 			'upc IN ( SELECT upc FROM ' . \IPS\Db::i()->prefix . 'gd_catalog )'
 		);
-		return $stmt->rowCount();
 	}
 }
