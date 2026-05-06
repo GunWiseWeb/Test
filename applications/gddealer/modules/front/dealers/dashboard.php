@@ -720,24 +720,48 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		} catch ( \Exception ) {}
 
 		$latest = $importLog[0] ?? null;
+		$wizardCompleted = !empty( $wizardCfg['wizard_completed_at'] );
+		$pendingUploads  = is_array( $recentUploads ) ? count( $recentUploads ) : 0;
+
 		$syncHealth = 'healthy';
 		$syncTitle  = 'Feed is healthy';
 		$syncSub    = 'Ready to import when your feed updates';
-		if ( !$latest ) {
+
+		if ( !$wizardCompleted ) {
+			/* State 1: wizard not finished. */
 			$syncHealth = 'warn';
 			$syncTitle  = 'Feed not configured yet';
-			$syncSub    = $currentMode === 'manual'
-				? 'Upload your first feed file to start syncing'
-				: 'Run the Setup Wizard to configure your feed';
+			$syncSub    = 'Run the Setup Wizard to get started.';
+		} elseif ( !$latest ) {
+			/* States 2 & 3: wizard done but no imports have run yet. */
+			if ( $pendingUploads > 0 ) {
+				/* State 3: file uploaded, awaiting next scheduler tick. */
+				$syncHealth = 'warn';
+				$syncTitle  = 'Feed pending first import';
+				$syncSub    = 'Your uploaded file is queued. The scheduler runs every 15 minutes - your data will appear shortly.';
+			} elseif ( $currentMode === 'manual' ) {
+				/* State 2a: manual mode but no uploads yet. */
+				$syncHealth = 'warn';
+				$syncTitle  = 'Feed configured, ready for first upload';
+				$syncSub    = 'Upload a feed file below to start syncing.';
+			} else {
+				/* State 2b: URL mode, awaiting first scheduled fetch. */
+				$syncHealth = 'warn';
+				$syncTitle  = 'Feed configured, awaiting first sync';
+				$syncSub    = 'The scheduler runs every 15 minutes - your first import will happen shortly.';
+			}
 		} elseif ( $latest['status'] === 'failed' ) {
+			/* State 5: last import failed. */
 			$syncHealth = 'error';
 			$syncTitle  = 'Last import failed';
 			$syncSub    = $latest['when_ago'] . ' — ' . ( $latest['error'] ?: 'Check configuration' );
 		} elseif ( $latest['status'] === 'partial' ) {
+			/* State 6: last import was partial. */
 			$syncHealth = 'warn';
 			$syncTitle  = 'Last import was partial';
 			$syncSub    = $latest['when_ago'];
 		} else {
+			/* State 4: latest import succeeded. */
 			$syncTitle  = 'Feed is healthy';
 			$syncSub    = 'Last imported ' . $latest['when_ago'];
 		}
