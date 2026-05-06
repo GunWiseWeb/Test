@@ -185,9 +185,9 @@ class _setupwizard extends \IPS\Dispatcher\Controller
 
         $errors = [];
 
-        if ( !in_array( $mode, [ 'url', 'paste' ], true ) )
+        if ( !in_array( $mode, [ 'url', 'paste', 'upload' ], true ) )
         {
-            $errors[] = 'Please choose either "Fetch from URL" or "Paste feed body".';
+            $errors[] = 'Please choose Fetch from URL, Paste feed body, or Upload a file.';
             $mode = 'url';
         }
 
@@ -196,7 +196,55 @@ class _setupwizard extends \IPS\Dispatcher\Controller
             $errors[] = 'Please choose a feed format (XML, JSON, or CSV).';
         }
 
-        if ( $mode === 'url' )
+        $uploadFileUrl  = '';
+        $uploadFileName = '';
+        $uploadFileSize = 0;
+        $uploadFormat   = '';
+
+        if ( $mode === 'upload' )
+        {
+            try
+            {
+                $files = \IPS\File::createFromUploads(
+                    'gddealer_FeedUpload',
+                    'upload_file',
+                    [ 'csv', 'xml', 'json', 'tsv', 'txt' ],
+                    50
+                );
+            }
+            catch ( \Throwable $e )
+            {
+                $errors[] = 'Upload failed: ' . $e->getMessage();
+                $files = [];
+            }
+
+            if ( empty( $files ) )
+            {
+                $errors[] = 'Please choose a feed file to upload (CSV, XML, JSON, TSV, or TXT, up to 50 MB).';
+            }
+            else
+            {
+                /** @var \IPS\File $uploadedFile */
+                $uploadedFile   = reset( $files );
+                $uploadFileUrl  = (string) $uploadedFile;
+                $uploadFileName = (string) ( $uploadedFile->originalFilename ?? $uploadedFile->filename ?? 'feed' );
+                $uploadFileSize = (int) ( $uploadedFile->filesize() ?? 0 );
+
+                $ext = strtolower( pathinfo( $uploadFileName, PATHINFO_EXTENSION ) );
+                $uploadFormat = match ( $ext )
+                {
+                    'xml'  => 'xml',
+                    'json' => 'json',
+                    'csv', 'tsv', 'txt' => 'csv',
+                    default => 'csv',
+                };
+
+                /* Override the form's feed_format with the detected one
+                 * so subsequent code paths use the right value. */
+                $feedFormat = $uploadFormat;
+            }
+        }
+        elseif ( $mode === 'url' )
         {
             if ( $feedUrl === '' )
             {
@@ -249,7 +297,36 @@ class _setupwizard extends \IPS\Dispatcher\Controller
         }
 
         $update = [ 'feed_format' => $feedFormat ];
-        if ( $mode === 'url' )
+        if ( $mode === 'upload' )
+        {
+            /* Upload mode forces delivery to manual + clears any URL/auth
+             * that might have been previously configured. */
+            $update['feed_delivery_mode'] = 'manual';
+            $update['feed_url']           = '';
+            $update['auth_type']          = 'none';
+            $update['auth_credentials']   = '';
+
+            /* Record the upload in gd_dealer_feed_uploads so it shows
+             * up in upload history AND the import scheduler picks it
+             * up on its next run. */
+            try
+            {
+                \IPS\Db::i()->insert( 'gd_dealer_feed_uploads', [
+                    'dealer_id'       => (int) $this->dealer->dealer_id,
+                    'upload_format'   => $uploadFormat,
+                    'file_url'        => $uploadFileUrl,
+                    'file_name'       => $uploadFileName,
+                    'file_size_bytes' => $uploadFileSize,
+                    'uploaded_at'     => time(),
+                    'uploaded_by'     => (int) \IPS\Member::loggedIn()->member_id,
+                ] );
+            }
+            catch ( \Throwable $e )
+            {
+                try { \IPS\Log::log( 'wizard saveStep1 upload insert failed: ' . $e->getMessage(), 'gddealer_setupwizard' ); } catch ( \Throwable ) {}
+            }
+        }
+        elseif ( $mode === 'url' )
         {
             $update['feed_url']         = $feedUrl;
             $update['auth_type']        = $authType;
@@ -283,9 +360,10 @@ class _setupwizard extends \IPS\Dispatcher\Controller
         }
 
         $state = $this->loadWizardState();
-        $state['mode']       = $mode;
-        $state['paste_body'] = $mode === 'paste' ? $pasteBody : '';
-        unset( $state['step2_fetch'], $state['step2_records'], $state['step2_fields'] );
+        $state['mode']            = $mode;
+        $state['paste_body']      = $mode === 'paste'  ? $pasteBody     : '';
+        $state['upload_file_url'] = $mode === 'upload' ? $uploadFileUrl : '';
+        unset( $state['step2_fetch'], $state['step2_records'], $state['step2_fields'], $state['step4_report'], $state['step4_rows'] );
         $this->saveWizardState( $state );
 
         \IPS\Output::i()->redirect(
@@ -409,6 +487,42 @@ class _setupwizard extends \IPS\Dispatcher\Controller
                 'truncated'    => $fetch['truncated'],
                 'duration_ms'  => $fetch['duration_ms'],
                 'error'        => $fetch['error'],
+                'preview'      => substr( $body, 0, 800 ),
+            ];
+        }
+        elseif ( $mode === 'upload' )
+        {
+            $fileUrl = isset( $state['upload_file_url'] ) ? (string) $state['upload_file_url'] : '';
+            $fileName = '(uploaded file)';
+            $body = '';
+            $err  = null;
+
+            if ( $fileUrl === '' )
+            {
+                $err = 'No uploaded file found in wizard state. Go back to step 1 and upload again.';
+            }
+            else
+            {
+                try
+                {
+                    $file = \IPS\File::get( 'gddealer_FeedUpload', $fileUrl );
+                    $body = (string) $file->contents();
+                    $fileName = (string) ( $file->originalFilename ?? $file->filename ?? '(uploaded file)' );
+                }
+                catch ( \Throwable $e )
+                {
+                    $err = 'Could not read uploaded file: ' . $e->getMessage();
+                }
+            }
+
+            $fetchMeta = [
+                'ok'           => $err === null && $body !== '',
+                'http_status'  => 0,
+                'content_type' => '(uploaded: ' . $fileName . ')',
+                'body_bytes'   => strlen( $body ),
+                'truncated'    => false,
+                'duration_ms'  => 0,
+                'error'        => $err,
                 'preview'      => substr( $body, 0, 800 ),
             ];
         }
