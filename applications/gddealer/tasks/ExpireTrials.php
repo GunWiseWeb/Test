@@ -32,7 +32,7 @@ class _ExpireTrials extends \IPS\Task
 	/**
 	 * @return string|null
 	 */
-	public function execute()
+	public function execute(): mixed
 	{
 		$expired  = 0;
 		$warnings = 0;

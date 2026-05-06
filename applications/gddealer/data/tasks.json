@@ -1,6 +1,6 @@
 {
-	"DealerImportFeeds": "PT15M",
-	"ExpireTrials": "P1D",
-	"ResolveExpiredDisputes": "P1D",
-	"ComputeRankSnapshots": "P1D"
+	"DealerImportFeeds": "P0Y0M0DT0H15M0S",
+	"ExpireTrials": "P0Y0M1DT0H0M0S",
+	"ResolveExpiredDisputes": "P0Y0M1DT0H0M0S",
+	"ComputeRankSnapshots": "P0Y0M1DT0H0M0S"
 }

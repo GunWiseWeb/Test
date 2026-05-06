@@ -32,7 +32,7 @@ class _ResolveExpiredDisputes extends \IPS\Task
 	/**
 	 * @return string|null
 	 */
-	public function execute()
+	public function execute(): mixed
 	{
 		$resolved = 0;
 

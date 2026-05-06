@@ -27,7 +27,7 @@ class _DealerImportFeeds extends \IPS\Task
 	/**
 	 * @return string|null  Log line, or null when no dealers ran
 	 */
-	public function execute()
+	public function execute(): mixed
 	{
 		$due = Dealer::loadDueForImport();
 		if ( !$due )
