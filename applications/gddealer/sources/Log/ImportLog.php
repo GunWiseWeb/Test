@@ -22,6 +22,11 @@ class _ImportLog extends \IPS\Patterns\ActiveRecord
 	public static string $databasePrefix   = '';
 	public static string $databaseColumnId = 'id';
 
+	/* v169: per-class multiton cache so we don't accidentally
+	 * return another ActiveRecord subclass cached at the same PK. */
+	protected static array $multitons = [];
+	protected static ?array $multitonMap = NULL;
+
 	/**
 	 * Open a fresh running log row for a dealer and return it.
 	 */

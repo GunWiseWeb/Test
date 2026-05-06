@@ -27,6 +27,11 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	public static string $databasePrefix   = '';
 	public static string $databaseColumnId = 'dealer_id';
 
+	/* v169: per-class multiton cache so we don't accidentally
+	 * return another ActiveRecord subclass cached at the same PK. */
+	protected static array $multitons = [];
+	protected static ?array $multitonMap = NULL;
+
 	public static string $application = 'gddealer';
 	public static string $module      = 'dealers';
 	public static string $controller  = 'directory';

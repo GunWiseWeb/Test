@@ -26,6 +26,11 @@ class _Listing extends \IPS\Patterns\ActiveRecord
 	public static string $databasePrefix   = '';
 	public static string $databaseColumnId = 'id';
 
+	/* v169: per-class multiton cache so we don't accidentally
+	 * return another ActiveRecord subclass cached at the same PK. */
+	protected static array $multitons = [];
+	protected static ?array $multitonMap = NULL;
+
 	const STATUS_ACTIVE       = 'active';
 	const STATUS_OUT_OF_STOCK = 'out_of_stock';
 	const STATUS_SUSPENDED    = 'suspended';
