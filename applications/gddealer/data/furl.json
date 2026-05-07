@@ -54,7 +54,7 @@
             "real": "app=gddealer&module=dealers&controller=feedschema"
         },
         "dealers_profile": {
-            "friendly": "profile/{@dealer_slug}",
+            "friendly": "dealer/{@dealer_slug}",
             "real": "app=gddealer&module=dealers&controller=profile"
         }
     }

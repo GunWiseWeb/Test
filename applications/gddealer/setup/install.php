@@ -1025,7 +1025,7 @@ TEMPLATE_EOT,
 				<div class="ipsWidget" style="background:#fff;border:1px solid var(--i-border-color,#e0e0e0);border-radius:8px">
 					<h3 class="ipsWidget__title" style="margin:0;padding:12px 16px;border-bottom:1px solid var(--i-border-color,#f0f0f0);font-size:0.85em;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#475569">Your Profile URL</h3>
 					<div class="ipsWidget__content i-padding_2" style="padding:16px">
-						<code style="display:block;font-size:0.78em;word-break:break-all;background:var(--i-background,#f5f5f5);padding:8px;border-radius:4px;margin-bottom:8px">gunrack.deals/dealers/profile/{$dealer['dealer_slug']}</code>
+						<code style="display:block;font-size:0.78em;word-break:break-all;background:var(--i-background,#f5f5f5);padding:8px;border-radius:4px;margin-bottom:8px">gunrack.deals/dealers/dealer/{$dealer['dealer_slug']}</code>
 						<a href="{$overview['profile_url']}" target="_blank" class="ipsButton ipsButton--primary ipsButton--small" style="width:100%;text-align:center;display:block">View Public Profile</a>
 					</div>
 				</div>
