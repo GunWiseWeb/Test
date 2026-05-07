@@ -1,8 +1,5 @@
 {
 	"core": {
-		"ContentRouter": {
-			"DealerFollow": "IPS\\gddealer\\extensions\\core\\ContentRouter\\DealerFollow"
-		},
 		"Notifications": {
 			"DealerNotifications": "IPS\\gddealer\\extensions\\core\\Notifications\\DealerNotifications"
 		},
