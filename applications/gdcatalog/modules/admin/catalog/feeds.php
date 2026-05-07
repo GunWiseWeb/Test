@@ -3,8 +3,10 @@
  * GD Master Catalog — Feeds Controller (admin/catalog/feeds)
  *
  * v1.0.2: adds add(), delete(), reorder() actions for distributor management.
- * v1.0.4: enqueue dev/js/admin/feedSort.js in manage() so drag-and-drop works
- *         (previous inline script was being eaten by IPS template interpolation).
+ * v1.0.4: enqueue dev/js/admin/feedSort.js in manage() so drag-and-drop works.
+ * v1.0.5: move JS to interface/feedSort.js for production-mode serving.
+ * v1.0.6: CSRF fix - drop ->csrf() URL-bake on reorder URL, pass session csrfKey
+ *         to template as separate arg, JS reads it from data-csrf-key attribute.
  */
 
 namespace IPS\gdcatalog\modules\admin\catalog;
@@ -37,10 +39,6 @@ class _feeds extends \IPS\Dispatcher\Controller
 	 */
 	protected function manage()
 	{
-		/* v1.0.4: enqueue the drag-and-drop sortable JS file. Standalone JS avoids
-		 * IPS template interpolation eating $-prefixed JS variables.
-		 * v1.0.5: switch from dev/js/admin/ (compile-required in production) to
-		 * interface/ (served directly without compilation). */
 		Output::i()->jsFiles = array_merge(
 			Output::i()->jsFiles,
 			Output::i()->js( 'feedSort.js', 'gdcatalog', 'interface' )
@@ -95,13 +93,19 @@ class _feeds extends \IPS\Dispatcher\Controller
 			'app=gdcatalog&module=catalog&controller=feeds&do=add'
 		)->csrf();
 
+		/* v1.0.6: reorder URL no longer baked with ->csrf(). The CSRF token is
+		 * passed separately to the template and sent as a POST body parameter
+		 * by the JS - matching IPS's expected pattern for AJAX endpoints
+		 * (per gddealer/modules/admin/dealers/stockreplies.php pattern). */
 		$reorderUrl = (string) \IPS\Http\Url::internal(
 			'app=gdcatalog&module=catalog&controller=feeds&do=reorder'
-		)->csrf();
+		);
+
+		$csrfKey = \IPS\Session::i()->csrfKey;
 
 		Output::i()->title  = $lang->addToStack( 'gdcatalog_feeds_title' );
 		Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->feedList(
-			$feeds, $feedCounts, $addUrl, $reorderUrl
+			$feeds, $feedCounts, $addUrl, $reorderUrl, $csrfKey
 		);
 	}
 
@@ -269,6 +273,9 @@ class _feeds extends \IPS\Dispatcher\Controller
 
 	/**
 	 * Persist new priority order from drag-and-drop.
+	 *
+	 * v1.0.6: csrfCheck() now validates against the csrfKey POST body parameter
+	 * sent by feedSort.js (read from the table's data-csrf-key attribute).
 	 */
 	protected function reorder()
 	{

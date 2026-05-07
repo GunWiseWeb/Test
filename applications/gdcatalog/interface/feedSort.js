@@ -7,7 +7,7 @@
 	 * Loaded by modules/admin/catalog/feeds.php on the manage() action.
 	 *
 	 * Template provides:
-	 *   <table data-reorder-url="https://.../do=reorder&csrfKey=...">
+	 *   <table data-reorder-url="..." data-csrf-key="...">
 	 *     <tbody class="gdcatalog-sortable">
 	 *       <tr data-feed-id="1">...</tr>
 	 *       ...
@@ -21,7 +21,8 @@
 			return;
 		}
 
-		var url = table.getAttribute( 'data-reorder-url' );
+		var url      = table.getAttribute( 'data-reorder-url' );
+		var csrfKey  = table.getAttribute( 'data-csrf-key' ) || '';
 
 		jQuery( table ).find( 'tbody.gdcatalog-sortable' ).sortable( {
 			handle: '.gdcatalog-drag-handle',
@@ -48,11 +49,15 @@
 					method: 'POST',
 					data: {
 						ids: ids,
-						csrfKey: ( typeof ips !== 'undefined' && ips.utils && ips.utils.csrfKey ) ? ips.utils.csrfKey : ''
+						csrfKey: csrfKey
 					},
 					success: function()
 					{
 						window.location.reload();
+					},
+					error: function( xhr )
+					{
+						alert( 'Failed to save new order (HTTP ' + xhr.status + '). Refresh and try again.' );
 					}
 				} );
 			}
