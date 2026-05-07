@@ -38,10 +38,12 @@ class _feeds extends \IPS\Dispatcher\Controller
 	protected function manage()
 	{
 		/* v1.0.4: enqueue the drag-and-drop sortable JS file. Standalone JS avoids
-		 * IPS template interpolation eating $-prefixed JS variables. */
+		 * IPS template interpolation eating $-prefixed JS variables.
+		 * v1.0.5: switch from dev/js/admin/ (compile-required in production) to
+		 * interface/ (served directly without compilation). */
 		Output::i()->jsFiles = array_merge(
 			Output::i()->jsFiles,
-			Output::i()->js( 'admin/feedSort.js', 'gdcatalog', 'admin' )
+			Output::i()->js( 'feedSort.js', 'gdcatalog', 'interface' )
 		);
 
 		$rawFeeds = Distributor::loadAll();
