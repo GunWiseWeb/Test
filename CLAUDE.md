@@ -246,6 +246,73 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
 41. **Reactive UI on form fields = JavaScript inside the template** — IPS form helpers render server-side only. Don't try to make panels appear/disappear by re-fetching the page or by checking DB state at render — use a JS handler on the form input (e.g. `addEventListener('change', sync)` on radio buttons).
 42. **Test each upgrade on a clean checkout before tagging** — specifically: install the previous version, then run the new upgrade. Don't test by re-running the new install on a fresh DB — that path uses `setup/install.php`, not `upgrade.php`. The upgrade path is where all the regressions hide.
 
+## IPS 5.0.18 schema gotchas and runtime patterns (learned from gdcatalog v1.0.2–v1.0.6)
+43. **`core_sys_lang_words` schema is 6 columns only on IPS 5.0.18 — never include `word_default_version`, `word_custom`, or `word_is_custom`** — IPS 5.0.18 (Derrick's install) has only `lang_id`, `word_app`, `word_key`, `word_default`, `word_js`, `word_export`. Other column names from newer IPS docs (`word_default_version`, `word_custom`, `word_is_custom`) do NOT exist on this schema. Including them in `\IPS\Db::i()->replace( 'core_sys_lang_words', [...] )` throws `Unknown column` and aborts the entire seed loop, leaving the UI rendering raw lang keys. Verified working pattern (matches gddealer upg_10077, upg_10082, upg_10088, upg_10089, upg_10119):
+
+    ```php
+    foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+    {
+        foreach ( $newStrings as $key => $val )
+        {
+            try
+            {
+                \IPS\Db::i()->replace( 'core_sys_lang_words', [
+                    'lang_id'      => (int) $langId,
+                    'word_app'     => '<app>',
+                    'word_key'     => $key,
+                    'word_default' => $val,
+                    'word_js'      => 0,
+                    'word_export'  => 1,
+                ] );
+            }
+            catch ( \Throwable $e ) { /* per-row catch — see rule #44 */ }
+        }
+    }
+    ```
+
+44. **Bulk DB seed loops must wrap each row in its own `try/catch`, not the outer loop** — when seeding lang strings, templates, or any row-by-row data into IPS tables, putting a single `try/catch` around the entire `foreach` causes one bad row (encoding issue, length overflow, schema mismatch) to abort the entire loop. Subsequent rows never get inserted, leaving partial state. Always wrap the per-row `replace()`/`insert()` call in its own `try/catch ( \Throwable )` so one failure logs but doesn't poison the rest. The outer try/catch can wrap the SELECT that drives the loop.
+45. **`core_theme_templates` schema on IPS 5.0.18 — verified column list, no user_ columns** — running `DESCRIBE core_theme_templates` on IPS 5.0.18 returns these columns and ONLY these:
+
+    ```
+    template_id, template_set_id, template_group, template_content,
+    template_name, template_data, template_updated, template_master_key,
+    template_location, template_app, template_version, template_has_hookpoints
+    ```
+
+    Older IPS docs and AI training data may suggest `template_user_edited`, `template_user_created`, or `template_user_added` exist — they do NOT on 5.0.18. Including them in `\IPS\Db::i()->replace( 'core_theme_templates', [...] )` throws `Unknown column 'template_user_edited' in 'INSERT INTO'`. The catch returns `FALSE` from the upgrade step, IPS retries indefinitely, install hangs forever (gdcatalog v1.0.2 was lost to this exact bug). Always include `template_updated => time()` and `template_version => '<version>'` on reseed; never reference the user_* columns.
+46. **IPS template engine interpolates `$variable` tokens globally — never put `<script>` blocks with `$`-prefixed JS variables in templates** — IPS's template compiler does a global `$varname` substitution pass over the entire template body, including inside `<script>` tags. JS variables named `$originals`, `$helper`, `$this`, etc. get replaced with empty strings (since they don't exist in the template's argument list), producing broken JS like `var = tr.children();` (no variable name, syntax error). The error is silent on the server side but kills the entire script in the browser. Two solutions:
+    * Move the JS to a static file at `applications/<app>/interface/<file>.js` and enqueue from the controller via `\IPS\Output::i()->js( '<file>.js', '<app>', 'interface' )`. Static JS is NOT processed by the template engine. This is the IPS-native pattern.
+    * Avoid `$`-prefixed variable names entirely in any inline `<script>` (rename `$originals` to `originals`, etc.). Defensive but still fragile if anyone else edits the template.
+
+    Always prefer the static file approach for any non-trivial JS.
+47. **Plugin JS must live in `interface/`, not `dev/js/`, for production-mode serving** — `\IPS\Output::i()->js()` has three branches based on `$location` and `IN_DEV`:
+    * `'interface'` — serves the file directly from `applications/<app>/interface/<file>.js` via a versioned URL. Works in production AND dev mode. The right pattern for plugin JS.
+    * `'admin'` or `'global'` with `IN_DEV` true — serves from `dev/js/` for development.
+    * `'admin'` or `'global'` with `IN_DEV` false (production) — expects pre-compiled JS from the IPS dev build process. Returns an empty array if no compiled file exists, so `Output::i()->jsFiles = array_merge( ..., [] )` silently does nothing and the JS is never enqueued.
+
+    Plugins shipping JS without a build pipeline must use `interface/`. Never put plugin JS in `dev/js/admin/` and expect it to load on production installs.
+48. **AJAX CSRF — use `\IPS\Session::i()->csrfKey` via data attribute, not `->csrf()` URL-baking** — IPS URL helpers like `\IPS\Http\Url::internal( '...' )->csrf()` bake a CSRF token tied to the request context that generated it. When `manage()` (a GET request) bakes CSRF into a URL intended for an AJAX POST endpoint, the resulting POST hits IPS's `csrfCheck()` which validates POST-context CSRF and rejects the GET-baked token with `403 Forbidden`. Working pattern (verified in `gddealer/modules/admin/dealers/stockreplies.php` line 227):
+    1. Controller passes `\IPS\Session::i()->csrfKey` to template as a separate scalar argument
+    2. Template renders it as `data-csrf-key='{$csrfKey}'` on the relevant element (table, form, button)
+    3. JS reads the attribute and sends as POST body parameter `csrfKey`
+    4. The AJAX endpoint URL is generated WITHOUT `->csrf()` — just the plain internal URL
+    5. The AJAX endpoint's controller method calls `\IPS\Session::i()->csrfCheck()` as normal — it validates against the POST body parameter
+
+    Never use `->csrf()` for URLs intended to receive AJAX POST requests.
+49. **Tar build commands must use explicit `--exclude` flags for defense-in-depth** — listing only the includes (e.g. `tar -cf foo.tar Application.php data dev modules ...`) implicitly excludes everything not listed, but is fragile: if someone later adds `tests` or `node_modules` to the include list, non-production code starts shipping. Every tar build command must include explicit excludes:
+
+    ```bash
+    tar -cf <app>-v<ver>.tar \
+      --exclude='<app>-v*.tar' \
+      --exclude='_design' \
+      --exclude='tests' \
+      --exclude='node_modules' \
+      --exclude='.git' \
+      Application.php data dev index.html [interface] modules setup sources tasks
+    ```
+
+    Add `interface` to the include list for any plugin shipping static JS/CSS via the `interface/` path (rule #47). The recursive tar pattern (`<app>-v*.tar`) prevents prior tarballs from being included in new ones.
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38
