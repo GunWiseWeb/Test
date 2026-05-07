@@ -3,9 +3,8 @@
  * GD Master Catalog — Feeds Controller (admin/catalog/feeds)
  *
  * v1.0.2: adds add(), delete(), reorder() actions for distributor management.
- * Existing manage() and edit() methods are unchanged in behavior; manage()
- * is updated to pass the new $addUrl and $reorderUrl template arguments and
- * to include $feed['id'] and $feed['delete_url'] per row.
+ * v1.0.4: enqueue dev/js/admin/feedSort.js in manage() so drag-and-drop works
+ *         (previous inline script was being eaten by IPS template interpolation).
  */
 
 namespace IPS\gdcatalog\modules\admin\catalog;
@@ -38,6 +37,13 @@ class _feeds extends \IPS\Dispatcher\Controller
 	 */
 	protected function manage()
 	{
+		/* v1.0.4: enqueue the drag-and-drop sortable JS file. Standalone JS avoids
+		 * IPS template interpolation eating $-prefixed JS variables. */
+		Output::i()->jsFiles = array_merge(
+			Output::i()->jsFiles,
+			Output::i()->js( 'admin/feedSort.js', 'gdcatalog', 'admin' )
+		);
+
 		$rawFeeds = Distributor::loadAll();
 		$lang     = \IPS\Member::loggedIn()->language();
 
@@ -132,7 +138,6 @@ class _feeds extends \IPS\Dispatcher\Controller
 			$label     = trim( $values['gdcatalog_feed_distributor_label'] );
 			$position  = (int) $values['gdcatalog_feed_priority_position'];
 
-			/* Reject duplicate slugs */
 			$existing = \IPS\Db::i()->select( 'COUNT(*)', 'gd_distributor_feeds', [ 'distributor=?', $slug ] )->first();
 			if ( $existing > 0 )
 			{
@@ -141,14 +146,11 @@ class _feeds extends \IPS\Dispatcher\Controller
 				return;
 			}
 
-			/* Shift existing distributors with priority >= position to make room.
-			 * Use update() with a parameterized condition so the value is bound, not interpolated. */
 			\IPS\Db::i()->update( 'gd_distributor_feeds',
 				'priority = priority + 1',
 				[ 'priority >= ?', $position ]
 			);
 
-			/* Insert the new distributor */
 			\IPS\Db::i()->insert( 'gd_distributor_feeds', [
 				'feed_name'       => $feedName,
 				'distributor'     => $slug,
@@ -160,12 +162,11 @@ class _feeds extends \IPS\Dispatcher\Controller
 				'active'          => 0,
 			] );
 
-			/* Add the language string for this slug to lang.xml-equivalent runtime store */
 			try
 			{
 				\IPS\Lang::saveCustom( 'gdcatalog', 'gdcatalog_dist_' . $slug, $label );
 			}
-			catch ( \Throwable ) { /* Lang::saveCustom may not exist on all IPS versions; non-fatal */ }
+			catch ( \Throwable ) {}
 
 			Output::i()->redirect(
 				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
@@ -178,13 +179,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 	}
 
 	/**
-	 * Delete a distributor feed.
-	 *
-	 * Cascade: deletes related rows from gd_feed_conflicts, gd_field_locks,
-	 * gd_compliance_flags, gd_import_log. Then for each gd_catalog product
-	 * that listed this distributor in distributor_sources, removes the slug,
-	 * reassigns primary_source to next-highest-priority remaining distributor,
-	 * and marks record_status = 'admin_review' for visibility.
+	 * Delete a distributor feed with cascade.
 	 */
 	protected function delete()
 	{
@@ -194,13 +189,11 @@ class _feeds extends \IPS\Dispatcher\Controller
 		$feed = Distributor::load( $id );
 		$slug = $feed->distributor;
 
-		/* 1. Cascade delete history tables */
 		try { \IPS\Db::i()->delete( 'gd_feed_conflicts', [ 'distributor_id=?', $id ] ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->delete( 'gd_field_locks', [ 'locked_distributor_id=?', $id ] ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->delete( 'gd_compliance_flags', [ 'distributor_id=?', $id ] ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->delete( 'gd_import_log', [ 'feed_id=?', $id ] ); } catch ( \Throwable ) {}
 
-		/* 2. Reassign affected catalog products */
 		$affectedProducts = \IPS\Db::i()->select( '*', 'gd_catalog', [
 			"FIND_IN_SET(?, distributor_sources) > 0", $slug
 		] );
@@ -211,7 +204,6 @@ class _feeds extends \IPS\Dispatcher\Controller
 			try
 			{
 				$product = Product::constructFromData( $row );
-
 				$product->removeDistributorSource( $slug );
 
 				if ( $product->primary_source === $slug )
@@ -219,7 +211,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 					$remainingSources = $product->getDistributorSources();
 					if ( !empty( $remainingSources ) )
 					{
-						$nextPrimary = NULL;
+						$nextPrimary  = NULL;
 						$bestPriority = PHP_INT_MAX;
 						foreach ( $remainingSources as $remainingSlug )
 						{
@@ -232,7 +224,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 									$nextPrimary  = $remainingSlug;
 								}
 							}
-							catch ( \Throwable ) { /* feed may not exist; skip */ }
+							catch ( \Throwable ) {}
 						}
 						$product->primary_source = $nextPrimary ?? '';
 					}
@@ -252,10 +244,8 @@ class _feeds extends \IPS\Dispatcher\Controller
 			}
 		}
 
-		/* 3. Delete the distributor row itself */
 		\IPS\Db::i()->delete( 'gd_distributor_feeds', [ 'id=?', $id ] );
 
-		/* 4. Resequence remaining priorities to close the gap */
 		$remaining = iterator_to_array( \IPS\Db::i()->select( 'id, priority', 'gd_distributor_feeds', NULL, 'priority ASC' ) );
 		$newPriority = 1;
 		foreach ( $remaining as $row )
@@ -277,9 +267,6 @@ class _feeds extends \IPS\Dispatcher\Controller
 
 	/**
 	 * Persist new priority order from drag-and-drop.
-	 *
-	 * Accepts POST 'ids' as an array of distributor IDs in the new desired order.
-	 * Updates each distributor's priority to its position in the array (1-indexed).
 	 */
 	protected function reorder()
 	{
