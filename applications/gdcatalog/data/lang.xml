@@ -146,5 +146,19 @@
     <word key="gdcatalog_product_nfa_item"><![CDATA[NFA Item]]></word>
     <word key="gdcatalog_product_requires_ffl"><![CDATA[Requires FFL]]></word>
     <word key="gdcatalog_product_is_ammo"><![CDATA[Is Ammunition]]></word>
+    <!-- v1.0.2: Add/delete/reorder distributor strings -->
+    <word key="gdcatalog_feed_add" js="0"><![CDATA[Add Distributor]]></word>
+    <word key="gdcatalog_feed_priority" js="0"><![CDATA[Priority]]></word>
+    <word key="gdcatalog_feed_priority_position" js="0"><![CDATA[Priority Position]]></word>
+    <word key="gdcatalog_feed_distributor_slug" js="0"><![CDATA[Distributor Slug]]></word>
+    <word key="gdcatalog_feed_distributor_label" js="0"><![CDATA[Distributor Display Name]]></word>
+    <word key="gdcatalog_feed_added" js="0"><![CDATA[Distributor added. Configure feed URL and credentials, then activate.]]></word>
+    <word key="gdcatalog_feed_deleted" js="0"><![CDATA[Distributor deleted.]]></word>
+    <word key="gdcatalog_feed_deleted_with_reassign" js="0"><![CDATA[Distributor deleted. %s catalog products reassigned and flagged for admin review.]]></word>
+    <word key="gdcatalog_feed_delete_confirm" js="0"><![CDATA[Delete this distributor? Cascade: all conflict logs, locks, compliance flags, and import history will be removed. Catalog products using this distributor as primary source will be reassigned and flagged for admin review.]]></word>
+    <word key="gdcatalog_feed_slug_duplicate" js="0"><![CDATA[A distributor with this slug already exists. Choose a unique slug.]]></word>
+    <word key="gdcatalog_drag_to_reorder" js="0"><![CDATA[Drag to reorder priority]]></word>
+    <word key="gdcatalog_btn_edit" js="0"><![CDATA[Edit]]></word>
+    <word key="gdcatalog_btn_delete" js="0"><![CDATA[Delete]]></word>
   </app>
 </language>
