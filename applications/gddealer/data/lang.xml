@@ -482,5 +482,7 @@
     <word key="gddealer_plan_founding_sync_label"><![CDATA[Sync Frequency Label]]></word>
     <word key="gddealer_plan_founding_features"><![CDATA[Features (one per line, basic HTML allowed)]]></word>
     <word key="gddealer_plan_founding_color"><![CDATA[Accent Color]]></word>
+    <!-- v1.0.177: My Dealers profile tab -->
+    <word key="core_profile_mydealers"><![CDATA[My Dealers]]></word>
   </app>
 </language>
