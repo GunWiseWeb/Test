@@ -452,5 +452,35 @@
     <word key="gddealer_front_feed_upload_save"><![CDATA[Upload]]></word>
     <word key="gddealer_front_feed_file"><![CDATA[Feed file (CSV, XML, or JSON)]]></word>
     <word key="gddealer_front_feed_file_desc"><![CDATA[Maximum 50 MB. Allowed: .csv, .tsv, .xml, .json, .txt]]></word>
+    <!-- v1.0.174: Subscription Plans admin editor -->
+    <word key="menu__gddealer_dealers_plans"><![CDATA[Subscription Plans]]></word>
+    <word key="gddealer_plan_section_basic"><![CDATA[Basic Plan]]></word>
+    <word key="gddealer_plan_section_pro"><![CDATA[Pro Plan]]></word>
+    <word key="gddealer_plan_section_enterprise"><![CDATA[Enterprise Plan]]></word>
+    <word key="gddealer_plan_section_founding"><![CDATA[Founding Plan (info display only)]]></word>
+    <word key="gddealer_plan_basic_name"><![CDATA[Display Name]]></word>
+    <word key="gddealer_plan_basic_price"><![CDATA[Price Display]]></word>
+    <word key="gddealer_plan_basic_tagline"><![CDATA[Audience Tagline]]></word>
+    <word key="gddealer_plan_basic_sync_label"><![CDATA[Sync Frequency Label]]></word>
+    <word key="gddealer_plan_basic_features"><![CDATA[Features (one per line, basic HTML allowed)]]></word>
+    <word key="gddealer_plan_basic_color"><![CDATA[Accent Color]]></word>
+    <word key="gddealer_plan_pro_name"><![CDATA[Display Name]]></word>
+    <word key="gddealer_plan_pro_price"><![CDATA[Price Display]]></word>
+    <word key="gddealer_plan_pro_tagline"><![CDATA[Audience Tagline]]></word>
+    <word key="gddealer_plan_pro_sync_label"><![CDATA[Sync Frequency Label]]></word>
+    <word key="gddealer_plan_pro_features"><![CDATA[Features (one per line, basic HTML allowed)]]></word>
+    <word key="gddealer_plan_pro_color"><![CDATA[Accent Color]]></word>
+    <word key="gddealer_plan_enterprise_name"><![CDATA[Display Name]]></word>
+    <word key="gddealer_plan_enterprise_price"><![CDATA[Price Display]]></word>
+    <word key="gddealer_plan_enterprise_tagline"><![CDATA[Audience Tagline]]></word>
+    <word key="gddealer_plan_enterprise_sync_label"><![CDATA[Sync Frequency Label]]></word>
+    <word key="gddealer_plan_enterprise_features"><![CDATA[Features (one per line, basic HTML allowed)]]></word>
+    <word key="gddealer_plan_enterprise_color"><![CDATA[Accent Color]]></word>
+    <word key="gddealer_plan_founding_name"><![CDATA[Display Name]]></word>
+    <word key="gddealer_plan_founding_price"><![CDATA[Price Display]]></word>
+    <word key="gddealer_plan_founding_tagline"><![CDATA[Audience Tagline]]></word>
+    <word key="gddealer_plan_founding_sync_label"><![CDATA[Sync Frequency Label]]></word>
+    <word key="gddealer_plan_founding_features"><![CDATA[Features (one per line, basic HTML allowed)]]></word>
+    <word key="gddealer_plan_founding_color"><![CDATA[Accent Color]]></word>
   </app>
 </language>

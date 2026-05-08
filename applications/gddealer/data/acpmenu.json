@@ -77,6 +77,12 @@
 			"controller": "settings",
 			"do": "",
 			"restriction": "dealer_manage"
+		},
+		"plans": {
+			"tab": "gddealer",
+			"controller": "plans",
+			"do": "",
+			"restriction": "dealer_manage"
 		}
 	}
 }

@@ -119,5 +119,9 @@
 	{ "key": "gddealer_basic_badge_color", "default": "#6b7280" },
 	{ "key": "gddealer_pro_badge_color", "default": "#2563eb" },
 	{ "key": "gddealer_enterprise_badge_color", "default": "#7c3aed" },
-	{ "key": "gddealer_quicklinks", "default": "" }
+	{ "key": "gddealer_quicklinks", "default": "" },
+	{ "key": "gddealer_plan_basic_json", "default": "" },
+	{ "key": "gddealer_plan_pro_json", "default": "" },
+	{ "key": "gddealer_plan_enterprise_json", "default": "" },
+	{ "key": "gddealer_plan_founding_json", "default": "" }
 ]
