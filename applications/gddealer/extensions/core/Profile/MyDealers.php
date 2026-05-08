@@ -3,16 +3,21 @@
  * @brief       Profile extension: My Dealers (followed dealers list)
  * @package     IPS Community Suite
  * @subpackage  GD Dealer Manager
- * @since       v1.0.177
+ * @since       v1.0.177 (margin + structure refined in v1.0.178)
  *
  * Adds a "My Dealers" tab to public IPS member profiles. The tab is
  * only shown if the member follows at least one dealer. Lists each
- * followed dealer with their profile link, tier badge, and unfollow
- * button.
+ * followed dealer with their profile link, tier badge, and follow date.
  *
  * Follow data lives in core_follow with follow_app='gddealer' and
  * follow_area='dealer'. Joined with gd_dealer_feed_config for dealer
  * metadata.
+ *
+ * v1.0.178 changes:
+ *   - Outer wrapper now has padding:16px 20px; max-width:1100px; margin:0 auto
+ *     so the tab content has breathing room (was edge-hugging in v1.0.177)
+ *   - Lang key corrected from core_profile_mydealers to profile_gddealer_MyDealers
+ *     (the actual key format IPS 5.0.18 uses for Profile extension tabs)
  */
 
 namespace IPS\gddealer\extensions\core\Profile;
@@ -87,13 +92,13 @@ class MyDealers extends \IPS\Extensions\ProfileAbstract
 		catch ( \Throwable $e )
 		{
 			try { \IPS\Log::log( 'MyDealers profile tab query failed: ' . $e->getMessage(), 'gddealer_profile_mydealers' ); } catch ( \Throwable ) {}
-			return '<div style="padding:24px;text-align:center;color:#888">Unable to load followed dealers.</div>';
+			return '<div style="padding:24px 20px;text-align:center;color:#888">Unable to load followed dealers.</div>';
 		}
 
 		if ( empty( $rows ) )
 		{
 			$dirUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=directory', 'front', 'dealers_directory' );
-			return '<div style="padding:32px 24px;text-align:center;color:#666">'
+			return '<div style="padding:32px 20px;text-align:center;color:#666">'
 			     . '<p style="margin:0 0 12px;font-size:1.05em">You\'re not following any dealers yet.</p>'
 			     . '<a href="' . htmlspecialchars( $dirUrl, ENT_QUOTES, 'UTF-8' ) . '" style="color:#2563eb;font-weight:600">Browse the dealer directory</a>'
 			     . '</div>';
@@ -160,7 +165,10 @@ class MyDealers extends \IPS\Extensions\ProfileAbstract
 
 		$count = count( $rows );
 
-		return '<div style="padding:8px 0">'
+		/* v1.0.178: outer wrapper has horizontal padding + max-width so the
+		 * tab content has breathing room and doesn't stretch awkwardly on
+		 * wide screens. */
+		return '<div style="padding:16px 20px;max-width:1100px;margin:0 auto">'
 		     .   '<div style="margin-bottom:16px;font-size:0.9em;color:#64748b">Following ' . $count . ' dealer' . ( $count === 1 ? '' : 's' ) . '</div>'
 		     .   '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">'
 		     .     $cards
