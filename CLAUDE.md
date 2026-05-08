@@ -313,6 +313,67 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
 
     Add `interface` to the include list for any plugin shipping static JS/CSS via the `interface/` path (rule #47). The recursive tar pattern (`<app>-v*.tar`) prevents prior tarballs from being included in new ones.
 
+50. **`data/versions.json` structure (CRITICAL — IPS 5.0.18)** — IPS 5.0.18's app installer reads `data/versions.json` with this expected shape: keys are integer-as-string (e.g. `"10179"`), values are human version string (e.g. `"1.0.179"`). Wrong shape (do NOT use): `{"1.0.179": 10179}`. Right shape (always use): `{"10179": "1.0.179"}`.
+
+    The wrong shape causes IPS's `array_keys()` / `array_values()` calls in `system/Application/Application.php` (around line 2092) to return the inverse of what IPS expects:
+
+    ```php
+    $longVersions  = array_keys( $versions );    // expects [10000, 10001, ...]
+    $humanVersions = array_values( $versions );  // expects ["1.0.0", "1.0.1", ...]
+    $latestL = array_pop( $longVersions );
+    $latestH = array_pop( $humanVersions );
+    \IPS\Db::i()->update( 'core_applications', [
+        'app_version'      => $latestH,
+        'app_long_version' => $latestL,
+    ] );
+    ```
+
+    With the wrong shape, IPS writes:
+    - `app_version` (VARCHAR) gets the int → stored as string of digits
+    - `app_long_version` (INT) gets the human string → MySQL truncates → garbage values like 10 or 1
+
+    Result: IPS thinks the app is at an old version and re-runs all historical upgrade scripts on every install. Logs fill with "duplicate column" / "table exists" errors from idempotent migrations re-running.
+
+    Verified against IPS's own apps:
+    - `applications/forums/data/versions.json`: `{"5001800": "5.0.18"}`
+    - `applications/core/data/versions.json`: `{"105013": "4.5.0 Beta 1"}`
+
+    When appending a new version to `versions.json`, always use:
+
+    ```json
+    "10180": "1.0.180"
+    ```
+
+    NOT:
+
+    ```json
+    "1.0.180": 10180
+    ```
+
+    Applies to both `gddealer` and `gdcatalog`. gddealer was corrected in v1.0.179. gdcatalog still has the wrong structure as of this writing — needs a parallel fix when convenient.
+
+51. **`upgrade.php` runs BEFORE IPS writes the new version row** — IPS runs `setup/upg_10X/upgrade.php` BEFORE updating `core_applications.app_long_version` and `app_version`. The version row update happens AFTER all upgrade scripts complete. This means if `upgrade.php` reads `app_long_version` during its `step1()` execution, it sees the PRE-upgrade value (the version of the previously-installed tarball), NOT the new version being installed.
+
+    Practical consequence: don't write upgrade.php sanity checks comparing against the version being installed. They'll always log a false-positive "below expected version" warning. Example bug from v1.0.179's upgrade.php:
+
+    ```php
+    /* Inside upg_10179/upgrade.php */
+    $longVer = (int) $row['app_long_version'];
+    if ( $longVer < 10179 )
+    {
+        \IPS\Log::log( 'WARNING: app_long_version below 10179', 'gddealer_upg_10179' );
+    }
+    /* This warning fires every time, because $longVer is still 10178 here.
+     * IPS hasn't updated the row to 10179 yet — it does that AFTER step1() returns. */
+    ```
+
+    Solutions:
+    - Compare against the PREVIOUS version, not the current ("should be at least 10178" for upg_10179)
+    - Move version-related sanity checks to a later trigger (post-install hook, application boot logic, or a scheduled task)
+    - Skip the check entirely if it's just defensive logging
+
+    For genuine post-install verification, the better pattern is: after running the install in ACP, manually run `SELECT app_long_version FROM core_applications WHERE app_directory='X'` to confirm the version stuck.
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38
