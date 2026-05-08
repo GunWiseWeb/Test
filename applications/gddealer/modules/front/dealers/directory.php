@@ -102,12 +102,24 @@ class _directory extends \IPS\Dispatcher\Controller
 				$avg = round( (float) $row['avg_overall'], 1 );
 				$ipsMember = \IPS\Member::load( (int) $row['dealer_id'] );
 
-				$tierColor = match( $row['subscription_tier'] ) {
-					'founding'   => (string) ( \IPS\Settings::i()->gddealer_founding_badge_color   ?: '#b45309' ),
-					'pro'        => (string) ( \IPS\Settings::i()->gddealer_pro_badge_color        ?: '#2563eb' ),
-					'enterprise' => (string) ( \IPS\Settings::i()->gddealer_enterprise_badge_color ?: '#7c3aed' ),
-					default      => (string) ( \IPS\Settings::i()->gddealer_basic_badge_color      ?: '#6b7280' ),
-				};
+				$isFoundingMember = !empty( $row['is_founding_member'] );
+				if ( $isFoundingMember )
+				{
+					$tierColor = (string) ( \IPS\Settings::i()->gddealer_founding_badge_color ?: '#b45309' );
+					$tierLabel = 'Founder';
+					$tierKey   = 'founding';
+				}
+				else
+				{
+					$tierColor = match( $row['subscription_tier'] ) {
+						'founding'   => (string) ( \IPS\Settings::i()->gddealer_founding_badge_color   ?: '#b45309' ),
+						'pro'        => (string) ( \IPS\Settings::i()->gddealer_pro_badge_color        ?: '#2563eb' ),
+						'enterprise' => (string) ( \IPS\Settings::i()->gddealer_enterprise_badge_color ?: '#7c3aed' ),
+						default      => (string) ( \IPS\Settings::i()->gddealer_basic_badge_color      ?: '#6b7280' ),
+					};
+					$tierLabel = ucfirst( (string) $row['subscription_tier'] );
+					$tierKey   = (string) $row['subscription_tier'];
+				}
 
 				$ratingColor = match( true ) {
 					$avg >= 4.0 => '#16a34a',
@@ -133,9 +145,10 @@ class _directory extends \IPS\Dispatcher\Controller
 					'dealer_id'     => (int) $row['dealer_id'],
 					'dealer_name'   => (string) $row['dealer_name'],
 					'dealer_slug'   => (string) $row['dealer_slug'],
-					'tier'          => (string) $row['subscription_tier'],
-					'tier_label'    => ucfirst( (string) $row['subscription_tier'] ),
+					'tier'          => $tierKey,
+					'tier_label'    => $tierLabel,
 					'tier_color'    => $tierColor,
+					'is_founding'   => $isFoundingMember,
 					'avatar'        => (string) ( $ipsMember->get_photo( true, false ) ?? '' ),
 					'listing_count' => (int) $row['listing_count'],
 					'total_reviews' => (int) $row['total_reviews'],

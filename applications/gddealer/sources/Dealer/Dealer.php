@@ -43,11 +43,40 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 
 	/** Scheduling per tier — used by DealerImportFeeds task */
 	public static array $tierSchedules = [
-		'basic'      => '6hr',
-		'pro'        => '30min',
-		'enterprise' => '15min',
-		'founding'   => '6hr',
+		'basic'      => '24hr',
+		'pro'        => '6hr',
+		'enterprise' => '1hr',
+		'founding'   => '1hr',
 	];
+
+	/**
+	 * Get the effective import schedule for this dealer. Founding members
+	 * get 1hr sync regardless of their current subscription_tier. All others
+	 * get their tier's normal schedule from $tierSchedules.
+	 */
+	public function getEffectiveImportSchedule(): string
+	{
+		if ( !empty( $this->is_founding_member ) )
+		{
+			return '1hr';
+		}
+		$tier = (string) ( $this->subscription_tier ?? 'basic' );
+		return self::$tierSchedules[ $tier ] ?? '24hr';
+	}
+
+	/**
+	 * Get the display badge label for this dealer. Founding members show
+	 * 'Founder' regardless of subscription_tier. Otherwise show ucfirst of
+	 * the tier name (e.g. 'Pro', 'Enterprise', 'Basic').
+	 */
+	public function getBadgeLabel(): string
+	{
+		if ( !empty( $this->is_founding_member ) )
+		{
+			return 'Founder';
+		}
+		return ucfirst( (string) ( $this->subscription_tier ?? 'basic' ) );
+	}
 
 	/** Monthly prices for MRR calculation */
 	public static array $tierMrr = [
