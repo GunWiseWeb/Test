@@ -1465,9 +1465,31 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		$dashboardIsFoundingMember = !empty( $dealer->is_founding_member );
 		$dashboardTierLabel        = $dashboardIsFoundingMember ? 'Founder' : ucfirst( (string) $dealer->subscription_tier );
 		$dashboardTierKey          = $dashboardIsFoundingMember ? 'founding' : (string) $dealer->subscription_tier;
+
+		/* v1.0.175: load all plan data + populate sync_label from active plan.
+		 * Falls back gracefully if plans helper unavailable (defensive). */
+		$plans     = [];
+		$syncLabel = '';
+		try
+		{
+			$plans = \IPS\gddealer\modules\admin\dealers\plans::getAllPlans();
+			$activePlanKey = $dashboardIsFoundingMember ? 'founding' : (string) $dealer->subscription_tier;
+			if ( isset( $plans[ $activePlanKey ]['sync_label'] ) )
+			{
+				$syncLabel = (string) $plans[ $activePlanKey ]['sync_label'];
+			}
+		}
+		catch ( \Throwable )
+		{
+			/* If the plans helper isn't loadable, fall back so the page still renders.
+			 * The template has fallback text in case $plans is empty. */
+		}
+
 		$sub = [
 			'tier'                    => $dashboardTierKey,
 			'tier_label'              => $dashboardTierLabel,
+			'is_founding'             => $dashboardIsFoundingMember,
+			'sync_label'              => $syncLabel ?: '—',
 			'mrr'                     => '$' . number_format( $dealer->mrrContribution(), 2 ),
 			'active'                  => (bool) $dealer->active,
 			'suspended'               => (bool) $dealer->suspended,
@@ -1484,7 +1506,8 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			$this->dealerSummary(),
 			$sub,
 			$billingNote,
-			$this->tabUrls()
+			$this->tabUrls(),
+			$plans
 		) );
 	}
 
