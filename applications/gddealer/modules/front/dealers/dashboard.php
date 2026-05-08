@@ -1462,9 +1462,12 @@ class _dashboard extends \IPS\Dispatcher\Controller
 
 		$subscribeUrl = (string) ( \IPS\Settings::i()->gddealer_subscribe_url ?? '' );
 
+		$dashboardIsFoundingMember = !empty( $dealer->is_founding_member );
+		$dashboardTierLabel        = $dashboardIsFoundingMember ? 'Founder' : ucfirst( (string) $dealer->subscription_tier );
+		$dashboardTierKey          = $dashboardIsFoundingMember ? 'founding' : (string) $dealer->subscription_tier;
 		$sub = [
-			'tier'                    => (string) $dealer->subscription_tier,
-			'tier_label'              => ucfirst( (string) $dealer->subscription_tier ),
+			'tier'                    => $dashboardTierKey,
+			'tier_label'              => $dashboardTierLabel,
 			'mrr'                     => '$' . number_format( $dealer->mrrContribution(), 2 ),
 			'active'                  => (bool) $dealer->active,
 			'suspended'               => (bool) $dealer->suspended,

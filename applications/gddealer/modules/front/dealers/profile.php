@@ -621,19 +621,28 @@ class _profile extends \IPS\Dispatcher\Controller
 		{
 			$tier = 'basic';
 		}
-		$tierLabel = match( $tier )
+		$isFoundingMember = !empty( $dealerRow['is_founding_member'] );
+		if ( $isFoundingMember )
 		{
-			'founding'   => 'Founding Dealer',
-			'pro'        => 'Pro Dealer',
-			'enterprise' => 'Enterprise Dealer',
-			default      => 'Basic Dealer',
-		};
-		$tierColor = match( $tier ) {
-			'founding'   => (string) ( \IPS\Settings::i()->gddealer_founding_badge_color   ?: '#b45309' ),
-			'pro'        => (string) ( \IPS\Settings::i()->gddealer_pro_badge_color        ?: '#2563eb' ),
-			'enterprise' => (string) ( \IPS\Settings::i()->gddealer_enterprise_badge_color ?: '#7c3aed' ),
-			default      => (string) ( \IPS\Settings::i()->gddealer_basic_badge_color      ?: '#6b7280' ),
-		};
+			$tierLabel = 'Founder';
+			$tierColor = (string) ( \IPS\Settings::i()->gddealer_founding_badge_color ?: '#b45309' );
+		}
+		else
+		{
+			$tierLabel = match( $tier )
+			{
+				'founding'   => 'Founding Dealer',
+				'pro'        => 'Pro Dealer',
+				'enterprise' => 'Enterprise Dealer',
+				default      => 'Basic Dealer',
+			};
+			$tierColor = match( $tier ) {
+				'founding'   => (string) ( \IPS\Settings::i()->gddealer_founding_badge_color   ?: '#b45309' ),
+				'pro'        => (string) ( \IPS\Settings::i()->gddealer_pro_badge_color        ?: '#2563eb' ),
+				'enterprise' => (string) ( \IPS\Settings::i()->gddealer_enterprise_badge_color ?: '#7c3aed' ),
+				default      => (string) ( \IPS\Settings::i()->gddealer_basic_badge_color      ?: '#6b7280' ),
+			};
+		}
 
 		$contactEmail = '';
 		try
