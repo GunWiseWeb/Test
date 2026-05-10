@@ -418,6 +418,194 @@ class _feeds extends \IPS\Dispatcher\Controller
 	}
 
 	/**
+	 * v1.0.11: Refresh Sports South lookup tables (brands, categories).
+	 * Stores results in gd_sportssouth_brands and gd_sportssouth_categories
+	 * for the Importer to use during enrichment.
+	 */
+	protected function refreshLookups()
+	{
+		try
+		{
+			$id = (int) \IPS\Request::i()->id;
+			if ( $id <= 0 )
+			{
+				throw new \RuntimeException( 'Missing distributor feed ID' );
+			}
+
+			$feed = \IPS\gdcatalog\Feed\Distributor::load( $id );
+
+			if ( $feed->auth_type !== 'sportssouth' )
+			{
+				throw new \RuntimeException(
+					'Refresh Lookups is only available for Sports South feeds. This feed has auth_type=' . (string) $feed->auth_type
+				);
+			}
+
+			$client = \IPS\gdcatalog\Feed\Distributor\SportsSouthClient::fromDistributor( $feed );
+
+			$credErrors = $client->validate();
+			if ( !empty( $credErrors ) )
+			{
+				throw new \RuntimeException( 'Credential validation failed: ' . implode( '; ', $credErrors ) );
+			}
+
+			$now = time();
+			$brandStats = $this->processBrandLookup( $client, $now );
+			$categoryStats = $this->processCategoryLookup( $client, $now );
+
+			$backUrl = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+
+			$html  = '<div style="padding:16px 20px;max-width:1100px;margin:0 auto">';
+			$html .= '<h2 style="margin:0 0 16px">Sports South Lookup Refresh</h2>';
+			$html .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;padding:12px 16px;border-radius:8px;margin-bottom:16px">';
+			$html .= '<strong>Lookups refreshed</strong><br>';
+			$html .= 'Brands: ' . (int) $brandStats['count'] . ' synced (' . (int) $brandStats['elapsed_ms'] . 'ms)<br>';
+			$html .= 'Categories: ' . (int) $categoryStats['count'] . ' synced (' . (int) $categoryStats['elapsed_ms'] . 'ms)';
+			$html .= '</div>';
+
+			$html .= '<h3 style="margin:20px 0 8px">Sample Brand Field Keys</h3>';
+			$html .= '<pre style="background:#1f2937;color:#f3f4f6;padding:12px;border-radius:8px;overflow-x:auto;font-size:0.85em">';
+			$html .= htmlspecialchars( implode( ', ', $brandStats['sample_keys'] ?? [] ), ENT_QUOTES, 'UTF-8' );
+			$html .= '</pre>';
+
+			$html .= '<h3 style="margin:20px 0 8px">Sample Category Field Keys</h3>';
+			$html .= '<pre style="background:#1f2937;color:#f3f4f6;padding:12px;border-radius:8px;overflow-x:auto;font-size:0.85em">';
+			$html .= htmlspecialchars( implode( ', ', $categoryStats['sample_keys'] ?? [] ), ENT_QUOTES, 'UTF-8' );
+			$html .= '</pre>';
+
+			$html .= '<div style="margin-top:16px"><a href="' . htmlspecialchars( $backUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton_normal">Back to feeds</a></div>';
+			$html .= '</div>';
+
+			try { \IPS\Log::log( sprintf( 'Sports South refreshLookups: brands=%d categories=%d', $brandStats['count'], $categoryStats['count'] ), 'gdcatalog_sportssouth_lookups' ); } catch ( \Throwable ) {}
+
+			\IPS\Output::i()->title  = 'Sports South Lookup Refresh';
+			\IPS\Output::i()->output = $html;
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'Sports South refreshLookups FAILED: ' . $e->getMessage(), 'gdcatalog_sportssouth_lookups' ); } catch ( \Throwable ) {}
+
+			$backUrl = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+			$html  = '<div style="padding:16px 20px;max-width:1100px;margin:0 auto">';
+			$html .= '<h2 style="margin:0 0 16px">Sports South Lookup Refresh</h2>';
+			$html .= '<div style="background:#fee2e2;border:1px solid #fca5a5;color:#7f1d1d;padding:12px 16px;border-radius:8px;margin-bottom:16px">';
+			$html .= '<strong>Lookup refresh failed</strong><br>';
+			$html .= htmlspecialchars( $e->getMessage(), ENT_QUOTES, 'UTF-8' );
+			$html .= '</div>';
+			$html .= '<div style="margin-top:16px"><a href="' . htmlspecialchars( $backUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton_normal">Back to feeds</a></div>';
+			$html .= '</div>';
+
+			\IPS\Output::i()->title  = 'Lookup Refresh - Failed';
+			\IPS\Output::i()->output = $html;
+		}
+	}
+
+	/**
+	 * v1.0.11 helper: Process brand lookup from Sports South API.
+	 */
+	protected function processBrandLookup( \IPS\gdcatalog\Feed\Distributor\SportsSouthClient $client, int $syncedAt ): array
+	{
+		$start = microtime( true );
+		$rows = $client->brandUpdate();
+		$elapsed = round( ( microtime( true ) - $start ) * 1000 );
+
+		$sampleKeys = !empty( $rows ) ? array_keys( $rows[0] ) : [];
+		$count = 0;
+
+		foreach ( $rows as $row )
+		{
+			/* Resilient against actual field shape - try BRDNO then any key
+			 * containing 'NO', and BRDNAM then any key containing 'NAM'/'NAME'/'DESC'. */
+			$brdno = (string) ( $row['BRDNO'] ?? '' );
+			$brdnam = (string) ( $row['BRDNAM'] ?? $row['BRDNAME'] ?? $row['BRDDESC'] ?? '' );
+
+			if ( $brdno === '' )
+			{
+				/* Try a fallback by scanning keys */
+				foreach ( $row as $k => $v )
+				{
+					if ( stripos( $k, 'NO' ) !== false && is_numeric( $v ) )
+					{
+						$brdno = (string) $v;
+						break;
+					}
+				}
+			}
+
+			if ( $brdno === '' )
+			{
+				continue;
+			}
+
+			try
+			{
+				\IPS\Db::i()->replace( 'gd_sportssouth_brands', [
+					'brdno'       => (int) $brdno,
+					'brdnam'      => $brdnam,
+					'last_synced' => $syncedAt,
+					'raw_data'    => json_encode( $row ),
+				] );
+				$count++;
+			}
+			catch ( \Throwable $rowException )
+			{
+				try { \IPS\Log::log( 'Brand row insert failed brdno=' . $brdno . ': ' . $rowException->getMessage(), 'gdcatalog_sportssouth_lookups' ); } catch ( \Throwable ) {}
+			}
+		}
+
+		return [
+			'count'       => $count,
+			'elapsed_ms'  => $elapsed,
+			'sample_keys' => $sampleKeys,
+		];
+	}
+
+	/**
+	 * v1.0.11 helper: Process category lookup from Sports South API.
+	 */
+	protected function processCategoryLookup( \IPS\gdcatalog\Feed\Distributor\SportsSouthClient $client, int $syncedAt ): array
+	{
+		$start = microtime( true );
+		$rows = $client->categoryUpdate();
+		$elapsed = round( ( microtime( true ) - $start ) * 1000 );
+
+		$sampleKeys = !empty( $rows ) ? array_keys( $rows[0] ) : [];
+		$count = 0;
+
+		foreach ( $rows as $row )
+		{
+			$catid = (string) ( $row['CATID'] ?? '' );
+			$catdes = (string) ( $row['CATDES'] ?? $row['CATDESC'] ?? $row['CATEGORY'] ?? '' );
+
+			if ( $catid === '' )
+			{
+				continue;
+			}
+
+			try
+			{
+				\IPS\Db::i()->replace( 'gd_sportssouth_categories', [
+					'catid'       => (int) $catid,
+					'catdes'      => $catdes,
+					'last_synced' => $syncedAt,
+					'raw_data'    => json_encode( $row ),
+				] );
+				$count++;
+			}
+			catch ( \Throwable $rowException )
+			{
+				try { \IPS\Log::log( 'Category row insert failed catid=' . $catid . ': ' . $rowException->getMessage(), 'gdcatalog_sportssouth_lookups' ); } catch ( \Throwable ) {}
+			}
+		}
+
+		return [
+			'count'       => $count,
+			'elapsed_ms'  => $elapsed,
+			'sample_keys' => $sampleKeys,
+		];
+	}
+
+	/**
 	 * v1.0.8: Test the Sports South connection for a distributor feed.
 	 * Calls DailyItemCount (lightweight) to verify creds + reachability,
 	 * then calls DailyItemUpdate with LastUpdate=1/1/1990 and LastItem=0

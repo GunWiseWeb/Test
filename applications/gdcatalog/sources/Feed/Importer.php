@@ -45,6 +45,18 @@ class Importer
 	 */
 	public const MAX_RECORDS_PER_RUN = 1000;
 
+	/**
+	 * v1.0.11: Lazy-loaded brand lookup for Sports South enrichment.
+	 * Keyed by brdno (string) => brdnam.
+	 */
+	protected ?array $sportsSouthBrandLookup = null;
+
+	/**
+	 * v1.0.11: Lazy-loaded category lookup for Sports South enrichment.
+	 * Keyed by catid (string) => catdes.
+	 */
+	protected ?array $sportsSouthCategoryLookup = null;
+
 	protected Distributor $feed;
 	protected FieldMapper $fieldMapper;
 	protected CategoryMapper $categoryMapper;
@@ -204,11 +216,19 @@ class Importer
 
 			$products = $client->dailyItemUpdate( $sinceDate, 0 );
 
+			/* v1.0.11: Enrich each record with brand name + image URL
+			 * before passing to FieldMapper. */
+			$enriched = [];
+			foreach ( $products as $rawRecord )
+			{
+				$enriched[] = $this->enrichSportsSouthRecord( $rawRecord );
+			}
+
 			/* Re-encode as JSON for parseFeed() to handle. We bypass the
 			 * normal XML/JSON/CSV parser since SportsSouthClient already
 			 * returned parsed records. This is a clean handoff: parseFeed()
 			 * detects auth_type='sportssouth' and just JSON-decodes. */
-			return json_encode( $products );
+			return json_encode( $enriched );
 		}
 
 		/* HTTP fetch */
@@ -300,6 +320,86 @@ class Importer
 			'csv'  => CsvParser::parse( $content ),
 			default => throw new \RuntimeException( 'Unknown feed format: ' . $this->feed->feed_format ),
 		};
+	}
+
+	/**
+	 * v1.0.11: Enrich a Sports South raw record before field mapping.
+	 *
+	 * Transforms:
+	 *   - PICREF (e.g. "1533") → full image URL (https://media.../large/1533.jpg)
+	 *   - IMFGNO / ITBRDNO (e.g. "275") → brand name (e.g. "Henry")
+	 *   - CATID → category description (stored but not directly mapped yet)
+	 *
+	 * Brand and category lookups come from gd_sportssouth_brands /
+	 * gd_sportssouth_categories tables seeded by feeds.php::refreshLookups.
+	 * If a lookup miss occurs (e.g. lookups haven't been refreshed yet),
+	 * the original ID is kept as the brand string - admin can review.
+	 *
+	 * @param  array $record  Raw record from SportsSouthClient
+	 * @return array  Enriched record (still keyed by Sports South field names)
+	 */
+	protected function enrichSportsSouthRecord( array $record ): array
+	{
+		/* Lazy-load brand lookup once per import run */
+		if ( $this->sportsSouthBrandLookup === null )
+		{
+			$this->sportsSouthBrandLookup = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'brdno, brdnam', 'gd_sportssouth_brands' ) as $brandRow )
+				{
+					$this->sportsSouthBrandLookup[ (string) $brandRow['brdno'] ] = (string) $brandRow['brdnam'];
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		/* Lazy-load category lookup once per import run */
+		if ( $this->sportsSouthCategoryLookup === null )
+		{
+			$this->sportsSouthCategoryLookup = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'catid, catdes', 'gd_sportssouth_categories' ) as $catRow )
+				{
+					$this->sportsSouthCategoryLookup[ (string) $catRow['catid'] ] = (string) $catRow['catdes'];
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		/* Resolve brand: try IMFGNO first, fall back to ITBRDNO. If neither
+		 * resolves, leave the original IMFGNO value as brand string so admin
+		 * has something to work with on review. */
+		$brandKey = (string) ( $record['IMFGNO'] ?? $record['ITBRDNO'] ?? '' );
+		if ( $brandKey !== '' && isset( $this->sportsSouthBrandLookup[ $brandKey ] ) )
+		{
+			/* Inject a synthetic field that field_mapping can pick up */
+			$record['_BRAND_NAME'] = $this->sportsSouthBrandLookup[ $brandKey ];
+		}
+		else
+		{
+			$record['_BRAND_NAME'] = $brandKey;
+		}
+
+		/* Resolve category description (informational; not mapped to a column
+		 * directly yet - the schema's category_id is INT, would need a
+		 * gd_categories lookup join. For now we just attach the description). */
+		$catKey = (string) ( $record['CATID'] ?? '' );
+		if ( $catKey !== '' && isset( $this->sportsSouthCategoryLookup[ $catKey ] ) )
+		{
+			$record['_CATEGORY_DESC'] = $this->sportsSouthCategoryLookup[ $catKey ];
+		}
+
+		/* Transform PICREF to full image URL. */
+		$picref = (string) ( $record['PICREF'] ?? '' );
+		$itemno = (string) ( $record['ITEMNO'] ?? '' );
+		if ( $picref !== '' || $itemno !== '' )
+		{
+			$record['PICREF'] = \IPS\gdcatalog\Feed\Distributor\SportsSouthClient::imageUrlForPicref( $picref, $itemno );
+		}
+
+		return $record;
 	}
 
 	/**

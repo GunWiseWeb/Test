@@ -3,17 +3,14 @@
  * @brief       Sports South Web Services API Client
  * @package     IPS Community Suite
  * @subpackage  GD Master Catalog
- * @since       v1.0.8 (parser corrected in v1.0.10)
+ * @since       v1.0.8 (extended v1.0.10 with parser fixes, v1.0.11 with lookups)
  *
- * HTTP POST client for Sports South's .asmx web services. Uses POST
- * form-encoded calls (not full SOAP envelopes) per their docs.
+ * v1.0.11 additions:
+ *   - brandUpdate() - pulls all brands from BrandUpdate API
+ *   - categoryUpdate() - pulls all categories from CategoryUpdate API
+ *   - imageUrlForPicref() (already existed in v1.0.10) - builds large-size URL
  *
- * v1.0.10 changes from v1.0.8 disk-edits baked in:
- *   - HTTP 200 check uses (int) cast for type safety (response code may be string)
- *   - parseTableRows extracts <string> wrapper before parsing inner XML
- *   - parseTableRows uses getElementsByTagNameNS('*', 'Table') for namespace handling
- *
- * Response shape (DailyItemUpdate):
+ * Response shape (all methods):
  *   <string xmlns="...">&lt;NewDataSet&gt;&lt;Table&gt;...&lt;/Table&gt;...&lt;/NewDataSet&gt;</string>
  *
  * Field reference for products (DailyItemUpdate):
@@ -52,7 +49,6 @@ class SportsSouthClient
 	public const DEFAULT_TIMEOUT    = 120;
 	public const SOURCE_CODE        = 'GUNRCK';
 
-	/** Image URL templates. Substitute {PICREF}. */
 	public const IMAGE_URL_HIRES     = 'https://media.server.theshootingwarehouse.com/hires/%s.png';
 	public const IMAGE_URL_LARGE     = 'https://media.server.theshootingwarehouse.com/large/%s.jpg';
 	public const IMAGE_URL_SMALL     = 'https://media.server.theshootingwarehouse.com/small/%s.jpg';
@@ -89,13 +85,6 @@ class SportsSouthClient
 		);
 	}
 
-	/**
-	 * Pull products via DailyItemUpdate.
-	 *
-	 * @param  string $lastUpdate  Date "M/d/yyyy" - use "1/1/1990" for full catalog
-	 * @param  int    $lastItem    Last item number for paging (0 starts from beginning)
-	 * @return array<int,array<string,string>>
-	 */
 	public function dailyItemUpdate( string $lastUpdate = '1/1/1990', int $lastItem = 0 ): array
 	{
 		$xml = $this->post( 'DailyItemUpdate', [
@@ -110,12 +99,6 @@ class SportsSouthClient
 		return $this->parseTableRows( $xml );
 	}
 
-	/**
-	 * Lightweight count call.
-	 *
-	 * @param  string $lastUpdate  Date "M/d/yyyy"
-	 * @return int
-	 */
 	public function dailyItemCount( string $lastUpdate = '1/1/1990' ): int
 	{
 		$xml = $this->post( 'DailyItemCount', [
@@ -135,9 +118,39 @@ class SportsSouthClient
 	}
 
 	/**
-	 * Build the large-image URL from a PICREF value.
-	 * If PICREF is empty, falls back to using ITEMNO.
+	 * v1.0.11: Pull all brands. Returns rows with BRDNO + BRDNAM (per Sports South docs).
+	 *
+	 * @return array<int,array<string,string>>
 	 */
+	public function brandUpdate(): array
+	{
+		$xml = $this->post( 'BrandUpdate', [
+			'UserName'       => $this->userName,
+			'CustomerNumber' => $this->customerNumber,
+			'Password'       => $this->password,
+			'Source'         => $this->source,
+		] );
+
+		return $this->parseTableRows( $xml );
+	}
+
+	/**
+	 * v1.0.11: Pull all categories. Returns rows with CATID + CATDES + ATTR1..N (per Sports South docs).
+	 *
+	 * @return array<int,array<string,string>>
+	 */
+	public function categoryUpdate(): array
+	{
+		$xml = $this->post( 'CategoryUpdate', [
+			'UserName'       => $this->userName,
+			'CustomerNumber' => $this->customerNumber,
+			'Password'       => $this->password,
+			'Source'         => $this->source,
+		] );
+
+		return $this->parseTableRows( $xml );
+	}
+
 	public static function imageUrlForPicref( string $picref, string $fallbackItemno = '' ): string
 	{
 		$ref = $picref !== '' ? $picref : $fallbackItemno;
@@ -148,9 +161,6 @@ class SportsSouthClient
 		return sprintf( self::IMAGE_URL_LARGE, urlencode( $ref ) );
 	}
 
-	/**
-	 * Issue a POST to a Sports South method.
-	 */
 	protected function post( string $method, array $params ): string
 	{
 		$url = self::ENDPOINT_INVENTORY . '/' . $method;
@@ -165,7 +175,6 @@ class SportsSouthClient
 			throw new \RuntimeException( 'Sports South request failed: ' . $e->getMessage() );
 		}
 
-		/* HTTP code may be returned as string from some HTTP backends; cast for safe comparison. */
 		if ( (int) $response->httpResponseCode !== 200 )
 		{
 			throw new \RuntimeException( sprintf(
@@ -178,14 +187,6 @@ class SportsSouthClient
 		return (string) $response;
 	}
 
-	/**
-	 * Parse Sports South response XML into Table rows.
-	 *
-	 * Sports South wraps responses in <string>...</string> where the content
-	 * is HTML-entity-encoded inner XML. The DOM parser auto-decodes the
-	 * entities when we read the <string> element's nodeValue, giving us
-	 * clean XML to re-parse.
-	 */
 	protected function parseTableRows( string $xml ): array
 	{
 		if ( $xml === '' )
