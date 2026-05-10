@@ -332,10 +332,11 @@ class _feeds extends \IPS\Dispatcher\Controller
 		] ) );
 		$form->add( new Form\Select( 'gdcatalog_feed_auth_type', $feed->auth_type, TRUE, [
 			'options' => [
-				'none'   => 'None',
-				'basic'  => 'Basic Auth',
-				'apikey' => 'API Key',
-				'ftp'    => 'FTP Credentials',
+				'none'         => 'None',
+				'basic'        => 'Basic Auth',
+				'apikey'       => 'API Key',
+				'ftp'          => 'FTP Credentials',
+				'sportssouth'  => 'Sports South Web Service',
 			],
 		] ) );
 		$form->add( new Form\TextArea( 'gdcatalog_feed_auth_credentials', $feed->getCredentials() ?? '', FALSE, [
