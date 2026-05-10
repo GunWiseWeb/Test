@@ -454,14 +454,19 @@ class _feeds extends \IPS\Dispatcher\Controller
 				);
 			}
 
+			/* v1.0.10: pull a 30-day window instead of full catalog. Full
+			 * catalog (LastUpdate=1/1/1990) returns 58k+ products and
+			 * exceeds PHP timeouts in the test path. */
+			$sinceDate = date( 'n/j/Y', strtotime( '-30 days' ) );
+
 			/* Step 1: lightweight count call */
 			$startCount = microtime( true );
-			$count = $client->dailyItemCount( '1/1/1990' );
+			$count = $client->dailyItemCount( $sinceDate );
 			$elapsedCount = round( ( microtime( true ) - $startCount ) * 1000 );
 
 			/* Step 2: pull a single page of products to inspect shape */
 			$startPull = microtime( true );
-			$products = $client->dailyItemUpdate( '1/1/1990', 0 );
+			$products = $client->dailyItemUpdate( $sinceDate, 0 );
 			$elapsedPull = round( ( microtime( true ) - $startPull ) * 1000 );
 
 			$sample = array_slice( $products, 0, 10 );
@@ -471,7 +476,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 			$html .= '<h2 style="margin:0 0 16px">Sports South Connection Test</h2>';
 			$html .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;padding:12px 16px;border-radius:8px;margin-bottom:16px">';
 			$html .= '<strong>Connection successful</strong><br>';
-			$html .= 'DailyItemCount: ' . (int) $count . ' items changed since 1/1/1990 (' . $elapsedCount . 'ms)<br>';
+			$html .= 'DailyItemCount: ' . (int) $count . ' items changed since ' . htmlspecialchars( $sinceDate, ENT_QUOTES, 'UTF-8' ) . ' (' . $elapsedCount . 'ms)<br>';
 			$html .= 'DailyItemUpdate: pulled ' . count( $products ) . ' products in this page (' . $elapsedPull . 'ms)';
 			$html .= '</div>';
 

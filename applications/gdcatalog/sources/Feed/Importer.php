@@ -24,6 +24,7 @@ use IPS\gdcatalog\Feed\CategoryMapper;
 use IPS\gdcatalog\Feed\Parser\XmlParser;
 use IPS\gdcatalog\Feed\Parser\JsonParser;
 use IPS\gdcatalog\Feed\Parser\CsvParser;
+use IPS\gdcatalog\Feed\Distributor\SportsSouthClient;
 use IPS\gdcatalog\Log\ImportLog;
 use IPS\gdcatalog\Compliance\FlagProcessor;
 use function defined;
@@ -36,6 +37,14 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 
 class Importer
 {
+	/**
+	 * v1.0.10: Safety cap on rows processed per import run. Sports South's
+	 * full catalog is 58,000+ products. Until proper paging/background
+	 * tasking ships in v1.0.13, we cap each run to avoid PHP timeouts and
+	 * runaway DB writes. Raise this carefully as paging gets implemented.
+	 */
+	public const MAX_RECORDS_PER_RUN = 1000;
+
 	protected Distributor $feed;
 	protected FieldMapper $fieldMapper;
 	protected CategoryMapper $categoryMapper;
@@ -95,6 +104,26 @@ class Importer
 
 			/* 2. Parse into records */
 			$records = $this->parseFeed( $content );
+
+			/* v1.0.10: Cap records per run. Sports South's full catalog
+			 * is too large for synchronous processing. Real paging arrives
+			 * in v1.0.13. */
+			$originalCount = \count( $records );
+			if ( $originalCount > static::MAX_RECORDS_PER_RUN )
+			{
+				$records = array_slice( $records, 0, static::MAX_RECORDS_PER_RUN );
+				try
+				{
+					\IPS\Log::log( sprintf(
+						'Importer: feed_id=%d truncated %d records to %d (MAX_RECORDS_PER_RUN). v1.0.13 will add proper paging.',
+						(int) $this->feed->id,
+						$originalCount,
+						static::MAX_RECORDS_PER_RUN
+					), 'gdcatalog_importer' );
+				}
+				catch ( \Throwable ) {}
+			}
+
 			$this->stats['total'] = \count( $records );
 
 			/* 3. Process each record */
@@ -147,6 +176,39 @@ class Importer
 		if ( $authType === 'ftp' )
 		{
 			return $this->fetchFtp( $url, $creds );
+		}
+
+		/* v1.0.10: Sports South .asmx web service fetch.
+		 * Goes through SportsSouthClient (POST form-encoded) rather than the
+		 * generic HTTP GET path used for normal feeds. The "feed content"
+		 * we return is the raw XML from the .asmx response; parseFeed() will
+		 * then dispatch back to SportsSouthClient::parseTableRows. */
+		if ( $authType === 'sportssouth' )
+		{
+			$client = SportsSouthClient::fromDistributor( $this->feed );
+
+			$credErrors = $client->validate();
+			if ( !empty( $credErrors ) )
+			{
+				throw new \RuntimeException(
+					'Sports South credentials invalid: ' . implode( '; ', $credErrors )
+				);
+			}
+
+			/* For now, hardcode the "since" date to 30 days ago to keep
+			 * responses manageable. v1.0.13 will track last_run timestamp
+			 * per feed and pass that here. LastItem=0 starts paging from
+			 * the beginning; we only pull the first page (1000 rows) per
+			 * MAX_RECORDS_PER_RUN. */
+			$sinceDate = date( 'n/j/Y', strtotime( '-30 days' ) );
+
+			$products = $client->dailyItemUpdate( $sinceDate, 0 );
+
+			/* Re-encode as JSON for parseFeed() to handle. We bypass the
+			 * normal XML/JSON/CSV parser since SportsSouthClient already
+			 * returned parsed records. This is a clean handoff: parseFeed()
+			 * detects auth_type='sportssouth' and just JSON-decodes. */
+			return json_encode( $products );
 		}
 
 		/* HTTP fetch */
@@ -223,6 +285,14 @@ class Importer
 	 */
 	protected function parseFeed( string $content ): array
 	{
+		/* v1.0.10: For sportssouth auth_type, fetchFeed() already returned
+		 * pre-parsed records as a JSON array. Just decode and pass through. */
+		if ( $this->feed->auth_type === 'sportssouth' )
+		{
+			$decoded = json_decode( $content, true );
+			return is_array( $decoded ) ? $decoded : [];
+		}
+
 		return match ( $this->feed->feed_format )
 		{
 			'xml'  => XmlParser::parse( $content ),

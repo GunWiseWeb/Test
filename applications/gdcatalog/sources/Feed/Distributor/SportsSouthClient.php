@@ -3,28 +3,37 @@
  * @brief       Sports South Web Services API Client
  * @package     IPS Community Suite
  * @subpackage  GD Master Catalog
- * @since       v1.0.8
+ * @since       v1.0.8 (parser corrected in v1.0.10)
  *
- * HTTP POST client for Sports South's .asmx web services. Sports South
- * documents that their endpoints accept GET/POST/SOAP; we use POST form-
- * encoded which is the simplest path from PHP (no SOAP envelope handling).
+ * HTTP POST client for Sports South's .asmx web services. Uses POST
+ * form-encoded calls (not full SOAP envelopes) per their docs.
  *
- * The four required credentials per call:
- *   UserName        — Sports South account number (test: 99994)
- *   CustomerNumber  — same account number (test: 99994)
- *   Password        — web services password (test: 12345)
- *   Source          — six-char identifier (we use "GUNRCK")
+ * v1.0.10 changes from v1.0.8 disk-edits baked in:
+ *   - HTTP 200 check uses (int) cast for type safety (response code may be string)
+ *   - parseTableRows extracts <string> wrapper before parsing inner XML
+ *   - parseTableRows uses getElementsByTagNameNS('*', 'Table') for namespace handling
  *
- * Response format: XML inside an ASP.NET DocumentElement wrapper. The
- * actual data rows are <Table>...</Table> children of <NewDataSet>.
+ * Response shape (DailyItemUpdate):
+ *   <string xmlns="...">&lt;NewDataSet&gt;&lt;Table&gt;...&lt;/Table&gt;...&lt;/NewDataSet&gt;</string>
  *
- * v1.0.8 implements only enough for connection testing:
- *   - dailyItemUpdate( $lastUpdate, $lastItem ) - returns array of parsed product rows
- *
- * Future versions will add:
- *   - brandUpdate(), categoryUpdate() for lookup tables
- *   - incrementalOnhandUpdate() for stock/price deltas
- *   - getText() for long descriptions
+ * Field reference for products (DailyItemUpdate):
+ *   ITEMNO          Sports South SKU
+ *   ITUPC           UPC barcode (used as gd_catalog primary key)
+ *   IDESC           Short description (title)
+ *   SHDESC          Long description
+ *   IMFGNO          Manufacturer ID (joins to BrandUpdate.BRDNO)
+ *   ITBRDNO         Brand ID (also joins to BrandUpdate.BRDNO)
+ *   CATID           Category ID (joins to CategoryUpdate.CATID)
+ *   IMODEL          Model name
+ *   IPURPOSE        Use/purpose (hunting/target/etc)
+ *   MFGINO          Manufacturer SKU
+ *   PRC1            MSRP
+ *   CPRC            Customer cost (the "C" price)
+ *   QTYOH           Quantity on hand
+ *   WTPBX           Weight per box (lbs)
+ *   PICREF          Image reference (build URL: /large/{PICREF}.jpg)
+ *   TXTREF          Reference for GetText API (full description)
+ *   ITATR1-N        Per-category attribute values (labels in CategoryUpdate)
  */
 
 namespace IPS\gdcatalog\Feed\Distributor;
@@ -39,28 +48,21 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 
 class SportsSouthClient
 {
-	/** Base URL for Sports South inventory web service. */
 	public const ENDPOINT_INVENTORY = 'http://webservices.theshootingwarehouse.com/smart/inventory.asmx';
+	public const DEFAULT_TIMEOUT    = 120;
+	public const SOURCE_CODE        = 'GUNRCK';
 
-	/** Default request timeout in seconds. Sports South full pulls can be slow. */
-	public const DEFAULT_TIMEOUT = 120;
-
-	/** Six-char source identifier per Sports South docs. */
-	public const SOURCE_CODE = 'GUNRCK';
+	/** Image URL templates. Substitute {PICREF}. */
+	public const IMAGE_URL_HIRES     = 'https://media.server.theshootingwarehouse.com/hires/%s.png';
+	public const IMAGE_URL_LARGE     = 'https://media.server.theshootingwarehouse.com/large/%s.jpg';
+	public const IMAGE_URL_SMALL     = 'https://media.server.theshootingwarehouse.com/small/%s.jpg';
+	public const IMAGE_URL_THUMBNAIL = 'https://media.server.theshootingwarehouse.com/thumbnail/%s.jpg';
 
 	protected string $userName;
 	protected string $customerNumber;
 	protected string $password;
 	protected string $source;
 
-	/**
-	 * Construct a client with explicit credentials.
-	 *
-	 * @param string $userName       Sports South account number
-	 * @param string $customerNumber Sports South account number (same as userName for non-providers)
-	 * @param string $password       Web services password
-	 * @param string $source         Six-char source identifier (defaults to GUNRCK)
-	 */
 	public function __construct( string $userName, string $customerNumber, string $password, string $source = self::SOURCE_CODE )
 	{
 		$this->userName       = $userName;
@@ -69,12 +71,6 @@ class SportsSouthClient
 		$this->source         = $source !== '' ? $source : self::SOURCE_CODE;
 	}
 
-	/**
-	 * Construct a client from a Distributor row's stored credentials.
-	 *
-	 * The auth_credentials column stores a JSON blob:
-	 *   { "user_name": "...", "customer_number": "...", "password": "...", "source": "..." }
-	 */
 	public static function fromDistributor( \IPS\gdcatalog\Feed\Distributor $feed ): self
 	{
 		$credsRaw = $feed->getCredentials();
@@ -94,12 +90,11 @@ class SportsSouthClient
 	}
 
 	/**
-	 * Call DailyItemUpdate. Returns an array of associative product records.
+	 * Pull products via DailyItemUpdate.
 	 *
-	 * @param string $lastUpdate Date "1/1/1990" for full catalog, or "M/d/yyyy" for incremental
-	 * @param int    $lastItem   Last item number from prior call (-1 returns all in one shot; 0 for first page)
+	 * @param  string $lastUpdate  Date "M/d/yyyy" - use "1/1/1990" for full catalog
+	 * @param  int    $lastItem    Last item number for paging (0 starts from beginning)
 	 * @return array<int,array<string,string>>
-	 * @throws \RuntimeException on network/parse failure
 	 */
 	public function dailyItemUpdate( string $lastUpdate = '1/1/1990', int $lastItem = 0 ): array
 	{
@@ -116,11 +111,10 @@ class SportsSouthClient
 	}
 
 	/**
-	 * Lightweight count call to check connectivity + creds without pulling data.
+	 * Lightweight count call.
 	 *
-	 * @param string $lastUpdate Date in M/d/yyyy format
-	 * @return int Count of items changed since lastUpdate
-	 * @throws \RuntimeException on network/parse failure
+	 * @param  string $lastUpdate  Date "M/d/yyyy"
+	 * @return int
 	 */
 	public function dailyItemCount( string $lastUpdate = '1/1/1990' ): int
 	{
@@ -132,7 +126,6 @@ class SportsSouthClient
 			'LastUpdate'     => $lastUpdate,
 		] );
 
-		/* Response is <int>NNNN</int> */
 		if ( preg_match( '/<int[^>]*>(\d+)<\/int>/i', $xml, $m ) )
 		{
 			return (int) $m[1];
@@ -142,12 +135,21 @@ class SportsSouthClient
 	}
 
 	/**
-	 * Issue a POST to a Sports South method endpoint.
-	 *
-	 * @param  string $method        Method name (e.g. "DailyItemUpdate")
-	 * @param  array  $params        POST params
-	 * @return string Raw XML response
-	 * @throws \RuntimeException
+	 * Build the large-image URL from a PICREF value.
+	 * If PICREF is empty, falls back to using ITEMNO.
+	 */
+	public static function imageUrlForPicref( string $picref, string $fallbackItemno = '' ): string
+	{
+		$ref = $picref !== '' ? $picref : $fallbackItemno;
+		if ( $ref === '' )
+		{
+			return '';
+		}
+		return sprintf( self::IMAGE_URL_LARGE, urlencode( $ref ) );
+	}
+
+	/**
+	 * Issue a POST to a Sports South method.
 	 */
 	protected function post( string $method, array $params ): string
 	{
@@ -163,7 +165,8 @@ class SportsSouthClient
 			throw new \RuntimeException( 'Sports South request failed: ' . $e->getMessage() );
 		}
 
-		if ( $response->httpResponseCode !== 200 )
+		/* HTTP code may be returned as string from some HTTP backends; cast for safe comparison. */
+		if ( (int) $response->httpResponseCode !== 200 )
 		{
 			throw new \RuntimeException( sprintf(
 				'Sports South returned HTTP %d for method %s',
@@ -176,19 +179,12 @@ class SportsSouthClient
 	}
 
 	/**
-	 * Parse the XML response into an array of <Table> rows.
+	 * Parse Sports South response XML into Table rows.
 	 *
-	 * Sports South responses are wrapped in an ASP.NET DataSet envelope:
-	 *   <DocumentElement>
-	 *     <Table><FIELD1>val</FIELD1>...</Table>
-	 *     <Table>...</Table>
-	 *   </DocumentElement>
-	 *
-	 * Or sometimes wrapped further in a SOAP-style outer element.
-	 * We extract all <Table> children regardless of root.
-	 *
-	 * @param  string $xml
-	 * @return array<int,array<string,string>>
+	 * Sports South wraps responses in <string>...</string> where the content
+	 * is HTML-entity-encoded inner XML. The DOM parser auto-decodes the
+	 * entities when we read the <string> element's nodeValue, giving us
+	 * clean XML to re-parse.
 	 */
 	protected function parseTableRows( string $xml ): array
 	{
@@ -197,23 +193,42 @@ class SportsSouthClient
 			return [];
 		}
 
-		/* Security: disable external entity loading before parse */
 		$prevEntityState = null;
 		if ( \function_exists( 'libxml_disable_entity_loader' ) )
 		{
 			$prevEntityState = libxml_disable_entity_loader( true );
 		}
-
 		$prevUseErrors = libxml_use_internal_errors( true );
 
 		try
 		{
-			$doc = new \DOMDocument();
-			$doc->loadXML( $xml );
+			$outerDoc = new \DOMDocument();
+			$outerDoc->loadXML( $xml );
+
+			$innerXml = $xml;
+
+			$stringEls = $outerDoc->getElementsByTagNameNS( '*', 'string' );
+			if ( $stringEls->length > 0 )
+			{
+				$innerXml = (string) $stringEls->item( 0 )->nodeValue;
+			}
+
+			if ( $innerXml === '' )
+			{
+				return [];
+			}
+
+			$dataDoc = new \DOMDocument();
+			$dataDoc->loadXML( $innerXml );
 
 			$rows = [];
 
-			$tableNodes = $doc->getElementsByTagName( 'Table' );
+			$tableNodes = $dataDoc->getElementsByTagNameNS( '*', 'Table' );
+			if ( $tableNodes->length === 0 )
+			{
+				$tableNodes = $dataDoc->getElementsByTagName( 'Table' );
+			}
+
 			foreach ( $tableNodes as $tableNode )
 			{
 				$row = [];
@@ -246,11 +261,6 @@ class SportsSouthClient
 		}
 	}
 
-	/**
-	 * Validate the credentials format without making a network call.
-	 *
-	 * @return array<int,string> Array of validation error messages; empty if valid
-	 */
 	public function validate(): array
 	{
 		$errors = [];
