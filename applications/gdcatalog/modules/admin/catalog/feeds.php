@@ -60,6 +60,14 @@ class _feeds extends \IPS\Dispatcher\Controller
 				'app=gdcatalog&module=catalog&controller=feeds&do=delete&id=' . (int) $feed->id
 			)->csrf();
 
+			/* v1.0.8: Test Connection URL only for sportssouth-typed feeds.
+			 * The feedList template renders the button when this is non-null. */
+			$testUrl = ( (string) $feed->auth_type === 'sportssouth' )
+				? (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=feeds&do=testConnection&id=' . (int) $feed->id
+				)
+				: '';
+
 			$isActive = (bool) $feed->active;
 			$feedUrl  = (string) ( $feed->feed_url ?? '' );
 
@@ -80,6 +88,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 				'feed_url'          => $feedUrl,
 				'edit_url'          => $editUrl,
 				'delete_url'        => $deleteUrl,
+				'test_url'          => $testUrl,
 			];
 		}
 
@@ -405,6 +414,133 @@ class _feeds extends \IPS\Dispatcher\Controller
 
 		Output::i()->title  = $feed->feed_name;
 		Output::i()->output = (string) $form;
+	}
+
+	/**
+	 * v1.0.8: Test the Sports South connection for a distributor feed.
+	 * Calls DailyItemCount (lightweight) to verify creds + reachability,
+	 * then calls DailyItemUpdate with LastUpdate=1/1/1990 and LastItem=0
+	 * to pull a small sample of products for display. Does NOT write
+	 * anything to gd_catalog — purely a connection validator.
+	 *
+	 * URL: ?app=gdcatalog&module=catalog&controller=feeds&do=testConnection&id=N
+	 */
+	protected function testConnection()
+	{
+		try
+		{
+			$id = (int) \IPS\Request::i()->id;
+			if ( $id <= 0 )
+			{
+				throw new \RuntimeException( 'Missing distributor feed ID' );
+			}
+
+			$feed = \IPS\gdcatalog\Feed\Distributor::load( $id );
+			if ( $feed->auth_type !== 'sportssouth' )
+			{
+				throw new \RuntimeException( sprintf(
+					'Test Connection is only available for Sports South feeds. This feed has auth_type=%s',
+					(string) $feed->auth_type
+				) );
+			}
+
+			$client = \IPS\gdcatalog\Feed\Distributor\SportsSouthClient::fromDistributor( $feed );
+			$credErrors = $client->validate();
+			if ( !empty( $credErrors ) )
+			{
+				throw new \RuntimeException(
+					'Credential validation failed: ' . implode( '; ', $credErrors )
+				);
+			}
+
+			/* Step 1: lightweight count call */
+			$startCount = microtime( true );
+			$count = $client->dailyItemCount( '1/1/1990' );
+			$elapsedCount = round( ( microtime( true ) - $startCount ) * 1000 );
+
+			/* Step 2: pull a single page of products to inspect shape */
+			$startPull = microtime( true );
+			$products = $client->dailyItemUpdate( '1/1/1990', 0 );
+			$elapsedPull = round( ( microtime( true ) - $startPull ) * 1000 );
+
+			$sample = array_slice( $products, 0, 10 );
+
+			/* Build the results HTML */
+			$html  = '<div style="padding:16px 20px;max-width:1200px;margin:0 auto">';
+			$html .= '<h2 style="margin:0 0 16px">Sports South Connection Test</h2>';
+			$html .= '<div style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;padding:12px 16px;border-radius:8px;margin-bottom:16px">';
+			$html .= '<strong>Connection successful</strong><br>';
+			$html .= 'DailyItemCount: ' . (int) $count . ' items changed since 1/1/1990 (' . $elapsedCount . 'ms)<br>';
+			$html .= 'DailyItemUpdate: pulled ' . count( $products ) . ' products in this page (' . $elapsedPull . 'ms)';
+			$html .= '</div>';
+
+			if ( empty( $products ) )
+			{
+				$html .= '<p>No products returned. Credentials may be wrong or test account is empty.</p>';
+			}
+			else
+			{
+				/* Show first 10 products in a table */
+				$firstProduct = $products[0];
+				$fieldNames = array_keys( $firstProduct );
+				$html .= '<h3 style="margin:20px 0 12px">First ' . count( $sample ) . ' Products (Fields)</h3>';
+				$html .= '<div style="overflow-x:auto;border:1px solid #e5e7eb;border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:0.85em;background:#fff">';
+				$html .= '<thead><tr style="background:#f9fafb">';
+				foreach ( $fieldNames as $fname )
+				{
+					$html .= '<th style="text-align:left;padding:8px 10px;border-bottom:1px solid #e5e7eb;font-weight:600">' . htmlspecialchars( $fname, ENT_QUOTES, 'UTF-8' ) . '</th>';
+				}
+				$html .= '</tr></thead><tbody>';
+				foreach ( $sample as $prod )
+				{
+					$html .= '<tr style="border-bottom:1px solid #f3f4f6">';
+					foreach ( $fieldNames as $fname )
+					{
+						$val = (string) ( $prod[ $fname ] ?? '' );
+						if ( strlen( $val ) > 80 )
+						{
+							$val = substr( $val, 0, 77 ) . '...';
+						}
+						$html .= '<td style="padding:6px 10px;vertical-align:top">' . htmlspecialchars( $val, ENT_QUOTES, 'UTF-8' ) . '</td>';
+					}
+					$html .= '</tr>';
+				}
+				$html .= '</tbody></table></div>';
+
+				$html .= '<h3 style="margin:20px 0 12px">Raw First Product (JSON)</h3>';
+				$html .= '<pre style="background:#1f2937;color:#f3f4f6;padding:12px;border-radius:8px;overflow-x:auto;font-size:0.8em;line-height:1.5">';
+				$html .= htmlspecialchars( json_encode( $firstProduct, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ), ENT_QUOTES, 'UTF-8' );
+				$html .= '</pre>';
+			}
+
+			$backUrl = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+			$html .= '<div style="margin-top:16px"><a href="' . htmlspecialchars( $backUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton_normal">Back to feeds</a></div>';
+			$html .= '</div>';
+
+			try { \IPS\Log::log( 'Sports South test connection success: count=' . (int) $count . ', pulled=' . count( $products ), 'gdcatalog_sportssouth_test' ); } catch ( \Throwable ) {}
+
+			Output::i()->title  = 'Sports South Connection Test';
+			Output::i()->output = $html;
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'Sports South test connection FAILED: ' . $e->getMessage(), 'gdcatalog_sportssouth_test' ); } catch ( \Throwable ) {}
+
+			$backUrl = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+
+			$html  = '<div style="padding:16px 20px;max-width:1100px;margin:0 auto">';
+			$html .= '<h2 style="margin:0 0 16px">Sports South Connection Test</h2>';
+			$html .= '<div style="background:#fee2e2;border:1px solid #fca5a5;color:#7f1d1d;padding:12px 16px;border-radius:8px;margin-bottom:16px">';
+			$html .= '<strong>Connection failed</strong><br>';
+			$html .= htmlspecialchars( $e->getMessage(), ENT_QUOTES, 'UTF-8' );
+			$html .= '</div>';
+			$html .= '<p style="color:#6b7280;font-size:0.9em">Check the IPS error log for full details. Filter by category=<code>gdcatalog_sportssouth_test</code>.</p>';
+			$html .= '<div style="margin-top:16px"><a href="' . htmlspecialchars( $backUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton_normal">Back to feeds</a></div>';
+			$html .= '</div>';
+
+			Output::i()->title  = 'Sports South Connection Test - Failed';
+			Output::i()->output = $html;
+		}
 	}
 }
 
