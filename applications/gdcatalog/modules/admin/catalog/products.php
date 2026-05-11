@@ -37,6 +37,54 @@ class _products extends \IPS\Dispatcher\Controller
 	}
 
 	/**
+	 * v1.0.23: Recursively collect all descendant category IDs for a given
+	 * parent. Walks the gd_categories tree, returning a flat array of IDs.
+	 *
+	 * Self-protected against infinite recursion via $visited tracking.
+	 * Returns empty array if $parentId has no children (leaf node).
+	 *
+	 * @param  int    $parentId   The category ID to find descendants of.
+	 * @param  array  $visited    Internal recursion guard.
+	 * @return int[]
+	 */
+	protected static function collectCategoryDescendants( int $parentId, array $visited = [] ): array
+	{
+		if ( in_array( $parentId, $visited, true ) )
+		{
+			return [];
+		}
+		$visited[] = $parentId;
+
+		$descendants = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'id', 'gd_categories', [ 'parent_id=?', $parentId ] ) as $childId )
+			{
+				$childId = (int) $childId;
+				if ( $childId <= 0 || in_array( $childId, $visited, true ) )
+				{
+					continue;
+				}
+				$descendants[] = $childId;
+
+				/* Recurse to capture grandchildren */
+				$grandchildren = self::collectCategoryDescendants( $childId, $visited );
+				foreach ( $grandchildren as $gc )
+				{
+					$descendants[] = $gc;
+				}
+			}
+		}
+		catch ( \Throwable )
+		{
+			/* If query fails, return what we have so far - the calling code
+			 * will fall back to exact-match behavior for the parent. */
+		}
+
+		return $descendants;
+	}
+
+	/**
 	 * Product list with search/filter.
 	 *
 	 * Products and categories are flattened into scalar arrays and
@@ -64,9 +112,41 @@ class _products extends \IPS\Dispatcher\Controller
 			$where[] = [ 'record_status=?', $status ];
 		}
 
+		/* v1.0.23: Parent-aware category filter.
+		 *
+		 * gd_categories is hierarchical (Ammunition parent has children
+		 * Handgun Ammo, Rifle Ammo, Shotgun Ammo, etc). When admin selects
+		 * a parent category in the filter dropdown, they expect to see ALL
+		 * products in that parent OR any of its descendants.
+		 *
+		 * For example: selecting "Ammunition" (id=17) should match
+		 * category_id IN (17, 18, 19, 20, 21, 22) since those subcategories
+		 * have parent_id=17.
+		 *
+		 * Strategy: collect the selected category's ID plus all its
+		 * descendant IDs (recursively, in case of multi-level hierarchy),
+		 * then filter with IN clause. */
 		if ( $catId > 0 )
 		{
-			$where[] = [ 'category_id=?', $catId ];
+			$descendantIds = self::collectCategoryDescendants( $catId );
+			$descendantIds[] = $catId;
+			$descendantIds = array_unique( $descendantIds );
+
+			if ( count( $descendantIds ) === 1 )
+			{
+				/* Leaf category - exact match */
+				$where[] = [ 'category_id=?', $catId ];
+			}
+			else
+			{
+				/* Parent with children - IN clause.
+				 * Build placeholders dynamically since IPS\Db needs them. */
+				$placeholders = implode( ',', array_fill( 0, count( $descendantIds ), '?' ) );
+				$where[] = array_merge(
+					[ 'category_id IN (' . $placeholders . ')' ],
+					$descendantIds
+				);
+			}
 		}
 
 		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
