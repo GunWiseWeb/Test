@@ -30,7 +30,7 @@ class ImportFeeds extends \IPS\Task
 	 *
 	 * @return string|null  Message to log, or NULL
 	 */
-	public function execute()
+	public function execute(): mixed
 	{
 		$feeds   = Distributor::loadActive();
 		$ran     = 0;

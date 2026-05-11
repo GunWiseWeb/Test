@@ -370,8 +370,8 @@ TEMPLATE_EOT,
 						<td>{$conflict['auto_resolve_at']}</td>
 						<td>
 							<a href="{$conflict['accept_url']}" class="ipsButton ipsButton--primary ipsButton--small">{lang="gdcatalog_compliance_accept_incoming"}</a>
-							<a href="{$conflict['keep_url']}" class="ipsButton ipsButton--normal ipsButton--small">{lang="gdcatalog_compliance_keep_existing"}</a>
-							<a href="{$conflict['custom_url']}" class="ipsButton ipsButton--normal ipsButton--small">{lang="gdcatalog_compliance_set_custom"}</a>
+							<a href="{$conflict['keep_url']}" class="ipsButton ipsButton--secondary ipsButton--small">{lang="gdcatalog_compliance_keep_existing"}</a>
+							<a href="{$conflict['custom_url']}" class="ipsButton ipsButton--secondary ipsButton--small">{lang="gdcatalog_compliance_set_custom"}</a>
 						</td>
 					</tr>
 					{{endforeach}}
@@ -613,7 +613,7 @@ TEMPLATE_EOT,
 					<td>
 						<a href="{$product['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a>
 						{{if $product['record_status'] === 'admin_review'}}
-							<a href="{$product['approve_url']}" class="ipsButton ipsButton--normal ipsButton--small">Approve</a>
+							<a href="{$product['approve_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Approve</a>
 						{{endif}}
 					</td>
 				</tr>
