@@ -133,9 +133,73 @@ class _compliance extends \IPS\Dispatcher\Controller
 			'app=gdcatalog&module=catalog&controller=compliance&do=addRestriction'
 		)->csrf();
 
+		/* v1.0.16: Paginate the active tab's dataset.
+		 * perPage=50 matches IPS conventions. Slice in PHP since the loaders
+		 * don't yet support limit/offset (refactor when datasets get large). */
+		$perPage = 50;
+		$page = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
+
+		$totalForActiveTab = match ( $tab )
+		{
+			'new'       => $counts['new'],
+			'conflicts' => $counts['conflicts'],
+			'locks'     => $counts['locks'],
+			'admin'     => $counts['admin'],
+			default     => 0,
+		};
+
+		$totalPages = (int) ceil( $totalForActiveTab / $perPage );
+		$page = min( $page, max( 1, $totalPages ) );
+		$offset = ( $page - 1 ) * $perPage;
+
+		/* Slice only the array for the active tab. The non-active tabs
+		 * still get their full arrays passed to template - those branches
+		 * just don't render anyway. Saves us from changing the template
+		 * data shape. */
+		if ( $tab === 'new' )
+		{
+			$pendingFlags = array_slice( $pendingFlags, $offset, $perPage );
+		}
+		elseif ( $tab === 'conflicts' )
+		{
+			$pendingConflicts = array_slice( $pendingConflicts, $offset, $perPage );
+		}
+		elseif ( $tab === 'locks' )
+		{
+			$allLocks = array_slice( $allLocks, $offset, $perPage );
+		}
+		elseif ( $tab === 'admin' )
+		{
+			$adminFlags = array_slice( $adminFlags, $offset, $perPage );
+		}
+
+		/* Build pagination HTML using IPS core's pagination template helper.
+		 * Same pattern as productList and conflictLog. */
+		$pagination = '';
+		if ( $totalPages > 1 )
+		{
+			try
+			{
+				$paginationBaseUrl = \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=compliance&tab=' . urlencode( $tab )
+				);
+				$pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
+					$paginationBaseUrl,
+					$totalPages,
+					$page,
+					$perPage
+				);
+			}
+			catch ( \Throwable $e )
+			{
+				/* Pagination is best-effort; don't fail the whole page render */
+				$pagination = '';
+			}
+		}
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_compliance_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->compliancePanel(
-			$tab, $counts, $tabUrls, $pendingFlags, $pendingConflicts, $allLocks, $adminFlags, $addRestrictionUrl
+			$tab, $counts, $tabUrls, $pendingFlags, $pendingConflicts, $allLocks, $adminFlags, $addRestrictionUrl, $pagination
 		);
 	}
 
