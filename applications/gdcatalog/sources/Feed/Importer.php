@@ -63,6 +63,54 @@ class Importer
 	 */
 	protected ?array $sportsSouthCategoryMap = null;
 
+	/**
+	 * v1.0.20: Lazy-loaded category attribute label map.
+	 * Keyed by sportssouth catid (string) => array of attr_slot => label
+	 * Example:
+	 *   $sportsSouthCategoryAttrs['94'] = [
+	 *     1 => 'Action Type',
+	 *     2 => 'Caliber',
+	 *     3 => 'Barrel Length',
+	 *     ...
+	 *   ]
+	 * Built from gd_sportssouth_categories.raw_data JSON.
+	 */
+	protected ?array $sportsSouthCategoryAttrs = null;
+
+	/**
+	 * v1.0.20: Class constant mapping Sports South attribute label
+	 * variants to canonical gd_catalog column names.
+	 * Keys are lowercased label substrings. Comparison uses
+	 * mb_strtolower($label) and looks for any of these strings as
+	 * substring matches. First match wins.
+	 */
+	protected const SPORTS_SOUTH_ATTR_LABEL_MAP = [
+		/* Caliber */
+		'caliber'         => 'caliber',
+		'cartridge'       => 'caliber',
+		'gauge'           => 'caliber',
+
+		/* Action type */
+		'action type'     => 'action_type',
+		'operating system' => 'action_type',
+		'action'          => 'action_type',  /* less specific - placed after 'action type' */
+
+		/* Barrel length */
+		'barrel length'   => 'barrel_length',
+		'bbl length'      => 'barrel_length',
+		'barrel len'      => 'barrel_length',
+
+		/* Capacity */
+		'capacity'        => 'capacity',
+		'mag capacity'    => 'capacity',
+		'rounds'          => 'capacity',
+
+		/* Finish */
+		'finish'          => 'finish',
+		'stock finish'    => 'finish',
+		'barrel finish'   => 'finish',
+	];
+
 	protected Distributor $feed;
 	protected FieldMapper $fieldMapper;
 	protected CategoryMapper $categoryMapper;
@@ -418,6 +466,144 @@ class Importer
 		if ( $catKey !== '' && isset( $this->sportsSouthCategoryMap[ $catKey ] ) )
 		{
 			$record['_CATEGORY_ID'] = (string) $this->sportsSouthCategoryMap[ $catKey ];
+		}
+
+		/* v1.0.20: Extract caliber/action/finish/etc from ITATR slots.
+		 *
+		 * Sports South stores per-product attribute VALUES in ITATR1..N.
+		 * The LABEL for each slot is defined per-category in
+		 * gd_sportssouth_categories.raw_data (ATTR1..N).
+		 *
+		 * For example, category "RIFLES CENTERFIRE" might define:
+		 *   ATTR1 = 'Action Type'
+		 *   ATTR2 = 'Caliber'
+		 *   ATTR3 = 'Barrel Length'
+		 *
+		 * And a product in that category has:
+		 *   ITATR1 = 'Bolt Action'
+		 *   ITATR2 = '.308 Winchester'
+		 *   ITATR3 = '24"'
+		 *
+		 * We match labels (case-insensitive substring) to canonical
+		 * column names via SPORTS_SOUTH_ATTR_LABEL_MAP. Each matched
+		 * value gets injected as _CALIBER, _ACTION_TYPE, etc. */
+		if ( $this->sportsSouthCategoryAttrs === null )
+		{
+			$this->sportsSouthCategoryAttrs = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'catid, raw_data', 'gd_sportssouth_categories' ) as $catRow )
+				{
+					$rawJson = (string) ( $catRow['raw_data'] ?? '' );
+					if ( $rawJson === '' )
+					{
+						continue;
+					}
+					$decoded = json_decode( $rawJson, true );
+					if ( !is_array( $decoded ) )
+					{
+						continue;
+					}
+
+					$attrMap = [];
+					/* ATTR0 through ATTR20 - capture all attribute label slots.
+					 * Slot number is parsed from the key (ATTR0, ATTR1, etc). */
+					foreach ( $decoded as $key => $value )
+					{
+						if ( preg_match( '/^ATTR(\d+)$/i', (string) $key, $m ) )
+						{
+							$slot = (int) $m[1];
+							$label = trim( (string) $value );
+							if ( $label !== '' )
+							{
+								$attrMap[ $slot ] = $label;
+							}
+						}
+					}
+
+					if ( !empty( $attrMap ) )
+					{
+						$this->sportsSouthCategoryAttrs[ (string) $catRow['catid'] ] = $attrMap;
+					}
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		/* Walk this product's category attribute labels and extract values */
+		if ( $catKey !== '' && isset( $this->sportsSouthCategoryAttrs[ $catKey ] ) )
+		{
+			$labelMap = $this->sportsSouthCategoryAttrs[ $catKey ];
+
+			foreach ( $labelMap as $slot => $label )
+			{
+				/* Build the ITATR key for this slot. Sports South uses ITATR0,
+				 * ITATR1, etc paralleling the ATTR0..N labels. */
+				$itatrKey = 'ITATR' . $slot;
+				$itatrValue = trim( (string) ( $record[ $itatrKey ] ?? '' ) );
+				if ( $itatrValue === '' )
+				{
+					continue;
+				}
+
+				/* Match label against the known label->column map.
+				 * Case-insensitive substring match. First match wins. */
+				$labelLower = mb_strtolower( $label );
+				$targetColumn = null;
+				foreach ( self::SPORTS_SOUTH_ATTR_LABEL_MAP as $needle => $col )
+				{
+					if ( str_contains( $labelLower, $needle ) )
+					{
+						$targetColumn = $col;
+						break;
+					}
+				}
+
+				if ( $targetColumn === null )
+				{
+					continue;
+				}
+
+				/* Apply per-column value parsing */
+				$parsedValue = $itatrValue;
+				if ( $targetColumn === 'barrel_length' )
+				{
+					/* Strip non-numeric chars except dot, take first match.
+					 * "16\"" -> 16, "20.5\"" -> 20.5, "16 in" -> 16 */
+					if ( preg_match( '/(\d+(?:\.\d+)?)/', $itatrValue, $m ) )
+					{
+						$parsedValue = $m[1];
+					}
+					else
+					{
+						continue;
+					}
+				}
+				elseif ( $targetColumn === 'capacity' )
+				{
+					/* Parse first integer. "30+1" -> 30, "5+1" -> 5, "10" -> 10 */
+					if ( preg_match( '/(\d+)/', $itatrValue, $m ) )
+					{
+						$parsedValue = $m[1];
+					}
+					else
+					{
+						continue;
+					}
+				}
+
+				/* Inject as synthetic field. Uppercase for consistency
+				 * with _BRAND_NAME, _CATEGORY_ID patterns. */
+				$syntheticKey = '_' . strtoupper( $targetColumn );
+
+				/* First match wins - don't overwrite if already set.
+				 * (Some categories may have e.g. 'Stock Finish' AND
+				 * 'Barrel Finish' both mapping to finish.) */
+				if ( !isset( $record[ $syntheticKey ] ) )
+				{
+					$record[ $syntheticKey ] = $parsedValue;
+				}
+			}
 		}
 
 		/* Transform PICREF to full image URL. */
