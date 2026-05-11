@@ -215,6 +215,82 @@ class Importer
 	}
 
 	/**
+	 * v1.0.24: Process a pre-fetched chunk of Sports South records.
+	 *
+	 * Called from the SportsSouthImport Queue extension's run() method
+	 * once per chunk. The queue manages fetch + pagination via the
+	 * dailyItemUpdate LastItem parameter; this method just runs the
+	 * normal enrichment + mapping + create/update pipeline on the
+	 * supplied records.
+	 *
+	 * Bypasses MAX_RECORDS_PER_RUN cap (queue controls chunk size
+	 * externally) and skips processDiscontinuations (which needs full
+	 * catalog visibility - runs only in the queue's postComplete).
+	 *
+	 * @param  Distributor $feed           Feed entity (auth_type='sportssouth')
+	 * @param  array       $rawRecords     Raw records returned by SportsSouthClient::dailyItemUpdate
+	 * @return array{total:int, created:int, updated:int, skipped:int, errored:int, conflicts:int}
+	 */
+	public static function runChunk( Distributor $feed, array $rawRecords ): array
+	{
+		/* Instantiate a normal Importer for the feed; bypasses the
+		 * fetchFeed/parseFeed/MAX_RECORDS_PER_RUN path of execute(). */
+		$importer = new static( $feed );
+
+		/* processRecord() requires $this->log->id and may call
+		 * $this->log->appendError(). $this->log is a non-nullable typed
+		 * property, so we MUST assign before invoking processRecord.
+		 * If startRun fails the chunk can't run safely - bail with all-errored. */
+		try
+		{
+			$importer->log = ImportLog::startRun( (int) $feed->id, $feed->distributor );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'Importer::runChunk failed to start ImportLog: ' . $e->getMessage(), 'gdcatalog_importer' ); } catch ( \Throwable ) {}
+			return [
+				'total'     => count( $rawRecords ),
+				'created'   => 0,
+				'updated'   => 0,
+				'skipped'   => 0,
+				'errored'   => count( $rawRecords ),
+				'conflicts' => 0,
+			];
+		}
+
+		/* Enrich each record (brand, category, ITATR attrs, PICREF transform). */
+		$enriched = [];
+		foreach ( $rawRecords as $raw )
+		{
+			$enriched[] = $importer->enrichSportsSouthRecord( $raw );
+		}
+
+		$importer->stats['total'] = count( $enriched );
+
+		/* Run each through processRecord - existing per-record path that
+		 * handles create vs update via UPC lookup, conflict resolution, etc. */
+		foreach ( $enriched as $record )
+		{
+			try
+			{
+				$importer->processRecord( $record );
+			}
+			catch ( \Throwable $e )
+			{
+				$importer->stats['errored']++;
+				try { \IPS\Log::log( 'Importer::runChunk processRecord error: ' . $e->getMessage(), 'gdcatalog_importer' ); } catch ( \Throwable ) {}
+			}
+		}
+
+		/* Mark this chunk's ImportLog complete (so it doesn't show as
+		 * "running" forever). Aggregate stats are accumulated by the
+		 * queue extension across all chunks. */
+		try { $importer->log->complete( $importer->stats ); } catch ( \Throwable ) {}
+
+		return $importer->stats;
+	}
+
+	/**
 	 * Fetch the feed content from the configured URL.
 	 *
 	 * @return string  Raw feed content

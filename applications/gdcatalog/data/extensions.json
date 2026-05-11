@@ -1,0 +1,7 @@
+{
+    "core": {
+        "Queue": {
+            "SportsSouthImport": "IPS\\gdcatalog\\extensions\\core\\Queue\\SportsSouthImport"
+        }
+    }
+}

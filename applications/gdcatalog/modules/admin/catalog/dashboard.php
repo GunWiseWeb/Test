@@ -18,6 +18,7 @@ use IPS\gdcatalog\Feed\Importer;
 use IPS\gdcatalog\Catalog\Product;
 use IPS\gdcatalog\Catalog\Category;
 use IPS\gdcatalog\Search\OpenSearchIndexer;
+use IPS\Task;
 use function defined;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
@@ -108,15 +109,24 @@ class _dashboard extends \IPS\Dispatcher\Controller
 					'app=gdcatalog&module=catalog&controller=dashboard&do=runImport&id=' . (int) $feed->id
 				)->csrf();
 
+				/* v1.0.24: Queue Full Import URL - background task that pages
+				 * through the full ~58k Sports South catalog. Only meaningful
+				 * for sportssouth feeds; gated by is_sportssouth flag below. */
+				$queueFullImportUrl = (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=dashboard&do=queueFullImport&id=' . (int) $feed->id
+				)->csrf();
+
 				$distributorStats[] = [
-					'priority'       => (int) $feed->priority,
-					'feed_name'      => (string) $feed->feed_name,
-					'feed_id'        => (int) $feed->id,
-					'active'         => (bool) $feed->active,
-					'product_count'  => $productCount,
-					'last_run_start' => $lastLog['run_start'] ?? null,
-					'last_status'    => $lastLog['status'] ?? null,
-					'run_import_url' => $runImportUrl,
+					'priority'              => (int) $feed->priority,
+					'feed_name'             => (string) $feed->feed_name,
+					'feed_id'               => (int) $feed->id,
+					'active'                => (bool) $feed->active,
+					'product_count'         => $productCount,
+					'last_run_start'        => $lastLog['run_start'] ?? null,
+					'last_status'           => $lastLog['status'] ?? null,
+					'run_import_url'        => $runImportUrl,
+					'queue_full_import_url' => $queueFullImportUrl,
+					'is_sportssouth'        => $feed->auth_type === 'sportssouth',
 				];
 			}
 		}
@@ -164,6 +174,77 @@ class _dashboard extends \IPS\Dispatcher\Controller
 				? "Import completed: {$log->records_created} created, {$log->records_updated} updated"
 				: "Import failed: " . ( $log->error_log ?? 'unknown error' )
 		);
+	}
+
+	/**
+	 * v1.0.24: Queue the Sports South full catalog import as a background task.
+	 *
+	 * Unlike runImport() which executes synchronously and is capped at 1000
+	 * products per call (MAX_RECORDS_PER_RUN), this action enqueues an IPS
+	 * Task that processes the full ~58k-product catalog in 1000-product
+	 * chunks via cron.
+	 *
+	 * Only available for feeds with auth_type='sportssouth'.
+	 */
+	protected function queueFullImport()
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$feedId = (int) \IPS\Request::i()->id;
+
+		try
+		{
+			$feed = Distributor::load( $feedId );
+		}
+		catch ( \OutOfRangeException )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+				'Feed not found'
+			);
+			return;
+		}
+
+		if ( $feed->auth_type !== 'sportssouth' )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+				'Queue Full Import is only available for Sports South feeds'
+			);
+			return;
+		}
+
+		try
+		{
+			\IPS\Task::queue(
+				'gdcatalog',
+				'SportsSouthImport',
+				[ 'feed_id' => $feedId ],
+				4,
+				[ 'feed_id' ]
+			);
+
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+				'Sports South full catalog import queued. Progress visible in AdminCP -> System -> Background Processes.'
+			);
+		}
+		catch ( \Throwable $e )
+		{
+			try
+			{
+				\IPS\Log::log(
+					'Failed to queue SportsSouthImport for feed_id=' . $feedId . ': ' . $e->getMessage(),
+					'gdcatalog_queue'
+				);
+			}
+			catch ( \Throwable ) {}
+
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+				'Failed to queue import: ' . $e->getMessage()
+			);
+		}
 	}
 
 	/**
