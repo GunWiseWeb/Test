@@ -244,7 +244,35 @@ class _products extends \IPS\Dispatcher\Controller
 			$lockNotice .= '</ul></div></div>';
 		}
 
-		\IPS\Output::i()->output = $lockNotice . (string) $form;
+		/* v1.0.19: Image preview block.
+		 *
+		 * Show the product image at the top of the edit page if image_url
+		 * is populated. Helps admins visually identify products when editing,
+		 * especially for Sports South imports where the title alone can be
+		 * ambiguous.
+		 *
+		 * Wrapped in try/catch + URL validation so a malformed image_url
+		 * doesn't break the entire edit page. Falls back to no preview if
+		 * the URL doesn't look valid. */
+		$imagePreview = '';
+		$imageUrl = trim( (string) ( $product->image_url ?? '' ) );
+
+		if ( $imageUrl !== '' && ( str_starts_with( $imageUrl, 'http://' ) || str_starts_with( $imageUrl, 'https://' ) ) )
+		{
+			$safeUrl = htmlspecialchars( $imageUrl, ENT_QUOTES, 'UTF-8' );
+			$imagePreview = '<div class="ipsBox ipsPull" style="margin-bottom:16px">'
+				. '<div class="ipsBox_body ipsPad" style="text-align:center">'
+				. '<img src="' . $safeUrl . '" alt="Product image" '
+				. 'style="max-width:300px;max-height:300px;border:1px solid var(--i-border-color, #e0e0e0);border-radius:4px;background:#fff;padding:8px" '
+				. 'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'">'
+				. '<div style="display:none;color:var(--i-color-text-muted, #888);padding:24px">Image could not be loaded</div>'
+				. '<div style="margin-top:8px;font-size:0.85em;color:var(--i-color-text-muted, #888)">'
+				. '<a href="' . $safeUrl . '" target="_blank" rel="noopener">View full size</a>'
+				. '</div>'
+				. '</div></div>';
+		}
+
+		\IPS\Output::i()->output = $imagePreview . $lockNotice . (string) $form;
 	}
 
 	/**
