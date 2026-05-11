@@ -517,7 +517,15 @@ class _feeds extends \IPS\Dispatcher\Controller
 			/* Resilient against actual field shape - try BRDNO then any key
 			 * containing 'NO', and BRDNAM then any key containing 'NAM'/'NAME'/'DESC'. */
 			$brdno = (string) ( $row['BRDNO'] ?? '' );
-			$brdnam = (string) ( $row['BRDNAM'] ?? $row['BRDNAME'] ?? $row['BRDDESC'] ?? '' );
+			/* v1.0.14: BRDNM is the real Sports South field. BRDNAM/BRDNAME/
+			 * BRDDESC are kept as fallbacks for resilience. */
+			$brdnam = (string) (
+				$row['BRDNM']
+				?? $row['BRDNAM']
+				?? $row['BRDNAME']
+				?? $row['BRDDESC']
+				?? ''
+			);
 
 			if ( $brdno === '' )
 			{
