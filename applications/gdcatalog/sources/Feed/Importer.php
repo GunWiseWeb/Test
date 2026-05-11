@@ -57,6 +57,12 @@ class Importer
 	 */
 	protected ?array $sportsSouthCategoryLookup = null;
 
+	/**
+	 * v1.0.15: Lazy-loaded Sports South CATID -> gd_categories.id mapping.
+	 * Keyed by sportssouth catid (string) => gd_category_id (int).
+	 */
+	protected ?array $sportsSouthCategoryMap = null;
+
 	protected Distributor $feed;
 	protected FieldMapper $fieldMapper;
 	protected CategoryMapper $categoryMapper;
@@ -382,13 +388,36 @@ class Importer
 			$record['_BRAND_NAME'] = $brandKey;
 		}
 
-		/* Resolve category description (informational; not mapped to a column
-		 * directly yet - the schema's category_id is INT, would need a
-		 * gd_categories lookup join. For now we just attach the description). */
+		/* Lazy-load category map once per import run */
+		if ( $this->sportsSouthCategoryMap === null )
+		{
+			$this->sportsSouthCategoryMap = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'sportssouth_catid, gd_category_id', 'gd_sportssouth_category_map' ) as $mapRow )
+				{
+					$gdCatId = (int) $mapRow['gd_category_id'];
+					if ( $gdCatId > 0 )
+					{
+						$this->sportsSouthCategoryMap[ (string) $mapRow['sportssouth_catid'] ] = $gdCatId;
+					}
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		/* Resolve category description (informational) */
 		$catKey = (string) ( $record['CATID'] ?? '' );
 		if ( $catKey !== '' && isset( $this->sportsSouthCategoryLookup[ $catKey ] ) )
 		{
 			$record['_CATEGORY_DESC'] = $this->sportsSouthCategoryLookup[ $catKey ];
+		}
+
+		/* v1.0.15: Resolve gd_categories.id from Sports South CATID via mapping table.
+		 * Inject _CATEGORY_ID for the FieldMapper to pick up. */
+		if ( $catKey !== '' && isset( $this->sportsSouthCategoryMap[ $catKey ] ) )
+		{
+			$record['_CATEGORY_ID'] = (string) $this->sportsSouthCategoryMap[ $catKey ];
 		}
 
 		/* Transform PICREF to full image URL. */
