@@ -112,6 +112,23 @@ class _products extends \IPS\Dispatcher\Controller
 			$where[] = [ 'record_status=?', $status ];
 		}
 
+		/* v1.0.27: Image status filter. For now only 'missing' and 'present'
+		 * are supported - v1.0.28 will add 'broken' (validated 404) once
+		 * image_validated column exists. */
+		$imageStatus = (string) ( \IPS\Request::i()->image_status ?? '' );
+		if ( $imageStatus !== 'all' && $imageStatus !== 'missing' && $imageStatus !== 'present' )
+		{
+			$imageStatus = '';
+		}
+		if ( $imageStatus === 'missing' )
+		{
+			$where[] = [ 'image_url IS NULL OR image_url = ?', '' ];
+		}
+		elseif ( $imageStatus === 'present' )
+		{
+			$where[] = [ 'image_url IS NOT NULL AND image_url != ?', '' ];
+		}
+
 		/* v1.0.23: Parent-aware category filter.
 		 *
 		 * gd_categories is hierarchical (Ammunition parent has children
@@ -207,7 +224,7 @@ class _products extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_products_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->productList(
 			$products, $categories, $search, $status, $catId, $total, $pagination, $formActionUrl,
-			$productCount, $categoryCount
+			$productCount, $categoryCount, $imageStatus
 		);
 	}
 
@@ -232,16 +249,38 @@ class _products extends \IPS\Dispatcher\Controller
 
 		$form = new \IPS\Helpers\Form;
 
-		/* Editable fields */
+		/* Editable fields - v1.0.27 expanded with master record fields. */
 		$editableFields = [
-			'title'       => [ 'Text', 255 ],
-			'brand'       => [ 'Text', 100 ],
-			'model'       => [ 'Text', 100 ],
-			'caliber'     => [ 'Text', 50 ],
-			'action_type' => [ 'Text', 50 ],
-			'finish'      => [ 'Text', 100 ],
-			'msrp'        => [ 'Number', null ],
-			'description' => [ 'TextArea', null ],
+			/* Identity */
+			'title'          => [ 'Text', 255 ],
+			'mpn'            => [ 'Text', 50 ],
+			'brand'          => [ 'Text', 100 ],
+			'manufacturer'   => [ 'Text', 100 ],
+			'importer'       => [ 'Text', 100 ],
+			'model'          => [ 'Text', 100 ],
+
+			/* Classification */
+			'gun_type'       => [ 'Text', 50 ],
+
+			/* Core specs */
+			'caliber'        => [ 'Text', 50 ],
+			'action_type'    => [ 'Text', 50 ],
+			'capacity'       => [ 'Number', null ],
+			'barrel_length'  => [ 'Number', null ],
+			'overall_length' => [ 'Number', null ],
+			'weight_oz'      => [ 'Number', null ],
+
+			/* Configuration / appearance */
+			'finish'         => [ 'Text', 100 ],
+			'safety_type'    => [ 'Text', 100 ],
+			'stock_type'     => [ 'Text', 100 ],
+			'sight_type'     => [ 'Text', 100 ],
+			'receiver_type'  => [ 'Text', 255 ],
+			'frame_material' => [ 'Text', 100 ],
+
+			/* Pricing + content */
+			'msrp'           => [ 'Number', null ],
+			'description'    => [ 'TextArea', null ],
 		];
 
 		foreach ( $editableFields as $field => $config )

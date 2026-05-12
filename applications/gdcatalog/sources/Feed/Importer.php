@@ -85,30 +85,52 @@ class Importer
 	 * substring matches. First match wins.
 	 */
 	protected const SPORTS_SOUTH_ATTR_LABEL_MAP = [
+		/* Order matters - first match wins.
+		 * More specific labels must come BEFORE less specific ones.
+		 *
+		 * v1.0.27: Added safety/grips/sight/slide/frame material/gun type/weight.
+		 * Note: 'type' must come LAST to avoid stealing 'frame type', 'barrel type', etc. */
+
 		/* Caliber */
 		'caliber'         => 'caliber',
 		'cartridge'       => 'caliber',
 		'gauge'           => 'caliber',
 
-		/* Action type */
+		/* Action type - 'action type' must precede bare 'action' */
 		'action type'     => 'action_type',
 		'operating system' => 'action_type',
-		'action'          => 'action_type',  /* less specific - placed after 'action type' */
+		'action'          => 'action_type',
 
-		/* Barrel length */
+		/* Lengths - 'barrel length' before bare 'overall length' before 'oal' */
 		'barrel length'   => 'barrel_length',
 		'bbl length'      => 'barrel_length',
 		'barrel len'      => 'barrel_length',
+		'overall length'  => 'overall_length',
+		'oal'             => 'overall_length',
 
 		/* Capacity */
-		'capacity'        => 'capacity',
 		'mag capacity'    => 'capacity',
+		'capacity'        => 'capacity',
 		'rounds'          => 'capacity',
 
-		/* Finish */
-		'finish'          => 'finish',
+		/* Finish / materials - 'frame material' must precede bare 'finish' */
+		'frame material'  => 'frame_material',
 		'stock finish'    => 'finish',
 		'barrel finish'   => 'finish',
+		'frame finish'    => 'finish',
+		'finish'          => 'finish',
+
+		/* v1.0.27 fields */
+		'safety'              => 'safety_type',
+		'grips'               => 'stock_type',
+		'sight configuration' => 'sight_type',
+		'sight'               => 'sight_type',
+		'slide description'   => 'receiver_type',
+		'slide'               => 'receiver_type',
+		'weight'              => 'weight_oz',
+
+		/* MUST come last - bare 'type' catches anything else with 'type' in label */
+		'type'            => 'gun_type',
 	];
 
 	protected Distributor $feed;
@@ -500,16 +522,39 @@ class Importer
 
 		/* Resolve brand: try IMFGNO first, fall back to ITBRDNO. If neither
 		 * resolves, leave the original IMFGNO value as brand string so admin
-		 * has something to work with on review. */
-		$brandKey = (string) ( $record['IMFGNO'] ?? $record['ITBRDNO'] ?? '' );
-		if ( $brandKey !== '' && isset( $this->sportsSouthBrandLookup[ $brandKey ] ) )
+		 * has something to work with on review.
+		 *
+		 * v1.0.27: ALSO track manufacturer separately. If IMFGNO and ITBRDNO
+		 * resolve to DIFFERENT names, treat IMFGNO as manufacturer (the actual
+		 * maker, e.g. "Miroku") and ITBRDNO as brand (consumer-facing, e.g.
+		 * "Browning"). If they're the same, only brand gets set. */
+		$mfgKey = (string) ( $record['IMFGNO']  ?? '' );
+		$brdKey = (string) ( $record['ITBRDNO'] ?? '' );
+
+		$mfgName = ( $mfgKey !== '' && isset( $this->sportsSouthBrandLookup[ $mfgKey ] ) )
+			? $this->sportsSouthBrandLookup[ $mfgKey ]
+			: $mfgKey;
+
+		$brdName = ( $brdKey !== '' && isset( $this->sportsSouthBrandLookup[ $brdKey ] ) )
+			? $this->sportsSouthBrandLookup[ $brdKey ]
+			: $brdKey;
+
+		/* Brand: prefer brdName, fall back to mfgName, fall back to empty */
+		$brandResolved = $brdName !== '' ? $brdName : $mfgName;
+		$record['_BRAND_NAME'] = $brandResolved;
+
+		/* Manufacturer: set only if it differs from the brand */
+		if ( $mfgName !== '' && $mfgName !== $brandResolved )
 		{
-			/* Inject a synthetic field that field_mapping can pick up */
-			$record['_BRAND_NAME'] = $this->sportsSouthBrandLookup[ $brandKey ];
+			$record['_MANUFACTURER'] = $mfgName;
 		}
-		else
+
+		/* v1.0.27: MPN comes directly from MFGINO field (model number assigned
+		 * by manufacturer). Sports South puts this in MFGINO. */
+		$mfgPartNo = trim( (string) ( $record['MFGINO'] ?? '' ) );
+		if ( $mfgPartNo !== '' )
 		{
-			$record['_BRAND_NAME'] = $brandKey;
+			$record['_MPN'] = $mfgPartNo;
 		}
 
 		/* Lazy-load category map once per import run */
@@ -667,6 +712,45 @@ class Importer
 						continue;
 					}
 				}
+				elseif ( $targetColumn === 'overall_length' )
+				{
+					/* v1.0.27: Same parser as barrel_length. "47.5\"" -> 47.5 */
+					if ( preg_match( '/(\d+(?:\.\d+)?)/', $itatrValue, $m ) )
+					{
+						$parsedValue = $m[1];
+					}
+					else
+					{
+						continue;
+					}
+				}
+				elseif ( $targetColumn === 'weight_oz' )
+				{
+					/* v1.0.27: Parse weight, convert to oz if needed.
+					 * "22.4 oz" -> 22.4
+					 * "1.4 lbs" -> 22.4 (1.4 * 16)
+					 * "0.85 lb" -> 13.6
+					 * "20" -> 20 (assume oz when unit absent)
+					 *
+					 * Sports South ATTR9 for pistols is typically oz already
+					 * but rifles use lbs - support both. */
+					if ( preg_match( '/(\d+(?:\.\d+)?)\s*(oz|lbs?|pounds?)?/i', $itatrValue, $m ) )
+					{
+						$numericVal = (float) $m[1];
+						$unit = strtolower( trim( $m[2] ?? '' ) );
+
+						if ( $unit === 'lb' || $unit === 'lbs' || $unit === 'pound' || $unit === 'pounds' )
+						{
+							$numericVal *= 16.0;
+						}
+
+						$parsedValue = number_format( $numericVal, 2, '.', '' );
+					}
+					else
+					{
+						continue;
+					}
+				}
 
 				/* Inject as synthetic field. Uppercase for consistency
 				 * with _BRAND_NAME, _CATEGORY_ID patterns. */
@@ -731,12 +815,12 @@ class Importer
 
 			if ( $existing === null )
 			{
-				$this->createProduct( $upc, $mapped );
+				$this->createProduct( $upc, $mapped, $rawRecord );
 				$this->stats['created']++;
 			}
 			else
 			{
-				$conflictsFound = $this->updateProduct( $existing, $mapped );
+				$conflictsFound = $this->updateProduct( $existing, $mapped, $rawRecord );
 				$this->stats['updated']++;
 				$this->stats['conflicts'] += $conflictsFound;
 			}
@@ -785,7 +869,7 @@ class Importer
 	 * @param  array  $mapped  Canonical field => value
 	 * @return void
 	 */
-	protected function createProduct( string $upc, array $mapped ): void
+	protected function createProduct( string $upc, array $mapped, array $rawRecord = [] ): void
 	{
 		$product = new Product;
 		$product->upc = $upc;
@@ -797,6 +881,27 @@ class Importer
 			{
 				$product->$field = $value;
 			}
+		}
+
+		/* v1.0.27: Store raw distributor record JSON so we can re-extract
+		 * attributes later without re-pulling from the API. Strip synthetic
+		 * "_X" fields we already extracted; keep only the raw Sports South
+		 * keys (CATID, ITBRDNO, MFGINO, ITATR1..N, etc). */
+		if ( !empty( $rawRecord ) )
+		{
+			$cleanRaw = [];
+			foreach ( $rawRecord as $k => $v )
+			{
+				if ( !str_starts_with( (string) $k, '_' ) )
+				{
+					$cleanRaw[ $k ] = $v;
+				}
+			}
+			try
+			{
+				$product->raw_distributor_data = json_encode( $cleanRaw, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+			}
+			catch ( \Throwable ) {}
 		}
 
 		$product->distributor_sources = $this->feed->distributor;
@@ -821,7 +926,7 @@ class Importer
 	 * @param  array   $mapped   Canonical field => incoming value
 	 * @return int     Number of conflicts detected
 	 */
-	protected function updateProduct( Product $product, array $mapped ): int
+	protected function updateProduct( Product $product, array $mapped, array $rawRecord = [] ): int
 	{
 		$conflictCount = 0;
 		$changed       = false;
@@ -860,6 +965,24 @@ class Importer
 		if ( $resolver->getFieldWins() > 0 )
 		{
 			$product->primary_source = $this->feed->distributor;
+		}
+
+		/* v1.0.27: Store raw distributor record JSON for future re-extraction. */
+		if ( !empty( $rawRecord ) )
+		{
+			$cleanRaw = [];
+			foreach ( $rawRecord as $k => $v )
+			{
+				if ( !str_starts_with( (string) $k, '_' ) )
+				{
+					$cleanRaw[ $k ] = $v;
+				}
+			}
+			try
+			{
+				$product->raw_distributor_data = json_encode( $cleanRaw, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+			}
+			catch ( \Throwable ) {}
 		}
 
 		if ( $changed )

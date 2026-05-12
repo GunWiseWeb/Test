@@ -454,6 +454,146 @@
 				"zerofill": false,
 				"values": [],
 				"comment": ""
+			},
+			"mpn": {
+				"name": "mpn",
+				"type": "VARCHAR",
+				"length": 50,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"manufacturer": {
+				"name": "manufacturer",
+				"type": "VARCHAR",
+				"length": 100,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"importer": {
+				"name": "importer",
+				"type": "VARCHAR",
+				"length": 100,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"gun_type": {
+				"name": "gun_type",
+				"type": "VARCHAR",
+				"length": 50,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"safety_type": {
+				"name": "safety_type",
+				"type": "VARCHAR",
+				"length": 100,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"stock_type": {
+				"name": "stock_type",
+				"type": "VARCHAR",
+				"length": 100,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"sight_type": {
+				"name": "sight_type",
+				"type": "VARCHAR",
+				"length": 100,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"receiver_type": {
+				"name": "receiver_type",
+				"type": "VARCHAR",
+				"length": 255,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"frame_material": {
+				"name": "frame_material",
+				"type": "VARCHAR",
+				"length": 100,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"raw_distributor_data": {
+				"name": "raw_distributor_data",
+				"type": "LONGTEXT",
+				"length": null,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
 			}
 		},
 		"indexes": {
@@ -502,6 +642,26 @@
 				"name": "idx_caliber",
 				"columns": [
 					"caliber"
+				],
+				"length": [
+					null
+				]
+			},
+			"idx_mpn": {
+				"type": "key",
+				"name": "idx_mpn",
+				"columns": [
+					"mpn"
+				],
+				"length": [
+					null
+				]
+			},
+			"idx_manufacturer": {
+				"type": "key",
+				"name": "idx_manufacturer",
+				"columns": [
+					"manufacturer"
 				],
 				"length": [
 					null

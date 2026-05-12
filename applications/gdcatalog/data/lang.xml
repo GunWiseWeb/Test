@@ -167,5 +167,26 @@
     <word key="gdcatalog_filter_scope_manual" js="0"><![CDATA[Manual Override]]></word>
     <word key="gdcatalog_filter_scope_auto" js="0"><![CDATA[Auto-Resolved]]></word>
     <word key="gdcatalog_task_prune_conflict_log" js="0"><![CDATA[Prune old auto-resolved conflict log entries]]></word>
+    <word key="gdcatalog_product_mpn" js="0"><![CDATA[MPN]]></word>
+    <word key="gdcatalog_product_mpn_desc" js="0"><![CDATA[Manufacturer part number (e.g. 4010101).]]></word>
+    <word key="gdcatalog_product_manufacturer" js="0"><![CDATA[Manufacturer]]></word>
+    <word key="gdcatalog_product_manufacturer_desc" js="0"><![CDATA[Actual maker, if different from the consumer brand (e.g. Miroku for Browning).]]></word>
+    <word key="gdcatalog_product_importer" js="0"><![CDATA[Importer]]></word>
+    <word key="gdcatalog_product_importer_desc" js="0"><![CDATA[FFL Type 08 importer of record for imported firearms.]]></word>
+    <word key="gdcatalog_product_gun_type" js="0"><![CDATA[Type]]></word>
+    <word key="gdcatalog_product_gun_type_desc" js="0"><![CDATA[Product type (Pistol, Revolver, Bolt-Action, etc).]]></word>
+    <word key="gdcatalog_product_capacity" js="0"><![CDATA[Capacity]]></word>
+    <word key="gdcatalog_product_barrel_length" js="0"><![CDATA[Barrel Length (inches)]]></word>
+    <word key="gdcatalog_product_overall_length" js="0"><![CDATA[Overall Length (inches)]]></word>
+    <word key="gdcatalog_product_weight_oz" js="0"><![CDATA[Weight (oz)]]></word>
+    <word key="gdcatalog_product_safety_type" js="0"><![CDATA[Safety]]></word>
+    <word key="gdcatalog_product_stock_type" js="0"><![CDATA[Stock / Grips]]></word>
+    <word key="gdcatalog_product_sight_type" js="0"><![CDATA[Sight]]></word>
+    <word key="gdcatalog_product_receiver_type" js="0"><![CDATA[Receiver / Slide]]></word>
+    <word key="gdcatalog_product_frame_material" js="0"><![CDATA[Frame Material]]></word>
+    <word key="gdcatalog_image_status" js="0"><![CDATA[Image Status]]></word>
+    <word key="gdcatalog_image_status_all" js="0"><![CDATA[All Products]]></word>
+    <word key="gdcatalog_image_status_present" js="0"><![CDATA[Has Image URL]]></word>
+    <word key="gdcatalog_image_status_missing" js="0"><![CDATA[Missing Image URL]]></word>
   </app>
 </language>
