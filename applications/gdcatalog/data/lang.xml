@@ -160,5 +160,12 @@
     <word key="gdcatalog_drag_to_reorder" js="0"><![CDATA[Drag to reorder priority]]></word>
     <word key="gdcatalog_btn_edit" js="0"><![CDATA[Edit]]></word>
     <word key="gdcatalog_btn_delete" js="0"><![CDATA[Delete]]></word>
+    <word key="gdcatalog_conflict_log_retention_days" js="0"><![CDATA[Conflict log retention (days)]]></word>
+    <word key="gdcatalog_conflict_log_retention_days_desc" js="0"><![CDATA[Auto-resolved conflict log entries older than this many days are pruned daily. Manual overrides (admin-changed) are kept forever. Range: 1-365. Default: 14.]]></word>
+    <word key="gdcatalog_btn_clear_auto_resolved" js="0"><![CDATA[Clear Auto-Resolved]]></word>
+    <word key="gdcatalog_filter_scope_all" js="0"><![CDATA[All]]></word>
+    <word key="gdcatalog_filter_scope_manual" js="0"><![CDATA[Manual Override]]></word>
+    <word key="gdcatalog_filter_scope_auto" js="0"><![CDATA[Auto-Resolved]]></word>
+    <word key="gdcatalog_task_prune_conflict_log" js="0"><![CDATA[Prune old auto-resolved conflict log entries]]></word>
   </app>
 </language>

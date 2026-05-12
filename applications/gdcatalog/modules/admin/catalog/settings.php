@@ -57,6 +57,12 @@ class _settings extends \IPS\Dispatcher\Controller
 			TRUE,
 			[ 'min' => 1, 'max' => 10 ]
 		));
+		$form->add( new \IPS\Helpers\Form\Number(
+			'gdcatalog_conflict_log_retention_days',
+			\IPS\Settings::i()->gdcatalog_conflict_log_retention_days ?: 14,
+			TRUE,
+			[ 'min' => 1, 'max' => 365 ]
+		));
 		$form->add( new \IPS\Helpers\Form\YesNo(
 			'gdcatalog_digest_email_enabled',
 			(bool) \IPS\Settings::i()->gdcatalog_digest_email_enabled,

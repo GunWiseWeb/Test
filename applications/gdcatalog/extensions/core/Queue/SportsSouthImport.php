@@ -80,6 +80,17 @@ class _SportsSouthImport extends QueueAbstract
 
 		/* Initialize counters in $data - persisted across run() invocations */
 		$data['feed_id'] = $feedId;
+
+		/* v1.0.26: Persist feed_id to core_store so postComplete() can
+		 * recover it if $data gets cleared during the OutOfRangeException
+		 * defensive abort path. */
+		try
+		{
+			\IPS\Data\Store::i()->gdcatalog_active_import_feed_id = $feedId;
+			\IPS\Data\Store::i()->gdcatalog_active_import_started  = time();
+		}
+		catch ( \Throwable ) {}
+
 		$data['chunks_processed']   = 0;
 		$data['products_processed'] = 0;
 		$data['products_created']   = 0;
@@ -252,6 +263,49 @@ class _SportsSouthImport extends QueueAbstract
 	 */
 	public function postComplete( array $data, bool $processed = TRUE ) : void
 	{
+		/* v1.0.26: Recover feed_id from core_store if $data was reset
+		 * (which happens when OutOfRangeException is thrown from run()
+		 * after consuming the entire catalog). */
+		$feedIdFromData = (int) ( $data['feed_id'] ?? 0 );
+		if ( $feedIdFromData === 0 )
+		{
+			try
+			{
+				$recovered = (int) ( \IPS\Data\Store::i()->gdcatalog_active_import_feed_id ?? 0 );
+				if ( $recovered > 0 )
+				{
+					$data['feed_id'] = $recovered;
+					try { \IPS\Log::log( 'SportsSouthImport postComplete recovered feed_id=' . $recovered . ' from core_store', 'gdcatalog_queue' ); } catch ( \Throwable ) {}
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		/* v1.0.26: If we have a feed_id (recovered or not), mark the
+		 * feed completed defensively regardless of $data['chunks_processed']. */
+		$feedIdForRecovery = (int) ( $data['feed_id'] ?? 0 );
+		if ( $feedIdForRecovery > 0 )
+		{
+			try
+			{
+				\IPS\Db::i()->update( 'gd_distributor_feeds',
+					[
+						'last_run_status' => 'completed',
+						'last_run'        => date( 'Y-m-d H:i:s' ),
+					],
+					[ 'id=?', $feedIdForRecovery ]
+				);
+			}
+			catch ( \Throwable $e )
+			{
+				try { \IPS\Log::log( 'SportsSouthImport postComplete feed update failed: ' . $e->getMessage(), 'gdcatalog_queue' ); } catch ( \Throwable ) {}
+			}
+		}
+
+		/* v1.0.26: Clear the core_store keys regardless of outcome. */
+		try { unset( \IPS\Data\Store::i()->gdcatalog_active_import_feed_id ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->gdcatalog_active_import_started  ); } catch ( \Throwable ) {}
+
 		if ( !$processed )
 		{
 			return;

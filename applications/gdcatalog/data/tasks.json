@@ -1,4 +1,5 @@
 {
 	"ImportFeeds": "PT15M",
-	"AutoResolveConflicts": "PT1H"
+	"AutoResolveConflicts": "PT1H",
+	"PruneConflictLog": "P1D"
 }

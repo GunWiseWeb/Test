@@ -22,5 +22,9 @@
 	{
 		"key": "gdcatalog_digest_email_recipient",
 		"default": ""
+	},
+	{
+		"key": "gdcatalog_conflict_log_retention_days",
+		"default": "14"
 	}
 ]
