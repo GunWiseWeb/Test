@@ -246,11 +246,180 @@ class _products extends \IPS\Dispatcher\Controller
 		$productCount  = \count( $products );
 		$categoryCount = \count( $categories );
 
+		/* v1.0.31: Build the Add Product URL for the new manual-entry button. */
+		$addProductUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=products&do=add'
+		);
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_products_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->productList(
 			$products, $categories, $search, $status, $catId, $imageStatus,
-			$total, $pagination, $formActionUrl, $productCount, $categoryCount
+			$total, $pagination, $formActionUrl, $productCount, $categoryCount,
+			$addProductUrl
 		);
+	}
+
+	/**
+	 * v1.0.31: Manually create a new product.
+	 *
+	 * Renders a blank form with editable UPC. On save, inserts a new
+	 * gd_catalog row with primary_source='manual' and auto-locks every
+	 * populated field via Product::lockField(). Locked fields prevent
+	 * distributor imports from silently overwriting admin-entered data -
+	 * any incoming distributor change routes to gd_feed_conflicts for
+	 * admin review (or 48hr auto-resolve).
+	 */
+	protected function add()
+	{
+		$form = new \IPS\Helpers\Form( 'manual_product', 'gdcatalog_save_manual' );
+
+		/* UPC is editable + required for new products. */
+		$form->add( new \IPS\Helpers\Form\Text(
+			'gdcatalog_product_upc',
+			'',
+			TRUE,
+			[ 'maxLength' => 20 ]
+		));
+
+		/* Same editable fields as edit() - kept in sync intentionally. */
+		$editableFields = [
+			/* Identity */
+			'title'          => [ 'Text', 255 ],
+			'mpn'            => [ 'Text', 50 ],
+			'brand'          => [ 'Text', 100 ],
+			'manufacturer'   => [ 'Text', 100 ],
+			'importer'       => [ 'Text', 100 ],
+			'model'          => [ 'Text', 100 ],
+
+			/* Classification */
+			'gun_type'       => [ 'Text', 50 ],
+
+			/* Core specs */
+			'caliber'        => [ 'Text', 50 ],
+			'action_type'    => [ 'Text', 50 ],
+			'capacity'       => [ 'Number', null ],
+			'barrel_length'  => [ 'Number', null ],
+			'overall_length' => [ 'Number', null ],
+			'weight_oz'      => [ 'Number', null ],
+
+			/* Configuration / appearance */
+			'finish'         => [ 'Text', 100 ],
+			'safety_type'    => [ 'Text', 100 ],
+			'stock_type'     => [ 'Text', 100 ],
+			'sight_type'     => [ 'Text', 100 ],
+			'receiver_type'  => [ 'Text', 255 ],
+			'frame_material' => [ 'Text', 100 ],
+
+			/* Image */
+			'image_url'      => [ 'Text', 500 ],
+
+			/* Pricing + content */
+			'msrp'           => [ 'Number', null ],
+			'description'    => [ 'TextArea', null ],
+		];
+
+		foreach ( $editableFields as $field => $config )
+		{
+			$formClass = $config[0] === 'TextArea'
+				? \IPS\Helpers\Form\TextArea::class
+				: ( $config[0] === 'Number' ? \IPS\Helpers\Form\Number::class : \IPS\Helpers\Form\Text::class );
+
+			$form->add( new $formClass(
+				'gdcatalog_product_' . $field,
+				'',
+				FALSE,
+				$config[0] === 'Number' ? [ 'decimals' => 2 ] : []
+			));
+		}
+
+		/* Boolean flags */
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gdcatalog_product_nfa_item',     0 ) );
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gdcatalog_product_requires_ffl', 0 ) );
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gdcatalog_product_is_ammo',      0 ) );
+
+		/* Status - default active for manual entries. */
+		$form->add( new \IPS\Helpers\Form\Select(
+			'gdcatalog_product_status', 'active', TRUE,
+			[ 'options' => [
+				'active'       => 'Active',
+				'discontinued' => 'Discontinued',
+				'admin_review' => 'Admin Review',
+				'pending'      => 'Pending',
+			]]
+		));
+
+		if ( $values = $form->values() )
+		{
+			\IPS\Session::i()->csrfCheck();
+
+			$upc = trim( (string) $values['gdcatalog_product_upc'] );
+
+			if ( $upc === '' )
+			{
+				\IPS\Output::i()->error( 'UPC is required.', '2GDC102/A1', 400 );
+				return;
+			}
+
+			/* Reject duplicates - if a row already exists, redirect to edit. */
+			try
+			{
+				$existing = Product::load( $upc );
+				\IPS\Output::i()->redirect(
+					\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products&do=edit&upc=' . urlencode( $upc ) ),
+					'A product with that UPC already exists - opened for editing'
+				);
+				return;
+			}
+			catch ( \OutOfRangeException )
+			{
+				/* Good - UPC is free to use */
+			}
+
+			/* Insert the new product. */
+			$product = new Product;
+			$product->upc = $upc;
+
+			$populatedFields = [];
+
+			foreach ( $editableFields as $field => $config )
+			{
+				$value = $values[ 'gdcatalog_product_' . $field ];
+				if ( $value !== null && $value !== '' )
+				{
+					$product->$field = $value;
+					$populatedFields[] = $field;
+				}
+			}
+
+			$product->nfa_item      = (int) $values['gdcatalog_product_nfa_item'];
+			$product->requires_ffl  = (int) $values['gdcatalog_product_requires_ffl'];
+			$product->is_ammo       = (int) $values['gdcatalog_product_is_ammo'];
+			$product->record_status = $values['gdcatalog_product_status'];
+			$product->primary_source = 'manual';
+			$product->distributor_sources = 'manual';
+			$product->last_updated  = date( 'Y-m-d H:i:s' );
+
+			/* v1.0.31: Auto-lock every populated field. The existing
+			 * ConflictResolver in Importer.php checks isFieldLocked() and
+			 * routes any incoming distributor change to gd_feed_conflicts. */
+			foreach ( $populatedFields as $field )
+			{
+				$product->lockField( $field );
+			}
+
+			$product->save();
+
+			/* Reindex */
+			try { OpenSearchIndexer::i()->indexProduct( $product ); } catch ( \Throwable ) {}
+
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products&do=edit&upc=' . urlencode( $upc ) ),
+				sprintf( 'Product created with %d locked fields', count( $populatedFields ) )
+			);
+		}
+
+		\IPS\Output::i()->title  = 'Add Product';
+		\IPS\Output::i()->output = (string) $form;
 	}
 
 	/**
@@ -416,7 +585,24 @@ class _products extends \IPS\Dispatcher\Controller
 				. '</div></div>';
 		}
 
-		\IPS\Output::i()->output = $imagePreview . $lockNotice . (string) $form;
+		/* v1.0.31: Lock All / Unlock All Fields buttons. Single-click to lock
+		 * every populated field against distributor overwrites, or release
+		 * all locks. Rendered as a small action bar above the form. */
+		$lockAllUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=products&do=lockAllFields&upc=' . urlencode( (string) $product->upc )
+		)->csrf();
+		$unlockAllUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=products&do=unlockAllFields&upc=' . urlencode( (string) $product->upc )
+		)->csrf();
+
+		$lockButtonBar = '<div class="ipsBox ipsPull" style="margin-bottom:16px">'
+			. '<div class="ipsBox_body ipsPad" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+			. '<span style="font-weight:bold;margin-right:8px">Bulk Lock:</span>'
+			. '<a href="' . htmlspecialchars( $lockAllUrl ) . '" class="ipsButton ipsButton--secondary ipsButton--small" data-confirm title="Lock every populated field so distributor imports cannot overwrite them. Conflicts route to admin review.">Lock All Fields</a>'
+			. '<a href="' . htmlspecialchars( $unlockAllUrl ) . '" class="ipsButton ipsButton--secondary ipsButton--small" data-confirm title="Release all field locks for this product.">Unlock All Fields</a>'
+			. '</div></div>';
+
+		\IPS\Output::i()->output = $imagePreview . $lockButtonBar . $lockNotice . (string) $form;
 	}
 
 	/**
@@ -456,6 +642,102 @@ class _products extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products&do=edit&upc=' . urlencode( $upc ) ),
 			'Field unlocked'
+		);
+	}
+
+	/**
+	 * v1.0.31: Lock every populated field on a product in one click.
+	 *
+	 * Iterates all editable fields, calls lockField() for each that has a
+	 * non-empty value. Useful for "I trust this entire record, don't let
+	 * distributors change it."
+	 */
+	protected function lockAllFields()
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$upc = \IPS\Request::i()->upc;
+
+		try
+		{
+			$product = Product::load( $upc );
+		}
+		catch ( \OutOfRangeException )
+		{
+			\IPS\Output::i()->error( 'node_error', '2GDC102/L1', 404 );
+			return;
+		}
+
+		/* Same field list as add() and edit(). Kept in sync intentionally. */
+		$lockable = [
+			'title', 'mpn', 'brand', 'manufacturer', 'importer', 'model',
+			'gun_type', 'caliber', 'action_type', 'capacity', 'barrel_length',
+			'overall_length', 'weight_oz', 'finish', 'safety_type',
+			'stock_type', 'sight_type', 'receiver_type', 'frame_material',
+			'image_url', 'msrp', 'description',
+		];
+
+		$locked = 0;
+		foreach ( $lockable as $field )
+		{
+			$value = $product->$field ?? '';
+			if ( $value !== null && $value !== '' )
+			{
+				$product->lockField( $field );
+				$locked++;
+			}
+		}
+
+		$product->save();
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products&do=edit&upc=' . urlencode( $upc ) ),
+			sprintf( 'Locked %d populated fields', $locked )
+		);
+	}
+
+	/**
+	 * v1.0.31: Unlock every field on a product in one click.
+	 */
+	protected function unlockAllFields()
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$upc = \IPS\Request::i()->upc;
+
+		try
+		{
+			$product = Product::load( $upc );
+		}
+		catch ( \OutOfRangeException )
+		{
+			\IPS\Output::i()->error( 'node_error', '2GDC102/L2', 404 );
+			return;
+		}
+
+		$lockable = [
+			'title', 'mpn', 'brand', 'manufacturer', 'importer', 'model',
+			'gun_type', 'caliber', 'action_type', 'capacity', 'barrel_length',
+			'overall_length', 'weight_oz', 'finish', 'safety_type',
+			'stock_type', 'sight_type', 'receiver_type', 'frame_material',
+			'image_url', 'msrp', 'description',
+		];
+
+		$unlocked = 0;
+		foreach ( $lockable as $field )
+		{
+			if ( $product->isFieldLocked( $field ) )
+			{
+				$product->unlockField( $field );
+				$unlocked++;
+			}
+		}
+
+		$product->save();
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products&do=edit&upc=' . urlencode( $upc ) ),
+			sprintf( 'Unlocked %d fields', $unlocked )
 		);
 	}
 
