@@ -1002,13 +1002,34 @@ class Importer
 
 	/**
 	 * Handle discontinuation logic — Section 2.6.
-	 * Products from this distributor not seen for 3 consecutive runs
+	 * Products from this distributor not seen for N consecutive runs
 	 * are set to Discontinued if no other distributor still carries them.
+	 *
+	 * v1.0.29 SAFETY GUARD: If $this->seenUpcs is empty or suspiciously
+	 * small, do NOT run discontinuation. An empty seenUpcs set means the
+	 * import was aborted before processing any products (e.g. "offset stuck"
+	 * abort, API failure, credential failure). Without this guard, an
+	 * aborted import would mark EVERY product as missed and discontinue
+	 * them all once they hit the threshold. The v1.0.27 reimport caused
+	 * exactly this: 57,326 products were wrongly marked discontinued after
+	 * an aborted run.
 	 *
 	 * @return void
 	 */
 	protected function processDiscontinuations(): void
 	{
+		/* v1.0.29: Safety guard - never run discontinuation if the import
+		 * didn't actually see any products. Threshold of 100 chosen because
+		 * a legitimate import would see hundreds at minimum even on a small
+		 * supplemental feed. Sports South full catalog is ~58k; even a single
+		 * 1000-record chunk would clear 100. */
+		$seenCount = is_array( $this->seenUpcs ) ? count( $this->seenUpcs ) : 0;
+		if ( $seenCount < 100 )
+		{
+			try { \IPS\Log::log( sprintf( 'processDiscontinuations SKIPPED for %s: only %d UPCs seen in this run (need >=100 to be safe)', $this->feed->distributor, $seenCount ), 'gdcatalog_discontinue' ); } catch ( \Throwable ) {}
+			return;
+		}
+
 		$threshold = (int) \IPS\Settings::i()->gdcatalog_discontinue_threshold ?: 3;
 
 		/* Find all products that list this distributor in their sources */

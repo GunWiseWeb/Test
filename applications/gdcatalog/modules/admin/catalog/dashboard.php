@@ -116,6 +116,40 @@ class _dashboard extends \IPS\Dispatcher\Controller
 					'app=gdcatalog&module=catalog&controller=dashboard&do=queueFullImport&id=' . (int) $feed->id
 				)->csrf();
 
+				/* v1.0.29: Compute the labels the dashboard template expects.
+				 * Pre-existing bug: template fields (distributor_label, etc)
+				 * never existed in the controller output, so the distributor
+				 * table rendered empty cells for everything except feed_name
+				 * and the action buttons. */
+				$distributorLabel = ucwords( str_replace( '_', ' ', (string) $feed->distributor ) );
+
+				$importSchedule = (string) ( $feed->import_schedule ?? '' );
+				$scheduleMap = [
+					'15min' => 'Every 15 min',
+					'30min' => 'Every 30 min',
+					'1hr'   => 'Hourly',
+					'6hr'   => 'Every 6 hours',
+					'daily' => 'Daily',
+				];
+				$scheduleLabel = $scheduleMap[ $importSchedule ] ?? ( $importSchedule !== '' ? $importSchedule : '—' );
+
+				$lastRunRaw   = $lastLog['run_start'] ?? ( $feed->last_run ?? null );
+				$lastRunLabel = '—';
+				if ( !empty( $lastRunRaw ) )
+				{
+					try
+					{
+						$ts = is_numeric( $lastRunRaw ) ? (int) $lastRunRaw : strtotime( (string) $lastRunRaw );
+						if ( $ts > 0 )
+						{
+							$lastRunLabel = date( 'Y-m-d H:i', $ts );
+						}
+					}
+					catch ( \Throwable ) {}
+				}
+
+				$lastFeedStatus = (string) ( $feed->last_run_status ?? '' );
+
 				$distributorStats[] = [
 					'priority'              => (int) $feed->priority,
 					'feed_name'             => (string) $feed->feed_name,
@@ -127,6 +161,14 @@ class _dashboard extends \IPS\Dispatcher\Controller
 					'run_import_url'        => $runImportUrl,
 					'queue_full_import_url' => $queueFullImportUrl,
 					'is_sportssouth'        => $feed->auth_type === 'sportssouth',
+
+					/* v1.0.29: fields the dashboard template expects */
+					'distributor_label'     => $distributorLabel,
+					'schedule_label'        => $scheduleLabel,
+					'last_run_label'        => $lastRunLabel,
+					'record_count'          => $productCount,
+					'is_running'            => $lastFeedStatus === 'running',
+					'is_failed'             => $lastFeedStatus === 'failed',
 				];
 			}
 		}
@@ -147,12 +189,26 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		try { $lockedFields      = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_field_locks' )->first(); } catch ( \Exception ) {}
 		try { $reindexQueue      = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_reindex_queue' )->first(); } catch ( \Exception ) {}
 
+		/* v1.0.29: URLs for the new Run Now buttons in the dashboard. */
+		$taskUrls = [
+			'validate_images'   => (string) \IPS\Http\Url::internal(
+				'app=gdcatalog&module=catalog&controller=dashboard&do=runValidateImages'
+			)->csrf(),
+			'resolve_conflicts' => (string) \IPS\Http\Url::internal(
+				'app=gdcatalog&module=catalog&controller=dashboard&do=runResolveConflicts'
+			)->csrf(),
+			'prune_log'         => (string) \IPS\Http\Url::internal(
+				'app=gdcatalog&module=catalog&controller=dashboard&do=runPruneLog'
+			)->csrf(),
+		];
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_dash_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->dashboard(
 			$totalProducts, $activeProducts, $reviewProducts,
 			$categoryCounts, $distributorStats,
 			$osExists, $osStats,
-			$pendingConflicts, $pendingCompliance, $lockedFields, $reindexQueue
+			$pendingConflicts, $pendingCompliance, $lockedFields, $reindexQueue,
+			$taskUrls
 		);
 	}
 
@@ -276,6 +332,94 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
 			"Processed reindex queue: {$count} documents indexed"
+		);
+	}
+
+	/**
+	 * v1.0.29: Run the ValidateProductImages task synchronously.
+	 * HEAD-checks the next batch of image URLs.
+	 */
+	protected function runValidateImages()
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$message = 'Image validation task ran';
+		try
+		{
+			$task   = new \IPS\gdcatalog\tasks\ValidateProductImages;
+			$result = $task->execute();
+			if ( is_string( $result ) && $result !== '' )
+			{
+				$message = $result;
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			$message = 'Image validation task failed: ' . $e->getMessage();
+			try { \IPS\Log::log( $message, 'gdcatalog_imgcheck' ); } catch ( \Throwable ) {}
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+			$message
+		);
+	}
+
+	/**
+	 * v1.0.29: Run the AutoResolveConflicts task synchronously.
+	 */
+	protected function runResolveConflicts()
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$message = 'Auto-resolve conflicts task ran';
+		try
+		{
+			$task   = new \IPS\gdcatalog\tasks\AutoResolveConflicts;
+			$result = $task->execute();
+			if ( is_string( $result ) && $result !== '' )
+			{
+				$message = $result;
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			$message = 'Auto-resolve conflicts task failed: ' . $e->getMessage();
+			try { \IPS\Log::log( $message, 'gdcatalog_autoresolve' ); } catch ( \Throwable ) {}
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+			$message
+		);
+	}
+
+	/**
+	 * v1.0.29: Run the PruneConflictLog task synchronously.
+	 */
+	protected function runPruneLog()
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$message = 'Prune conflict log task ran';
+		try
+		{
+			$task   = new \IPS\gdcatalog\tasks\PruneConflictLog;
+			$result = $task->execute();
+			if ( is_string( $result ) && $result !== '' )
+			{
+				$message = $result;
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			$message = 'Prune conflict log task failed: ' . $e->getMessage();
+			try { \IPS\Log::log( $message, 'gdcatalog_prune' ); } catch ( \Throwable ) {}
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+			$message
 		);
 	}
 }
