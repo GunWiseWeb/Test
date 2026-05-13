@@ -174,9 +174,64 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Exception ) {}
 
-		/* OpenSearch stats — hardcoded to avoid live HTTP probe that hangs the page */
+		/* v1.0.30: Real OpenSearch probe.
+		 *
+		 * The hardcoded FALSE was a workaround for a HEAD-request hang bug
+		 * in OpenSearchIndexer::request() that v1.0.30 fixed. Now we can
+		 * call indexExists() and getStats() with confidence - HEAD now uses
+		 * CURLOPT_NOBODY+3s timeout, so worst case is a 3-second add to
+		 * page render if OpenSearch is down. */
 		$osExists = FALSE;
 		$osStats  = [];
+
+		try
+		{
+			$indexer  = OpenSearchIndexer::i();
+			$osExists = $indexer->indexExists();
+
+			if ( $osExists )
+			{
+				try
+				{
+					$stats = $indexer->getStats();
+				}
+				catch ( \Throwable )
+				{
+					$stats = [];
+				}
+
+				$osStats['doc_count']  = (int) ( $stats['doc_count'] ?? 0 );
+				$osStats['size_bytes'] = (int) ( $stats['size_bytes'] ?? 0 );
+			}
+
+			/* URLs are always set regardless of $osExists - they're rendered
+			 * in different template branches (Build Index Now vs Rebuild). */
+			$osStats['rebuild_url'] = (string) \IPS\Http\Url::internal(
+				'app=gdcatalog&module=catalog&controller=dashboard&do=rebuildIndex'
+			)->csrf();
+
+			$osStats['process_queue_url'] = (string) \IPS\Http\Url::internal(
+				'app=gdcatalog&module=catalog&controller=dashboard&do=processQueue'
+			)->csrf();
+		}
+		catch ( \Throwable $e )
+		{
+			/* Keep $osExists = FALSE on any unexpected error so the
+			 * "Build Index Now" path still renders. Log for diagnosis. */
+			try { \IPS\Log::log( 'Dashboard OpenSearch probe failed: ' . $e->getMessage(), 'gdcatalog_dashboard' ); } catch ( \Throwable ) {}
+
+			/* But still set the URLs so the button works even if probe failed. */
+			try
+			{
+				$osStats['rebuild_url'] = (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=dashboard&do=rebuildIndex'
+				)->csrf();
+				$osStats['process_queue_url'] = (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=dashboard&do=processQueue'
+				)->csrf();
+			}
+			catch ( \Throwable ) {}
+		}
 
 		/* Pending items */
 		$pendingConflicts  = 0;

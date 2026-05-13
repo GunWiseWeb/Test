@@ -385,6 +385,20 @@ class OpenSearchIndexer
 		curl_setopt( $ch, CURLOPT_TIMEOUT, 30 );
 		curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, 5 );
 
+		/* v1.0.30: HEAD requests must set CURLOPT_NOBODY=true. Without it,
+		 * PHP curl waits for a response body that never arrives and times
+		 * out after CURLOPT_TIMEOUT (30s). This was making indexExists()
+		 * unusable - the dashboard hardcoded $osExists = FALSE to avoid
+		 * the hang. */
+		if ( $method === 'HEAD' )
+		{
+			curl_setopt( $ch, CURLOPT_NOBODY, true );
+			/* For HEAD we don't need 30s - if it doesn't respond fast, it
+			 * never will. Keep a short timeout so the dashboard doesn't
+			 * hang on a misconfigured server. */
+			curl_setopt( $ch, CURLOPT_TIMEOUT, 3 );
+		}
+
 		$headers = [];
 
 		if ( $rawBody !== null )
