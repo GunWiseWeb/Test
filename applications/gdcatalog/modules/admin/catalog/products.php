@@ -112,14 +112,22 @@ class _products extends \IPS\Dispatcher\Controller
 			$where[] = [ 'record_status=?', $status ];
 		}
 
-		/* v1.0.27: Image status filter. For now only 'missing' and 'present'
-		 * are supported - v1.0.28 will add 'broken' (validated 404) once
-		 * image_validated column exists. */
+		/* v1.0.28: Image status filter - expanded for HEAD-validation states.
+		 *
+		 * Values:
+		 *   missing   - image_url is NULL or empty string
+		 *   present   - image_url has a value (regardless of validation)
+		 *   unchecked - has URL but never validated yet (image_validated IS NULL)
+		 *   ok        - validated and status 200-399
+		 *   broken    - validated and status >= 400 or = 0 (network errors)
+		 */
 		$imageStatus = (string) ( \IPS\Request::i()->image_status ?? '' );
-		if ( $imageStatus !== 'all' && $imageStatus !== 'missing' && $imageStatus !== 'present' )
+		$validImageStatuses = [ 'missing', 'present', 'unchecked', 'ok', 'broken' ];
+		if ( !in_array( $imageStatus, $validImageStatuses, true ) )
 		{
 			$imageStatus = '';
 		}
+
 		if ( $imageStatus === 'missing' )
 		{
 			$where[] = [ 'image_url IS NULL OR image_url = ?', '' ];
@@ -127,6 +135,18 @@ class _products extends \IPS\Dispatcher\Controller
 		elseif ( $imageStatus === 'present' )
 		{
 			$where[] = [ 'image_url IS NOT NULL AND image_url != ?', '' ];
+		}
+		elseif ( $imageStatus === 'unchecked' )
+		{
+			$where[] = [ 'image_url IS NOT NULL AND image_url != ? AND image_validated IS NULL', '' ];
+		}
+		elseif ( $imageStatus === 'ok' )
+		{
+			$where[] = [ 'image_validated = 1 AND image_http_status >= 200 AND image_http_status < 400' ];
+		}
+		elseif ( $imageStatus === 'broken' )
+		{
+			$where[] = [ 'image_validated = 1 AND (image_http_status >= 400 OR image_http_status = 0)' ];
 		}
 
 		/* v1.0.23: Parent-aware category filter.
@@ -186,15 +206,20 @@ class _products extends \IPS\Dispatcher\Controller
 			)->csrf();
 
 			$products[] = [
-				'upc'            => (string) $product->upc,
-				'title'          => (string) ( $product->title ?? '' ),
-				'brand'          => (string) ( $product->brand ?? '' ),
-				'caliber'        => (string) ( $product->caliber ?? '' ),
-				'msrp'           => $product->msrp !== null ? '$' . number_format( (float) $product->msrp, 2 ) : '—',
-				'record_status'  => (string) ( $product->record_status ?? '' ),
-				'primary_source' => (string) ( $product->primary_source ?? '' ),
-				'edit_url'       => $editUrl,
-				'approve_url'    => $approveUrl,
+				'upc'                => (string) $product->upc,
+				'title'              => (string) ( $product->title ?? '' ),
+				'brand'              => (string) ( $product->brand ?? '' ),
+				'caliber'            => (string) ( $product->caliber ?? '' ),
+				'msrp'               => $product->msrp !== null ? '$' . number_format( (float) $product->msrp, 2 ) : '—',
+				'record_status'      => (string) ( $product->record_status ?? '' ),
+				'primary_source'     => (string) ( $product->primary_source ?? '' ),
+				'edit_url'           => $editUrl,
+				'approve_url'        => $approveUrl,
+
+				/* v1.0.28: Image validation state for the image badge column */
+				'image_url'          => (string) ( $product->image_url ?? '' ),
+				'image_validated'    => $product->image_validated !== null ? (int) $product->image_validated : null,
+				'image_http_status'  => $product->image_http_status !== null ? (int) $product->image_http_status : null,
 			];
 		}
 
@@ -223,8 +248,8 @@ class _products extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_products_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->productList(
-			$products, $categories, $search, $status, $catId, $total, $pagination, $formActionUrl,
-			$productCount, $categoryCount, $imageStatus
+			$products, $categories, $search, $status, $catId, $imageStatus,
+			$total, $pagination, $formActionUrl, $productCount, $categoryCount
 		);
 	}
 

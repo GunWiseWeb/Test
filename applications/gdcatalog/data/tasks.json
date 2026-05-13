@@ -1,5 +1,6 @@
 {
 	"ImportFeeds": "PT15M",
 	"AutoResolveConflicts": "PT1H",
-	"PruneConflictLog": "P1D"
+	"PruneConflictLog": "P1D",
+	"ValidateProductImages": "PT1H"
 }

@@ -594,6 +594,48 @@
 				"zerofill": false,
 				"values": [],
 				"comment": ""
+			},
+			"image_validated": {
+				"name": "image_validated",
+				"type": "TINYINT",
+				"length": 1,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"image_validated_at": {
+				"name": "image_validated_at",
+				"type": "DATETIME",
+				"length": null,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"image_http_status": {
+				"name": "image_http_status",
+				"type": "SMALLINT",
+				"length": null,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
 			}
 		},
 		"indexes": {
@@ -664,6 +706,18 @@
 					"manufacturer"
 				],
 				"length": [
+					null
+				]
+			},
+			"idx_image_validated": {
+				"type": "key",
+				"name": "idx_image_validated",
+				"columns": [
+					"image_validated",
+					"image_validated_at"
+				],
+				"length": [
+					null,
 					null
 				]
 			}

@@ -188,5 +188,13 @@
     <word key="gdcatalog_image_status_all" js="0"><![CDATA[All Products]]></word>
     <word key="gdcatalog_image_status_present" js="0"><![CDATA[Has Image URL]]></word>
     <word key="gdcatalog_image_status_missing" js="0"><![CDATA[Missing Image URL]]></word>
+    <word key="gdcatalog_image_validation_batch_size" js="0"><![CDATA[Image validation batch size]]></word>
+    <word key="gdcatalog_image_validation_batch_size_desc" js="0"><![CDATA[Number of image URLs HEAD-checked per hourly task run. Default 2000. Range 1-10000.]]></word>
+    <word key="gdcatalog_image_validation_revalidate_days" js="0"><![CDATA[Image revalidation interval (days)]]></word>
+    <word key="gdcatalog_image_validation_revalidate_days_desc" js="0"><![CDATA[After this many days, previously-validated images get re-checked. Default 30. Range 1-365.]]></word>
+    <word key="gdcatalog_task_validate_product_images" js="0"><![CDATA[HEAD-check product image URLs for broken (404) links]]></word>
+    <word key="gdcatalog_image_status_unchecked" js="0"><![CDATA[Never Checked]]></word>
+    <word key="gdcatalog_image_status_ok" js="0"><![CDATA[Verified OK]]></word>
+    <word key="gdcatalog_image_status_broken" js="0"><![CDATA[Broken (404)]]></word>
   </app>
 </language>

@@ -63,6 +63,18 @@ class _settings extends \IPS\Dispatcher\Controller
 			TRUE,
 			[ 'min' => 1, 'max' => 365 ]
 		));
+		$form->add( new \IPS\Helpers\Form\Number(
+			'gdcatalog_image_validation_batch_size',
+			\IPS\Settings::i()->gdcatalog_image_validation_batch_size ?: 2000,
+			TRUE,
+			[ 'min' => 1, 'max' => 10000 ]
+		));
+		$form->add( new \IPS\Helpers\Form\Number(
+			'gdcatalog_image_validation_revalidate_days',
+			\IPS\Settings::i()->gdcatalog_image_validation_revalidate_days ?: 30,
+			TRUE,
+			[ 'min' => 1, 'max' => 365 ]
+		));
 		$form->add( new \IPS\Helpers\Form\YesNo(
 			'gdcatalog_digest_email_enabled',
 			(bool) \IPS\Settings::i()->gdcatalog_digest_email_enabled,

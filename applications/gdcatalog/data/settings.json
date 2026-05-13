@@ -26,5 +26,13 @@
 	{
 		"key": "gdcatalog_conflict_log_retention_days",
 		"default": "14"
+	},
+	{
+		"key": "gdcatalog_image_validation_batch_size",
+		"default": "2000"
+	},
+	{
+		"key": "gdcatalog_image_validation_revalidate_days",
+		"default": "30"
 	}
 ]
