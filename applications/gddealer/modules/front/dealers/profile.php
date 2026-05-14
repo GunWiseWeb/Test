@@ -174,6 +174,35 @@ class _profile extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Exception )
 		{
+			/* v1.0.182: Slug-history fallback. Before throwing 404, check
+			 * if this slug used to belong to some dealer (regenerated since)
+			 * and 301-redirect to their current slug. */
+			$historyDealerId = \IPS\gddealer\Dealer\Slug::dealerIdForRetiredSlug( $slug );
+			if ( $historyDealerId !== null )
+			{
+				try
+				{
+					$currentSlug = (string) \IPS\Db::i()->select(
+						'dealer_slug', 'gd_dealer_feed_config',
+						[ 'dealer_id=?', $historyDealerId ]
+					)->first();
+					if ( $currentSlug !== '' && $currentSlug !== $slug )
+					{
+						$targetUrl = (string) \IPS\Http\Url::internal(
+							'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $currentSlug ),
+							'front', 'dealers_profile', $currentSlug
+						);
+						/* 301 Moved Permanently - tells search engines and
+						 * clients the URL has changed forever. */
+						header( 'Location: ' . $targetUrl, true, 301 );
+						exit;
+					}
+				}
+				catch ( \Throwable )
+				{
+					/* Fall through to 404 if the dealer is gone too. */
+				}
+			}
 			\IPS\Output::i()->error( 'dealer_not_found', '2GDD300/2', 404 );
 			return;
 		}

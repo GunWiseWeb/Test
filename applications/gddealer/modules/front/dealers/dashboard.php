@@ -207,7 +207,8 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		unset( $step );
 
 		$publicProfileUrl = (string) \IPS\Http\Url::internal(
-			'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) $dealer->dealer_slug )
+			'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) $dealer->dealer_slug ),
+			'front', 'dealers_profile', (string) $dealer->dealer_slug
 		);
 
 		$prefs = $this->dashboardPrefs();
@@ -384,7 +385,8 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		);
 
 		$publicProfileUrl = (string) \IPS\Http\Url::internal(
-			'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) $dealer->dealer_slug )
+			'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) $dealer->dealer_slug ),
+			'front', 'dealers_profile', (string) $dealer->dealer_slug
 		);
 
 		$saveUrl = (string) \IPS\Http\Url::internal(
@@ -407,6 +409,12 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'save_url'           => $saveUrl,
 			'cancel_url'         => $cancelUrl,
 			'csrf_key'           => $csrfKey,
+			'regenerate_preview_url' => (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=dashboard&do=regenerateSlug&preview=1'
+			),
+			'regenerate_confirm_url' => (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=dashboard&do=regenerateSlug'
+			)->csrf(),
 		];
 
 		$this->output( 'customize', \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->dashboardCustomize( $data ) );
@@ -540,6 +548,64 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=customize' )
 		);
+	}
+
+	/**
+	 * v1.0.182: Dealer-side regenerate URL slug. Mirrors the admin version
+	 * but scoped to the logged-in dealer's own record (security: the dealer
+	 * can't regenerate someone else's slug).
+	 *
+	 * GET ?preview=1 - JSON preview for the confirmation modal
+	 * POST           - actually performs the regenerate. CSRF-checked.
+	 */
+	protected function regenerateSlug(): void
+	{
+		$dealer   = $this->dealer;
+		$dealerId = (int) $dealer->dealer_id;
+
+		if ( $dealerId <= 0 )
+		{
+			\IPS\Output::i()->error( 'gddealer_regenerate_slug_failed', '2GDD500/1', 400 );
+			return;
+		}
+
+		/* Preview mode for the confirmation modal */
+		if ( !empty( \IPS\Request::i()->preview ) )
+		{
+			$preview = \IPS\gddealer\Dealer\Slug::previewRegenerate( $dealerId );
+			\IPS\Output::i()->json( [
+				'old_slug'     => (string) $preview['old_slug'],
+				'new_slug'     => (string) $preview['new_slug'],
+				'would_change' => (bool) $preview['would_change'],
+			] );
+			return;
+		}
+
+		/* Real run - CSRF required */
+		\IPS\Session::i()->csrfCheck();
+
+		$result = \IPS\gddealer\Dealer\Slug::regenerate( $dealerId, 'dealer_regenerate' );
+
+		$redirectUrl = \IPS\Http\Url::internal(
+			'app=gddealer&module=dealers&controller=dashboard&do=customize'
+		);
+
+		if ( $result['success'] )
+		{
+			\IPS\Output::i()->redirect( $redirectUrl,
+				\IPS\Member::loggedIn()->language()->addToStack( 'gddealer_regenerate_slug_done' )
+			);
+		}
+		else if ( $result['message'] === 'unchanged' )
+		{
+			\IPS\Output::i()->redirect( $redirectUrl,
+				\IPS\Member::loggedIn()->language()->addToStack( 'gddealer_regenerate_slug_unchanged' )
+			);
+		}
+		else
+		{
+			\IPS\Output::i()->error( 'gddealer_regenerate_slug_failed', '2GDD500/2', 500 );
+		}
 	}
 
 	protected function dismissFflModal(): void

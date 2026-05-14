@@ -69,7 +69,8 @@ class _dealers extends \IPS\Dispatcher\Controller
 			$slug = (string) ( $dealer->dealer_slug ?? '' );
 			$profileUrl = $slug !== ''
 				? (string) \IPS\Http\Url::internal(
-					'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $slug )
+					'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $slug ),
+					'front', 'dealers_profile', $slug
 				)
 				: '';
 
@@ -164,7 +165,8 @@ class _dealers extends \IPS\Dispatcher\Controller
 		$slug       = (string) ( $dealer->dealer_slug ?? '' );
 		$profileUrl = $slug !== ''
 			? (string) \IPS\Http\Url::internal(
-				'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $slug )
+				'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $slug ),
+				'front', 'dealers_profile', $slug
 			)
 			: '';
 
@@ -185,7 +187,13 @@ class _dealers extends \IPS\Dispatcher\Controller
 			'trial_expires_at'  => $trialExpires,
 			'trial_expires_soon'=> $trialSoon,
 			'billing_note'         => (string) ( $dealer->billing_note ?? '' ),
-			'profile_url'          => $profileUrl,
+			'profile_url'                  => $profileUrl,
+			'regenerate_preview_url'       => (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=dealers&do=regenerateSlug&id=' . (int) $dealer->dealer_id . '&preview=1'
+			),
+			'regenerate_confirm_url'       => (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=dealers&do=regenerateSlug&id=' . (int) $dealer->dealer_id
+			),
 			'disputes_suspended'   => (bool) ( $dealer->disputes_suspended ?? 0 ),
 		];
 
@@ -330,6 +338,62 @@ class _dealers extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title  = $dealer->dealer_name;
 		\IPS\Output::i()->output = (string) $form;
+	}
+
+	/**
+	 * v1.0.182: Manually regenerate a dealer's URL slug from their current
+	 * dealer_name. Records the old slug in gd_dealer_slug_history so old
+	 * URLs continue 301-redirecting to the new one (handled in
+	 * front/dealers/profile.php).
+	 *
+	 * GET ?preview=1 - returns JSON {old_slug, new_slug, would_change} for
+	 *                  the confirmation modal to show user before they confirm.
+	 * POST           - actually performs the regenerate. CSRF-checked.
+	 */
+	protected function regenerateSlug(): void
+	{
+		$id = (int) \IPS\Request::i()->id;
+		if ( $id <= 0 )
+		{
+			\IPS\Output::i()->error( 'gddealer_regenerate_slug_failed', '2GDD400/1', 400 );
+			return;
+		}
+
+		/* Preview mode for the confirmation modal */
+		if ( !empty( \IPS\Request::i()->preview ) )
+		{
+			$preview = \IPS\gddealer\Dealer\Slug::previewRegenerate( $id );
+			\IPS\Output::i()->json( [
+				'old_slug'     => (string) $preview['old_slug'],
+				'new_slug'     => (string) $preview['new_slug'],
+				'would_change' => (bool) $preview['would_change'],
+			] );
+			return;
+		}
+
+		/* Real run - CSRF required */
+		\IPS\Session::i()->csrfCheck();
+
+		$result = \IPS\gddealer\Dealer\Slug::regenerate( $id, 'admin_regenerate' );
+
+		if ( $result['success'] )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=view&id=' . $id ),
+				\IPS\Member::loggedIn()->language()->addToStack( 'gddealer_regenerate_slug_done' )
+			);
+		}
+		else if ( $result['message'] === 'unchanged' )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=view&id=' . $id ),
+				\IPS\Member::loggedIn()->language()->addToStack( 'gddealer_regenerate_slug_unchanged' )
+			);
+		}
+		else
+		{
+			\IPS\Output::i()->error( 'gddealer_regenerate_slug_failed', '2GDD400/2', 500 );
+		}
 	}
 
 	/**
@@ -489,7 +553,8 @@ class _dealers extends \IPS\Dispatcher\Controller
 					'api_key'       => $apiKey,
 					'contact_email' => (string) ( \IPS\Settings::i()->gddealer_help_contact ?: 'dealers@gunrack.deals' ),
 					'profile_url'   => (string) \IPS\Http\Url::internal(
-						'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $slug )
+						'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $slug ),
+						'front', 'dealers_profile', $slug
 					),
 				], \IPS\Email::TYPE_TRANSACTIONAL )->send( $member );
 			}
@@ -1098,7 +1163,8 @@ class _dealers extends \IPS\Dispatcher\Controller
 
 			$respondUrl = $slug !== ''
 				? (string) \IPS\Http\Url::internal(
-					'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $slug ) . '&dispute=' . $id
+					'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $slug ) . '&dispute=' . $id,
+					'front', 'dealers_profile', $slug
 				)
 				: (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=reviews' );
 
@@ -1564,7 +1630,8 @@ class _dealers extends \IPS\Dispatcher\Controller
 			if ( $dealerMember->member_id )
 			{
 				$profileUrl = (string) \IPS\Http\Url::internal(
-					'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) $dealer['dealer_slug'] )
+					'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) $dealer['dealer_slug'] ),
+					'front', 'dealers_profile', (string) $dealer['dealer_slug']
 				);
 				\IPS\Email::buildFromTemplate( 'gddealer', 'gddealer_ffl_verified', [
 					'name'        => $dealerMember->name,
