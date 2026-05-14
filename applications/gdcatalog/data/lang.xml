@@ -202,5 +202,7 @@
     <word key="gdcatalog_lock_all_fields" js="0"><![CDATA[Lock All Populated Fields]]></word>
     <word key="gdcatalog_unlock_all_fields" js="0"><![CDATA[Unlock All Fields]]></word>
     <word key="gdcatalog_add_product_btn" js="0"><![CDATA[+ Add Product]]></word>
+    <word key="gdcatalog_product_image_url" js="0"><![CDATA[Image URL]]></word>
+    <word key="gdcatalog_product_image_url_desc" js="0"><![CDATA[URL of product image. Use "View full size" at the top of this page to preview after saving. Must start with http:// or https://.]]></word>
   </app>
 </language>

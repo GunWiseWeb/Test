@@ -55,6 +55,8 @@ $lang = array(
 	'gdcatalog_lock_all_fields'                => "Lock All Populated Fields",
 	'gdcatalog_unlock_all_fields'              => "Unlock All Fields",
 	'gdcatalog_add_product_btn'                => "+ Add Product",
+	'gdcatalog_product_image_url'              => "Image URL",
+	'gdcatalog_product_image_url_desc'         => "URL of product image. Use \"View full size\" at the top of this page to preview after saving. Must start with http:// or https://.",
 	'gdcatalog_product_admin_review'           => "Admin Review Required",
 
 	/* Feed Configuration */
