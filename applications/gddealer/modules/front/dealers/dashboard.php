@@ -229,6 +229,12 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'steps_total'        => $stepsTotal,
 			'steps_pct'          => $stepsPct,
 			'public_profile_url' => $publicProfileUrl,
+			'regenerate_preview_url' => (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=dashboard&do=regenerateSlug&preview=1'
+			),
+			'regenerate_confirm_url' => (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=dashboard&do=regenerateSlug'
+			)->csrf(),
 			'prefs'              => $prefs,
 			'card_theme'         => (string) ( $prefs['card_theme'] ?? 'default' ),
 			'card_styles'        => [
