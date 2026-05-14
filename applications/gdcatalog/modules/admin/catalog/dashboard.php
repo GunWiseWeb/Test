@@ -288,12 +288,27 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		];
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_dash_title' );
+		/* v1.0.37: arg order must match template_data declaration exactly.
+		 * Template signature is: $totalProducts, $activeProducts,
+		 * $reviewProducts, $pendingConflicts, $distributorStats, $taskUrls,
+		 * $osExists, $osStats, $reindexQueue, $lockedFields.
+		 *
+		 * Previously this call was passing 12 args including $categoryCounts
+		 * and $pendingCompliance which the template never declares - by
+		 * positional matching $categoryCounts (an array) landed where the
+		 * template expected $pendingConflicts (int), causing
+		 * htmlspecialchars(array given) TypeError. */
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->dashboard(
-			$totalProducts, $activeProducts, $reviewProducts,
-			$categoryCounts, $distributorStats,
-			$osExists, $osStats,
-			$pendingConflicts, $pendingCompliance, $lockedFields, $reindexQueue,
-			$taskUrls
+			$totalProducts,
+			$activeProducts,
+			$reviewProducts,
+			$pendingConflicts,
+			$distributorStats,
+			$taskUrls,
+			$osExists,
+			$osStats,
+			$reindexQueue,
+			$lockedFields
 		);
 	}
 
