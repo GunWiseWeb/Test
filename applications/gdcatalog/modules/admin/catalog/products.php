@@ -205,6 +205,17 @@ class _products extends \IPS\Dispatcher\Controller
 				'app=gdcatalog&module=catalog&controller=products&do=resolveReview&upc=' . urlencode( (string) $product->upc )
 			)->csrf();
 
+			/* v1.0.34: Count of locked fields for the 🔒 column. Reads from
+			 * Product->locked_fields JSON column (the actively-used source of
+			 * truth). Try/catch wrapped because getLockedFields() decodes JSON
+			 * and could fail on legacy/corrupt data. */
+			$lockedFieldsCount = 0;
+			try
+			{
+				$lockedFieldsCount = count( $product->getLockedFields() );
+			}
+			catch ( \Throwable ) {}
+
 			$products[] = [
 				'upc'                => (string) $product->upc,
 				'title'              => (string) ( $product->title ?? '' ),
@@ -220,6 +231,9 @@ class _products extends \IPS\Dispatcher\Controller
 				'image_url'          => (string) ( $product->image_url ?? '' ),
 				'image_validated'    => $product->image_validated !== null ? (int) $product->image_validated : null,
 				'image_http_status'  => $product->image_http_status !== null ? (int) $product->image_http_status : null,
+
+				/* v1.0.34: Locked fields count for the Lock column. */
+				'locked_fields_count' => $lockedFieldsCount,
 			];
 		}
 
@@ -475,6 +489,10 @@ class _products extends \IPS\Dispatcher\Controller
 			'sight_type'     => [ 'Text', 100 ],
 			'receiver_type'  => [ 'Text', 255 ],
 			'frame_material' => [ 'Text', 100 ],
+
+			/* v1.0.34: Image URL is editable on existing products so admins can
+			 * fix broken/404 URLs from the image validation badge. */
+			'image_url'      => [ 'Text', 500 ],
 
 			/* Pricing + content */
 			'msrp'           => [ 'Number', null ],
