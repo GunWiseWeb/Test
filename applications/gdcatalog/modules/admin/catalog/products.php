@@ -265,11 +265,20 @@ class _products extends \IPS\Dispatcher\Controller
 			'app=gdcatalog&module=catalog&controller=products&do=add'
 		);
 
+		/* v1.0.38: CSV bulk-import + template download URLs. */
+		$importCsvUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=products&do=importCsv'
+		);
+
+		$downloadCsvTemplateUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=products&do=downloadCsvTemplate'
+		);
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_products_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->productList(
 			$products, $categories, $search, $status, $catId, $imageStatus,
 			$total, $pagination, $formActionUrl, $productCount, $categoryCount,
-			$addProductUrl
+			$addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl
 		);
 	}
 
@@ -434,6 +443,349 @@ class _products extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title  = 'Add Product';
 		\IPS\Output::i()->output = (string) $form;
+	}
+
+	/**
+	 * v1.0.38: Stream a blank CSV template with canonical column names.
+	 *
+	 * Admin downloads this file, fills it out, then uploads via importCsv().
+	 * Headers match the canonical fields admin can populate (subset of the
+	 * gd_catalog columns from v1.0.31 add() editableFields).
+	 */
+	protected function downloadCsvTemplate()
+	{
+		$canonicalFields = [
+			'upc',
+			'title', 'mpn', 'brand', 'manufacturer', 'importer', 'model',
+			'gun_type', 'caliber', 'action_type', 'capacity', 'barrel_length',
+			'overall_length', 'weight_oz', 'finish', 'safety_type',
+			'stock_type', 'sight_type', 'receiver_type', 'frame_material',
+			'image_url', 'msrp', 'description',
+			'nfa_item', 'requires_ffl', 'is_ammo',
+		];
+
+		while ( ob_get_level() > 0 )
+		{
+			@ob_end_clean();
+		}
+
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="gdcatalog_import_template.csv"' );
+		header( 'Cache-Control: no-store, no-cache, must-revalidate' );
+
+		$out = fopen( 'php://output', 'w' );
+		fputcsv( $out, $canonicalFields );
+
+		/* Add a one-row example so the admin sees the expected format. */
+		fputcsv( $out, [
+			'012345678901', 'Example Rifle 22LR', 'EX-123', 'ExampleBrand', '', '',
+			'ExampleModel-22', 'rifle', '22 LR', 'bolt', '10', '20',
+			'38', '96', 'blue', 'manual',
+			'synthetic', 'iron', 'aluminum', 'aluminum',
+			'https://example.com/image.jpg', '499.99', 'Example description',
+			'0', '1', '0',
+		] );
+
+		fclose( $out );
+
+		\IPS\Output::i()->sendOutput( '', 200, 'text/csv' );
+		exit;
+	}
+
+	/**
+	 * v1.0.38: Render the CSV import form. Two modes:
+	 *   - Simple: CSV has canonical column names, auto-mapped
+	 *   - Advanced: after upload, admin maps each CSV column manually
+	 *
+	 * On submit:
+	 *   - Simple: save file to temp, build auto-mapping from row 1 headers,
+	 *     enqueue CsvBulkImport queue directly
+	 *   - Advanced: save file to temp, store path + headers in core_store
+	 *     keyed by member_id, redirect to importCsvMap
+	 */
+	protected function importCsv()
+	{
+		$form = new \IPS\Helpers\Form( 'csv_import', 'gdcatalog_csv_submit' );
+
+		$form->add( new \IPS\Helpers\Form\Radio(
+			'gdcatalog_csv_mode',
+			'simple',
+			TRUE,
+			[
+				'options' => [
+					'simple'   => 'gdcatalog_csv_mode_simple',
+					'advanced' => 'gdcatalog_csv_mode_advanced',
+				],
+			]
+		));
+
+		$form->add( new \IPS\Helpers\Form\Upload(
+			'gdcatalog_csv_upload',
+			null,
+			TRUE,
+			[
+				'temporary'          => TRUE,
+				'allowedFileTypes'   => [ 'csv', 'txt' ],
+				'storageExtension'   => 'core_Attachment',
+				'maxFileSize'        => 50, /* MB */
+			]
+		));
+
+		if ( $values = $form->values() )
+		{
+			\IPS\Session::i()->csrfCheck();
+
+			$mode = (string) $values['gdcatalog_csv_mode'];
+
+			/* Persist the uploaded file to a temp path we control. The
+			 * Form\Upload "temporary" file may get cleaned up; we copy it. */
+			$uploadedFile = $values['gdcatalog_csv_upload'];
+
+			$tmpDir = \IPS\TEMP_DIRECTORY ?: sys_get_temp_dir();
+			$tmpPath = $tmpDir . '/gdcatalog_csv_' . bin2hex( random_bytes( 8 ) ) . '.csv';
+
+			try
+			{
+				$contents = $uploadedFile->contents();
+				file_put_contents( $tmpPath, $contents );
+			}
+			catch ( \Throwable $e )
+			{
+				\IPS\Output::i()->error( 'Failed to read uploaded file: ' . $e->getMessage(), '2GDC103/I1', 500 );
+				return;
+			}
+
+			/* Read header row + count data rows for progress UI. */
+			$handle = @fopen( $tmpPath, 'r' );
+			if ( $handle === false )
+			{
+				@unlink( $tmpPath );
+				\IPS\Output::i()->error( 'Failed to read CSV file', '2GDC103/I2', 500 );
+				return;
+			}
+
+			$header = fgetcsv( $handle );
+			if ( $header === false || empty( $header ) )
+			{
+				fclose( $handle );
+				@unlink( $tmpPath );
+				\IPS\Output::i()->error( 'CSV file is empty or has no header row', '2GDC103/I3', 400 );
+				return;
+			}
+
+			$dataRowCount = 0;
+			while ( ( $row = fgetcsv( $handle ) ) !== false )
+			{
+				if ( count( array_filter( $row, fn( $v ) => trim( (string) $v ) !== '' ) ) > 0 )
+				{
+					$dataRowCount++;
+				}
+			}
+			fclose( $handle );
+
+			if ( $dataRowCount === 0 )
+			{
+				@unlink( $tmpPath );
+				\IPS\Output::i()->error( 'CSV file has no data rows', '2GDC103/I4', 400 );
+				return;
+			}
+
+			/* Resolve manual_csv feed id. */
+			try
+			{
+				$feedId = (int) \IPS\Db::i()->select(
+					'id', 'gd_distributor_feeds',
+					[ 'distributor=?', 'manual_csv' ]
+				)->first();
+			}
+			catch ( \Throwable )
+			{
+				@unlink( $tmpPath );
+				\IPS\Output::i()->error( 'Manual CSV feed not configured. Re-install v1.0.38 upgrade.', '2GDC103/I5', 500 );
+				return;
+			}
+
+			$canonicalFields = $this->getCanonicalCsvFields();
+
+			if ( $mode === 'simple' )
+			{
+				/* Build auto-mapping from canonical names in header row. */
+				$mapping = [];
+				foreach ( $header as $colName )
+				{
+					$normalized = strtolower( trim( (string) $colName ) );
+					if ( in_array( $normalized, $canonicalFields, true ) )
+					{
+						$mapping[ $normalized ] = $normalized;
+					}
+				}
+
+				if ( !isset( $mapping['upc'] ) )
+				{
+					@unlink( $tmpPath );
+					\IPS\Output::i()->error( 'CSV must include a "upc" column in Simple mode. Use Advanced mode to map a differently-named column.', '2GDC103/I6', 400 );
+					return;
+				}
+
+				$this->enqueueCsvImport( $tmpPath, $mapping, $dataRowCount, $feedId );
+				return;
+			}
+
+			/* Advanced mode - stash file path + headers, redirect to mapping page. */
+			$memberId = (int) \IPS\Member::loggedIn()->member_id;
+			$key      = 'gdcatalog_csv_pending_' . $memberId;
+
+			\IPS\Data\Store::i()->$key = [
+				'file_path'  => $tmpPath,
+				'headers'    => array_map( fn( $h ) => trim( (string) $h ), $header ),
+				'data_rows'  => $dataRowCount,
+				'feed_id'    => $feedId,
+				'created_at' => time(),
+			];
+
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products&do=importCsvMap' )
+			);
+			return;
+		}
+
+		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_csv_import_title' );
+		\IPS\Output::i()->output = (string) $form;
+	}
+
+	/**
+	 * v1.0.38: Advanced-mode column mapping page.
+	 *
+	 * After Advanced upload, file is stashed in core_store. This renders a
+	 * form with one dropdown per CSV column, with options = canonical fields
+	 * + "(ignore)". On submit, builds the mapping array and enqueues.
+	 */
+	protected function importCsvMap()
+	{
+		$memberId = (int) \IPS\Member::loggedIn()->member_id;
+		$key      = 'gdcatalog_csv_pending_' . $memberId;
+
+		$pending = \IPS\Data\Store::i()->$key ?? null;
+		if ( !is_array( $pending ) || empty( $pending['file_path'] ) || !is_file( $pending['file_path'] ) )
+		{
+			\IPS\Output::i()->error( 'No pending CSV upload found. Please re-upload.', '2GDC103/M1', 404 );
+			return;
+		}
+
+		$canonicalFields = $this->getCanonicalCsvFields();
+
+		$fieldOptions = [ '__ignore__' => '(ignore this column)' ];
+		foreach ( $canonicalFields as $cf )
+		{
+			$fieldOptions[ $cf ] = $cf;
+		}
+
+		$form = new \IPS\Helpers\Form( 'csv_map', 'gdcatalog_csv_map_submit' );
+
+		foreach ( $pending['headers'] as $idx => $header )
+		{
+			$normalized = strtolower( trim( (string) $header ) );
+			$default    = in_array( $normalized, $canonicalFields, true ) ? $normalized : '__ignore__';
+
+			$form->add( new \IPS\Helpers\Form\Select(
+				'csvcol_' . $idx,
+				$default,
+				FALSE,
+				[ 'options' => $fieldOptions ],
+				NULL,
+				NULL,
+				NULL,
+				'csvcol_' . $idx
+			));
+
+			\IPS\Member::loggedIn()->language()->words[ 'csvcol_' . $idx ] = 'Column: ' . $header;
+		}
+
+		if ( $values = $form->values() )
+		{
+			\IPS\Session::i()->csrfCheck();
+
+			$mapping = [];
+			foreach ( $pending['headers'] as $idx => $header )
+			{
+				$picked = (string) ( $values[ 'csvcol_' . $idx ] ?? '__ignore__' );
+
+				if ( $picked === '__ignore__' )
+				{
+					continue;
+				}
+
+				$normalized = strtolower( trim( (string) $header ) );
+				$mapping[ $normalized ] = $picked;
+			}
+
+			if ( !in_array( 'upc', $mapping, true ) )
+			{
+				\IPS\Output::i()->error( 'You must map exactly one column to "upc" - it is required.', '2GDC103/M2', 400 );
+				return;
+			}
+
+			$this->enqueueCsvImport( $pending['file_path'], $mapping, (int) $pending['data_rows'], (int) $pending['feed_id'] );
+
+			unset( \IPS\Data\Store::i()->$key );
+			return;
+		}
+
+		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_csv_map_title' );
+		\IPS\Output::i()->output = '<p style="margin-bottom:16px">' . \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_csv_map_desc' ) . '</p>' . (string) $form;
+	}
+
+	/**
+	 * v1.0.38: Helper - enqueue CsvBulkImport queue job and redirect.
+	 */
+	protected function enqueueCsvImport( string $filePath, array $mapping, int $totalRows, int $feedId ): void
+	{
+		try
+		{
+			\IPS\Task::queue(
+				'gdcatalog',
+				'CsvBulkImport',
+				[
+					'file_path'  => $filePath,
+					'mapping'    => $mapping,
+					'total_rows' => $totalRows,
+					'feed_id'    => $feedId,
+					'member_id'  => (int) \IPS\Member::loggedIn()->member_id,
+				],
+				4,
+				[ 'file_path' ]
+			);
+
+			try { \IPS\Log::log( sprintf( 'Admin enqueued CsvBulkImport: rows=%d feed_id=%d mapping=%s', $totalRows, $feedId, json_encode( $mapping ) ), 'gdcatalog_csv' ); } catch ( \Throwable ) {}
+
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products' ),
+				sprintf( 'CSV import queued (%d rows). Progress visible in AdminCP -> System -> Background Processes.', $totalRows )
+			);
+		}
+		catch ( \Throwable $e )
+		{
+			@unlink( $filePath );
+			try { \IPS\Log::log( 'CsvBulkImport enqueue failed: ' . $e->getMessage(), 'gdcatalog_csv' ); } catch ( \Throwable ) {}
+			\IPS\Output::i()->error( 'Failed to enqueue CSV import: ' . $e->getMessage(), '2GDC103/E1', 500 );
+		}
+	}
+
+	/**
+	 * v1.0.38: Helper - canonical field names for CSV upload.
+	 * Kept in sync with v1.0.31 add() editableFields plus boolean flags.
+	 */
+	protected function getCanonicalCsvFields(): array
+	{
+		return [
+			'upc',
+			'title', 'mpn', 'brand', 'manufacturer', 'importer', 'model',
+			'gun_type', 'caliber', 'action_type', 'capacity', 'barrel_length',
+			'overall_length', 'weight_oz', 'finish', 'safety_type',
+			'stock_type', 'sight_type', 'receiver_type', 'frame_material',
+			'image_url', 'msrp', 'description',
+			'nfa_item', 'requires_ffl', 'is_ammo',
+		];
 	}
 
 	/**
