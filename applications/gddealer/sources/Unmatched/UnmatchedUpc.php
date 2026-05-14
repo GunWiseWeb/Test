@@ -22,20 +22,69 @@ class UnmatchedUpc
 	 * Record a UPC+dealer pair that couldn't be matched to a master catalog
 	 * product. Upserts — increments occurrence_count if already tracked,
 	 * creates a new row otherwise.
+	 *
+	 * v1.0.180: Optional $snapshot parameter captures the dealer's parsed
+	 * canonical fields for this UPC at the moment it was flagged unmatched.
+	 * This snapshot powers the gdcatalog admin review queue (v1.0.40 there)
+	 * - admin can see title/brand/mpn/image_url/msrp the dealer provided and
+	 * pre-fill the catalog add() form. When null, behavior is unchanged
+	 * (backward-compatible for any callers that don't pass snapshot data).
+	 *
+	 * On UPDATE (subsequent occurrence): the snapshot is always overwritten
+	 * with the latest values. The freshest dealer data wins, which is what
+	 * we want if the dealer fixed a typo or improved the title between runs.
+	 *
+	 * @param string                $upc       UPC to record
+	 * @param int                   $dealerId  Dealer's member_id
+	 * @param array<string,mixed>|null $snapshot Optional canonical fields to JSON-encode
+	 * @return void
 	 */
-	public static function record( string $upc, int $dealerId ): void
+	public static function record( string $upc, int $dealerId, ?array $snapshot = null ): void
 	{
 		$now = date( 'Y-m-d H:i:s' );
+
+		/* Encode snapshot if provided. JSON_UNESCAPED_SLASHES preserves
+		 * image URLs cleanly. JSON_UNESCAPED_UNICODE preserves international
+		 * characters in titles. Returns null if encoding fails. */
+		$snapshotJson = null;
+		if ( is_array( $snapshot ) && !empty( $snapshot ) )
+		{
+			try
+			{
+				$encoded = json_encode( $snapshot, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+				if ( $encoded !== false )
+				{
+					$snapshotJson = $encoded;
+				}
+			}
+			catch ( \Throwable )
+			{
+				/* Bad data shouldn't break unmatched tracking - just skip
+				 * the snapshot and continue with the count-only behavior. */
+				$snapshotJson = null;
+			}
+		}
+
 		try
 		{
 			$existing = \IPS\Db::i()->select(
 				'*', 'gd_unmatched_upcs', [ 'upc=? AND dealer_id=?', $upc, $dealerId ]
 			)->first();
 
-			\IPS\Db::i()->update( 'gd_unmatched_upcs', [
+			$updateData = [
 				'last_seen'        => $now,
 				'occurrence_count' => (int) $existing['occurrence_count'] + 1,
-			], [ 'id=?', (int) $existing['id'] ]);
+			];
+
+			/* Only update snapshot_json if caller provided fresh data.
+			 * If caller passes null, keep whatever was previously stored
+			 * (don't wipe a good snapshot when the next run can't produce one). */
+			if ( $snapshotJson !== null )
+			{
+				$updateData['snapshot_json'] = $snapshotJson;
+			}
+
+			\IPS\Db::i()->update( 'gd_unmatched_upcs', $updateData, [ 'id=?', (int) $existing['id'] ]);
 		}
 		catch ( \UnderflowException )
 		{
@@ -46,6 +95,7 @@ class UnmatchedUpc
 				'last_seen'        => $now,
 				'occurrence_count' => 1,
 				'admin_excluded'   => 0,
+				'snapshot_json'    => $snapshotJson,
 			]);
 		}
 	}

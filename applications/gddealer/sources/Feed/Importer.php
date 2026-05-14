@@ -89,7 +89,19 @@ class Importer
 
 				if ( !self::upcExistsInCatalog( $upc ) )
 				{
-					UnmatchedUpc::record( $upc, (int) $dealer->dealer_id );
+					/* v1.0.180: Capture the dealer's parsed product data at
+					 * the moment we flag this UPC as unmatched. Stored as
+					 * JSON in gd_unmatched_upcs.snapshot_json. Powers the
+					 * gdcatalog admin review queue (v1.0.40 there) - admin
+					 * can pre-fill the catalog add() form from this data
+					 * instead of typing it from scratch.
+					 *
+					 * Only include fields with non-empty values - we don't
+					 * want a snapshot full of nulls/empties. UnmatchedUpc::
+					 * record() will skip the JSON write if the array is
+					 * empty, falling back to the legacy count-only path. */
+					$snapshot = self::extractSnapshot( $canonical );
+					UnmatchedUpc::record( $upc, (int) $dealer->dealer_id, $snapshot );
 					$stats['records_unmatched']++;
 					continue;
 				}
@@ -335,6 +347,95 @@ class Importer
 		}
 		$decoded = json_decode( $json, true );
 		return is_array( $decoded ) ? $decoded : [];
+	}
+
+	/**
+	 * v1.0.180: Pull catalog-relevant fields out of a parsed canonical
+	 * record for the unmatched-UPC snapshot. Only includes non-empty
+	 * values. Returns empty array if nothing useful to snapshot.
+	 *
+	 * Field naming note: FieldMapper::apply() returns records keyed by
+	 * STORAGE column names (dealer_price, dealer_sku, listing_url) for
+	 * v1.1 canonical fields that have a translation layer. For non-
+	 * translated fields (title, brand, mpn, image_url), the canonical
+	 * slug and storage column match. We probe both names defensively
+	 * so future FieldMapper changes don't silently break the snapshot.
+	 *
+	 * @param  array<string,mixed> $canonical Output of FieldMapper::apply()
+	 * @return array<string,mixed>
+	 */
+	protected static function extractSnapshot( array $canonical ): array
+	{
+		$probe = function( array $rec, array $candidates ): ?string {
+			foreach ( $candidates as $key )
+			{
+				if ( !isset( $rec[ $key ] ) )
+				{
+					continue;
+				}
+				$val = trim( (string) $rec[ $key ] );
+				if ( $val !== '' )
+				{
+					return $val;
+				}
+			}
+			return null;
+		};
+
+		$snapshot = [];
+
+		/* Product identity */
+		$title = $probe( $canonical, [ 'title' ] );
+		if ( $title !== null ) { $snapshot['title'] = $title; }
+
+		$brand = $probe( $canonical, [ 'brand' ] );
+		if ( $brand !== null ) { $snapshot['brand'] = $brand; }
+
+		$mpn = $probe( $canonical, [ 'mpn' ] );
+		if ( $mpn !== null ) { $snapshot['mpn'] = $mpn; }
+
+		$manufacturer = $probe( $canonical, [ 'manufacturer' ] );
+		if ( $manufacturer !== null ) { $snapshot['manufacturer'] = $manufacturer; }
+
+		$model = $probe( $canonical, [ 'model' ] );
+		if ( $model !== null ) { $snapshot['model'] = $model; }
+
+		/* Image - probe canonical 'image_url' first, then alternate 'image' slug */
+		$imageUrl = $probe( $canonical, [ 'image_url', 'image' ] );
+		if ( $imageUrl !== null ) { $snapshot['image_url'] = $imageUrl; }
+
+		/* Description (helpful for catalog admin even if not always present) */
+		$description = $probe( $canonical, [ 'description' ] );
+		if ( $description !== null ) { $snapshot['description'] = $description; }
+
+		/* Pricing - probe canonical 'msrp' for suggested retail. We do NOT
+		 * include dealer_price here - that's the dealer's selling price,
+		 * not the canonical MSRP. */
+		$msrp = $probe( $canonical, [ 'msrp' ] );
+		if ( $msrp !== null )
+		{
+			$cleanMsrp = preg_replace( '/[^0-9.]/', '', $msrp );
+			if ( $cleanMsrp !== '' && (float) $cleanMsrp > 0 )
+			{
+				$snapshot['msrp'] = (float) $cleanMsrp;
+			}
+		}
+
+		/* Caliber, MSRP, category - helpful for firearm-specific records */
+		$caliber = $probe( $canonical, [ 'caliber' ] );
+		if ( $caliber !== null ) { $snapshot['caliber'] = $caliber; }
+
+		$capacity = $probe( $canonical, [ 'capacity' ] );
+		if ( $capacity !== null )
+		{
+			$cleanCapacity = preg_replace( '/[^0-9]/', '', $capacity );
+			if ( $cleanCapacity !== '' )
+			{
+				$snapshot['capacity'] = (int) $cleanCapacity;
+			}
+		}
+
+		return $snapshot;
 	}
 
 	protected static function upcExistsInCatalog( string $upc ): bool
