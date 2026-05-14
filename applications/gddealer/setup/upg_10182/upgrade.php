@@ -36,6 +36,9 @@ class _upgrade
 		 *    incoming slug, it falls back to slug_history and 301-redirects
 		 *    to the dealer's CURRENT slug. Old URLs keep working forever.
 		 *
+		 * Both admin AND dealer-side regenerate slug buttons ship in this
+		 * version (admin: dealerDetail template, dealer: dashboardCustomize).
+		 *
 		 * Schema:
 		 *   id              auto-inc PK
 		 *   old_slug        varchar(100), UNIQUE - because each old slug can
@@ -312,6 +315,181 @@ class _upgrade
 		catch ( \Throwable $e )
 		{
 			try { \IPS\Log::log( 'gddealer v1.0.182 dealerDetail patch failed: ' . $e->getMessage(), 'gddealer_upg_10182' ); } catch ( \Throwable ) {}
+		}
+
+		/* Step 4.5: Patch dashboardCustomize template (dealer-side).
+		 *
+		 * Adds "Regenerate URL slug" button + confirmation modal after the
+		 * existing Business name input. Patches BOTH set_id=0 and set_id=1
+		 * rows. Idempotent via str_replace + presence-check on modal block.
+		 *
+		 * The JS inside uses ONLY `var` declarations (no $-prefix), so the
+		 * IPS template engine won't try to interpolate them. */
+
+		$oldBusinessNameField = '<label class="gdField__label gdField__label--required">Business name</label>
+            <input type="text" name="dealer_name" value="{$data[\'profile\'][\'dealer_name\']}" maxlength="150" class="gdInput" required>
+        </div>';
+
+		$newBusinessNameField = '<label class="gdField__label gdField__label--required">Business name</label>
+            <input type="text" name="dealer_name" value="{$data[\'profile\'][\'dealer_name\']}" maxlength="150" class="gdInput" required>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <div style="font-size:12px;color:#64748b">Current URL slug: <code style="background:#f1f5f9;padding:2px 6px;border-radius:3px;font-size:11px">{$data[\'profile\'][\'dealer_slug\']}</code></div>
+                <button type="button" class="gdBtn gdBtn--secondary" style="padding:4px 10px;font-size:12px" data-gd-regenerate-slug data-preview-url="{$data[\'regenerate_preview_url\']}" data-confirm-url="{$data[\'regenerate_confirm_url\']}">Regenerate URL slug</button>
+            </div>
+        </div>';
+
+		$dealerModalBlock = <<<'MODALEOF'
+
+<!-- v1.0.182: Regenerate slug confirmation modal (dealer-side) -->
+<div id="gd-regen-slug-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center" data-gd-regen-modal>
+	<div style="background:#fff;border-radius:8px;padding:24px;max-width:520px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+		<h3 style="margin:0 0 16px;font-size:1.2em;font-weight:600">Regenerate URL slug</h3>
+		<div style="margin-bottom:12px">
+			<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Current slug</div>
+			<code id="gd-regen-old" style="display:block;background:#f4f4f4;padding:8px 12px;border-radius:4px;font-size:0.95em">&mdash;</code>
+		</div>
+		<div style="margin-bottom:12px">
+			<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">New slug</div>
+			<code id="gd-regen-new" style="display:block;background:#e8f5e9;padding:8px 12px;border-radius:4px;font-size:0.95em">&mdash;</code>
+		</div>
+		<p style="margin:16px 0;padding:12px;background:#fff8e1;border-left:3px solid #ffa726;font-size:0.9em;line-height:1.5"><strong>Heads up:</strong> the old URL will 301-redirect to the new URL. Already-shared links keep working. Save any unsaved profile changes first &mdash; regenerate uses the current saved name, not what you may have typed.</p>
+		<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+			<button type="button" class="gdBtn gdBtn--secondary" data-gd-regen-cancel>Cancel</button>
+			<form id="gd-regen-confirm-form" method="POST" action="" style="display:inline">
+				<input type="hidden" name="csrfKey" id="gd-regen-csrf" value="">
+				<button type="submit" class="gdBtn gdBtn--primary" id="gd-regen-submit">Regenerate slug</button>
+			</form>
+		</div>
+	</div>
+</div>
+<script>
+(function(){
+	var triggers = document.querySelectorAll('[data-gd-regenerate-slug]');
+	var modal = document.getElementById('gd-regen-slug-modal');
+	var oldEl = document.getElementById('gd-regen-old');
+	var newEl = document.getElementById('gd-regen-new');
+	var form = document.getElementById('gd-regen-confirm-form');
+	var csrfInput = document.getElementById('gd-regen-csrf');
+	var submitBtn = document.getElementById('gd-regen-submit');
+	if ( !modal || !triggers.length ) { return; }
+
+	function openModal(trigger){
+		var previewUrl = trigger.getAttribute('data-preview-url');
+		var confirmUrl = trigger.getAttribute('data-confirm-url');
+		oldEl.textContent = 'Loading...';
+		newEl.textContent = 'Loading...';
+		submitBtn.disabled = false;
+		submitBtn.textContent = 'Regenerate slug';
+		modal.style.display = 'flex';
+		fetch(previewUrl, {credentials: 'same-origin'})
+			.then(function(r){return r.json();})
+			.then(function(d){
+				oldEl.textContent = d.old_slug || '(none)';
+				if ( !d.would_change ) {
+					newEl.textContent = '(no change needed)';
+					submitBtn.disabled = true;
+					submitBtn.textContent = 'No change needed';
+				} else {
+					newEl.textContent = d.new_slug;
+					submitBtn.disabled = false;
+					submitBtn.textContent = 'Regenerate slug';
+				}
+				form.action = confirmUrl;
+				var existingCsrf = document.querySelector('input[name=csrfKey]');
+				if ( existingCsrf ) { csrfInput.value = existingCsrf.value; }
+			})
+			.catch(function(){
+				oldEl.textContent = 'Error';
+				newEl.textContent = 'Could not load preview.';
+				submitBtn.disabled = true;
+			});
+	}
+
+	function closeModal(){ modal.style.display = 'none'; }
+
+	triggers.forEach(function(t){
+		t.addEventListener('click', function(e){ e.preventDefault(); openModal(t); });
+	});
+
+	modal.addEventListener('click', function(e){
+		if ( e.target === modal || e.target.hasAttribute('data-gd-regen-cancel') ) { closeModal(); }
+	});
+})();
+</script>
+
+MODALEOF;
+
+		try
+		{
+			$dcRows = [];
+			foreach ( \IPS\Db::i()->select(
+				'template_id, template_set_id, template_content',
+				'core_theme_templates',
+				[ 'template_app=? AND template_name=?', 'gddealer', 'dashboardCustomize' ]
+			) as $r )
+			{
+				$dcRows[] = $r;
+			}
+
+			try { \IPS\Log::log( sprintf( 'gddealer v1.0.182 found %d dashboardCustomize row(s) to patch', count( $dcRows ) ), 'gddealer_upg_10182' ); } catch ( \Throwable ) {}
+
+			foreach ( $dcRows as $row )
+			{
+				$content    = (string) $row['template_content'];
+				$newContent = $content;
+				$applied    = [];
+				$skipped    = [];
+
+				/* Patch 1: Business name field gets slug display + button */
+				$before = $newContent;
+				$newContent = str_replace( $oldBusinessNameField, $newBusinessNameField, $newContent );
+				if ( $before !== $newContent ) { $applied[] = 'business_name_field'; } else { $skipped[] = 'business_name_field'; }
+
+				/* Patch 2: Modal block appended (only if not already present) */
+				if ( strpos( $newContent, 'gd-regen-slug-modal' ) === false )
+				{
+					$newContent .= $dealerModalBlock;
+					$applied[] = 'modal_block';
+				}
+				else
+				{
+					$skipped[] = 'modal_block';
+				}
+
+				if ( $newContent !== $content )
+				{
+					\IPS\Db::i()->update(
+						'core_theme_templates',
+						[
+							'template_content' => $newContent,
+							'template_updated' => time(),
+						],
+						[ 'template_id=?', (int) $row['template_id'] ]
+					);
+
+					try { \IPS\Log::log( sprintf(
+						'gddealer v1.0.182 patched dashboardCustomize template_id=%d set_id=%d (%d->%d bytes) applied=[%s] skipped=[%s]',
+						(int) $row['template_id'],
+						(int) $row['template_set_id'],
+						strlen( $content ),
+						strlen( $newContent ),
+						implode( ',', $applied ),
+						implode( ',', $skipped )
+					), 'gddealer_upg_10182' ); } catch ( \Throwable ) {}
+				}
+				else
+				{
+					try { \IPS\Log::log( sprintf(
+						'gddealer v1.0.182 dashboardCustomize template_id=%d set_id=%d: no changes (already patched, or template hand-edited)',
+						(int) $row['template_id'],
+						(int) $row['template_set_id']
+					), 'gddealer_upg_10182' ); } catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'gddealer v1.0.182 dashboardCustomize patch failed: ' . $e->getMessage(), 'gddealer_upg_10182' ); } catch ( \Throwable ) {}
 		}
 
 		/* Step 5: Cache invalidation. Critical - IPS caches everything. */
