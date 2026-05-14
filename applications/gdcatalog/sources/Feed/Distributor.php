@@ -311,6 +311,45 @@ class Distributor extends \IPS\Patterns\ActiveRecord
 	}
 
 	/**
+	 * v1.0.36: Mark this feed as locked. Sets locked=1, locked_at=now,
+	 * locked_by=current member. Used by dashboard.php lockCatalog() after
+	 * enqueuing the LockDistributorCatalog background task.
+	 *
+	 * @return void
+	 */
+	public function markLocked(): void
+	{
+		try
+		{
+			$memberId = (int) \IPS\Member::loggedIn()->member_id;
+		}
+		catch ( \Throwable )
+		{
+			$memberId = 0;
+		}
+
+		$this->locked    = 1;
+		$this->locked_at = date( 'Y-m-d H:i:s' );
+		$this->locked_by = $memberId > 0 ? $memberId : null;
+		$this->save();
+	}
+
+	/**
+	 * v1.0.36: Mark this feed as unlocked. Clears all three lock columns.
+	 * Used by dashboard.php unlockCatalog() after clearing locked_fields
+	 * on the actual product rows.
+	 *
+	 * @return void
+	 */
+	public function markUnlocked(): void
+	{
+		$this->locked    = 0;
+		$this->locked_at = null;
+		$this->locked_by = null;
+		$this->save();
+	}
+
+	/**
 	 * Get the human-readable distributor label.
 	 *
 	 * @return string

@@ -1,7 +1,8 @@
 {
     "core": {
         "Queue": {
-            "SportsSouthImport": "IPS\\gdcatalog\\extensions\\core\\Queue\\SportsSouthImport"
+            "SportsSouthImport": "IPS\\gdcatalog\\extensions\\core\\Queue\\SportsSouthImport",
+            "LockDistributorCatalog": "IPS\\gdcatalog\\extensions\\core\\Queue\\LockDistributorCatalog"
         }
     }
 }

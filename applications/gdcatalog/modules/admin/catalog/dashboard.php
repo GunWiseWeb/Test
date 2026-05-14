@@ -150,6 +150,30 @@ class _dashboard extends \IPS\Dispatcher\Controller
 
 				$lastFeedStatus = (string) ( $feed->last_run_status ?? '' );
 
+				/* v1.0.36: Lock status + URLs for Lock/Unlock Catalog buttons. */
+				$isLocked = (int) ( $feed->locked ?? 0 ) === 1;
+
+				$lockCatalogUrl = (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=dashboard&do=lockCatalog&feed_id=' . (int) $feed->id
+				)->csrf();
+
+				$unlockCatalogUrl = (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=dashboard&do=unlockCatalog&feed_id=' . (int) $feed->id
+				)->csrf();
+
+				$lockedAtHuman = '';
+				if ( $isLocked && !empty( $feed->locked_at ) )
+				{
+					try
+					{
+						$lockedAtHuman = (string) \IPS\DateTime::ts( strtotime( (string) $feed->locked_at ) )->relative();
+					}
+					catch ( \Throwable )
+					{
+						$lockedAtHuman = (string) $feed->locked_at;
+					}
+				}
+
 				$distributorStats[] = [
 					'priority'              => (int) $feed->priority,
 					'feed_name'             => (string) $feed->feed_name,
@@ -169,6 +193,12 @@ class _dashboard extends \IPS\Dispatcher\Controller
 					'record_count'          => $productCount,
 					'is_running'            => $lastFeedStatus === 'running',
 					'is_failed'             => $lastFeedStatus === 'failed',
+
+					/* v1.0.36: Per-distributor lock state */
+					'is_locked'             => $isLocked,
+					'locked_at_human'       => $lockedAtHuman,
+					'lock_catalog_url'      => $lockCatalogUrl,
+					'unlock_catalog_url'    => $unlockCatalogUrl,
 				];
 			}
 		}
@@ -476,6 +506,138 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
 			$message
 		);
+	}
+
+	/**
+	 * v1.0.36: Lock a distributor's catalog.
+	 *
+	 * Sets the feed's locked flag and enqueues LockDistributorCatalog queue
+	 * job which iterates every product where this distributor is in
+	 * distributor_sources and locks every populated field.
+	 *
+	 * After lock completes, future distributor imports for these products
+	 * cannot overwrite the locked fields - all changes route to
+	 * gd_feed_conflicts (and auto-resolve after 48 hours via the existing
+	 * AutoResolveConflicts task).
+	 */
+	protected function lockCatalog()
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$feedId = (int) \IPS\Request::i()->feed_id;
+
+		try
+		{
+			$feed = \IPS\gdcatalog\Feed\Distributor::load( $feedId );
+		}
+		catch ( \OutOfRangeException )
+		{
+			\IPS\Output::i()->error( 'Feed not found', '2GDC100/L1', 404 );
+			return;
+		}
+
+		if ( (int) ( $feed->locked ?? 0 ) === 1 )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+				'Catalog is already locked'
+			);
+			return;
+		}
+
+		/* Set lock flags first - so even if queue takes time to start, the
+		 * UI shows "locked" status. */
+		try { $feed->markLocked(); } catch ( \Throwable ) {}
+
+		/* Enqueue the bulk-lock background task. Same pattern as Sports South
+		 * full catalog import. */
+		try
+		{
+			\IPS\Task::queue(
+				'gdcatalog',
+				'LockDistributorCatalog',
+				[
+					'feed_id'     => $feedId,
+					'distributor' => (string) $feed->distributor,
+				],
+				4,
+				[ 'feed_id' ]
+			);
+
+			try { \IPS\Log::log( sprintf( 'Admin enqueued LockDistributorCatalog for feed_id=%d distributor=%s', $feedId, $feed->distributor ), 'gdcatalog_lock' ); } catch ( \Throwable ) {}
+
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+				sprintf( 'Lock Catalog queued for %s. Progress visible in AdminCP -> System -> Background Processes.', $feed->distributor )
+			);
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'lockCatalog enqueue failed: ' . $e->getMessage(), 'gdcatalog_lock' ); } catch ( \Throwable ) {}
+			\IPS\Output::i()->error( 'Failed to enqueue lock task: ' . $e->getMessage(), '2GDC100/L2', 500 );
+		}
+	}
+
+	/**
+	 * v1.0.36: Unlock a distributor's catalog.
+	 *
+	 * Clears the feed's locked flags and runs a synchronous UPDATE to wipe
+	 * the locked_fields JSON column for all products from this distributor.
+	 *
+	 * Unlock is fast (single UPDATE) so no queue needed. After unlock,
+	 * distributor imports will resume overwriting fields normally.
+	 */
+	protected function unlockCatalog()
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$feedId = (int) \IPS\Request::i()->feed_id;
+
+		try
+		{
+			$feed = \IPS\gdcatalog\Feed\Distributor::load( $feedId );
+		}
+		catch ( \OutOfRangeException )
+		{
+			\IPS\Output::i()->error( 'Feed not found', '2GDC100/U1', 404 );
+			return;
+		}
+
+		if ( (int) ( $feed->locked ?? 0 ) !== 1 )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+				'Catalog was not locked'
+			);
+			return;
+		}
+
+		$affected = 0;
+		try
+		{
+			/* Clear locked_fields on every product where this distributor is
+			 * in distributor_sources. NULL is preferred over empty JSON []
+			 * because getLockedFields() treats both as empty. */
+			$affected = \IPS\Db::i()->update(
+				'gd_catalog',
+				[ 'locked_fields' => null ],
+				[ 'FIND_IN_SET(?, distributor_sources)', $feed->distributor ]
+			);
+
+			try { $feed->markUnlocked(); } catch ( \Throwable ) {}
+
+			try { \IPS\Log::log( sprintf( 'Admin unlocked catalog for feed_id=%d distributor=%s - cleared locked_fields on %d products', $feedId, $feed->distributor, (int) $affected ), 'gdcatalog_lock' ); } catch ( \Throwable ) {}
+
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+				sprintf( 'Unlocked %s catalog. Field locks cleared from %d products.', $feed->distributor, (int) $affected )
+			);
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'unlockCatalog failed: ' . $e->getMessage(), 'gdcatalog_lock' ); } catch ( \Throwable ) {}
+			\IPS\Output::i()->error( 'Failed to unlock catalog: ' . $e->getMessage(), '2GDC100/U2', 500 );
+		}
 	}
 }
 
