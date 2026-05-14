@@ -1018,17 +1018,61 @@ class Importer
 	 */
 	protected function processDiscontinuations(): void
 	{
-		/* v1.0.29: Safety guard - never run discontinuation if the import
-		 * didn't actually see any products. Threshold of 100 chosen because
-		 * a legitimate import would see hundreds at minimum even on a small
-		 * supplemental feed. Sports South full catalog is ~58k; even a single
-		 * 1000-record chunk would clear 100. */
+		/* v1.0.33: Safety guard rewritten. The v1.0.29 guard (seenCount < 100)
+		 * was insufficient: Importer::execute() truncates to 1000 records via
+		 * MAX_RECORDS_PER_RUN, then ran discontinue on that 1000-UPC sample.
+		 * With a 58,338-product catalog, that marked 57,338 products as
+		 * "missed" every scheduled cron run.
+		 *
+		 * The new guard compares seenCount to the total active catalog for
+		 * this distributor. If seen < 80% of catalog, the import obviously
+		 * didn't see a representative sample - skip discontinue entirely.
+		 *
+		 * This makes the scheduled cron path (sees 1000 records of 58k = 1.7%)
+		 * always skip - which is correct, since it's structurally incapable
+		 * of seeing the full catalog. The queue full-catalog path (sees ~58k
+		 * of 58k ≈ 99%) runs normally.
+		 *
+		 * Hard floor of 100 still applies (covers edge case of a new feed
+		 * with 0 active products in catalog yet). */
 		$seenCount = is_array( $this->seenUpcs ) ? count( $this->seenUpcs ) : 0;
+
 		if ( $seenCount < 100 )
 		{
-			try { \IPS\Log::log( sprintf( 'processDiscontinuations SKIPPED for %s: only %d UPCs seen in this run (need >=100 to be safe)', $this->feed->distributor, $seenCount ), 'gdcatalog_discontinue' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( sprintf( 'processDiscontinuations SKIPPED for %s: only %d UPCs seen (hard floor of 100)', $this->feed->distributor, $seenCount ), 'gdcatalog_discontinue' ); } catch ( \Throwable ) {}
 			return;
 		}
+
+		try
+		{
+			$totalActive = (int) \IPS\Db::i()->select(
+				'COUNT(*)',
+				'gd_catalog',
+				[
+					[ 'FIND_IN_SET(?, distributor_sources)', $this->feed->distributor ],
+					[ 'record_status=?', Product::STATUS_ACTIVE ],
+				]
+			)->first();
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( sprintf( 'processDiscontinuations SKIPPED for %s: failed to query total active count: %s', $this->feed->distributor, $e->getMessage() ), 'gdcatalog_discontinue' ); } catch ( \Throwable ) {}
+			return;
+		}
+
+		/* If the catalog has very few existing products (<500), use the hard
+		 * floor of 100 already enforced above. Otherwise require 80% coverage. */
+		if ( $totalActive >= 500 )
+		{
+			$minSeen = (int) ceil( $totalActive * 0.80 );
+			if ( $seenCount < $minSeen )
+			{
+				try { \IPS\Log::log( sprintf( 'processDiscontinuations SKIPPED for %s: saw %d UPCs but catalog has %d active (need >=%d, 80%% threshold). This usually means the scheduled cron path ran instead of the full-catalog queue path.', $this->feed->distributor, $seenCount, $totalActive, $minSeen ), 'gdcatalog_discontinue' ); } catch ( \Throwable ) {}
+				return;
+			}
+		}
+
+		try { \IPS\Log::log( sprintf( 'processDiscontinuations RUNNING for %s: saw %d of %d active (%.1f%% coverage)', $this->feed->distributor, $seenCount, $totalActive, $totalActive > 0 ? ( $seenCount / $totalActive * 100 ) : 0 ), 'gdcatalog_discontinue' ); } catch ( \Throwable ) {}
 
 		$threshold = (int) \IPS\Settings::i()->gdcatalog_discontinue_threshold ?: 3;
 
