@@ -196,5 +196,11 @@
     <word key="gdcatalog_image_status_unchecked" js="0"><![CDATA[Never Checked]]></word>
     <word key="gdcatalog_image_status_ok" js="0"><![CDATA[Verified OK]]></word>
     <word key="gdcatalog_image_status_broken" js="0"><![CDATA[Broken (404)]]></word>
+    <word key="gdcatalog_save_manual" js="0"><![CDATA[Save Product]]></word>
+    <word key="gdcatalog_product_lock_warning" js="0"><![CDATA[🔒 This field is locked. Distributor imports cannot overwrite it.]]></word>
+    <word key="gdcatalog_bulk_lock_label" js="0"><![CDATA[Bulk Lock]]></word>
+    <word key="gdcatalog_lock_all_fields" js="0"><![CDATA[Lock All Populated Fields]]></word>
+    <word key="gdcatalog_unlock_all_fields" js="0"><![CDATA[Unlock All Fields]]></word>
+    <word key="gdcatalog_add_product_btn" js="0"><![CDATA[+ Add Product]]></word>
   </app>
 </language>

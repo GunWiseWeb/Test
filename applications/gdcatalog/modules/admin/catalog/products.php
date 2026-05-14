@@ -439,7 +439,11 @@ class _products extends \IPS\Dispatcher\Controller
 			return;
 		}
 
-		$locks = FieldLock::loadForProduct( $upc );
+		/* v1.0.32: Read locks from Product->locked_fields JSON column (where
+		 * lockField()/unlockField() actually write) instead of the
+		 * gd_field_locks table (which is empty - it was scaffolded for a
+		 * different lock model that never got wired up). */
+		$lockedFieldNames = $product->getLockedFields();
 
 		$form = new \IPS\Helpers\Form;
 
@@ -484,12 +488,23 @@ class _products extends \IPS\Dispatcher\Controller
 				? \IPS\Helpers\Form\TextArea::class
 				: ( $config[0] === 'Number' ? \IPS\Helpers\Form\Number::class : \IPS\Helpers\Form\Text::class );
 
-			$form->add( new $formClass(
+			$formField = new $formClass(
 				'gdcatalog_product_' . $field,
 				$product->$field ?? '',
 				FALSE,
 				$config[0] === 'Number' ? [ 'decimals' => 2 ] : []
-			));
+			);
+
+			/* v1.0.32: Inject 🔒 LOCKED indicator into the field's description
+			 * when this field is in the locked_fields JSON. Distributor
+			 * imports cannot overwrite locked fields - they create conflicts
+			 * instead. */
+			if ( $isLocked )
+			{
+				$formField->description = '🔒 LOCKED — Distributor imports cannot overwrite this field.';
+			}
+
+			$form->add( $formField );
 		}
 
 		/* Boolean flags */
@@ -539,22 +554,36 @@ class _products extends \IPS\Dispatcher\Controller
 		 * Rule #8: admin form page uses \IPS\Helpers\Form — the form itself is
 		 * unchanged; only an informational banner is prepended. No raw-HTML
 		 * form markup. */
+		/* v1.0.32: Rebuild from Product->locked_fields JSON (the source of
+		 * truth that lockField/unlockField actually use). Old code queried
+		 * the empty gd_field_locks table. */
 		$lockNotice = '';
-		if ( \count( $locks ) )
+		if ( !empty( $lockedFieldNames ) )
 		{
-			$lockNotice = '<div class="ipsBox ipsPull"><div class="ipsBox_body ipsPad"><h2 class="ipsType_sectionHead" style="margin:0 0 12px">'
+			$count = count( $lockedFieldNames );
+			$lockNotice = '<div class="ipsMessage ipsMessage--warning" style="margin-bottom:16px">'
+				. '<div class="ipsBox_body ipsPad">'
+				. '<h2 class="ipsType_sectionHead" style="margin:0 0 8px;display:flex;align-items:center;gap:8px">'
+				. '<span style="font-size:1.2em">🔒</span>'
 				. \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_product_locked_fields' )
-				. '</h2><ul class="ipsList_reset">';
-			foreach ( $locks as $lock )
+				. ' <span class="ipsBadge ipsBadge--warning">' . $count . '</span>'
+				. '</h2>'
+				. '<p style="margin:0 0 12px;color:var(--i-color-text-muted, #666)">These fields will not be overwritten by distributor imports. Any incoming changes create conflicts for admin review.</p>'
+				. '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+
+			foreach ( $lockedFieldNames as $fieldName )
 			{
 				$unlockUrl = (string) \IPS\Http\Url::internal(
-					'app=gdcatalog&module=catalog&controller=compliance&do=unlock&id=' . (int) $lock->id
+					'app=gdcatalog&module=catalog&controller=products&do=unlockField&upc=' . urlencode( (string) $product->upc ) . '&field=' . urlencode( (string) $fieldName )
 				)->csrf();
-				$lockNotice .= '<li style="margin-bottom:6px"><code>' . htmlspecialchars( $lock->field_name ?? '' ) . '</code>'
-					. ' <span class="ipsBadge ipsBadge--neutral">' . htmlspecialchars( $lock->lock_type ?? '' ) . '</span> '
-					. '<a href="' . htmlspecialchars( $unlockUrl ) . '" class="ipsButton ipsButton--negative ipsButton--small">Unlock</a></li>';
+
+				$lockNotice .= '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;background:rgba(255,200,0,0.15);border:1px solid rgba(255,180,0,0.4);border-radius:4px;font-size:0.9em">'
+					. '<code style="background:none;padding:0">' . htmlspecialchars( (string) $fieldName ) . '</code>'
+					. '<a href="' . htmlspecialchars( $unlockUrl ) . '" title="Unlock this field" style="color:#c00;text-decoration:none;font-weight:bold;margin-left:2px">×</a>'
+					. '</span>';
 			}
-			$lockNotice .= '</ul></div></div>';
+
+			$lockNotice .= '</div></div></div>';
 		}
 
 		/* v1.0.19: Image preview block.

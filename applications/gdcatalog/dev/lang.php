@@ -49,6 +49,12 @@ $lang = array(
 	'gdcatalog_product_locked_fields'          => "Locked Fields",
 	'gdcatalog_product_lock_field'             => "Lock This Field",
 	'gdcatalog_product_unlock_field'           => "Unlock",
+	'gdcatalog_save_manual'                    => "Save Product",
+	'gdcatalog_product_lock_warning'           => "🔒 This field is locked. Distributor imports cannot overwrite it.",
+	'gdcatalog_bulk_lock_label'                => "Bulk Lock",
+	'gdcatalog_lock_all_fields'                => "Lock All Populated Fields",
+	'gdcatalog_unlock_all_fields'              => "Unlock All Fields",
+	'gdcatalog_add_product_btn'                => "+ Add Product",
 	'gdcatalog_product_admin_review'           => "Admin Review Required",
 
 	/* Feed Configuration */
