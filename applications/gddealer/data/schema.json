@@ -2274,6 +2274,7 @@
         }
     },
     "gd_dealer_category_map": {
+        "name": "gd_dealer_category_map",
         "columns": {
             "id": {
                 "name": "id",
