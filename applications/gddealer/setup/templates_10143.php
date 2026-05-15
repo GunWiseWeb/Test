@@ -40,7 +40,7 @@ $helpTpl = <<<'TEMPLATE_EOT'
 				<p><strong>Required fields per listing (all categories):</strong></p>
 				<ul>
 					<li><strong>upc</strong> &mdash; 12 or 13 digit barcode (UPC-A or EAN-13)</li>
-					<li><strong>category</strong> &mdash; product category. Canonical values: firearm, ammo, part, accessory, optic, reloading, knife, apparel. Non-canonical names (e.g. &ldquo;Rifles&rdquo;, &ldquo;Ammunition&rdquo;) are auto-mapped.</li>
+					<li><strong>category</strong> &mdash; any text. Auto-mapped to one of: firearm, ammo, part, accessory, optic, reloading, knife, apparel. Unrecognized values fall back to &ldquo;accessory&rdquo; and can be re-assigned in your Categories tab.</li>
 					<li><strong>price</strong> &mdash; positive decimal in USD (e.g. 549.99)</li>
 					<li><strong>condition</strong> &mdash; new, used, or refurbished</li>
 					<li><strong>url</strong> &mdash; https:// link to the product page on your site</li>
@@ -54,14 +54,14 @@ $helpTpl = <<<'TEMPLATE_EOT'
 					<li><strong>stock_qty</strong> &mdash; non-negative integer quantity</li>
 					<li><strong>name</strong>, <strong>brand</strong>, <strong>mpn</strong>, <strong>image_url</strong> &mdash; product metadata</li>
 				</ul>
-				<p><strong>Category-specific required fields:</strong></p>
+				<p><strong>Category-specific recommended fields</strong> (missing subfields don&rsquo;t block import but prevent the listing from appearing in advanced search filters):</p>
 				<ul>
 					<li><strong>ammo</strong> &mdash; ammo.caliber, ammo.rounds</li>
 					<li><strong>part</strong> &mdash; part.type</li>
 					<li><strong>reloading</strong> &mdash; reloading.type (bullet/brass/primer), reloading.rounds, plus type-specific subfield</li>
 					<li><strong>optic</strong> &mdash; optic.type (red_dot, holographic, lpvo, rifle_scope, pistol_scope, magnifier, iron_sights, prism)</li>
 					<li><strong>knife</strong> &mdash; knife.type (fixed_blade, folding, automatic, assisted, multitool)</li>
-					<li><strong>firearm, accessory, apparel</strong> &mdash; no required subfields</li>
+					<li><strong>firearm, accessory, apparel</strong> &mdash; no recommended subfields</li>
 				</ul>
 			</div>
 

@@ -1158,16 +1158,32 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		$out = [];
 		foreach ( $rows as $r )
 		{
+			$upcId = (int) $r['id'];
+
 			$excludeUrl = (string) \IPS\Http\Url::internal(
-				'app=gddealer&module=dealers&controller=dashboard&do=excludeUnmatched&unmatched_id=' . (int) $r['id']
+				'app=gddealer&module=dealers&controller=dashboard&do=excludeUnmatched&unmatched_id=' . $upcId
 			)->csrf();
 
+			$reportUrl = (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=dashboard&do=reportUnmatched&upc_id=' . $upcId
+			)->csrf();
+
+			$snapshotUrl = (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=dashboard&do=viewSnapshot&upc_id=' . $upcId
+			);
+
 			$out[] = [
-				'upc'              => (string) $r['upc'],
-				'first_seen'       => (string) $r['first_seen'],
-				'last_seen'        => (string) $r['last_seen'],
-				'occurrence_count' => (int) $r['occurrence_count'],
-				'exclude_url'      => $excludeUrl,
+				'id'                  => $upcId,
+				'upc'                 => (string) $r['upc'],
+				'first_seen'          => (string) $r['first_seen'],
+				'last_seen'           => (string) $r['last_seen'],
+				'occurrence_count'    => (int) $r['occurrence_count'],
+				'exclude_url'         => $excludeUrl,
+				'report_url'          => $reportUrl,
+				'snapshot_url'        => $snapshotUrl,
+				'has_snapshot'        => !empty( $r['snapshot_json'] ),
+				'already_reported'    => !empty( $r['dealer_reported_at'] ),
+				'dealer_reported_at'  => (string) ( $r['dealer_reported_at'] ?? '' ),
 			];
 		}
 

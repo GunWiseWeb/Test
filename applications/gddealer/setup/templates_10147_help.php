@@ -33,29 +33,28 @@ $helpTpl = <<<'TEMPLATE_EOT'
 				<p><strong>Required fields per listing (all categories):</strong></p>
 				<ul>
 					<li><strong>upc</strong> &mdash; 12 or 13 digit barcode (UPC-A or EAN-13)</li>
-					<li><strong>category</strong> &mdash; product category. Canonical values: firearm, ammo, part, accessory, optic, reloading, knife, apparel. Non-canonical names (e.g. &ldquo;Rifles&rdquo;, &ldquo;Ammunition&rdquo;) are auto-mapped.</li>
+					<li><strong>category</strong> &mdash; any text. Auto-mapped to one of: firearm, ammo, part, accessory, optic, reloading, knife, apparel. Unrecognized values fall back to &ldquo;accessory&rdquo; and can be re-assigned in your Categories tab.</li>
 					<li><strong>price</strong> &mdash; positive decimal in USD (e.g. 549.99)</li>
 					<li><strong>condition</strong> &mdash; new, used, or refurbished</li>
 					<li><strong>url</strong> &mdash; https:// link to the product page on your site</li>
-					<li><strong>free_shipping</strong> &mdash; 1 or 0 (boolean)</li>
-					<li><strong>shipping_cost</strong> &mdash; required when free_shipping is not 1</li>
 					<li><strong>in_stock</strong> &mdash; 1 or 0 (boolean)</li>
 				</ul>
 				<p><strong>Optional fields:</strong></p>
 				<ul>
+					<li><strong>shipping_info</strong> &mdash; Free-form shipping description (max 60 chars). Examples: &ldquo;Free shipping&rdquo;, &ldquo;$9.95 flat&rdquo;, &ldquo;Free over $200&rdquo;. Old feeds using shipping_cost or free_shipping are accepted and auto-converted.</li>
 					<li><strong>sku</strong> &mdash; your internal SKU (max 100 chars)</li>
 					<li><strong>map_price</strong> &mdash; manufacturer MAP. When greater than price, listing displays MAP with "Click to see price" CTA.</li>
 					<li><strong>stock_qty</strong> &mdash; non-negative integer quantity</li>
 					<li><strong>name</strong>, <strong>brand</strong>, <strong>mpn</strong>, <strong>image_url</strong> &mdash; product metadata</li>
 				</ul>
-				<p><strong>Category-specific required fields:</strong></p>
+				<p><strong>Category-specific recommended fields</strong> (missing subfields don&rsquo;t block import but prevent the listing from appearing in advanced search filters):</p>
 				<ul>
 					<li><strong>ammo</strong> &mdash; ammo.caliber, ammo.rounds (all other ammo subfields are optional, see sidebar)</li>
 					<li><strong>part</strong> &mdash; part.type</li>
 					<li><strong>reloading</strong> &mdash; reloading.type (bullet/brass/primer), reloading.rounds, plus type-specific subfield</li>
 					<li><strong>optic</strong> &mdash; optic.type (red_dot, holographic, lpvo, rifle_scope, pistol_scope, magnifier, iron_sights, prism)</li>
 					<li><strong>knife</strong> &mdash; knife.type (fixed_blade, folding, automatic, assisted, multitool)</li>
-					<li><strong>firearm, accessory, apparel</strong> &mdash; no required subfields</li>
+					<li><strong>firearm, accessory, apparel</strong> &mdash; no recommended subfields</li>
 				</ul>
 			</div>
 
@@ -86,8 +85,7 @@ $helpTpl = <<<'TEMPLATE_EOT'
   "manufacturer":   "brand",
   "product_link":   "url",
   "stock_count":    "stock_qty",
-  "free_ship":      "free_shipping",
-  "ship_cost":      "shipping_cost",
+  "ship_cost":      "shipping_info",
   "specs.caliber":  "ammo.caliber",
   "specs.rounds":   "ammo.rounds"
 }</pre>
@@ -134,9 +132,8 @@ $helpTpl = <<<'TEMPLATE_EOT'
 					<tr><td>price</td><td class="gdHelpPage__req">Required</td></tr>
 					<tr><td>condition</td><td class="gdHelpPage__req">Required</td></tr>
 					<tr><td>url</td><td class="gdHelpPage__req">Required</td></tr>
-					<tr><td>free_shipping</td><td class="gdHelpPage__req">Required</td></tr>
-					<tr><td>shipping_cost</td><td class="gdHelpPage__req">Conditional</td></tr>
 					<tr><td>in_stock</td><td class="gdHelpPage__req">Required</td></tr>
+					<tr><td>shipping_info</td><td class="gdHelpPage__opt">Optional</td></tr>
 					<tr><td>sku</td><td class="gdHelpPage__opt">Optional</td></tr>
 					<tr><td>map_price</td><td class="gdHelpPage__opt">Optional</td></tr>
 					<tr><td>stock_qty</td><td class="gdHelpPage__opt">Optional</td></tr>

@@ -2125,7 +2125,7 @@ TEMPLATE_EOT,
 	<p>{lang="gddealer_front_unmatched_intro"}</p>
 
 	<p style="margin:8px 0 16px 0">
-		<a href="{$exportUrl}" class="ipsButton ipsButton--normal ipsButton--small">{lang="gddealer_front_export_csv"}</a>
+		<a href="{$data['export_url']}" class="ipsButton ipsButton--normal ipsButton--small">{lang="gddealer_front_export_csv"}</a>
 	</p>
 
 	<div class="gdTableWrap">
@@ -2136,20 +2136,30 @@ TEMPLATE_EOT,
 				<th>{lang="gddealer_unmatched_first_seen"}</th>
 				<th>{lang="gddealer_unmatched_last_seen"}</th>
 				<th>{lang="gddealer_unmatched_count"}</th>
-				<th></th>
+				<th>Actions</th>
 			</tr>
 		</thead>
 		<tbody>
-			{{foreach $rows as $r}}
+			{{foreach $data['rows'] as $r}}
 			<tr>
 				<td data-label="UPC"><code>{$r['upc']}</code></td>
 				<td data-label="First Seen">{$r['first_seen']}</td>
 				<td data-label="Last Seen">{$r['last_seen']}</td>
 				<td data-label="Count">{$r['occurrence_count']}</td>
-				<td data-label=""><a href="{$r['exclude_url']}" class="ipsButton ipsButton--small ipsButton--negative">{lang="gddealer_front_unmatched_exclude"}</a></td>
+				<td data-label="" style="white-space:nowrap">
+					{{if $r['has_snapshot']}}
+					<a href="{$r['snapshot_url']}" class="ipsButton ipsButton--small ipsButton--light" style="margin-right:4px">View Snapshot</a>
+					{{endif}}
+					{{if $r['already_reported']}}
+					<span class="ipsButton ipsButton--small ipsButton--positive" style="margin-right:4px;cursor:default" title="Reported on {$r['dealer_reported_at']}">Reported</span>
+					{{else}}
+					<a href="{$r['report_url']}" class="ipsButton ipsButton--small ipsButton--primary" style="margin-right:4px" onclick="return confirm('Report this UPC to GunRack admins for review?')">Report to Admin</a>
+					{{endif}}
+					<a href="{$r['exclude_url']}" class="ipsButton ipsButton--small ipsButton--negative" onclick="return confirm('Exclude this UPC from your unmatched list?')">Exclude</a>
+				</td>
 			</tr>
 			{{endforeach}}
-			{{if count( $rows ) === 0}}
+			{{if count( $data['rows'] ) === 0}}
 			<tr><td colspan="5" style="text-align:center;color:#999;padding:24px">{lang="gddealer_front_unmatched_empty"}</td></tr>
 			{{endif}}
 		</tbody>

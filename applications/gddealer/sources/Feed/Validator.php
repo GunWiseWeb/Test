@@ -7,15 +7,17 @@
  *
  * Validates a parsed GunRack feed (XML / JSON / CSV after going through the
  * format-specific parser) against the v1.1 schema. Returns a structured
- * report with errors (block import) and warnings (allow with caution).
+ * report with errors (block import), warnings (allow with caution), and
+ * informational notes (auto-mapping, skip patterns).
  *
- * Schema v1.1 changes from v1:
- *   - Category-specific required fields (caliber for ammo, type for parts,
- *     etc.) per the gunengine.com-style nested specification.
- *   - Optional product metadata: name, brand, mpn, image_url.
- *   - Hybrid format: XmlParser and JsonParser flatten nested category blocks
- *     to ammo.caliber / firearm.model / etc. before validation. CSV uses
- *     flat columns natively. The validator only sees flat fields.
+ * Lenient validation philosophy (v1.0.204+):
+ *   - Category is auto-normalized via CategoryNormalizer (same path
+ *     the importer uses). Non-canonical names are accepted and mapped.
+ *   - Category-specific subfields (ammo.caliber, knife.type, etc.)
+ *     are RECOMMENDED, not required. Missing subfields emit warnings;
+ *     listings still import but don't appear in advanced search filters.
+ *   - Format errors (wrong type, invalid enum value when field IS
+ *     provided) remain hard errors.
  *
  * Required (all categories):
  *   upc, category, price, condition, url, in_stock
@@ -27,14 +29,11 @@
  * Optional (all categories):
  *   sku, map_price, stock_qty, name, brand, mpn, image_url, shipping_info
  *
- * Category-specific required fields:
+ * Category-specific recommended fields:
  *   ammo:      ammo.caliber, ammo.rounds
- *   firearm:   (no required subfields - empty firearm block valid)
+ *   firearm:   firearm.model, firearm.type, firearm.caliber (all optional)
  *   part:      part.type
- *   reloading: reloading.type, reloading.rounds, plus type-specific:
- *                bullet  -> reloading.bullet_caliber
- *                brass   -> reloading.brass_cartridge
- *                primer  -> reloading.primer_size
+ *   reloading: reloading.type, reloading.rounds, plus type-specific subfield
  *   optic:     optic.type
  *   knife:     knife.type
  *   accessory: (none)
@@ -106,9 +105,9 @@ class Validator
         $errors      = [];
         $warnings    = [];
         $notes       = [];
-        $errorRows   = [];
-        $warningRows = [];
-        $noteRows    = [];
+        $errorRows   = 0;
+        $warningRows = 0;
+        $noteRows    = 0;
 
         if ( count( $records ) === 0 )
         {
@@ -168,23 +167,50 @@ class Validator
                 }
             }
 
-            /* Category — lenient: run through CategoryNormalizer */
+            /* Category — lenient. If raw value is canonical, use directly.
+             * Otherwise run CategoryNormalizer (same path the importer
+             * uses) to find the closest canonical. Never blocks the
+             * dealer; emits informational notes for traceability. */
             $cat = '';
             if ( isset( $record['category'] ) && (string) $record['category'] !== '' )
             {
-                $rawCat = trim( (string) $record['category'] );
-                $cat = CategoryNormalizer::normalize( $rawCat );
+                $rawCat     = trim( (string) $record['category'] );
+                $loweredCat = strtolower( $rawCat );
 
-                if ( $cat === 'skip' )
+                if ( in_array( $loweredCat, self::VALID_CATEGORIES, true ) )
                 {
-                    $notes[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'category', 'message' => "Category '{$rawCat}' is not importable (gift card, membership, etc.) — row will be skipped on import." ];
-                    $rowHadNote = true;
-                    $cat = '';
+                    $cat = $loweredCat;
                 }
-                elseif ( strtolower( $rawCat ) !== $cat )
+                else
                 {
-                    $notes[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'category', 'message' => "Category '{$rawCat}' will be auto-mapped to '{$cat}'." ];
-                    $rowHadNote = true;
+                    $normalized = CategoryNormalizer::normalize( $rawCat );
+                    if ( $normalized === 'skip' )
+                    {
+                        $notes[] = [
+                            'row' => $row, 'upc' => $upc, 'field' => 'category',
+                            'message' => "Category '{$rawCat}' matches a skip pattern (membership/gift card/etc) — will be excluded on import.",
+                        ];
+                        $rowHadNote = true;
+                        $cat = '';
+                    }
+                    elseif ( $normalized === 'accessory' && stripos( $rawCat, 'accessor' ) === false )
+                    {
+                        $notes[] = [
+                            'row' => $row, 'upc' => $upc, 'field' => 'category',
+                            'message' => "Category '{$rawCat}' didn't match any known type — will be imported as 'accessory'. Review in your Categories tab after the first import.",
+                        ];
+                        $rowHadNote = true;
+                        $cat = $normalized;
+                    }
+                    else
+                    {
+                        $notes[] = [
+                            'row' => $row, 'upc' => $upc, 'field' => 'category',
+                            'message' => "Category '{$rawCat}' will be auto-mapped to '{$normalized}' on import. Override in your Categories tab if needed.",
+                        ];
+                        $rowHadNote = true;
+                        $cat = $normalized;
+                    }
                 }
             }
 
@@ -304,13 +330,13 @@ class Validator
             {
                 if ( !isset( $record['ammo.caliber'] ) || (string) $record['ammo.caliber'] === '' )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'ammo.caliber', 'message' => 'ammo.caliber is required when category=ammo.' ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'ammo.caliber', 'message' => 'ammo.caliber is recommended when category=ammo. The listing will import but won\'t appear in advanced search filters until you add this field (e.g. 9mm Luger, .223 Remington).' ];
+                    $rowHadWarning = true;
                 }
                 if ( !isset( $record['ammo.rounds'] ) || (string) $record['ammo.rounds'] === '' )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'ammo.rounds', 'message' => 'ammo.rounds is required when category=ammo.' ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'ammo.rounds', 'message' => 'ammo.rounds is recommended when category=ammo. The listing will import but won\'t appear in advanced search filters until you add this field (e.g. 20, rounds per box).' ];
+                    $rowHadWarning = true;
                 }
                 elseif ( !ctype_digit( (string) $record['ammo.rounds'] ) || (int) $record['ammo.rounds'] <= 0 )
                 {
@@ -357,8 +383,8 @@ class Validator
                 $caseMaterial = isset( $record['ammo.case_material'] ) ? strtolower( trim( (string) $record['ammo.case_material'] ) ) : '';
                 if ( $fireType === 'centerfire' && $caseMaterial === '' )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'ammo.case_material', 'message' => 'ammo.case_material is required when ammo.fire_type=centerfire. Must be one of: ' . implode( ', ', self::VALID_AMMO_CASE_MATERIALS ) ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'ammo.case_material', 'message' => 'ammo.case_material is recommended when ammo.fire_type=centerfire. The listing will import but won\'t appear in advanced search filters until you add this field (must be one of: ' . implode( ', ', self::VALID_AMMO_CASE_MATERIALS ) . ').' ];
+                    $rowHadWarning = true;
                 }
                 elseif ( $caseMaterial !== '' && !in_array( $caseMaterial, self::VALID_AMMO_CASE_MATERIALS, true ) )
                 {
@@ -383,8 +409,8 @@ class Validator
             {
                 if ( !isset( $record['part.type'] ) || (string) $record['part.type'] === '' )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'part.type', 'message' => 'part.type is required when category=part (e.g., "1911 magazine", "AR-15 lower").' ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'part.type', 'message' => 'part.type is recommended when category=part. The listing will import but won\'t appear in advanced search filters until you add this field (e.g. AR-15 lower, 1911 magazine).' ];
+                    $rowHadWarning = true;
                 }
             }
 
@@ -393,8 +419,8 @@ class Validator
                 $rType = isset( $record['reloading.type'] ) ? strtolower( trim( (string) $record['reloading.type'] ) ) : '';
                 if ( $rType === '' )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'reloading.type', 'message' => 'reloading.type is required when category=reloading. Must be one of: ' . implode( ', ', self::VALID_RELOADING_TYPES ) ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'reloading.type', 'message' => 'reloading.type is recommended when category=reloading. The listing will import but won\'t appear in advanced search filters until you add this field (must be one of: bullet, brass, primer).' ];
+                    $rowHadWarning = true;
                 }
                 elseif ( !in_array( $rType, self::VALID_RELOADING_TYPES, true ) )
                 {
@@ -404,8 +430,8 @@ class Validator
 
                 if ( !isset( $record['reloading.rounds'] ) || (string) $record['reloading.rounds'] === '' )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'reloading.rounds', 'message' => 'reloading.rounds is required when category=reloading.' ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'reloading.rounds', 'message' => 'reloading.rounds is recommended when category=reloading. The listing will import but won\'t appear in advanced search filters until you add this field (e.g. 1000, quantity in the package).' ];
+                    $rowHadWarning = true;
                 }
                 elseif ( !ctype_digit( (string) $record['reloading.rounds'] ) || (int) $record['reloading.rounds'] <= 0 )
                 {
@@ -413,21 +439,21 @@ class Validator
                     $rowHadError = true;
                 }
 
-                /* Type-specific subfield rules */
+                /* Type-specific subfield rules — presence demoted to warning */
                 if ( $rType === 'bullet' && ( !isset( $record['reloading.bullet_caliber'] ) || (string) $record['reloading.bullet_caliber'] === '' ) )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'reloading.bullet_caliber', 'message' => 'reloading.bullet_caliber is required when reloading.type=bullet.' ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'reloading.bullet_caliber', 'message' => 'reloading.bullet_caliber is recommended when reloading.type=bullet. The listing will import but won\'t appear in advanced search filters until you add this field.' ];
+                    $rowHadWarning = true;
                 }
                 if ( $rType === 'brass' && ( !isset( $record['reloading.brass_cartridge'] ) || (string) $record['reloading.brass_cartridge'] === '' ) )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'reloading.brass_cartridge', 'message' => 'reloading.brass_cartridge is required when reloading.type=brass.' ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'reloading.brass_cartridge', 'message' => 'reloading.brass_cartridge is recommended when reloading.type=brass. The listing will import but won\'t appear in advanced search filters until you add this field.' ];
+                    $rowHadWarning = true;
                 }
                 if ( $rType === 'primer' && ( !isset( $record['reloading.primer_size'] ) || (string) $record['reloading.primer_size'] === '' ) )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'reloading.primer_size', 'message' => 'reloading.primer_size is required when reloading.type=primer.' ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'reloading.primer_size', 'message' => 'reloading.primer_size is recommended when reloading.type=primer. The listing will import but won\'t appear in advanced search filters until you add this field.' ];
+                    $rowHadWarning = true;
                 }
             }
 
@@ -436,8 +462,8 @@ class Validator
                 $oType = isset( $record['optic.type'] ) ? strtolower( trim( (string) $record['optic.type'] ) ) : '';
                 if ( $oType === '' )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'optic.type', 'message' => 'optic.type is required when category=optic. Must be one of: ' . implode( ', ', self::VALID_OPTIC_TYPES ) ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'optic.type', 'message' => 'optic.type is recommended when category=optic. The listing will import but won\'t appear in advanced search filters until you add this field (e.g. red_dot, lpvo, rifle_scope).' ];
+                    $rowHadWarning = true;
                 }
                 elseif ( !in_array( $oType, self::VALID_OPTIC_TYPES, true ) )
                 {
@@ -457,8 +483,8 @@ class Validator
                 $kType = isset( $record['knife.type'] ) ? strtolower( trim( (string) $record['knife.type'] ) ) : '';
                 if ( $kType === '' )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'knife.type', 'message' => 'knife.type is required when category=knife. Must be one of: ' . implode( ', ', self::VALID_KNIFE_TYPES ) ];
-                    $rowHadError = true;
+                    $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'knife.type', 'message' => 'knife.type is recommended when category=knife. The listing will import but won\'t appear in advanced search filters until you add this field (e.g. folding, fixed_blade, automatic).' ];
+                    $rowHadWarning = true;
                 }
                 elseif ( !in_array( $kType, self::VALID_KNIFE_TYPES, true ) )
                 {
@@ -475,24 +501,21 @@ class Validator
 
             /* accessory and apparel: no category-specific rules */
 
-            if ( $rowHadError )   { $errorRows[ $row ]   = true; }
-            if ( $rowHadWarning ) { $warningRows[ $row ] = true; }
-            if ( $rowHadNote )    { $noteRows[ $row ]    = true; }
+            if ( $rowHadError )        { $errorRows++; }
+            elseif ( $rowHadWarning )  { $warningRows++; }
+            elseif ( $rowHadNote )     { $noteRows++; }
         }
 
-        $errorCount   = count( $errorRows );
-        $warningCount = count( $warningRows );
-        $noteCount    = count( $noteRows );
-        $total        = count( $records );
+        $total = count( $records );
 
         return [
-            'valid'   => $errorCount === 0,
+            'valid'   => empty( $errors ),
             'summary' => [
                 'total_records'   => $total,
-                'valid_records'   => $total - $errorCount,
-                'error_records'   => $errorCount,
-                'warning_records' => $warningCount,
-                'note_records'    => $noteCount,
+                'valid_records'   => $total - $errorRows,
+                'error_records'   => $errorRows,
+                'warning_records' => $warningRows,
+                'note_records'    => $noteRows,
             ],
             'errors'   => $errors,
             'warnings' => $warnings,
