@@ -645,30 +645,16 @@
                 "values": [],
                 "comment": ""
             },
-            "shipping_cost": {
-                "name": "shipping_cost",
-                "type": "DECIMAL",
-                "length": 10,
-                "decimals": 2,
+            "shipping_info": {
+                "name": "shipping_info",
+                "type": "VARCHAR",
+                "length": 60,
+                "decimals": null,
                 "allow_null": true,
                 "default": null,
                 "auto_increment": false,
                 "binary": false,
                 "unsigned": false,
-                "zerofill": false,
-                "values": [],
-                "comment": ""
-            },
-            "free_shipping": {
-                "name": "free_shipping",
-                "type": "TINYINT",
-                "length": 1,
-                "decimals": null,
-                "allow_null": false,
-                "default": 0,
-                "auto_increment": false,
-                "binary": false,
-                "unsigned": true,
                 "zerofill": false,
                 "values": [],
                 "comment": ""

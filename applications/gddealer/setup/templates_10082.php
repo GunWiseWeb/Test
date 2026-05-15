@@ -174,7 +174,7 @@ $gddealerV10082Templates[] = [
                 <div class="gdRefRow"><span class="gdRefRow__name">upc</span><span class="gdRefRow__pill gdRefRow__pill--req">Required</span></div>
                 <div class="gdRefRow"><span class="gdRefRow__name">dealer_price</span><span class="gdRefRow__pill gdRefRow__pill--req">Required</span></div>
                 <div class="gdRefRow"><span class="gdRefRow__name">in_stock</span><span class="gdRefRow__pill gdRefRow__pill--req">Required</span></div>
-                <div class="gdRefRow"><span class="gdRefRow__name">shipping_cost</span><span class="gdRefRow__pill gdRefRow__pill--opt">Optional</span></div>
+                <div class="gdRefRow"><span class="gdRefRow__name">shipping_info</span><span class="gdRefRow__pill gdRefRow__pill--opt">Optional</span></div>
                 <div class="gdRefRow"><span class="gdRefRow__name">condition</span><span class="gdRefRow__pill gdRefRow__pill--opt">Optional</span></div>
                 <div class="gdRefRow"><span class="gdRefRow__name">listing_url</span><span class="gdRefRow__pill gdRefRow__pill--opt">Optional</span></div>
                 <div class="gdRefRow"><span class="gdRefRow__name">stock_qty</span><span class="gdRefRow__pill gdRefRow__pill--opt">Optional</span></div>

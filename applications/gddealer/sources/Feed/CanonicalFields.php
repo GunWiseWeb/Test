@@ -97,11 +97,11 @@ class CanonicalFields
             'price'         => [ 'slug' => 'price',         'label' => 'Price',              'group' => self::GROUP_CORE_REQUIRED, 'req' => self::REQ_REQUIRED ],
             'condition'     => [ 'slug' => 'condition',     'label' => 'Condition',          'group' => self::GROUP_CORE_REQUIRED, 'req' => self::REQ_REQUIRED, 'default' => 'new' ],
             'url'           => [ 'slug' => 'url',           'label' => 'Listing URL',        'group' => self::GROUP_CORE_REQUIRED, 'req' => self::REQ_REQUIRED ],
-            'free_shipping' => [ 'slug' => 'free_shipping', 'label' => 'Free Shipping Flag', 'group' => self::GROUP_CORE_REQUIRED, 'req' => self::REQ_REQUIRED, 'default' => 'false' ],
-            'shipping_cost' => [ 'slug' => 'shipping_cost', 'label' => 'Shipping Cost',      'group' => self::GROUP_CORE_REQUIRED, 'req' => self::REQ_CONDITIONAL ],
             'in_stock'      => [ 'slug' => 'in_stock',      'label' => 'In Stock Flag',      'group' => self::GROUP_CORE_REQUIRED, 'req' => self::REQ_REQUIRED, 'default' => 'true' ],
 
             /* ========== Core Optional (every listing) ========== */
+            'shipping_info'       => [ 'slug' => 'shipping_info',       'label' => 'Shipping Info',                              'group' => self::GROUP_CORE_OPTIONAL, 'req' => self::REQ_OPTIONAL ],
+            'free_shipping_hint'  => [ 'slug' => 'free_shipping_hint',  'label' => 'Free Shipping Flag (auto-converts to text)', 'group' => self::GROUP_CORE_OPTIONAL, 'req' => self::REQ_OPTIONAL ],
             'sku'           => [ 'slug' => 'sku',           'label' => 'Dealer SKU',         'group' => self::GROUP_CORE_OPTIONAL, 'req' => self::REQ_OPTIONAL ],
             'map_price'     => [ 'slug' => 'map_price',     'label' => 'MAP Price',          'group' => self::GROUP_CORE_OPTIONAL, 'req' => self::REQ_OPTIONAL ],
             'stock_qty'     => [ 'slug' => 'stock_qty',     'label' => 'Stock Quantity',     'group' => self::GROUP_CORE_OPTIONAL, 'req' => self::REQ_OPTIONAL ],
@@ -277,22 +277,28 @@ class CanonicalFields
             'mainImage' => 'image_url',
             'primaryImage' => 'image_url',
 
-            /* free_shipping */
-            'freeShipping' => 'free_shipping',
-            'freeShip' => 'free_shipping',
-            'shippingFree' => 'free_shipping',
-            'isFreeShipping' => 'free_shipping',
-            'hasFreeShipping' => 'free_shipping',
+            /* free_shipping_hint (old free_shipping aliases repointed) */
+            'freeShipping' => 'free_shipping_hint',
+            'freeShip' => 'free_shipping_hint',
+            'shippingFree' => 'free_shipping_hint',
+            'isFreeShipping' => 'free_shipping_hint',
+            'hasFreeShipping' => 'free_shipping_hint',
 
-            /* shipping_cost */
-            'shippingCost' => 'shipping_cost',
-            'shipping' => 'shipping_cost',
-            'shippingPrice' => 'shipping_cost',
-            'shippingFee' => 'shipping_cost',
-            'shippingAmount' => 'shipping_cost',
-            'shippingRate' => 'shipping_cost',
-            'shipCost' => 'shipping_cost',
-            'deliveryFee' => 'shipping_cost',
+            /* shipping_info (old shipping_cost aliases repointed + new aliases) */
+            'shippingCost' => 'shipping_info',
+            'shipping' => 'shipping_info',
+            'shippingPrice' => 'shipping_info',
+            'shippingFee' => 'shipping_info',
+            'shippingAmount' => 'shipping_info',
+            'shippingRate' => 'shipping_info',
+            'shipCost' => 'shipping_info',
+            'deliveryFee' => 'shipping_info',
+            'shippingInfo' => 'shipping_info',
+            'shipping_info' => 'shipping_info',
+            'shipInfo' => 'shipping_info',
+            'shippingNote' => 'shipping_info',
+            'shippingNotes' => 'shipping_info',
+            'shippingText' => 'shipping_info',
 
             /* in_stock */
             'inStock' => 'in_stock',

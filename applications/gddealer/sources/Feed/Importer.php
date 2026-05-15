@@ -36,8 +36,8 @@ class Importer
 	 * After the per-record upsert loop completes, we:
 	 *   (a) mark stale listings out of stock (spec §3.8),
 	 *   (b) recalculate denormalized pricing fields on gd_catalog for every
-	 *       UPC touched in this run — total_min_price, free_ship_avail,
-	 *       min_cpr — which power the Plugin 3 OpenSearch filters (spec §3.8),
+	 *       UPC touched in this run — total_min_price, min_cpr — which power
+	 *       the Plugin 3 OpenSearch filters (spec §3.8),
 	 *   (c) queue UPCs whose dealer_price decreased this run into the
 	 *       gdpc_pending_alert_upcs setting so Plugin 3's watchlist task
 	 *       can dispatch subscriber price alerts (spec §3.8 / §4.7).
@@ -199,10 +199,8 @@ class Importer
 	 * If no in-stock listings remain, the pricing fields are cleared so the
 	 * product drops out of Plugin 3's "available" search filter.
 	 *
-	 *   total_min_price    = MIN( dealer_price + COALESCE(shipping_cost, 0) )
-	 *   free_ship_avail    = 1 if any listing has free_shipping = 1, else 0
-	 *   min_cpr            = MIN( (dealer_price + shipping_cost) / rounds_per_box )
-	 *                        for ammo only — NULL for non-ammo products.
+	 *   total_min_price = MIN( dealer_price )
+	 *   min_cpr         = MIN( dealer_price / rounds_per_box )  for ammo only
 	 */
 	protected static function updateProductPricing( string $upc ): void
 	{
@@ -218,7 +216,7 @@ class Importer
 		try
 		{
 			$agg = \IPS\Db::i()->select(
-				'MIN( dealer_price + COALESCE( shipping_cost, 0 ) ) AS total_min, MAX( free_shipping ) AS any_free_ship',
+				'MIN( dealer_price ) AS total_min',
 				'gd_dealer_listings',
 				[ 'upc=? AND listing_status=? AND in_stock=?', $upc, Listing::STATUS_ACTIVE, 1 ]
 			)->first();
@@ -229,7 +227,6 @@ class Importer
 		}
 
 		$totalMin = ( $agg['total_min'] !== null ) ? (float) $agg['total_min'] : null;
-		$anyFree  = ( (int) ( $agg['any_free_ship'] ?? 0 ) ) === 1 ? 1 : 0;
 
 		$minCpr = null;
 		if ( ! empty( $product['is_ammo'] ) && (int) ( $product['rounds_per_box'] ?? 0 ) > 0 && $totalMin !== null )
@@ -239,7 +236,6 @@ class Importer
 
 		\IPS\Db::i()->update( 'gd_catalog', [
 			'total_min_price'  => $totalMin,
-			'free_ship_avail'  => $anyFree,
 			'min_cpr'          => $minCpr,
 		], [ 'upc=?', $upc ] );
 	}
@@ -472,8 +468,7 @@ class Importer
 		$listing->upc                = (string) $canonical['upc'];
 		$listing->dealer_sku         = $canonical['dealer_sku'] ?? null;
 		$listing->dealer_price       = (float) $canonical['dealer_price'];
-		$listing->shipping_cost      = $canonical['shipping_cost'] ?? null;
-		$listing->free_shipping      = !empty( $canonical['free_shipping'] ) ? 1 : 0;
+		$listing->shipping_info      = $canonical['shipping_info'] ?? null;
 		$listing->in_stock           = !empty( $canonical['in_stock'] ) ? 1 : 0;
 		$listing->stock_qty          = $canonical['stock_qty'] ?? null;
 		$listing->condition          = $canonical['condition'] ?? 'new';
@@ -507,8 +502,7 @@ class Importer
 		}
 		$listing->in_stock          = $newStock;
 		$listing->stock_qty         = $canonical['stock_qty'] ?? null;
-		$listing->shipping_cost     = $canonical['shipping_cost'] ?? null;
-		$listing->free_shipping     = !empty( $canonical['free_shipping'] ) ? 1 : 0;
+		$listing->shipping_info     = $canonical['shipping_info'] ?? null;
 		$listing->condition         = $canonical['condition'] ?? $listing->condition;
 		$listing->category          = $canonical['category'] ?? $listing->category;
 		$listing->listing_url       = $canonical['listing_url'] ?? $listing->listing_url;

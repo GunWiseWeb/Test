@@ -6,7 +6,7 @@ if ( !defined( '\\IPS\\SUITE_UNIQUE_KEY' ) ) { header( ( $_SERVER['SERVER_PROTOC
  *
  * Changes from prior version:
  *   1. Quick Field Reference table updated to v1.1 fields (price not
- *      dealer_price, url not listing_url, condition required, free_shipping
+ *      dealer_price, url not listing_url, condition required, shipping_info
  *      required, plus map_price + category-specific reference)
  *   2. Required / Optional bullet lists updated to v1.1
  *   3. Hardcoded format example pre-blocks REMOVED. The template now
@@ -44,12 +44,11 @@ $helpTpl = <<<'TEMPLATE_EOT'
 					<li><strong>price</strong> &mdash; positive decimal in USD (e.g. 549.99)</li>
 					<li><strong>condition</strong> &mdash; new, used, or refurbished</li>
 					<li><strong>url</strong> &mdash; https:// link to the product page on your site</li>
-					<li><strong>free_shipping</strong> &mdash; 1 or 0 (boolean)</li>
-					<li><strong>shipping_cost</strong> &mdash; required when free_shipping is not 1</li>
 					<li><strong>in_stock</strong> &mdash; 1 or 0 (boolean)</li>
 				</ul>
 				<p><strong>Optional fields:</strong></p>
 				<ul>
+					<li><strong>shipping_info</strong> &mdash; Free-form shipping description (max 60 chars). Examples: &ldquo;Free shipping&rdquo;, &ldquo;$9.95 flat&rdquo;, &ldquo;Free over $200&rdquo;. Old feeds using shipping_cost or free_shipping are accepted and auto-converted.</li>
 					<li><strong>sku</strong> &mdash; your internal SKU (max 100 chars)</li>
 					<li><strong>map_price</strong> &mdash; manufacturer MAP. When greater than price, listing displays MAP with "Click to see price" CTA.</li>
 					<li><strong>stock_qty</strong> &mdash; non-negative integer quantity</li>
@@ -93,8 +92,7 @@ $helpTpl = <<<'TEMPLATE_EOT'
   "manufacturer":   "brand",
   "product_link":   "url",
   "stock_count":    "stock_qty",
-  "free_ship":      "free_shipping",
-  "ship_cost":      "shipping_cost",
+  "ship_cost":      "shipping_info",
   "specs.caliber":  "ammo.caliber",
   "specs.rounds":   "ammo.rounds"
 }</pre>
@@ -141,9 +139,8 @@ $helpTpl = <<<'TEMPLATE_EOT'
 					<tr><td>price</td><td class="gdHelpPage__req">Required</td></tr>
 					<tr><td>condition</td><td class="gdHelpPage__req">Required</td></tr>
 					<tr><td>url</td><td class="gdHelpPage__req">Required</td></tr>
-					<tr><td>free_shipping</td><td class="gdHelpPage__req">Required</td></tr>
-					<tr><td>shipping_cost</td><td class="gdHelpPage__req">Conditional</td></tr>
 					<tr><td>in_stock</td><td class="gdHelpPage__req">Required</td></tr>
+					<tr><td>shipping_info</td><td class="gdHelpPage__opt">Optional</td></tr>
 					<tr><td>sku</td><td class="gdHelpPage__opt">Optional</td></tr>
 					<tr><td>map_price</td><td class="gdHelpPage__opt">Optional</td></tr>
 					<tr><td>stock_qty</td><td class="gdHelpPage__opt">Optional</td></tr>

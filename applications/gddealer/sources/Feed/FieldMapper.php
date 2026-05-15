@@ -192,15 +192,36 @@ class FieldMapper
             $r['map_price'] = (float) preg_replace( '/[^0-9.]/', '', (string) $r['map_price'] );
         }
 
-        if ( isset( $r['shipping_cost'] ) && $r['shipping_cost'] !== null && $r['shipping_cost'] !== '' )
+        $freeHint = isset( $r['free_shipping_hint'] )
+            ? self::truthy( $r['free_shipping_hint'] )
+            : false;
+
+        if ( $freeHint )
         {
-            $r['shipping_cost'] = (float) preg_replace( '/[^0-9.]/', '', (string) $r['shipping_cost'] );
+            $r['shipping_info'] = 'Free shipping';
+        }
+        elseif ( isset( $r['shipping_info'] ) && $r['shipping_info'] !== null )
+        {
+            $raw = trim( (string) $r['shipping_info'] );
+            if ( $raw === '' )
+            {
+                $r['shipping_info'] = null;
+            }
+            elseif ( preg_match( '/^\$?\s*[0-9]+(\.[0-9]+)?\s*$/', $raw ) )
+            {
+                $num = (float) preg_replace( '/[^0-9.]/', '', $raw );
+                $r['shipping_info'] = $num > 0
+                    ? '$' . number_format( $num, 2 ) . ' flat'
+                    : 'Free shipping';
+            }
+            else
+            {
+                $r['shipping_info'] = substr( $raw, 0, 60 );
+            }
         }
 
-        if ( isset( $r['free_shipping'] ) )
-        {
-            $r['free_shipping'] = self::truthy( $r['free_shipping'] ) ? 1 : 0;
-        }
+        unset( $r['free_shipping_hint'] );
+
         if ( isset( $r['in_stock'] ) )
         {
             $r['in_stock'] = self::truthy( $r['in_stock'] ) ? 1 : 0;

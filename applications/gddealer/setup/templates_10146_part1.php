@@ -66,9 +66,8 @@ $feedSchemaTpl = <<<'TEMPLATE_EOT'
 						<tr><td><code>price</code></td><td>decimal</td><td>greater than 0</td><td>Your selling price in USD. No currency symbol.</td></tr>
 						<tr><td><code>condition</code></td><td>enum</td><td>see below</td><td>One of: <code>new</code>, <code>used</code>, <code>refurbished</code>.</td></tr>
 						<tr><td><code>url</code></td><td>URL</td><td>https://</td><td>Direct link to the product page on your site.</td></tr>
-						<tr><td><code>free_shipping</code></td><td>boolean</td><td>1/0 or true/false</td><td>Whether shipping is included in the price.</td></tr>
-						<tr><td><code>shipping_cost</code></td><td>decimal</td><td>greater than or equal to 0</td><td>Required when <code>free_shipping</code> is not 1.</td></tr>
 						<tr><td><code>in_stock</code></td><td>boolean</td><td>1/0 or true/false</td><td>Whether the listing is currently available for purchase.</td></tr>
+						<tr><td><code>shipping_info</code></td><td>text</td><td>max 60 chars</td><td>Free-form shipping description. Examples: &ldquo;Free shipping&rdquo;, &ldquo;$9.95 flat&rdquo;, &ldquo;Free over $200&rdquo;. Old feeds using <code>shipping_cost</code> or <code>free_shipping</code> are accepted and auto-converted.</td></tr>
 					</tbody>
 				</table>
 			</div>

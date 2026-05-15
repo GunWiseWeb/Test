@@ -18,11 +18,14 @@
  *     flat columns natively. The validator only sees flat fields.
  *
  * Required (all categories):
- *   upc, category, price, condition, url, free_shipping, in_stock,
- *   shipping_cost (when free_shipping is not 1)
+ *   upc, category, price, condition, url, in_stock
+ *
+ * shipping_info is optional free-form text (max 60 chars);
+ * old feeds using free_shipping / shipping_cost are accepted
+ * and auto-converted to text by the FieldMapper.
  *
  * Optional (all categories):
- *   sku, map_price, stock_qty, name, brand, mpn, image_url
+ *   sku, map_price, stock_qty, name, brand, mpn, image_url, shipping_info
  *
  * Category-specific required fields:
  *   ammo:      ammo.caliber, ammo.rounds
@@ -242,27 +245,6 @@ class Validator
                 {
                     $warnings[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'image_url', 'message' => "image_url should start with https:// (got '{$imgUrl}'); browsers may block mixed content." ];
                     $rowHadWarning = true;
-                }
-            }
-
-            /* free_shipping + shipping_cost */
-            $free = isset( $record['free_shipping'] ) ? self::truthy( $record['free_shipping'] ) : false;
-            if ( !$free )
-            {
-                if ( !isset( $record['shipping_cost'] ) || (string) $record['shipping_cost'] === '' )
-                {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'shipping_cost', 'message' => 'shipping_cost is required when free_shipping is not 1/true.' ];
-                    $rowHadError = true;
-                }
-                else
-                {
-                    $rawShip = (string) $record['shipping_cost'];
-                    $ship    = (float) preg_replace( '/[^0-9.]/', '', $rawShip );
-                    if ( $ship < 0 )
-                    {
-                        $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'shipping_cost', 'message' => "shipping_cost must be >= 0 (got '{$rawShip}')." ];
-                        $rowHadError = true;
-                    }
                 }
             }
 

@@ -661,7 +661,7 @@ class _setupwizard extends \IPS\Dispatcher\Controller
      * gd_dealer_feed_config. Inverse-view mapping UI: one row per
      * canonical field, dropdown of all dealer fields per row,
      * plus an optional "use default" toggle for canonical fields
-     * that publish a default value (condition, free_shipping,
+     * that publish a default value (condition,
      * in_stock as of v154).
      *
      * Gating: requires wizard_step >= 2.

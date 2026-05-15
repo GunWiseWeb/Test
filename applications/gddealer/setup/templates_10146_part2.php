@@ -30,8 +30,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       &lt;map_price&gt;619.99&lt;/map_price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/glock-19-gen5-mos&lt;/url&gt;
-      &lt;free_shipping&gt;0&lt;/free_shipping&gt;
-      &lt;shipping_cost&gt;15.00&lt;/shipping_cost&gt;
+      &lt;shipping_info&gt;$15.00 flat&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;stock_qty&gt;3&lt;/stock_qty&gt;
       &lt;firearm&gt;
@@ -49,7 +48,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       &lt;price&gt;22.99&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/federal-9mm-50ct&lt;/url&gt;
-      &lt;free_shipping&gt;1&lt;/free_shipping&gt;
+      &lt;shipping_info&gt;Free shipping&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;stock_qty&gt;120&lt;/stock_qty&gt;
       &lt;ammo&gt;
@@ -65,8 +64,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       &lt;price&gt;449.00&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/vortex-viper-pst&lt;/url&gt;
-      &lt;free_shipping&gt;0&lt;/free_shipping&gt;
-      &lt;shipping_cost&gt;9.95&lt;/shipping_cost&gt;
+      &lt;shipping_info&gt;$9.95 flat&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;optic&gt;
         &lt;type&gt;lpvo&lt;/type&gt;
@@ -82,8 +80,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       &lt;price&gt;89.99&lt;/price&gt;
       &lt;condition&gt;used&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/used-ar15-bcg&lt;/url&gt;
-      &lt;free_shipping&gt;0&lt;/free_shipping&gt;
-      &lt;shipping_cost&gt;7.50&lt;/shipping_cost&gt;
+      &lt;shipping_info&gt;$7.50 flat&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;part&gt;
         &lt;type&gt;AR-15 bolt carrier group&lt;/type&gt;
@@ -97,7 +94,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       &lt;price&gt;14.99&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/magpul-pmag-30&lt;/url&gt;
-      &lt;free_shipping&gt;1&lt;/free_shipping&gt;
+      &lt;shipping_info&gt;Free shipping&lt;/shipping_info&gt;
       &lt;in_stock&gt;0&lt;/in_stock&gt;
     &lt;/listing&gt;
     &lt;listing&gt;
@@ -108,8 +105,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       &lt;price&gt;54.99&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/hornady-xtp-9mm&lt;/url&gt;
-      &lt;free_shipping&gt;0&lt;/free_shipping&gt;
-      &lt;shipping_cost&gt;12.00&lt;/shipping_cost&gt;
+      &lt;shipping_info&gt;$12.00 flat&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;reloading&gt;
         &lt;type&gt;bullet&lt;/type&gt;
@@ -125,7 +121,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       &lt;price&gt;165.00&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/benchmade-535&lt;/url&gt;
-      &lt;free_shipping&gt;1&lt;/free_shipping&gt;
+      &lt;shipping_info&gt;Free shipping&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;knife&gt;
         &lt;type&gt;folding&lt;/type&gt;
@@ -141,8 +137,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       &lt;price&gt;24.99&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/vortex-tshirt&lt;/url&gt;
-      &lt;free_shipping&gt;0&lt;/free_shipping&gt;
-      &lt;shipping_cost&gt;5.99&lt;/shipping_cost&gt;
+      &lt;shipping_info&gt;$5.99 flat&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
     &lt;/listing&gt;
   &lt;/listings&gt;
@@ -162,8 +157,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       "map_price": 619.99,
       "condition": "new",
       "url": "https://example-dealer.com/p/glock-19-gen5-mos",
-      "free_shipping": false,
-      "shipping_cost": 15.00,
+      "shipping_info": "$15.00 flat",
       "in_stock": true,
       "stock_qty": 3,
       "firearm": {
@@ -181,7 +175,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       "price": 22.99,
       "condition": "new",
       "url": "https://example-dealer.com/p/federal-9mm-50ct",
-      "free_shipping": true,
+      "shipping_info": "Free shipping",
       "in_stock": true,
       "stock_qty": 120,
       "ammo": { "caliber": "9mm Luger", "rounds": 50 }
@@ -194,8 +188,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       "price": 449.00,
       "condition": "new",
       "url": "https://example-dealer.com/p/vortex-viper-pst",
-      "free_shipping": false,
-      "shipping_cost": 9.95,
+      "shipping_info": "$9.95 flat",
       "in_stock": true,
       "optic": {
         "type": "lpvo",
@@ -211,8 +204,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       "price": 89.99,
       "condition": "used",
       "url": "https://example-dealer.com/p/used-ar15-bcg",
-      "free_shipping": false,
-      "shipping_cost": 7.50,
+      "shipping_info": "$7.50 flat",
       "in_stock": true,
       "part": { "type": "AR-15 bolt carrier group" }
     },
@@ -224,7 +216,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       "price": 14.99,
       "condition": "new",
       "url": "https://example-dealer.com/p/magpul-pmag-30",
-      "free_shipping": true,
+      "shipping_info": "Free shipping",
       "in_stock": false
     },
     {
@@ -235,8 +227,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       "price": 54.99,
       "condition": "new",
       "url": "https://example-dealer.com/p/hornady-xtp-9mm",
-      "free_shipping": false,
-      "shipping_cost": 12.00,
+      "shipping_info": "$12.00 flat",
       "in_stock": true,
       "reloading": { "type": "bullet", "rounds": 100, "bullet_caliber": ".355" }
     },
@@ -248,7 +239,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       "price": 165.00,
       "condition": "new",
       "url": "https://example-dealer.com/p/benchmade-535",
-      "free_shipping": true,
+      "shipping_info": "Free shipping",
       "in_stock": true,
       "knife": { "type": "folding", "blade_length_in": 3.24, "blade_steel": "S30V" }
     },
@@ -260,8 +251,7 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
       "price": 24.99,
       "condition": "new",
       "url": "https://example-dealer.com/p/vortex-tshirt",
-      "free_shipping": false,
-      "shipping_cost": 5.99,
+      "shipping_info": "$5.99 flat",
       "in_stock": true
     }
   ]
@@ -269,15 +259,15 @@ $feedSchemaTpl .= <<<'TEMPLATE_EOT'
 			</div>
 
 			<div class="gd-fs__tabPanel" data-panel="csv">
-<pre class="gd-fs__code">upc,sku,name,brand,category,price,map_price,condition,url,free_shipping,shipping_cost,in_stock,stock_qty,ammo.caliber,ammo.rounds,firearm.model,firearm.type,firearm.action,firearm.caliber,part.type,reloading.type,reloading.rounds,reloading.bullet_caliber,optic.type,optic.magnification,optic.reticle,optic.objective_mm,knife.type,knife.blade_length_in,knife.blade_steel
-764503913051,GLK-19-G5-MOS,"Glock 19 Gen5 MOS 9mm",Glock,firearm,549.99,619.99,new,https://example-dealer.com/p/glock-19-gen5-mos,0,15.00,1,3,,,Glock 19,handgun,semi-auto,9mm Luger,,,,,,,,,,
-076683081124,,"Federal Champion 9mm 115gr FMJ 50rd",Federal,ammo,22.99,,new,https://example-dealer.com/p/federal-9mm-50ct,1,,1,120,9mm Luger,50,,,,,,,,,,,,,,
-610563272730,,"Vortex Viper PST Gen II 1-6x24",Vortex,optic,449.00,,new,https://example-dealer.com/p/vortex-viper-pst,0,9.95,1,,,,,,,,,,,lpvo,1-6x,MOA,24,,,
-851561006033,,"Used AR-15 Bolt Carrier Group",,part,89.99,,used,https://example-dealer.com/p/used-ar15-bcg,0,7.50,1,,,,,,,,AR-15 bolt carrier group,,,,,,,,,,
-699618782301,,"Magpul PMAG 30 AR/M4 GEN M3",Magpul,accessory,14.99,,new,https://example-dealer.com/p/magpul-pmag-30,1,,0,,,,,,,,,,,,,,,,,,
-662410500358,,"Hornady XTP 9mm 115gr Bullets, 100ct",Hornady,reloading,54.99,,new,https://example-dealer.com/p/hornady-xtp-9mm,0,12.00,1,,,,,,,,,bullet,100,.355,,,,,,,
-610953154295,,"Benchmade Bugout 535",Benchmade,knife,165.00,,new,https://example-dealer.com/p/benchmade-535,1,,1,,,,,,,,,,,,,,,,,folding,3.24,S30V
-889912345678,,"Vortex Logo T-Shirt, Black, XL",Vortex,apparel,24.99,,new,https://example-dealer.com/p/vortex-tshirt,0,5.99,1,,,,,,,,,,,,,,,,,</pre>
+<pre class="gd-fs__code">upc,sku,name,brand,category,price,map_price,condition,url,shipping_info,in_stock,stock_qty,ammo.caliber,ammo.rounds,firearm.model,firearm.type,firearm.action,firearm.caliber,part.type,reloading.type,reloading.rounds,reloading.bullet_caliber,optic.type,optic.magnification,optic.reticle,optic.objective_mm,knife.type,knife.blade_length_in,knife.blade_steel
+764503913051,GLK-19-G5-MOS,"Glock 19 Gen5 MOS 9mm",Glock,firearm,549.99,619.99,new,https://example-dealer.com/p/glock-19-gen5-mos,$15.00 flat,1,3,,,Glock 19,handgun,semi-auto,9mm Luger,,,,,,,,,,
+076683081124,,"Federal Champion 9mm 115gr FMJ 50rd",Federal,ammo,22.99,,new,https://example-dealer.com/p/federal-9mm-50ct,Free shipping,1,120,9mm Luger,50,,,,,,,,,,,,,,
+610563272730,,"Vortex Viper PST Gen II 1-6x24",Vortex,optic,449.00,,new,https://example-dealer.com/p/vortex-viper-pst,$9.95 flat,1,,,,,,,,,,,lpvo,1-6x,MOA,24,,,
+851561006033,,"Used AR-15 Bolt Carrier Group",,part,89.99,,used,https://example-dealer.com/p/used-ar15-bcg,$7.50 flat,1,,,,,,,,AR-15 bolt carrier group,,,,,,,,,,
+699618782301,,"Magpul PMAG 30 AR/M4 GEN M3",Magpul,accessory,14.99,,new,https://example-dealer.com/p/magpul-pmag-30,Free shipping,0,,,,,,,,,,,,,,,,,,
+662410500358,,"Hornady XTP 9mm 115gr Bullets, 100ct",Hornady,reloading,54.99,,new,https://example-dealer.com/p/hornady-xtp-9mm,$12.00 flat,1,,,,,,,,,bullet,100,.355,,,,,,,
+610953154295,,"Benchmade Bugout 535",Benchmade,knife,165.00,,new,https://example-dealer.com/p/benchmade-535,Free shipping,1,,,,,,,,,,,,,,,,,folding,3.24,S30V
+889912345678,,"Vortex Logo T-Shirt, Black, XL",Vortex,apparel,24.99,,new,https://example-dealer.com/p/vortex-tshirt,$5.99 flat,1,,,,,,,,,,,,,,,,,</pre>
 			</div>
 		</section>
 

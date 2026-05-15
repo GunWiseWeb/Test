@@ -2365,7 +2365,7 @@ TEMPLATE_EOT,
 				<p><strong>Optional but recommended:</strong></p>
 				<ul>
 					<li><strong>SKU</strong> &mdash; Your internal product identifier</li>
-					<li><strong>Shipping Cost</strong> &mdash; Flat shipping fee. Use 0 for free shipping.</li>
+					<li><strong>Shipping Info</strong> &mdash; Free-form text describing shipping. Optional. Max 60 chars.</li>
 					<li><strong>Condition</strong> &mdash; new, used, or refurbished</li>
 					<li><strong>Product URL</strong> &mdash; Direct link to the product on your website</li>
 					<li><strong>Stock Quantity</strong> &mdash; Exact quantity on hand</li>
@@ -2376,16 +2376,16 @@ TEMPLATE_EOT,
 				<h3><span class="gdHelpPage__num">2</span> Format your feed</h3>
 				<p>{$helpData['step2']}</p>
 				<p><strong>CSV format example:</strong></p>
-				<pre>upc,price,in_stock,shipping_cost,condition,product_url
-026495088565,499.99,1,15.00,new,https://yourstore.com/product/123
-000000000000,299.99,0,0.00,new,https://yourstore.com/product/456</pre>
+				<pre>upc,price,in_stock,shipping_info,condition,product_url
+026495088565,499.99,1,$15.00 flat,new,https://yourstore.com/product/123
+000000000000,299.99,0,Free shipping,new,https://yourstore.com/product/456</pre>
 				<p><strong>JSON format example:</strong></p>
 				<pre>[
   {
     "upc": "026495088565",
     "price": 499.99,
     "in_stock": true,
-    "shipping_cost": 15.00,
+    "shipping_info": "$15.00 flat",
     "condition": "new",
     "product_url": "https://yourstore.com/product/123"
   }
@@ -2396,7 +2396,7 @@ TEMPLATE_EOT,
     &lt;upc&gt;026495088565&lt;/upc&gt;
     &lt;price&gt;499.99&lt;/price&gt;
     &lt;in_stock&gt;1&lt;/in_stock&gt;
-    &lt;shipping_cost&gt;15.00&lt;/shipping_cost&gt;
+    &lt;shipping_info&gt;$15.00 flat&lt;/shipping_info&gt;
     &lt;condition&gt;new&lt;/condition&gt;
   &lt;/product&gt;
 &lt;/products&gt;</pre>
@@ -2410,7 +2410,7 @@ TEMPLATE_EOT,
   "PRICE": "dealer_price",
   "QTY": "stock_qty",
   "INSTOCK": "in_stock",
-  "SHIP": "shipping_cost",
+  "SHIP": "shipping_info",
   "COND": "condition",
   "URL": "listing_url"
 }</pre>
@@ -2447,7 +2447,7 @@ TEMPLATE_EOT,
 					<tr><td>upc</td><td class="gdHelpPage__req">Required</td></tr>
 					<tr><td>dealer_price</td><td class="gdHelpPage__req">Required</td></tr>
 					<tr><td>in_stock</td><td class="gdHelpPage__req">Required</td></tr>
-					<tr><td>shipping_cost</td><td class="gdHelpPage__opt">Optional</td></tr>
+					<tr><td>shipping_info</td><td class="gdHelpPage__opt">Optional</td></tr>
 					<tr><td>condition</td><td class="gdHelpPage__opt">Optional</td></tr>
 					<tr><td>listing_url</td><td class="gdHelpPage__opt">Optional</td></tr>
 					<tr><td>stock_qty</td><td class="gdHelpPage__opt">Optional</td></tr>
