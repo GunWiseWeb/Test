@@ -33,7 +33,7 @@ $helpTpl = <<<'TEMPLATE_EOT'
 				<p><strong>Required fields per listing (all categories):</strong></p>
 				<ul>
 					<li><strong>upc</strong> &mdash; 12 or 13 digit barcode (UPC-A or EAN-13)</li>
-					<li><strong>category</strong> &mdash; one of: firearm, ammo, part, accessory, optic, reloading, knife, apparel</li>
+					<li><strong>category</strong> &mdash; product category. Canonical values: firearm, ammo, part, accessory, optic, reloading, knife, apparel. Non-canonical names (e.g. &ldquo;Rifles&rdquo;, &ldquo;Ammunition&rdquo;) are auto-mapped.</li>
 					<li><strong>price</strong> &mdash; positive decimal in USD (e.g. 549.99)</li>
 					<li><strong>condition</strong> &mdash; new, used, or refurbished</li>
 					<li><strong>url</strong> &mdash; https:// link to the product page on your site</li>

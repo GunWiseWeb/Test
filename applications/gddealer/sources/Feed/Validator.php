@@ -95,25 +95,29 @@ class Validator
      * @param array<int, array<string, mixed>> $records
      * @return array{
      *   valid: bool,
-     *   summary: array{total_records:int, valid_records:int, error_records:int, warning_records:int},
+     *   summary: array{total_records:int, valid_records:int, error_records:int, warning_records:int, note_records:int},
      *   errors: array<int, array{row:int, upc:string, field:string, message:string}>,
-     *   warnings: array<int, array{row:int, upc:string, field:string, message:string}>
+     *   warnings: array<int, array{row:int, upc:string, field:string, message:string}>,
+     *   notes: array<int, array{row:int, upc:string, field:string, message:string}>
      * }
      */
     public static function validate( array $records ): array
     {
         $errors      = [];
         $warnings    = [];
+        $notes       = [];
         $errorRows   = [];
         $warningRows = [];
+        $noteRows    = [];
 
         if ( count( $records ) === 0 )
         {
             return [
                 'valid'    => false,
-                'summary'  => [ 'total_records' => 0, 'valid_records' => 0, 'error_records' => 0, 'warning_records' => 0 ],
+                'summary'  => [ 'total_records' => 0, 'valid_records' => 0, 'error_records' => 0, 'warning_records' => 0, 'note_records' => 0 ],
                 'errors'   => [ [ 'row' => 0, 'upc' => '', 'field' => '_root', 'message' => 'Feed contains zero listings.' ] ],
                 'warnings' => [],
+                'notes'    => [],
             ];
         }
 
@@ -125,6 +129,7 @@ class Validator
             $upc = isset( $record['upc'] ) ? (string) $record['upc'] : '';
             $rowHadError   = false;
             $rowHadWarning = false;
+            $rowHadNote    = false;
             $price = 0.0;
 
             /* Required field presence */
@@ -163,16 +168,23 @@ class Validator
                 }
             }
 
-            /* Category */
+            /* Category — lenient: run through CategoryNormalizer */
             $cat = '';
             if ( isset( $record['category'] ) && (string) $record['category'] !== '' )
             {
-                $cat = strtolower( trim( (string) $record['category'] ) );
-                if ( !in_array( $cat, self::VALID_CATEGORIES, true ) )
+                $rawCat = trim( (string) $record['category'] );
+                $cat = CategoryNormalizer::normalize( $rawCat );
+
+                if ( $cat === 'skip' )
                 {
-                    $errors[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'category', 'message' => "Invalid category '{$cat}'. Must be one of: " . implode( ', ', self::VALID_CATEGORIES ) ];
-                    $rowHadError = true;
+                    $notes[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'category', 'message' => "Category '{$rawCat}' is not importable (gift card, membership, etc.) — row will be skipped on import." ];
+                    $rowHadNote = true;
                     $cat = '';
+                }
+                elseif ( strtolower( $rawCat ) !== $cat )
+                {
+                    $notes[] = [ 'row' => $row, 'upc' => $upc, 'field' => 'category', 'message' => "Category '{$rawCat}' will be auto-mapped to '{$cat}'." ];
+                    $rowHadNote = true;
                 }
             }
 
@@ -465,10 +477,12 @@ class Validator
 
             if ( $rowHadError )   { $errorRows[ $row ]   = true; }
             if ( $rowHadWarning ) { $warningRows[ $row ] = true; }
+            if ( $rowHadNote )    { $noteRows[ $row ]    = true; }
         }
 
         $errorCount   = count( $errorRows );
         $warningCount = count( $warningRows );
+        $noteCount    = count( $noteRows );
         $total        = count( $records );
 
         return [
@@ -478,9 +492,11 @@ class Validator
                 'valid_records'   => $total - $errorCount,
                 'error_records'   => $errorCount,
                 'warning_records' => $warningCount,
+                'note_records'    => $noteCount,
             ],
             'errors'   => $errors,
             'warnings' => $warnings,
+            'notes'    => $notes,
         ];
     }
 

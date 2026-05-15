@@ -1803,6 +1803,7 @@ TEMPLATE_EOT,
 .gd-feedval .section-head .pill { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
 .gd-feedval .section-head .pill.err { background: var(--gd-error-bg); color: var(--gd-error); }
 .gd-feedval .section-head .pill.warn { background: var(--gd-warn-bg); color: var(--gd-warn); }
+.gd-feedval .section-head .pill.note { background: #EFF6FF; color: #1E40AF; }
 
 .gd-feedval .raw-toggle { font-size: 12px; color: var(--gd-text-subtle); cursor: pointer; user-select: none; margin-top: 1rem; }
 .gd-feedval pre.raw { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; background: var(--gd-surface-muted); padding: 12px; border-radius: var(--gd-r-md); overflow-x: auto; max-height: 400px; display: none; }
@@ -1837,6 +1838,7 @@ TEMPLATE_EOT,
         <div id="gdfvSummary"></div>
         <div id="gdfvErrors"></div>
         <div id="gdfvWarnings"></div>
+        <div id="gdfvNotes"></div>
         <div class="raw-toggle" id="gdfvRawToggle">Show raw JSON response</div>
         <pre class="raw" id="gdfvRaw"></pre>
     </div>
@@ -1851,6 +1853,7 @@ TEMPLATE_EOT,
     var sumDiv  = document.getElementById('gdfvSummary');
     var errDiv  = document.getElementById('gdfvErrors');
     var warnDiv = document.getElementById('gdfvWarnings');
+    var noteDiv = document.getElementById('gdfvNotes');
     var rawTog  = document.getElementById('gdfvRawToggle');
     var rawPre  = document.getElementById('gdfvRaw');
 
@@ -1879,8 +1882,8 @@ TEMPLATE_EOT,
 
     function renderIssueTable(issues, kind) {
         if (!issues || !issues.length) return '';
-        var label = kind === 'error' ? 'Errors' : 'Warnings';
-        var pill  = kind === 'error' ? 'err' : 'warn';
+        var label = kind === 'error' ? 'Errors' : (kind === 'warning' ? 'Warnings' : 'Notes');
+        var pill  = kind === 'error' ? 'err' : (kind === 'warning' ? 'warn' : 'note');
         var html  = '<div class="section-head">' + label + ' <span class="pill ' + pill + '">' + issues.length + '</span></div>';
         html += '<table class="issue-table"><thead><tr><th>Row</th><th>UPC</th><th>Field</th><th>Message</th></tr></thead><tbody>';
         issues.forEach(function(i){
@@ -1920,9 +1923,11 @@ TEMPLATE_EOT,
                     '<span class="summary-stat">&middot; <strong>' + (s.valid_records || 0) + '</strong> valid</span>' +
                     '<span class="summary-stat">&middot; <strong>' + (s.error_records || 0) + '</strong> with errors</span>' +
                     '<span class="summary-stat">&middot; <strong>' + (s.warning_records || 0) + '</strong> with warnings</span>' +
+                    ((s.note_records || 0) > 0 ? '<span class="summary-stat">&middot; <strong>' + s.note_records + '</strong> with notes</span>' : '') +
                     '</div>';
                 errDiv.innerHTML  = renderIssueTable(data.errors, 'error');
                 warnDiv.innerHTML = renderIssueTable(data.warnings, 'warning');
+                noteDiv.innerHTML = renderIssueTable(data.notes, 'note');
                 rawPre.textContent = JSON.stringify(data, null, 2);
             })
             .catch(function(err){
@@ -1930,6 +1935,7 @@ TEMPLATE_EOT,
                 sumDiv.innerHTML = '<div class="summary bad"><span class="summary-icon">&cross;</span><span class="summary-stat"><strong>Network error:</strong> ' + escapeHtml(err.message) + '</span></div>';
                 errDiv.innerHTML = '';
                 warnDiv.innerHTML = '';
+                noteDiv.innerHTML = '';
                 rawPre.textContent = '';
             })
             .finally(function(){
