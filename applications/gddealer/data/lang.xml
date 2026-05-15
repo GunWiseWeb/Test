@@ -493,5 +493,8 @@
     <word key="gddealer_front_customize_danger_zone_kept"><![CDATA[Kept:]]></word>
     <word key="gddealer_front_customize_danger_zone_confirm_label"><![CDATA[Type your dealer name to confirm:]]></word>
     <word key="gddealer_front_customize_danger_zone_button"><![CDATA[Reset my feed configuration]]></word>
+    <!-- v1.0.201: FFL section lang strings (placeholder for future i18n) -->
+    <word key="gddealer_front_customize_ffl_section_title"><![CDATA[FFL license]]></word>
+    <word key="gddealer_front_customize_ffl_section_intro"><![CDATA[Required for the verified badge on your public profile. Admin reviews within 24 hours.]]></word>
   </app>
 </language>
