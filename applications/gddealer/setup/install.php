@@ -1600,7 +1600,7 @@ TEMPLATE_EOT,
 		'location'      => 'front',
 		'group'         => 'dealers',
 		'template_name' => 'feedSettings',
-		'template_data' => '$dealer, $form, $logs, $importUrl, $tabUrls',
+		'template_data' => '$data',
 		'template_content' => <<<'TEMPLATE_EOT'
 <div>
 
@@ -1673,7 +1673,7 @@ TEMPLATE_EOT,
 		'location'      => 'front',
 		'group'         => 'dealers',
 		'template_name' => 'listings',
-		'template_data' => '$dealer, $rows, $total, $page, $pages, $baseUrl, $filter, $search, $exportUrl, $tabUrls',
+		'template_data' => '$data',
 		'template_content' => <<<'TEMPLATE_EOT'
 <div class="ipsBox" style="background:#fff;border:1px solid var(--i-border-color,#e0e0e0);border-radius:8px">
 	<h3 class="ipsBox__header" style="margin:0;padding:14px 18px;border-bottom:1px solid var(--i-border-color,#f0f0f0);font-size:1em;font-weight:700">{lang="gddealer_front_tab_listings"}</h3>
@@ -1759,7 +1759,7 @@ TEMPLATE_EOT,
 		'location'      => 'front',
 		'group'         => 'dealers',
 		'template_name' => 'unmatched',
-		'template_data' => '$dealer, $rows, $exportUrl, $tabUrls',
+		'template_data' => '$data',
 		'template_content' => <<<'TEMPLATE_EOT'
 <div class="ipsBox" style="background:#fff;border:1px solid var(--i-border-color,#e0e0e0);border-radius:8px">
 	<h3 class="ipsBox__header" style="margin:0;padding:14px 18px;border-bottom:1px solid var(--i-border-color,#f0f0f0);font-size:1em;font-weight:700">{lang="gddealer_front_tab_unmatched"}</h3>
@@ -1811,7 +1811,7 @@ TEMPLATE_EOT,
 		'location'      => 'front',
 		'group'         => 'dealers',
 		'template_name' => 'analytics',
-		'template_data' => '$dealer, $gated, $analytics, $topClicked, $opportunities, $tabUrls',
+		'template_data' => '$data',
 		'template_content' => <<<'TEMPLATE_EOT'
 <div>
 
@@ -4845,6 +4845,16 @@ require_once __DIR__ . '/templates_10156_part2.php';
 require_once __DIR__ . '/templates_10158_part1.php';
 require_once __DIR__ . '/templates_10158_part2.php';
 require_once __DIR__ . '/templates_10160_part1.php';
+
+/* v1.0.199 — Seed authoritative template bodies for listings, unmatched,
+   feedSettings, analytics, and reviews. These replace() calls overwrite
+   the stale placeholder content from the $gddealerTemplates array. */
+require_once __DIR__ . '/templates_10072.php';
+require_once __DIR__ . '/templates_10074.php';
+require_once __DIR__ . '/templates_10077.php';
+require_once __DIR__ . '/templates_10078.php';
+require_once __DIR__ . '/templates_10158_part3.php';
+require_once __DIR__ . '/templates_10158_part4.php';
 
 /* Force furl + applications + extensions + email-template cache rebuild
    so new routes, templates, and extension classes appear without a manual
