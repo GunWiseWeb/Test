@@ -3971,164 +3971,8 @@ TEMPLATE_EOT,
 </div>
 TEMPLATE_EOT,
 	],
-];
-
-foreach ( $gddealerTemplates as $tpl )
-{
-	\IPS\Db::i()->insert( 'core_theme_templates', [
-		'template_set_id'   => $tpl['set_id'],
-		'template_app'      => $tpl['app'],
-		'template_location' => $tpl['location'],
-		'template_group'    => $tpl['group'],
-		'template_name'     => $tpl['template_name'],
-		'template_data'     => $tpl['template_data'],
-		'template_content'  => $tpl['template_content'],
-	]);
-}
-
-/* Backfill missing dealer slugs. Existing rows from earlier installs may have
-   dealer_slug IS NULL; generate a URL-safe slug from dealer_name using the
-   same algorithm as manualOnboard() in modules/admin/dealers/dealers.php.
-   Uniqueness is enforced by the uq_dealer_slug index — append -1, -2, ...
-   until a free slug is found. */
-try
-{
-	foreach ( \IPS\Db::i()->select( 'dealer_id, dealer_name', 'gd_dealer_feed_config',
-		[ 'dealer_slug IS NULL' ] ) as $row )
-	{
-		$slug = strtolower( preg_replace( '/[^a-z0-9]+/', '-', strtolower( (string) $row['dealer_name'] ) ) );
-		$slug = trim( $slug, '-' );
-		if ( $slug === '' )
-		{
-			$slug = 'dealer-' . (int) $row['dealer_id'];
-		}
-		$base = $slug;
-		$i    = 1;
-		while ( (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_feed_config',
-			[ 'dealer_slug=?', $slug ] )->first() > 0 )
-		{
-			$slug = $base . '-' . $i++;
-		}
-		\IPS\Db::i()->update( 'gd_dealer_feed_config',
-			[ 'dealer_slug' => $slug ],
-			[ 'dealer_id=?', (int) $row['dealer_id'] ] );
-	}
-}
-catch ( \Exception ) {}
-
-/* Schema migration: add dealer_dashboard_prefs column on upgrade installs.
-   On fresh installs schema.json creates it; this guards re-installs over
-   an older copy of the table. */
-try
-{
-	$cols = \IPS\Db::i()->getTableDefinition( 'gd_dealer_feed_config' );
-	if ( !isset( $cols['columns']['dealer_dashboard_prefs'] ) )
-	{
-		\IPS\Db::i()->addColumn( 'gd_dealer_feed_config', [
-			'name'       => 'dealer_dashboard_prefs',
-			'type'       => 'TEXT',
-			'length'     => null,
-			'allow_null' => true,
-			'default'    => null,
-		] );
-	}
-}
-catch ( \Exception ) {}
-
-/* Seed notification defaults for gddealer notification types so IPS
-   knows which methods (inline/email) are enabled by default for every
-   notification type the DealerNotifications extension registers. Safe
-   to re-run: duplicate notification_key inserts are swallowed. */
-$notificationDefaults = [
-	'new_dealer_review'    => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'updated_dealer_review' => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'review_disputed'      => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'dealer_responded'     => [ 'default' => 'inline',       'disabled' => '' ],
-	'dispute_admin_review' => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'dispute_upheld'       => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'dispute_dismissed'    => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'dispute_customer_responded' => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'dispute_outcome_reviewer'   => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'dispute_edit_requested'     => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'support_ticket_new'         => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'support_reply_to_dealer'    => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'support_reply_to_admin'     => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'gddealer_ffl_verified'      => [ 'default' => 'inline,email', 'disabled' => '' ],
-	'gddealer_ffl_rejected'      => [ 'default' => 'inline,email', 'disabled' => '' ],
-];
-
-foreach ( $notificationDefaults as $key => $data )
-{
-	try
-	{
-		\IPS\Db::i()->insert( 'core_notification_defaults', [
-			'notification_key' => $key,
-			'default'          => $data['default'],
-			'disabled'         => $data['disabled'],
-		] );
-	}
-	catch ( \Exception ) {}
-}
-
-/* Safety-net email template seeding — parse data/emails.xml directly and
-   insert any template that isn't already present. IPS's own email template
-   loader from emails.xml has been observed to silently no-op on some
-   installs, so we force the rows ourselves rather than trusting it. Each
-   insert is in its own try/catch; a minimal-column fallback handles
-   schema variants that don't have template_key/parent/edited/pinned. */
-$emailsXmlPath = __DIR__ . '/../data/emails.xml';
-if ( file_exists( $emailsXmlPath ) )
-{
-	$prev = libxml_disable_entity_loader( TRUE );
-	$xml  = @simplexml_load_file( $emailsXmlPath );
-	libxml_disable_entity_loader( $prev );
-
-	if ( $xml instanceof \SimpleXMLElement )
-	{
-		foreach ( $xml->template as $t )
-		{
-			$templateName = trim( (string) $t->template_name );
-			if ( $templateName === '' ) { continue; }
-
-			try
-			{
-				$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_email_templates',
-					[ 'template_app=? AND template_name=?', 'gddealer', $templateName ]
-				)->first();
-
-				if ( $exists > 0 ) { continue; }
-
-				\IPS\Db::i()->insert( 'core_email_templates', [
-					'template_app'               => 'gddealer',
-					'template_name'              => $templateName,
-					'template_data'              => (string) $t->template_data,
-					'template_content_html'      => (string) $t->template_content_html,
-					'template_content_plaintext' => (string) $t->template_content_plaintext,
-					'template_key'               => md5( 'gddealer;' . $templateName ),
-					'template_parent'            => 0,
-					'template_edited'            => 0,
-					'template_pinned'            => 0,
-				] );
-			}
-			catch ( \Exception )
-			{
-				try
-				{
-					\IPS\Db::i()->insert( 'core_email_templates', [
-						'template_app'               => 'gddealer',
-						'template_name'              => $templateName,
-						'template_content_html'      => (string) $t->template_content_html,
-						'template_content_plaintext' => (string) $t->template_content_plaintext,
-					] );
-				}
-				catch ( \Exception ) {}
-			}
-		}
-	}
-}
-
 /* ===== ADMIN: supportTickets ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'admin',
@@ -4218,10 +4062,10 @@ $gddealerTemplates[] = [
 </div>
 </div>
 TEMPLATE_EOT,
-];
+	],
 
 /* ===== ADMIN: supportTicketView ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'admin',
@@ -4392,10 +4236,10 @@ $gddealerTemplates[] = [
 </div>
 </div>
 TEMPLATE_EOT,
-];
+	],
 
 /* ===== FRONT: supportList ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'front',
@@ -4466,10 +4310,10 @@ $gddealerTemplates[] = [
 {{endif}}
 </div>
 TEMPLATE_EOT,
-];
+	],
 
 /* ===== FRONT: supportNew ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'front',
@@ -4524,10 +4368,10 @@ $gddealerTemplates[] = [
 </div>
 </div>
 TEMPLATE_EOT,
-];
+	],
 
 /* ===== FRONT: supportView ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'front',
@@ -4626,10 +4470,10 @@ $gddealerTemplates[] = [
 {{endif}}
 </div>
 TEMPLATE_EOT,
-];
+	],
 
 /* ===== ADMIN: supportDepartments ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'admin',
@@ -4693,10 +4537,10 @@ $gddealerTemplates[] = [
 {{endif}}
 </div>
 TEMPLATE_EOT,
-];
+	],
 
 /* ===== ADMIN: supportDepartmentForm ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'admin',
@@ -4751,10 +4595,10 @@ $gddealerTemplates[] = [
 </form>
 </div>
 TEMPLATE_EOT,
-];
+	],
 
 /* ===== ADMIN: supportStockReplies ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'admin',
@@ -4813,10 +4657,10 @@ $gddealerTemplates[] = [
 </div>
 </div>
 TEMPLATE_EOT,
-];
+	],
 
 /* ===== ADMIN: supportStockReplyForm ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'admin',
@@ -4867,10 +4711,10 @@ $gddealerTemplates[] = [
 </form>
 </div>
 TEMPLATE_EOT,
-];
+	],
 
 /* ===== ADMIN: supportStockActions ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'admin',
@@ -4931,10 +4775,10 @@ $gddealerTemplates[] = [
 </div>
 </div>
 TEMPLATE_EOT,
-];
+	],
 
 /* ===== ADMIN: supportStockActionForm ===== */
-$gddealerTemplates[] = [
+	[
 	'set_id'        => 1,
 	'app'           => 'gddealer',
 	'location'      => 'admin',
@@ -5012,7 +4856,163 @@ $gddealerTemplates[] = [
 </form>
 </div>
 TEMPLATE_EOT,
+	],
 ];
+
+foreach ( $gddealerTemplates as $tpl )
+{
+	\IPS\Db::i()->insert( 'core_theme_templates', [
+		'template_set_id'   => $tpl['set_id'],
+		'template_app'      => $tpl['app'],
+		'template_location' => $tpl['location'],
+		'template_group'    => $tpl['group'],
+		'template_name'     => $tpl['template_name'],
+		'template_data'     => $tpl['template_data'],
+		'template_content'  => $tpl['template_content'],
+	]);
+}
+
+/* Backfill missing dealer slugs. Existing rows from earlier installs may have
+   dealer_slug IS NULL; generate a URL-safe slug from dealer_name using the
+   same algorithm as manualOnboard() in modules/admin/dealers/dealers.php.
+   Uniqueness is enforced by the uq_dealer_slug index — append -1, -2, ...
+   until a free slug is found. */
+try
+{
+	foreach ( \IPS\Db::i()->select( 'dealer_id, dealer_name', 'gd_dealer_feed_config',
+		[ 'dealer_slug IS NULL' ] ) as $row )
+	{
+		$slug = strtolower( preg_replace( '/[^a-z0-9]+/', '-', strtolower( (string) $row['dealer_name'] ) ) );
+		$slug = trim( $slug, '-' );
+		if ( $slug === '' )
+		{
+			$slug = 'dealer-' . (int) $row['dealer_id'];
+		}
+		$base = $slug;
+		$i    = 1;
+		while ( (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_feed_config',
+			[ 'dealer_slug=?', $slug ] )->first() > 0 )
+		{
+			$slug = $base . '-' . $i++;
+		}
+		\IPS\Db::i()->update( 'gd_dealer_feed_config',
+			[ 'dealer_slug' => $slug ],
+			[ 'dealer_id=?', (int) $row['dealer_id'] ] );
+	}
+}
+catch ( \Exception ) {}
+
+/* Schema migration: add dealer_dashboard_prefs column on upgrade installs.
+   On fresh installs schema.json creates it; this guards re-installs over
+   an older copy of the table. */
+try
+{
+	$cols = \IPS\Db::i()->getTableDefinition( 'gd_dealer_feed_config' );
+	if ( !isset( $cols['columns']['dealer_dashboard_prefs'] ) )
+	{
+		\IPS\Db::i()->addColumn( 'gd_dealer_feed_config', [
+			'name'       => 'dealer_dashboard_prefs',
+			'type'       => 'TEXT',
+			'length'     => null,
+			'allow_null' => true,
+			'default'    => null,
+		] );
+	}
+}
+catch ( \Exception ) {}
+
+/* Seed notification defaults for gddealer notification types so IPS
+   knows which methods (inline/email) are enabled by default for every
+   notification type the DealerNotifications extension registers. Safe
+   to re-run: duplicate notification_key inserts are swallowed. */
+$notificationDefaults = [
+	'new_dealer_review'    => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'updated_dealer_review' => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'review_disputed'      => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'dealer_responded'     => [ 'default' => 'inline',       'disabled' => '' ],
+	'dispute_admin_review' => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'dispute_upheld'       => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'dispute_dismissed'    => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'dispute_customer_responded' => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'dispute_outcome_reviewer'   => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'dispute_edit_requested'     => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'support_ticket_new'         => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'support_reply_to_dealer'    => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'support_reply_to_admin'     => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'gddealer_ffl_verified'      => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'gddealer_ffl_rejected'      => [ 'default' => 'inline,email', 'disabled' => '' ],
+];
+
+foreach ( $notificationDefaults as $key => $data )
+{
+	try
+	{
+		\IPS\Db::i()->insert( 'core_notification_defaults', [
+			'notification_key' => $key,
+			'default'          => $data['default'],
+			'disabled'         => $data['disabled'],
+		] );
+	}
+	catch ( \Exception ) {}
+}
+
+/* Safety-net email template seeding — parse data/emails.xml directly and
+   insert any template that isn't already present. IPS's own email template
+   loader from emails.xml has been observed to silently no-op on some
+   installs, so we force the rows ourselves rather than trusting it. Each
+   insert is in its own try/catch; a minimal-column fallback handles
+   schema variants that don't have template_key/parent/edited/pinned. */
+$emailsXmlPath = __DIR__ . '/../data/emails.xml';
+if ( file_exists( $emailsXmlPath ) )
+{
+	$prev = libxml_disable_entity_loader( TRUE );
+	$xml  = @simplexml_load_file( $emailsXmlPath );
+	libxml_disable_entity_loader( $prev );
+
+	if ( $xml instanceof \SimpleXMLElement )
+	{
+		foreach ( $xml->template as $t )
+		{
+			$templateName = trim( (string) $t->template_name );
+			if ( $templateName === '' ) { continue; }
+
+			try
+			{
+				$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_email_templates',
+					[ 'template_app=? AND template_name=?', 'gddealer', $templateName ]
+				)->first();
+
+				if ( $exists > 0 ) { continue; }
+
+				\IPS\Db::i()->insert( 'core_email_templates', [
+					'template_app'               => 'gddealer',
+					'template_name'              => $templateName,
+					'template_data'              => (string) $t->template_data,
+					'template_content_html'      => (string) $t->template_content_html,
+					'template_content_plaintext' => (string) $t->template_content_plaintext,
+					'template_key'               => md5( 'gddealer;' . $templateName ),
+					'template_parent'            => 0,
+					'template_edited'            => 0,
+					'template_pinned'            => 0,
+				] );
+			}
+			catch ( \Exception )
+			{
+				try
+				{
+					\IPS\Db::i()->insert( 'core_email_templates', [
+						'template_app'               => 'gddealer',
+						'template_name'              => $templateName,
+						'template_content_html'      => (string) $t->template_content_html,
+						'template_content_plaintext' => (string) $t->template_content_plaintext,
+					] );
+				}
+				catch ( \Exception ) {}
+			}
+		}
+	}
+}
+
 
 \IPS\Db::i()->replace( 'core_theme_templates', [
 	'template_set_id'  => 1,
