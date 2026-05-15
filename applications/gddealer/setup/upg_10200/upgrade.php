@@ -1,16 +1,21 @@
 <?php
-if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) ) { header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' ); exit; }
+namespace IPS\gddealer\setup\upg_10200;
 
-$masterKey = md5( 'gddealer;front;dealers;dashboardCustomize' );
+use function defined;
 
-\IPS\Db::i()->replace( 'core_theme_templates', [
-    'template_set_id'    => 0,
-    'template_group'     => 'dealers',
-    'template_app'       => 'gddealer',
-    'template_location'  => 'front',
-    'template_name'      => 'dashboardCustomize',
-    'template_data'      => '$data',
-    'template_content'   => <<<'TEMPLATE_EOT'
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$masterKey = md5( 'gddealer;front;dealers;dashboardCustomize' );
+
+		$tplContent = <<<'TEMPLATE_EOT'
 <div class="gdPageHeader">
     <div class="gdPageHeader__titleBlock">
         <h1 class="gdPageHeader__title">Edit dealer profile</h1>
@@ -382,7 +387,67 @@ $masterKey = md5( 'gddealer;front;dealers;dashboardCustomize' );
     });
 })();
 </script>
-TEMPLATE_EOT,
-    'template_master_key' => $masterKey,
-    'template_updated'    => time(),
-] );
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'     => 0,
+				'template_group'      => 'dealers',
+				'template_app'        => 'gddealer',
+				'template_location'   => 'front',
+				'template_name'       => 'dashboardCustomize',
+				'template_data'       => '$data',
+				'template_content'    => $tplContent,
+				'template_master_key' => $masterKey,
+				'template_updated'    => time(),
+				'template_version'    => '1.0.200',
+			] );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10200 dashboardCustomize replace failed: ' . $e->getMessage(), 'gddealer_upg_10200' ); } catch ( \Throwable ) {}
+		}
+
+		$newStrings = [
+			'gddealer_front_customize_danger_zone_title'         => 'Danger Zone',
+			'gddealer_front_customize_danger_zone_desc'          => 'Reset wipes your feed configuration and all imported data, but preserves your dealer profile, FFL information, and subscription.',
+			'gddealer_front_customize_danger_zone_wiped'         => 'Wiped:',
+			'gddealer_front_customize_danger_zone_kept'          => 'Kept:',
+			'gddealer_front_customize_danger_zone_confirm_label' => 'Type your dealer name to confirm:',
+			'gddealer_front_customize_danger_zone_button'        => 'Reset my feed configuration',
+		];
+
+		foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+		{
+			foreach ( $newStrings as $key => $val )
+			{
+				try
+				{
+					\IPS\Db::i()->replace( 'core_sys_lang_words', [
+						'lang_id'      => (int) $langId,
+						'word_app'     => 'gddealer',
+						'word_key'     => $key,
+						'word_default' => $val,
+						'word_js'      => 0,
+						'word_export'  => 1,
+					] );
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+
+		try { \IPS\Db::i()->delete( 'core_cache' ); }                                                                       catch ( \Throwable ) {}
+		try { \IPS\Db::i()->delete( 'core_store', [ "store_key LIKE 'theme_%' OR store_key LIKE 'template_%'" ] ); }         catch ( \Throwable ) {}
+		foreach ( glob( \IPS\ROOT_PATH . '/datastore/template_*' ) ?: [] as $f ) { @unlink( $f ); }
+		try { unset( \IPS\Data\Store::i()->themes ); }       catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }            catch ( \Throwable ) {}
+		try { \IPS\Data\Store::i()->clearAll(); }            catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

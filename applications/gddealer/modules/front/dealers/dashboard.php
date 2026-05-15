@@ -421,6 +421,10 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'regenerate_confirm_url' => (string) \IPS\Http\Url::internal(
 				'app=gddealer&module=dealers&controller=dashboard&do=regenerateSlug'
 			)->csrf(),
+			'reset_action_url' => (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=dashboard&do=confirmReset'
+			)->csrf(),
+			'dealer_name_escaped' => htmlspecialchars( (string) ( $dealer->dealer_name ?? '' ), ENT_QUOTES, 'UTF-8' ),
 		];
 
 		$this->output( 'customize', \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->dashboardCustomize( $data ) );

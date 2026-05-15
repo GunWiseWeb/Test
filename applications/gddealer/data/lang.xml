@@ -486,5 +486,12 @@
     <word key="core_profile_mydealers"><![CDATA[My Dealers]]></word>
     <!-- v1.0.196: Categories nav label -->
     <word key="gddealer_front_tab_categories"><![CDATA[Categories]]></word>
+    <!-- v1.0.200: Danger Zone on Edit Profile -->
+    <word key="gddealer_front_customize_danger_zone_title"><![CDATA[Danger Zone]]></word>
+    <word key="gddealer_front_customize_danger_zone_desc"><![CDATA[Reset wipes your feed configuration and all imported data, but preserves your dealer profile, FFL information, and subscription.]]></word>
+    <word key="gddealer_front_customize_danger_zone_wiped"><![CDATA[Wiped:]]></word>
+    <word key="gddealer_front_customize_danger_zone_kept"><![CDATA[Kept:]]></word>
+    <word key="gddealer_front_customize_danger_zone_confirm_label"><![CDATA[Type your dealer name to confirm:]]></word>
+    <word key="gddealer_front_customize_danger_zone_button"><![CDATA[Reset my feed configuration]]></word>
   </app>
 </language>
