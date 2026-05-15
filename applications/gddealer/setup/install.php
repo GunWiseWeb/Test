@@ -1299,44 +1299,44 @@ TEMPLATE_EOT,
 		'location'      => 'front',
 		'group'         => 'dealers',
 		'template_name' => 'dashboardCustomize',
-		'template_data' => '$prefs, $saveUrl, $cancelUrl, $csrfKey',
+		'template_data' => '$data',
 		'template_content' => <<<'TEMPLATE_EOT'
 <div style="max-width:720px">
 	<h2 style="margin:0 0 6px;font-size:1.3em;font-weight:800">{lang="gddealer_front_customize_title"}</h2>
 	<p style="margin:0 0 20px;color:#666">{lang="gddealer_front_customize_intro"}</p>
 
-	<form method="post" action="{$saveUrl}">
-		<input type="hidden" name="csrfKey" value="{$csrfKey}">
+	<form method="post" action="{$data['save_url']}">
+		<input type="hidden" name="csrfKey" value="{$data['csrf_key']}">
 
 		<div class="ipsBox" style="padding:20px;margin-bottom:16px">
 			<h3 style="margin:0 0 12px;font-size:1em;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#475569">{lang="gddealer_front_customize_section_visibility"}</h3>
 			<div style="display:flex;flex-direction:column;gap:10px">
 				<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-					<input type="checkbox" name="show_active" value="1" {{if $prefs['show_active']}}checked{{endif}}>
+					<input type="checkbox" name="show_active" value="1" {{if $data['prefs']['show_active']}}checked{{endif}}>
 					<span>{lang="gddealer_front_customize_show_active"}</span>
 				</label>
 				<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-					<input type="checkbox" name="show_outofstock" value="1" {{if $prefs['show_outofstock']}}checked{{endif}}>
+					<input type="checkbox" name="show_outofstock" value="1" {{if $data['prefs']['show_outofstock']}}checked{{endif}}>
 					<span>{lang="gddealer_front_customize_show_outofstock"}</span>
 				</label>
 				<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-					<input type="checkbox" name="show_unmatched" value="1" {{if $prefs['show_unmatched']}}checked{{endif}}>
+					<input type="checkbox" name="show_unmatched" value="1" {{if $data['prefs']['show_unmatched']}}checked{{endif}}>
 					<span>{lang="gddealer_front_customize_show_unmatched"}</span>
 				</label>
 				<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-					<input type="checkbox" name="show_clicks_7d" value="1" {{if $prefs['show_clicks_7d']}}checked{{endif}}>
+					<input type="checkbox" name="show_clicks_7d" value="1" {{if $data['prefs']['show_clicks_7d']}}checked{{endif}}>
 					<span>{lang="gddealer_front_customize_show_clicks_7d"}</span>
 				</label>
 				<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-					<input type="checkbox" name="show_clicks_30d" value="1" {{if $prefs['show_clicks_30d']}}checked{{endif}}>
+					<input type="checkbox" name="show_clicks_30d" value="1" {{if $data['prefs']['show_clicks_30d']}}checked{{endif}}>
 					<span>{lang="gddealer_front_customize_show_clicks_30d"}</span>
 				</label>
 				<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-					<input type="checkbox" name="show_last_import" value="1" {{if $prefs['show_last_import']}}checked{{endif}}>
+					<input type="checkbox" name="show_last_import" value="1" {{if $data['prefs']['show_last_import']}}checked{{endif}}>
 					<span>{lang="gddealer_front_customize_show_last_import"}</span>
 				</label>
 				<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-					<input type="checkbox" name="show_profile_url" value="1" {{if $prefs['show_profile_url']}}checked{{endif}}>
+					<input type="checkbox" name="show_profile_url" value="1" {{if $data['prefs']['show_profile_url']}}checked{{endif}}>
 					<span>{lang="gddealer_front_customize_show_profile_url"}</span>
 				</label>
 			</div>
@@ -1346,15 +1346,15 @@ TEMPLATE_EOT,
 			<h3 style="margin:0 0 12px;font-size:1em;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#475569">{lang="gddealer_front_customize_section_theme"}</h3>
 			<div style="display:flex;flex-direction:column;gap:10px">
 				<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-					<input type="radio" name="card_theme" value="default" {{if $prefs['card_theme'] === 'default'}}checked{{endif}}>
+					<input type="radio" name="card_theme" value="default" {{if $data['prefs']['card_theme'] === 'default'}}checked{{endif}}>
 					<span>{lang="gddealer_front_customize_theme_default"}</span>
 				</label>
 				<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-					<input type="radio" name="card_theme" value="dark" {{if $prefs['card_theme'] === 'dark'}}checked{{endif}}>
+					<input type="radio" name="card_theme" value="dark" {{if $data['prefs']['card_theme'] === 'dark'}}checked{{endif}}>
 					<span>{lang="gddealer_front_customize_theme_dark"}</span>
 				</label>
 				<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-					<input type="radio" name="card_theme" value="accent" {{if $prefs['card_theme'] === 'accent'}}checked{{endif}}>
+					<input type="radio" name="card_theme" value="accent" {{if $data['prefs']['card_theme'] === 'accent'}}checked{{endif}}>
 					<span>{lang="gddealer_front_customize_theme_accent"}</span>
 				</label>
 			</div>
@@ -1362,9 +1362,233 @@ TEMPLATE_EOT,
 
 		<div style="display:flex;gap:8px">
 			<button type="submit" class="ipsButton ipsButton--primary">{lang="gddealer_front_customize_save"}</button>
-			<a href="{$cancelUrl}" class="ipsButton ipsButton--normal">Cancel</a>
+			<a href="{$data['cancel_url']}" class="ipsButton ipsButton--normal">Cancel</a>
 		</div>
 	</form>
+</div>
+TEMPLATE_EOT,
+	],
+
+	/* ===== FRONT: feedValidator (public feed check tool) ===== */
+	[
+		'set_id'        => 1,
+		'app'           => 'gddealer',
+		'location'      => 'front',
+		'group'         => 'dealers',
+		'template_name' => 'feedValidator',
+		'template_data' => '',
+		'template_content' => <<<'TEMPLATE_EOT'
+<div class="gd-feedval">
+<style>
+.gd-feedval {
+    --gd-brand: #1E40AF;
+    --gd-brand-hover: #1E3A8A;
+    --gd-brand-light: #EFF6FF;
+    --gd-brand-border: #BFDBFE;
+    --gd-surface: #FFFFFF;
+    --gd-surface-muted: #F8FAFC;
+    --gd-border: #E5E7EB;
+    --gd-border-strong: #CBD5E1;
+    --gd-text: #0F172A;
+    --gd-text-muted: #475569;
+    --gd-text-subtle: #64748B;
+    --gd-error: #B91C1C;
+    --gd-error-bg: #FEE2E2;
+    --gd-warn: #B45309;
+    --gd-warn-bg: #FEF3C7;
+    --gd-ok: #047857;
+    --gd-ok-bg: #D1FAE5;
+    --gd-r-md: 6px;
+    --gd-r-lg: 10px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--gd-text);
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 1446px;
+    margin: 0 auto;
+    padding: 2rem 24px;
+    box-sizing: border-box;
+}
+.gd-feedval *, .gd-feedval *::before, .gd-feedval *::after { box-sizing: border-box; }
+.gd-feedval h1 { font-size: 28px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.02em; }
+.gd-feedval .lede { color: var(--gd-text-muted); margin: 0 0 24px; max-width: 720px; }
+.gd-feedval .lede a { color: var(--gd-brand); }
+
+.gd-feedval .card { background: var(--gd-surface); border: 1px solid var(--gd-border); border-radius: var(--gd-r-lg); padding: 1.5rem; margin-bottom: 1rem; }
+
+.gd-feedval .field { margin-bottom: 1rem; }
+.gd-feedval .field-label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+.gd-feedval .formats { display: flex; gap: 12px; }
+.gd-feedval .formats label { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1px solid var(--gd-border); border-radius: var(--gd-r-md); cursor: pointer; font-size: 13px; }
+.gd-feedval .formats label.active { border-color: var(--gd-brand); background: var(--gd-brand-light); color: var(--gd-brand); }
+.gd-feedval .formats input { margin: 0; }
+
+.gd-feedval textarea { width: 100%; min-height: 280px; font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 12px; padding: 12px; border: 1px solid var(--gd-border); border-radius: var(--gd-r-md); resize: vertical; box-sizing: border-box; }
+.gd-feedval textarea:focus { outline: none; border-color: var(--gd-brand); box-shadow: 0 0 0 3px rgba(30,64,175,0.1); }
+
+.gd-feedval .actions { display: flex; gap: 8px; align-items: center; }
+.gd-feedval .btn { padding: 10px 18px; border-radius: var(--gd-r-md); border: 1px solid var(--gd-border); background: var(--gd-surface); color: var(--gd-text); cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; }
+.gd-feedval .btn:hover { background: var(--gd-surface-muted); border-color: var(--gd-border-strong); }
+.gd-feedval .btn.primary { background: var(--gd-brand); color: white; border-color: var(--gd-brand); }
+.gd-feedval .btn.primary:hover { background: var(--gd-brand-hover); }
+.gd-feedval .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.gd-feedval .results { display: none; }
+.gd-feedval .results.show { display: block; }
+.gd-feedval .summary { display: flex; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-radius: var(--gd-r-md); margin-bottom: 1rem; align-items: center; }
+.gd-feedval .summary.ok { background: var(--gd-ok-bg); color: var(--gd-ok); }
+.gd-feedval .summary.bad { background: var(--gd-error-bg); color: var(--gd-error); }
+.gd-feedval .summary-stat { font-size: 13px; }
+.gd-feedval .summary-stat strong { font-weight: 600; }
+.gd-feedval .summary-icon { font-size: 18px; }
+
+.gd-feedval .issue-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 13px; }
+.gd-feedval .issue-table th { text-align: left; font-weight: 600; padding: 10px 12px; background: var(--gd-surface-muted); border-bottom: 1px solid var(--gd-border); }
+.gd-feedval .issue-table td { padding: 10px 12px; border-bottom: 1px solid var(--gd-border); vertical-align: top; }
+.gd-feedval .issue-table .row-num { font-variant-numeric: tabular-nums; color: var(--gd-text-subtle); width: 60px; }
+.gd-feedval .issue-table .field-name { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: var(--gd-text-muted); width: 140px; }
+.gd-feedval .issue-table .upc-cell { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; color: var(--gd-text-subtle); width: 130px; }
+.gd-feedval .section-head { font-weight: 600; margin: 1.5rem 0 8px; display: flex; align-items: center; gap: 8px; }
+.gd-feedval .section-head .pill { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.gd-feedval .section-head .pill.err { background: var(--gd-error-bg); color: var(--gd-error); }
+.gd-feedval .section-head .pill.warn { background: var(--gd-warn-bg); color: var(--gd-warn); }
+
+.gd-feedval .raw-toggle { font-size: 12px; color: var(--gd-text-subtle); cursor: pointer; user-select: none; margin-top: 1rem; }
+.gd-feedval pre.raw { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; background: var(--gd-surface-muted); padding: 12px; border-radius: var(--gd-r-md); overflow-x: auto; max-height: 400px; display: none; }
+.gd-feedval pre.raw.show { display: block; }
+</style>
+
+    <h1>Feed validator</h1>
+    <p class="lede">Paste a sample of your XML, JSON, or CSV feed below and we'll check it against the GunRack v1 schema. No data is saved &mdash; this is a pure dry-run check. See the <a href="/dealers/feed-schema">schema docs</a> for the full field reference.</p>
+
+    <div class="card">
+        <div class="field">
+            <label class="field-label">Format</label>
+            <div class="formats" id="gdfvFormats">
+                <label class="active"><input type="radio" name="format" value="xml" checked> XML</label>
+                <label><input type="radio" name="format" value="json"> JSON</label>
+                <label><input type="radio" name="format" value="csv"> CSV</label>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="field-label" for="gdfvBody">Feed body</label>
+            <textarea id="gdfvBody" placeholder="Paste your feed contents here..."></textarea>
+        </div>
+
+        <div class="actions">
+            <button type="button" class="btn primary" id="gdfvCheck">Validate feed</button>
+            <button type="button" class="btn" id="gdfvClear">Clear</button>
+        </div>
+    </div>
+
+    <div class="card results" id="gdfvResults">
+        <div id="gdfvSummary"></div>
+        <div id="gdfvErrors"></div>
+        <div id="gdfvWarnings"></div>
+        <div class="raw-toggle" id="gdfvRawToggle">Show raw JSON response</div>
+        <pre class="raw" id="gdfvRaw"></pre>
+    </div>
+
+<script>
+(function(){
+    var formats = document.getElementById('gdfvFormats');
+    var body    = document.getElementById('gdfvBody');
+    var check   = document.getElementById('gdfvCheck');
+    var clear   = document.getElementById('gdfvClear');
+    var results = document.getElementById('gdfvResults');
+    var sumDiv  = document.getElementById('gdfvSummary');
+    var errDiv  = document.getElementById('gdfvErrors');
+    var warnDiv = document.getElementById('gdfvWarnings');
+    var rawTog  = document.getElementById('gdfvRawToggle');
+    var rawPre  = document.getElementById('gdfvRaw');
+
+    formats.addEventListener('click', function(e){
+        var lbl = e.target.closest('label');
+        if (!lbl) return;
+        formats.querySelectorAll('label').forEach(function(l){ l.classList.remove('active'); });
+        lbl.classList.add('active');
+    });
+
+    rawTog.addEventListener('click', function(){
+        rawPre.classList.toggle('show');
+        rawTog.textContent = rawPre.classList.contains('show') ? 'Hide raw JSON response' : 'Show raw JSON response';
+    });
+
+    clear.addEventListener('click', function(){
+        body.value = '';
+        results.classList.remove('show');
+    });
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function(c){
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];
+        });
+    }
+
+    function renderIssueTable(issues, kind) {
+        if (!issues || !issues.length) return '';
+        var label = kind === 'error' ? 'Errors' : 'Warnings';
+        var pill  = kind === 'error' ? 'err' : 'warn';
+        var html  = '<div class="section-head">' + label + ' <span class="pill ' + pill + '">' + issues.length + '</span></div>';
+        html += '<table class="issue-table"><thead><tr><th>Row</th><th>UPC</th><th>Field</th><th>Message</th></tr></thead><tbody>';
+        issues.forEach(function(i){
+            html += '<tr><td class="row-num">' + escapeHtml(i.row) + '</td>';
+            html += '<td class="upc-cell">' + escapeHtml(i.upc || '-') + '</td>';
+            html += '<td class="field-name">' + escapeHtml(i.field) + '</td>';
+            html += '<td>' + escapeHtml(i.message) + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        return html;
+    }
+
+    check.addEventListener('click', function(){
+        var fmt = formats.querySelector('input[name="format"]:checked').value;
+        var b   = body.value;
+        if (!b.trim()) { alert('Paste a feed body first.'); return; }
+
+        check.disabled = true;
+        check.textContent = 'Validating...';
+
+        var fd = new FormData();
+        fd.append('format', fmt);
+        fd.append('body', b);
+
+        fetch('/dealers/feed-validator?do=check', { method: 'POST', body: fd, credentials: 'same-origin' })
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                results.classList.add('show');
+                var s = data.summary || {};
+                var sumClass = data.valid ? 'ok' : 'bad';
+                var sumIcon  = data.valid ? '&check;' : '&cross;';
+                var sumLabel = data.valid ? 'Feed is valid' : 'Feed has errors';
+                sumDiv.innerHTML = '<div class="summary ' + sumClass + '">' +
+                    '<span class="summary-icon">' + sumIcon + '</span>' +
+                    '<span class="summary-stat"><strong>' + sumLabel + '</strong></span>' +
+                    '<span class="summary-stat">&middot; <strong>' + (s.total_records || 0) + '</strong> total</span>' +
+                    '<span class="summary-stat">&middot; <strong>' + (s.valid_records || 0) + '</strong> valid</span>' +
+                    '<span class="summary-stat">&middot; <strong>' + (s.error_records || 0) + '</strong> with errors</span>' +
+                    '<span class="summary-stat">&middot; <strong>' + (s.warning_records || 0) + '</strong> with warnings</span>' +
+                    '</div>';
+                errDiv.innerHTML  = renderIssueTable(data.errors, 'error');
+                warnDiv.innerHTML = renderIssueTable(data.warnings, 'warning');
+                rawPre.textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(function(err){
+                results.classList.add('show');
+                sumDiv.innerHTML = '<div class="summary bad"><span class="summary-icon">&cross;</span><span class="summary-stat"><strong>Network error:</strong> ' + escapeHtml(err.message) + '</span></div>';
+                errDiv.innerHTML = '';
+                warnDiv.innerHTML = '';
+                rawPre.textContent = '';
+            })
+            .finally(function(){
+                check.disabled = false;
+                check.textContent = 'Validate feed';
+            });
+    });
+})();
+</script>
+
 </div>
 TEMPLATE_EOT,
 	],
@@ -4566,6 +4790,61 @@ TEMPLATE_EOT,
 </style>
 TEMPLATE_EOT,
 ] );
+
+/* v1.0.198 — Seed full dashboardCustomize profile editor (replaces basic prefs
+   form inserted via the $gddealerTemplates array above). */
+require_once __DIR__ . '/templates_10088.php';
+require_once __DIR__ . '/templates_10113.php';
+
+/* v1.0.198 — Seed wizard step templates (setupWizardStep1-5).
+   Insert skeleton rows first so that update()-only template files
+   have a row to write into, then run the full chain. */
+$_wizSkeletons = [
+	[ 'setupWizardStep1', '$wizardData,$values,$errors=array()' ],
+	[ 'setupWizardStep2', '$wizardData,$values' ],
+	[ 'setupWizardStep3', '$wizardData,$values' ],
+	[ 'setupWizardStep4', '$wizardData,$values' ],
+	[ 'setupWizardStep5', '$wizardData,$values' ],
+];
+foreach ( $_wizSkeletons as [ $_n, $_s ] )
+{
+	try
+	{
+		\IPS\Db::i()->replace( 'core_theme_templates', [
+			'template_set_id'  => 1,
+			'template_app'     => 'gddealer',
+			'template_location'=> 'front',
+			'template_group'   => 'dealers',
+			'template_name'    => $_n,
+			'template_data'    => $_s,
+			'template_content' => '',
+			'template_updated' => time(),
+		] );
+	}
+	catch ( \Throwable ) {}
+}
+
+require_once __DIR__ . '/templates_10149_part1.php';
+require_once __DIR__ . '/templates_10149_part2.php';
+require_once __DIR__ . '/templates_10152_part1.php';
+require_once __DIR__ . '/templates_10161_part1.php';
+require_once __DIR__ . '/templates_10162_part1.php';
+require_once __DIR__ . '/templates_10163_part1.php';
+require_once __DIR__ . '/templates_10164_part1.php';
+require_once __DIR__ . '/templates_10165_part1.php';
+
+require_once __DIR__ . '/templates_10152_part2.php';
+require_once __DIR__ . '/templates_10152_part3.php';
+
+require_once __DIR__ . '/templates_10155_part1.php';
+require_once __DIR__ . '/templates_10155_part2.php';
+
+require_once __DIR__ . '/templates_10156_part1.php';
+require_once __DIR__ . '/templates_10156_part2.php';
+
+require_once __DIR__ . '/templates_10158_part1.php';
+require_once __DIR__ . '/templates_10158_part2.php';
+require_once __DIR__ . '/templates_10160_part1.php';
 
 /* Force furl + applications + extensions + email-template cache rebuild
    so new routes, templates, and extension classes appear without a manual

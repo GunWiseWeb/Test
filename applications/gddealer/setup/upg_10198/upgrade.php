@@ -1,6 +1,7 @@
 <?php
 /**
- * v1.0.198: Add wizard, validator, profile icons to dealerNavIcon template.
+ * v1.0.198: Fix dashboardCustomize signature, reseed dealerNavIcon,
+ *           defensively reseed feedValidator and wizard step templates.
  */
 
 namespace IPS\gddealer\setup\upg_10198;
@@ -17,7 +18,8 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		$body = <<<'TEMPLATE_EOT'
+		/* --- 1. dealerNavIcon template reseed --- */
+		$navIconBody = <<<'TEMPLATE_EOT'
 {{if $icon === 'dashboard'}}
 <svg class="gdNavItem__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
 {{elseif $icon === 'listings'}}
@@ -50,7 +52,7 @@ TEMPLATE_EOT;
 			\IPS\Db::i()->update( 'core_theme_templates',
 				[
 					'template_data'    => '$icon',
-					'template_content' => $body,
+					'template_content' => $navIconBody,
 					'template_updated' => time(),
 					'template_version' => '1.0.198',
 				],
@@ -60,6 +62,111 @@ TEMPLATE_EOT;
 		}
 		catch ( \Throwable ) {}
 
+		/* --- 2. Fix dashboardCustomize template_data signature --- */
+		try
+		{
+			\IPS\Db::i()->update( 'core_theme_templates',
+				[
+					'template_data'    => '$data',
+					'template_updated' => time(),
+					'template_version' => '1.0.198',
+				],
+				[ 'template_app=? AND template_location=? AND template_group=? AND template_name=?',
+				  'gddealer', 'front', 'dealers', 'dashboardCustomize' ]
+			);
+		}
+		catch ( \Throwable ) {}
+
+		/* Reseed full profile editor body via the authoritative chain */
+		require_once __DIR__ . '/../templates_10088.php';
+		require_once __DIR__ . '/../templates_10113.php';
+
+		/* --- 3. Defensive reseed: feedValidator --- */
+		try
+		{
+			$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_theme_templates',
+				[ 'template_app=? AND template_location=? AND template_group=? AND template_name=?',
+				  'gddealer', 'front', 'dealers', 'feedValidator' ] )->first();
+		}
+		catch ( \Throwable ) { $exists = 1; }
+
+		if ( $exists === 0 )
+		{
+			require_once __DIR__ . '/../templates_10139.php';
+		}
+
+		/* --- 4. Defensive reseed: wizard step templates --- */
+		$_wizTemplates = [
+			[ 'setupWizardStep1', '$wizardData,$values,$errors=array()' ],
+			[ 'setupWizardStep2', '$wizardData,$values' ],
+			[ 'setupWizardStep3', '$wizardData,$values' ],
+			[ 'setupWizardStep4', '$wizardData,$values' ],
+			[ 'setupWizardStep5', '$wizardData,$values' ],
+		];
+		foreach ( $_wizTemplates as [ $_n, $_s ] )
+		{
+			try
+			{
+				$wExists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_theme_templates',
+					[ 'template_app=? AND template_location=? AND template_group=? AND template_name=?',
+					  'gddealer', 'front', 'dealers', $_n ] )->first();
+			}
+			catch ( \Throwable ) { $wExists = 1; }
+
+			if ( $wExists === 0 )
+			{
+				try
+				{
+					\IPS\Db::i()->replace( 'core_theme_templates', [
+						'template_set_id'  => 1,
+						'template_app'     => 'gddealer',
+						'template_location'=> 'front',
+						'template_group'   => 'dealers',
+						'template_name'    => $_n,
+						'template_data'    => $_s,
+						'template_content' => '',
+						'template_updated' => time(),
+					] );
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+
+		/* Only require the wizard chain files if any skeleton was just inserted */
+		try
+		{
+			$wizCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_theme_templates',
+				[ "template_app=? AND template_location=? AND template_group=? AND template_name LIKE 'setupWizardStep%' AND template_content=''",
+				  'gddealer', 'front', 'dealers' ] )->first();
+		}
+		catch ( \Throwable ) { $wizCount = 0; }
+
+		if ( $wizCount > 0 )
+		{
+			require_once __DIR__ . '/../templates_10149_part1.php';
+			require_once __DIR__ . '/../templates_10149_part2.php';
+			require_once __DIR__ . '/../templates_10152_part1.php';
+			require_once __DIR__ . '/../templates_10161_part1.php';
+			require_once __DIR__ . '/../templates_10162_part1.php';
+			require_once __DIR__ . '/../templates_10163_part1.php';
+			require_once __DIR__ . '/../templates_10164_part1.php';
+			require_once __DIR__ . '/../templates_10165_part1.php';
+
+			require_once __DIR__ . '/../templates_10152_part2.php';
+			require_once __DIR__ . '/../templates_10152_part3.php';
+
+			require_once __DIR__ . '/../templates_10155_part1.php';
+			require_once __DIR__ . '/../templates_10155_part2.php';
+
+			require_once __DIR__ . '/../templates_10156_part1.php';
+			require_once __DIR__ . '/../templates_10156_part2.php';
+
+			require_once __DIR__ . '/../templates_10158_part1.php';
+			require_once __DIR__ . '/../templates_10158_part2.php';
+			require_once __DIR__ . '/../templates_10160_part1.php';
+		}
+
+		/* --- Cache bust --- */
 		try { unset( \IPS\Data\Store::i()->themes ); }       catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); }            catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); }            catch ( \Throwable ) {}
