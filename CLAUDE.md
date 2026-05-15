@@ -374,6 +374,64 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
 
     For genuine post-install verification, the better pattern is: after running the install in ACP, manually run `SELECT app_long_version FROM core_applications WHERE app_directory='X'` to confirm the version stuck.
 
+52. **Every plugin change must work on BOTH fresh install AND upgrade — verify in pairs** — Fresh installs run `setup/install.php` + `data/schema.json` + `data/lang.xml` + `data/extensions.json` + `data/emails.xml`. They do NOT run any `setup/upg_XXXXX/upgrade.php` script. Upgrades run ONLY `setup/upg_XXXXX/upgrade.php` scripts whose version integer is greater than the currently-installed version. They do NOT re-run `setup/install.php`. This means every change that touches user-visible state MUST land in BOTH paths or one of the two install paths will be broken. The parallel pairs:
+
+    | Change type | Fresh install path | Upgrade path |
+    |---|---|---|
+    | New DB table | `data/schema.json` | `setup/upg_XXXXX/queries.json` (CREATE) |
+    | New column on existing table | `data/schema.json` | `setup/upg_XXXXX/queries.json` (addColumn) |
+    | New template | `setup/install.php` `$gddealerTemplates` array | `setup/upg_XXXXX/upgrade.php` `\IPS\Db::i()->replace('core_theme_templates', [...])` |
+    | Modified template body | `setup/install.php` (rewrite body) | `setup/upg_XXXXX/upgrade.php` replace with same body |
+    | New lang string | `data/lang.xml` | `setup/upg_XXXXX/upgrade.php` insert into `core_sys_lang_words` for every `lang_id` |
+    | New email template | `data/emails.xml` | `setup/upg_XXXXX/upgrade.php` calls `installEmailTemplates()` or inserts directly |
+    | New extension | `data/extensions.json` + file under `extensions/` | `setup/upg_XXXXX/upgrade.php` clears extension cache; file ships in tarball |
+    | New notification default | `setup/install.php` insert into `core_notification_defaults` | `setup/upg_XXXXX/upgrade.php` same insert |
+    | New controller method | Source file under `modules/` ships in tarball | Same — controller code lives in source, no upgrade.php splicing |
+    | New controller URL/route | `data/modules.json` and/or `data/furl.json` | Source files ship in tarball |
+    | Template body that depends on a new `$data` key | Update controller method to add the key in source | Same — source code |
+
+    Rules for keeping the two paths in sync:
+
+    - The template body in `install.php` and the body in `upg_XXXXX/upgrade.php` must be **byte-for-byte identical** at the time the upgrade ships. Use a nowdoc heredoc (rule #28) and copy-paste; do not regex-extract from one to the other.
+    - If only one of the pair is updated, the change is incomplete. A fresh install on a different server will be missing whatever wasn't in install.php. A prod upgrade will be missing whatever wasn't in upgrade.php.
+    - Never use `upgrade.php` to write to a `.php` source file (controller, trait, model). Source files ship in the tarball; that IS the fresh-install AND upgrade path for code. Splicing into source via upgrade.php means every subsequent tarball re-overwrites the splice from git, which is what caused v195's "Categories sidebar keeps disappearing" disaster.
+
+    Verification before declaring done — for every version that adds user-visible state, both paths must be greppable in the tarball:
+
+    ```bash
+    # For a new template named 'foo':
+    tar -xOf <app>-v<ver>.tar setup/install.php | grep -c "'foo'"
+    # expect: >= 1
+
+    tar -xOf <app>-v<ver>.tar setup/upg_XXXXX/upgrade.php | grep -c "'foo'"
+    # expect: >= 1 (if existing installs need it re-seeded)
+
+    # For a new lang key 'bar':
+    tar -xOf <app>-v<ver>.tar data/lang.xml | grep -c "bar"
+    # expect: >= 1
+
+    tar -xOf <app>-v<ver>.tar setup/upg_XXXXX/upgrade.php | grep -c "bar"
+    # expect: >= 1 (insert into core_sys_lang_words for every lang_id)
+
+    # For a new column on existing table:
+    tar -xOf <app>-v<ver>.tar data/schema.json | grep -c "new_column"
+    # expect: >= 1
+
+    tar -xOf <app>-v<ver>.tar setup/upg_XXXXX/queries.json | grep -c "new_column"
+    # expect: >= 1
+    ```
+
+    If only one side of the pair greps to 1, the build is not done.
+
+    Test plan that catches install/upgrade drift before shipping:
+
+    1. Take a clean IPS install at the current production version.
+    2. Install the new tarball. Verify the new feature works. (Tests upgrade path.)
+    3. Take a fresh clean IPS install with no prior version of the app.
+    4. Install the new tarball. Verify the new feature works. (Tests install path.)
+
+    Both must pass before tagging.
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38
