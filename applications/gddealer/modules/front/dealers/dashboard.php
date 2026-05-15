@@ -2786,7 +2786,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 	protected function reportUnmatched(): void
 	{
 		\IPS\Session::i()->csrfCheck();
-		$dealer = $this->currentDealer();
+		$dealer = $this->dealer;
 		$upcId  = (int) \IPS\Request::i()->upc_id;
 
 		if ( !$dealer or !$upcId )
@@ -2819,7 +2819,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 
 	protected function viewSnapshot(): void
 	{
-		$dealer = $this->currentDealer();
+		$dealer = $this->dealer;
 		$upcId  = (int) \IPS\Request::i()->upc_id;
 
 		$row = NULL;
@@ -2866,7 +2866,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 
 	protected function resetDealer(): bool
 	{
-		$dealer = $this->currentDealer();
+		$dealer = $this->dealer;
 		if ( !$dealer )
 		{
 			return FALSE;
@@ -2937,7 +2937,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 	{
 		\IPS\Session::i()->csrfCheck();
 
-		$dealer = $this->currentDealer();
+		$dealer = $this->dealer;
 		$typed  = trim( (string) \IPS\Request::i()->confirm_name );
 		$expected = $dealer ? (string) $dealer->dealer_name : '';
 
