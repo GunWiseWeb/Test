@@ -2136,7 +2136,7 @@ TEMPLATE_EOT,
 				<th>{lang="gddealer_unmatched_first_seen"}</th>
 				<th>{lang="gddealer_unmatched_last_seen"}</th>
 				<th>{lang="gddealer_unmatched_count"}</th>
-				<th>Actions</th>
+				<th style="text-align:right">Actions</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -2146,7 +2146,7 @@ TEMPLATE_EOT,
 				<td data-label="First Seen">{$r['first_seen']}</td>
 				<td data-label="Last Seen">{$r['last_seen']}</td>
 				<td data-label="Count">{$r['occurrence_count']}</td>
-				<td data-label="" style="white-space:nowrap">
+				<td data-label="Actions" style="white-space:nowrap;text-align:right">
 					{{if $r['has_snapshot']}}
 					<a href="{$r['snapshot_url']}" class="ipsButton ipsButton--small ipsButton--light" style="margin-right:4px">View Snapshot</a>
 					{{endif}}
