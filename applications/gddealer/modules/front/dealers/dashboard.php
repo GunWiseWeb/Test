@@ -1236,6 +1236,69 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		]);
 	}
 
+	/* ---------------- Tab: Categories (v1.0.188) ---------------- */
+
+	protected function categories(): void
+	{
+		$dealer   = $this->dealer;
+		$dealerId = (int) $dealer->dealer_id;
+
+		$mappings = \IPS\gddealer\Feed\CategoryMap::allForDealer( $dealerId );
+
+		$byCanonical = [];
+		foreach ( $mappings as $m )
+		{
+			$c = $m['canonical'];
+			if ( !isset( $byCanonical[ $c ] ) )
+			{
+				$byCanonical[ $c ] = [ 'count' => 0, 'rows' => 0 ];
+			}
+			$byCanonical[ $c ]['count'] += $m['occurrence_count'];
+			$byCanonical[ $c ]['rows']++;
+		}
+
+		$valid      = \IPS\gddealer\Feed\CategoryNormalizer::VALID;
+		$unreviewed = \IPS\gddealer\Feed\CategoryMap::unreviewedCount( $dealerId );
+		$saveUrl    = (string) \IPS\Http\Url::internal(
+			'app=gddealer&module=dealers&controller=dashboard&do=saveCategoryMap'
+		)->csrf();
+
+		$data = [
+			'dealer'        => $this->dealerSummary(),
+			'tab_urls'      => $this->tabUrls(),
+			'mappings'      => $mappings,
+			'by_canonical'  => $byCanonical,
+			'valid_options' => $valid,
+			'unreviewed'    => $unreviewed,
+			'save_url'      => $saveUrl,
+			'csrf_key'      => (string) \IPS\Session::i()->csrfKey,
+		];
+
+		$this->output( 'categories', \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->dashboardCategories( $data ) );
+	}
+
+	protected function saveCategoryMap(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$dealerId = (int) $this->dealer->dealer_id;
+		$raw = \IPS\Request::i()->canonical ?? [];
+		if ( !is_array( $raw ) ) { $raw = []; }
+
+		$updates = [];
+		foreach ( $raw as $id => $canonical )
+		{
+			$updates[ (int) $id ] = (string) $canonical;
+		}
+
+		$applied = \IPS\gddealer\Feed\CategoryMap::applyDealerEdits( $dealerId, $updates );
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=categories' ),
+			\IPS\Member::loggedIn()->language()->addToStack( 'gddealer_categories_saved', false, [ 'sprintf' => [ $applied ] ] )
+		);
+	}
+
 	/* ---------------- Tab: Analytics (Pro / Enterprise) ---------------- */
 
 	protected function analytics(): void

@@ -239,6 +239,7 @@ HTML;
 			'setupWizard'   => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=setupwizard', 'front', 'dealers_setup_wizard' ),
 			'listings'      => (string) \IPS\Http\Url::internal( $base . 'listings' ),
 			'unmatched'     => (string) \IPS\Http\Url::internal( $base . 'unmatched' ),
+			'categories'    => (string) \IPS\Http\Url::internal( $base . 'categories' ),
 			'analytics'     => (string) \IPS\Http\Url::internal( $base . 'analytics' ),
 			'reviews'       => (string) \IPS\Http\Url::internal( $base . 'reviews' ),
 			'subscription'  => (string) \IPS\Http\Url::internal( $base . 'subscription' ),

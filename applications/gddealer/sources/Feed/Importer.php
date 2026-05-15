@@ -87,6 +87,20 @@ class Importer
 
 				$upc = (string) $canonical['upc'];
 
+				/* v188-category-map: classify category via dealer's mapping (lazy-populates
+				 * gd_dealer_category_map on miss with auto-classified value). */
+				$rawCategory = isset( $canonical['category'] ) ? (string) $canonical['category'] : '';
+				if ( $rawCategory !== '' )
+				{
+					$resolvedCategory = \IPS\gddealer\Feed\CategoryMap::lookup( (int) $dealer->dealer_id, $rawCategory );
+					if ( $resolvedCategory === 'skip' )
+					{
+						$stats['records_skipped']++;
+						continue;
+					}
+					$canonical['category'] = $resolvedCategory;
+				}
+
 				if ( !self::upcExistsInCatalog( $upc ) )
 				{
 					/* v1.0.180: Capture the dealer's parsed product data at
@@ -463,6 +477,7 @@ class Importer
 		$listing->in_stock           = !empty( $canonical['in_stock'] ) ? 1 : 0;
 		$listing->stock_qty          = $canonical['stock_qty'] ?? null;
 		$listing->condition          = $canonical['condition'] ?? 'new';
+		$listing->category           = $canonical['category'] ?? null;
 		$listing->listing_url        = $canonical['listing_url'] ?? null;
 		$listing->subscription_tier  = (string) $dealer->subscription_tier;
 		$listing->listing_status     = $listing->in_stock ? Listing::STATUS_ACTIVE : Listing::STATUS_OUT_OF_STOCK;
@@ -495,6 +510,7 @@ class Importer
 		$listing->shipping_cost     = $canonical['shipping_cost'] ?? null;
 		$listing->free_shipping     = !empty( $canonical['free_shipping'] ) ? 1 : 0;
 		$listing->condition         = $canonical['condition'] ?? $listing->condition;
+		$listing->category          = $canonical['category'] ?? $listing->category;
 		$listing->listing_url       = $canonical['listing_url'] ?? $listing->listing_url;
 		$listing->subscription_tier = (string) $listing->subscription_tier;
 		$listing->last_seen_in_feed = $runStart;
