@@ -1,8 +1,6 @@
 <?php
 namespace IPS\gddealer\setup\upg_10202;
-
 use function defined;
-
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
 	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
@@ -13,12 +11,8 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		$templates = [
-			[
-				'name'     => 'supportTickets',
-				'location' => 'admin',
-				'data'     => '$rows, $status_filter, $priority_filter, $department_filter, $counts, $status_options, $priority_options, $department_options, $departments',
-				'content'  => <<<'TEMPLATE_EOT'
+		$seeds = [
+			[ 'name' => 'supportTickets', 'location' => 'admin', 'data' => '$rows, $status_filter, $priority_filter, $department_filter, $counts, $status_options, $priority_options, $department_options, $departments', 'content' => <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 <div class="ipsBox_body ipsPad">
 <h2 style="margin:0 0 16px;font-size:1.4em;font-weight:700">Support Tickets</h2>
@@ -100,13 +94,8 @@ class _upgrade
 {{endif}}
 </div>
 </div>
-TEMPLATE_EOT,
-			],
-			[
-				'name'     => 'supportTicketView',
-				'location' => 'admin',
-				'data'     => '$ticket, $ticket_body, $ticket_attachments, $replies, $reply_editor_html, $reply_url, $update_status_url, $update_priority_url, $assign_url, $delete_url, $back_url, $events, $note_editor_html, $add_note_url, $stock_replies, $stock_actions',
-				'content'  => <<<'TEMPLATE_EOT'
+TEMPLATE_EOT ],
+			[ 'name' => 'supportTicketView', 'location' => 'admin', 'data' => '$ticket, $ticket_body, $ticket_attachments, $replies, $reply_editor_html, $reply_url, $update_status_url, $update_priority_url, $assign_url, $delete_url, $back_url, $events, $note_editor_html, $add_note_url, $stock_replies, $stock_actions', 'content' => <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 <div class="ipsBox_body ipsPad">
 <div style="margin-bottom:16px"><a href="{$back_url}" style="color:#2563eb;text-decoration:none;font-size:0.9em">&larr; Back to tickets</a></div>
@@ -269,13 +258,8 @@ TEMPLATE_EOT,
 {{endif}}
 </div>
 </div>
-TEMPLATE_EOT,
-			],
-			[
-				'name'     => 'supportList',
-				'location' => 'front',
-				'data'     => '$tickets, $subNav',
-				'content'  => <<<'TEMPLATE_EOT'
+TEMPLATE_EOT ],
+			[ 'name' => 'supportList', 'location' => 'front', 'data' => '$tickets, $subNav', 'content' => <<<'TEMPLATE_EOT'
 <div>
 <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;padding-bottom:14px;border-bottom:0.5px solid #e5e7eb;flex-wrap:wrap">
 	<div class="gdSubNav" style="display:flex;gap:4px;flex-wrap:wrap">
@@ -338,13 +322,8 @@ TEMPLATE_EOT,
 </div>
 {{endif}}
 </div>
-TEMPLATE_EOT,
-			],
-			[
-				'name'     => 'supportNew',
-				'location' => 'front',
-				'data'     => '$departments, $canSetUrgent, $bodyEditorHtml, $csrfKey, $submitUrl, $cancelUrl',
-				'content'  => <<<'TEMPLATE_EOT'
+TEMPLATE_EOT ],
+			[ 'name' => 'supportNew', 'location' => 'front', 'data' => '$departments, $canSetUrgent, $bodyEditorHtml, $csrfKey, $submitUrl, $cancelUrl', 'content' => <<<'TEMPLATE_EOT'
 <div>
 <div style="margin-bottom:14px">
 	<a href="{$cancelUrl}" style="font-size:13px;color:#64748b;text-decoration:none">&larr; All tickets</a>
@@ -391,13 +370,8 @@ TEMPLATE_EOT,
 	</form>
 </div>
 </div>
-TEMPLATE_EOT,
-			],
-			[
-				'name'     => 'supportView',
-				'location' => 'front',
-				'data'     => '$ticket, $ticketBody, $ticketAttachments, $replies, $replyEditorHtml, $csrfKey, $replyUrl, $closeUrl, $backUrl, $canReply, $canClose, $events, $newTicketUrl',
-				'content'  => <<<'TEMPLATE_EOT'
+TEMPLATE_EOT ],
+			[ 'name' => 'supportView', 'location' => 'front', 'data' => '$ticket, $ticketBody, $ticketAttachments, $replies, $replyEditorHtml, $csrfKey, $replyUrl, $closeUrl, $backUrl, $canReply, $canClose, $events, $newTicketUrl', 'content' => <<<'TEMPLATE_EOT'
 <div>
 <div style="margin-bottom:14px">
 	<a href="{$backUrl}" style="font-size:13px;color:#64748b;text-decoration:none">&larr; All tickets</a>
@@ -488,13 +462,8 @@ TEMPLATE_EOT,
 </div>
 {{endif}}
 </div>
-TEMPLATE_EOT,
-			],
-			[
-				'name'     => 'supportDepartments',
-				'location' => 'admin',
-				'data'     => '$departments, $addUrl',
-				'content'  => <<<'TEMPLATE_EOT'
+TEMPLATE_EOT ],
+			[ 'name' => 'supportDepartments', 'location' => 'admin', 'data' => '$departments, $addUrl', 'content' => <<<'TEMPLATE_EOT'
 <div class="ipsPad">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
 	<h1 class="ipsType_pageTitle" style="margin:0">Support Departments</h1>
@@ -550,13 +519,8 @@ TEMPLATE_EOT,
 </div>
 {{endif}}
 </div>
-TEMPLATE_EOT,
-			],
-			[
-				'name'     => 'supportDepartmentForm',
-				'location' => 'admin',
-				'data'     => '$formData, $isEdit, $submitUrl, $backUrl, $csrfKey',
-				'content'  => <<<'TEMPLATE_EOT'
+TEMPLATE_EOT ],
+			[ 'name' => 'supportDepartmentForm', 'location' => 'admin', 'data' => '$formData, $isEdit, $submitUrl, $backUrl, $csrfKey', 'content' => <<<'TEMPLATE_EOT'
 <div class="ipsPad">
 <div style="margin-bottom:16px">
 	<a href="{$backUrl}" style="font-size:13px;color:#6b7280;text-decoration:none">&larr; Back to departments</a>
@@ -603,13 +567,8 @@ TEMPLATE_EOT,
 	</div>
 </form>
 </div>
-TEMPLATE_EOT,
-			],
-			[
-				'name'     => 'supportStockReplies',
-				'location' => 'admin',
-				'data'     => '$rows, $addUrl',
-				'content'  => <<<'TEMPLATE_EOT'
+TEMPLATE_EOT ],
+			[ 'name' => 'supportStockReplies', 'location' => 'admin', 'data' => '$rows, $addUrl', 'content' => <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 <div class="ipsBox_body ipsPad">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
@@ -660,13 +619,8 @@ TEMPLATE_EOT,
 {{endif}}
 </div>
 </div>
-TEMPLATE_EOT,
-			],
-			[
-				'name'     => 'supportStockReplyForm',
-				'location' => 'admin',
-				'data'     => '$formData, $isEdit, $editorHtml, $departments, $submitUrl, $backUrl, $csrfKey',
-				'content'  => <<<'TEMPLATE_EOT'
+TEMPLATE_EOT ],
+			[ 'name' => 'supportStockReplyForm', 'location' => 'admin', 'data' => '$formData, $isEdit, $editorHtml, $departments, $submitUrl, $backUrl, $csrfKey', 'content' => <<<'TEMPLATE_EOT'
 <div class="ipsPad">
 <div style="margin-bottom:16px">
 	<a href="{$backUrl}" style="font-size:13px;color:#6b7280;text-decoration:none">&larr; Back to stock replies</a>
@@ -709,13 +663,8 @@ TEMPLATE_EOT,
 	</div>
 </form>
 </div>
-TEMPLATE_EOT,
-			],
-			[
-				'name'     => 'supportStockActions',
-				'location' => 'admin',
-				'data'     => '$rows, $addUrl',
-				'content'  => <<<'TEMPLATE_EOT'
+TEMPLATE_EOT ],
+			[ 'name' => 'supportStockActions', 'location' => 'admin', 'data' => '$rows, $addUrl', 'content' => <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 <div class="ipsBox_body ipsPad">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
@@ -768,13 +717,8 @@ TEMPLATE_EOT,
 {{endif}}
 </div>
 </div>
-TEMPLATE_EOT,
-			],
-			[
-				'name'     => 'supportStockActionForm',
-				'location' => 'admin',
-				'data'     => '$formData, $isEdit, $editorHtml, $departments, $adminMembers, $submitUrl, $backUrl, $csrfKey',
-				'content'  => <<<'TEMPLATE_EOT'
+TEMPLATE_EOT ],
+			[ 'name' => 'supportStockActionForm', 'location' => 'admin', 'data' => '$formData, $isEdit, $editorHtml, $departments, $adminMembers, $submitUrl, $backUrl, $csrfKey', 'content' => <<<'TEMPLATE_EOT'
 <div class="ipsPad">
 <div style="margin-bottom:16px">
 	<a href="{$backUrl}" style="font-size:13px;color:#6b7280;text-decoration:none">&larr; Back to stock actions</a>
@@ -844,11 +788,221 @@ TEMPLATE_EOT,
 	</div>
 </form>
 </div>
-TEMPLATE_EOT,
-			],
+TEMPLATE_EOT ],
+			[ 'name' => 'fflVerifications', 'location' => 'admin', 'data' => '$data', 'content' => <<<'TEMPLATE_EOT'
+<style>
+.gddealerFflQueue { padding: 0 4px; }
+.gddealerFflQueue__tabs { display: flex; gap: 4px; border-bottom: 1px solid #e5e7eb; margin-bottom: 16px; }
+.gddealerFflQueue__tab { padding: 10px 14px; font-size: 14px; font-weight: 500; color: #475569; text-decoration: none; border-bottom: 2px solid transparent; }
+.gddealerFflQueue__tab.is-active { color: #1e40af; border-bottom-color: #1e40af; }
+.gddealerFflQueue__tab .count { display: inline-block; background: #e5e7eb; color: #475569; font-size: 11px; padding: 1px 7px; border-radius: 999px; margin-left: 6px; font-weight: 600; }
+.gddealerFflQueue__tab.is-active .count { background: #dbeafe; color: #1e40af; }
+.gddealerFflTable { width: 100%; border-collapse: collapse; }
+.gddealerFflTable th { text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; padding: 10px 12px; border-bottom: 2px solid #e5e7eb; }
+.gddealerFflTable td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; font-size: 14px; }
+.gddealerFflTable__ffl { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; color: #0f172a; }
+.gddealerFflTable__actions { display: flex; gap: 6px; justify-content: flex-end; }
+.gddealerFflTable__btn { padding: 6px 12px; font-size: 13px; font-weight: 500; border-radius: 5px; text-decoration: none; border: 1px solid; cursor: pointer; }
+.gddealerFflTable__btn--view { background: #f8fafc; border-color: #e5e7eb; color: #334155; }
+.gddealerFflTable__btn--verify { background: #10b981; border-color: #059669; color: #fff; }
+.gddealerFflTable__btn--reject { background: #fff; border-color: #ef4444; color: #ef4444; }
+.gddealerFflTable__status { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.gddealerFflTable__status--pending { background: #fef3c7; color: #92400e; }
+.gddealerFflTable__status--verified { background: #d1fae5; color: #065f46; }
+.gddealerFflTable__status--rejected { background: #fee2e2; color: #991b1b; }
+.gddealerFflTable__empty { padding: 40px; text-align: center; color: #94a3b8; font-size: 14px; }
+.gddealerFflTable__rejectionReason { font-size: 12px; color: #991b1b; font-style: italic; margin-top: 4px; }
+</style>
+
+<div class="gddealerFflQueue">
+	<div class="gddealerFflQueue__tabs">
+		<a href="{$data['filter_urls']['pending']}"  class="gddealerFflQueue__tab {expression="$data['filter'] === 'pending'  ? 'is-active' : ''"}">{lang="gddealer_acp_ffl_filter_pending"}<span class="count">{$data['counts']['pending']}</span></a>
+		<a href="{$data['filter_urls']['verified']}" class="gddealerFflQueue__tab {expression="$data['filter'] === 'verified' ? 'is-active' : ''"}">{lang="gddealer_acp_ffl_filter_verified"}<span class="count">{$data['counts']['verified']}</span></a>
+		<a href="{$data['filter_urls']['rejected']}" class="gddealerFflQueue__tab {expression="$data['filter'] === 'rejected' ? 'is-active' : ''"}">{lang="gddealer_acp_ffl_filter_rejected"}<span class="count">{$data['counts']['rejected']}</span></a>
+		<a href="{$data['filter_urls']['all']}"      class="gddealerFflQueue__tab {expression="$data['filter'] === 'all'      ? 'is-active' : ''"}">{lang="gddealer_acp_ffl_filter_all"}<span class="count">{$data['counts']['all']}</span></a>
+	</div>
+
+	{{if empty( $data['rows'] )}}
+	<div class="gddealerFflTable__empty">{lang="gddealer_acp_ffl_empty_pending"}</div>
+	{{else}}
+	<table class="gddealerFflTable">
+		<thead>
+			<tr>
+				<th>Dealer</th>
+				<th>FFL #</th>
+				<th>Submitted</th>
+				<th>License</th>
+				<th>Status</th>
+				<th style="text-align:right;">Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			{{foreach $data['rows'] as $r}}
+			<tr>
+				<td>
+					<div style="font-weight:600;color:#0f172a;">{$r['dealer_name']}</div>
+					<div style="font-size:12px;color:#64748b;">ID {$r['dealer_id']} · {$r['dealer_slug']}</div>
+					{{if $r['status'] === 'rejected' && $r['ffl_rejection_reason']}}
+					<div class="gddealerFflTable__rejectionReason">Last rejection: {$r['ffl_rejection_reason']} (attempt {$r['ffl_rejection_count']} of 3)</div>
+					{{endif}}
+				</td>
+				<td class="gddealerFflTable__ffl">{$r['ffl_number']}</td>
+				<td>{$r['ffl_submitted_label']}</td>
+				<td>
+					{{if $r['ffl_license_url']}}
+					<a href="{$r['ffl_license_url']}" target="_blank" rel="nofollow noopener" class="gddealerFflTable__btn gddealerFflTable__btn--view">View PDF</a>
+					{{else}}
+					<span style="color:#94a3b8;font-size:12px;">No URL</span>
+					{{endif}}
+				</td>
+				<td>
+					{{if $r['status'] === 'pending'}}
+					<span class="gddealerFflTable__status gddealerFflTable__status--pending">Pending</span>
+					{{elseif $r['status'] === 'verified'}}
+					<span class="gddealerFflTable__status gddealerFflTable__status--verified">Verified {$r['ffl_verified_label']}</span>
+					{{elseif $r['status'] === 'rejected'}}
+					<span class="gddealerFflTable__status gddealerFflTable__status--rejected">Rejected</span>
+					{{endif}}
+				</td>
+				<td>
+					<div class="gddealerFflTable__actions">
+						{{if $r['status'] !== 'verified'}}
+						<a href="{$r['verify_url']}" class="gddealerFflTable__btn gddealerFflTable__btn--verify" onclick="return confirm('Mark this FFL as verified?');">Verify</a>
+						{{endif}}
+						{{if $r['status'] !== 'rejected' || $r['ffl_rejection_count'] < 3}}
+						<a href="{$r['reject_url']}" class="gddealerFflTable__btn gddealerFflTable__btn--reject">Reject</a>
+						{{endif}}
+					</div>
+				</td>
+			</tr>
+			{{endforeach}}
+		</tbody>
+	</table>
+	{{endif}}
+</div>
+TEMPLATE_EOT ],
+			[ 'name' => 'fflRejectForm', 'location' => 'admin', 'data' => '$data', 'content' => <<<'TEMPLATE_EOT'
+<style>
+.gddealerFflReject { max-width: 560px; margin: 0 auto; padding: 24px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; }
+.gddealerFflReject__title { margin: 0 0 4px; font-size: 18px; font-weight: 600; color: #0f172a; }
+.gddealerFflReject__sub { margin: 0 0 20px; font-size: 13px; color: #64748b; }
+.gddealerFflReject__reasonOption { display: block; padding: 12px 14px; margin-bottom: 8px; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-size: 14px; color: #334155; }
+.gddealerFflReject__reasonOption:hover { background: #f8fafc; }
+.gddealerFflReject__reasonOption input { margin-right: 10px; }
+.gddealerFflReject__otherBox { margin-top: 8px; display: none; }
+.gddealerFflReject__otherBox.is-visible { display: block; }
+.gddealerFflReject__otherTextarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; resize: vertical; min-height: 80px; box-sizing: border-box; }
+.gddealerFflReject__actions { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+.gddealerFflReject__btn { padding: 8px 16px; font-size: 14px; font-weight: 500; border-radius: 6px; cursor: pointer; text-decoration: none; }
+.gddealerFflReject__btn--cancel { background: #fff; border: 1px solid #e5e7eb; color: #475569; }
+.gddealerFflReject__btn--submit { background: #ef4444; border: 1px solid #dc2626; color: #fff; }
+</style>
+
+<div class="gddealerFflReject">
+	<h2 class="gddealerFflReject__title">Reject FFL submission</h2>
+	<p class="gddealerFflReject__sub">Dealer: <strong>{$data['dealer']['dealer_name']}</strong> · FFL # {$data['dealer']['ffl_number']}</p>
+
+	<form method="post" action="{$data['post_url']}" id="gddealerFflRejectForm">
+		<label class="gddealerFflReject__reasonOption"><input type="radio" name="reason_key" value="illegible" required> {lang="gddealer_ffl_rejection_illegible"}</label>
+		<label class="gddealerFflReject__reasonOption"><input type="radio" name="reason_key" value="expired"> {lang="gddealer_ffl_rejection_expired"}</label>
+		<label class="gddealerFflReject__reasonOption"><input type="radio" name="reason_key" value="mismatch"> {lang="gddealer_ffl_rejection_mismatch"}</label>
+		<label class="gddealerFflReject__reasonOption"><input type="radio" name="reason_key" value="other" id="gddealerFflRejectOther"> Other (specify below)</label>
+
+		<div class="gddealerFflReject__otherBox" id="gddealerFflRejectOtherBox">
+			<textarea name="reason_other" class="gddealerFflReject__otherTextarea" placeholder="Enter the specific reason the dealer will receive..."></textarea>
+		</div>
+
+		<div class="gddealerFflReject__actions">
+			<a href="{$data['cancel_url']}" class="gddealerFflReject__btn gddealerFflReject__btn--cancel">Cancel</a>
+			<button type="submit" class="gddealerFflReject__btn gddealerFflReject__btn--submit">Reject &amp; notify dealer</button>
+		</div>
+	</form>
+</div>
+
+<script>
+(function() {
+	var otherRadio = document.getElementById( 'gddealerFflRejectOther' );
+	var otherBox   = document.getElementById( 'gddealerFflRejectOtherBox' );
+	var form       = document.getElementById( 'gddealerFflRejectForm' );
+	if ( !form ) return;
+	form.addEventListener( 'change', function() {
+		if ( otherRadio && otherRadio.checked ) { otherBox.classList.add( 'is-visible' ); }
+		else { otherBox.classList.remove( 'is-visible' ); }
+	} );
+})();
+</script>
+TEMPLATE_EOT ],
+			[ 'name' => 'feedUploadForm', 'location' => 'front', 'data' => '$data', 'content' => <<<'TEMPLATE_EOT'
+<div style="max-width:720px;margin:0 auto">
+	<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
+		<h2 style="margin:0;font-size:1.4em;font-weight:700;color:#0f172a">Upload Feed File</h2>
+		<a href="{$data['tab_urls']['feedSettings']}" class="ipsButton ipsButton--light ipsButton--small">&larr; Back to Feed Settings</a>
+	</div>
+	<div class="ipsBox" style="padding:24px">
+		{$data['form']}
+	</div>
+</div>
+TEMPLATE_EOT ],
+			[ 'name' => 'subscription', 'location' => 'front', 'data' => '$dealer, $sub, $billingNote, $tabUrls, $plans', 'content' => <<<'TEMPLATE_EOT'
+<div>
+
+	<div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap">
+		<div class="ipsBox" style="flex:1 1 200px;padding:16px;text-align:center">
+			<div style="color:#666;font-size:0.9em">{lang="gddealer_front_subscription_current"}</div>
+			<div style="font-size:1.6em;font-weight:bold;margin-top:4px">{$sub['tier_label']}</div>
+		</div>
+		<div class="ipsBox" style="flex:1 1 200px;padding:16px;text-align:center">
+			<div style="color:#666;font-size:0.9em">{lang="gddealer_front_subscription_mrr"}</div>
+			<div style="font-size:1.6em;font-weight:bold;margin-top:4px">{$sub['mrr']}</div>
+		</div>
+		<div class="ipsBox" style="flex:1 1 200px;padding:16px;text-align:center">
+			<div style="color:#666;font-size:0.9em">{lang="gddealer_front_subscription_status"}</div>
+			<div style="font-size:1.2em;font-weight:bold;margin-top:4px">
+				{{if $sub['suspended']}}
+					<span class="ipsBadge ipsBadge--negative">Suspended</span>
+				{{elseif $sub['active']}}
+					<span class="ipsBadge ipsBadge--positive">Active</span>
+				{{else}}
+					<span class="ipsBadge ipsBadge--neutral">Pending Setup</span>
+				{{endif}}
+			</div>
+		</div>
+	</div>
+
+	{{if $sub['trial_expires_at']}}
+	<div style="margin-bottom:24px;padding:16px;border-radius:8px;border:1px solid {expression="$sub['trial_expiring_soon'] ? '#fca5a5' : 'var(--i-border-color,#e0e0e0)'"};background:{expression="$sub['trial_expiring_soon'] ? '#fff5f5' : '#fff'"}">
+		<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+			<div>
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Trial Period</div>
+				<div style="font-weight:700;font-size:1.05em">
+					Expires {$sub['trial_expires_formatted']}
+				</div>
+				{{if $sub['trial_expiring_soon']}}
+					<div style="margin-top:4px;color:#dc2626;font-size:0.9em;font-weight:600">
+						Expires in {$sub['trial_days_left']} day{{if $sub['trial_days_left'] !== 1}}s{{endif}} — subscribe to keep your listings live
+					</div>
+				{{else}}
+					<div style="margin-top:4px;color:#666;font-size:0.85em">
+						{$sub['trial_days_left']} days remaining on your trial
+					</div>
+				{{endif}}
+			</div>
+			{{if $sub['trial_expiring_soon']}}
+			<div>
+				<a href="{$sub['subscribe_url']}" class="ipsButton ipsButton--primary ipsButton--small">Subscribe Now</a>
+			</div>
+			{{endif}}
+		</div>
+	</div>
+	{{endif}}
+
+	<p>{$billingNote}</p>
+
+</div>
+TEMPLATE_EOT ],
 		];
 
-		foreach ( $templates as $tpl )
+		foreach ( $seeds as $tpl )
 		{
 			try
 			{
@@ -864,17 +1018,29 @@ TEMPLATE_EOT,
 					'template_version'  => '1.0.202',
 				] );
 			}
+			catch ( \Throwable $e )
+			{
+				try { \IPS\Log::log( 'upg_10202 replace failed for ' . $tpl['name'] . ': ' . $e->getMessage(), 'gddealer_upg_10202' ); } catch ( \Throwable ) {}
+			}
+
+			try
+			{
+				\IPS\Db::i()->delete( 'core_theme_templates', [
+					'template_app=? AND template_location=? AND template_group=? AND template_name=? AND template_set_id=?',
+					'gddealer', $tpl['location'], 'dealers', $tpl['name'], 0
+				] );
+			}
 			catch ( \Throwable ) {}
 		}
 
-		try { \IPS\Db::i()->delete( 'core_cache' ); }                                                                       catch ( \Throwable ) {}
-		try { \IPS\Db::i()->delete( 'core_store', [ "store_key LIKE 'theme_%' OR store_key LIKE 'template_%'" ] ); }         catch ( \Throwable ) {}
+		/* Cache busts — rule #40 */
+		try { \IPS\Db::i()->delete( 'core_cache' ); } catch ( \Throwable ) {}
+		try { \IPS\Db::i()->delete( 'core_store', [ "store_key LIKE 'theme_%' OR store_key LIKE 'template_%'" ] ); } catch ( \Throwable ) {}
 		foreach ( glob( \IPS\ROOT_PATH . '/datastore/template_*' ) ?: [] as $f ) { @unlink( $f ); }
 		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->themes ); }       catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); }            catch ( \Throwable ) {}
-		try { \IPS\Data\Store::i()->clearAll(); }            catch ( \Throwable ) {}
 
 		return TRUE;
 	}
