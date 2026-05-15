@@ -2762,6 +2762,191 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			default    => 'Upload FFL license for verification',
 		};
 	}
+
+	protected function reportUnmatched(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		$dealer = $this->currentDealer();
+		$upcId  = (int) \IPS\Request::i()->upc_id;
+
+		if ( !$dealer or !$upcId )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=unmatched' ),
+				'Invalid request.', 400
+			);
+			return;
+		}
+
+		try
+		{
+			\IPS\Db::i()->update(
+				'gd_unmatched_upcs',
+				[ 'dealer_reported_at' => date( 'Y-m-d H:i:s' ) ],
+				[ 'id=? AND dealer_id=?', $upcId, (int) $dealer->dealer_id ]
+			);
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'reportUnmatched error: ' . $e->getMessage(), 'gddealer_v196' ); } catch ( \Throwable ) {}
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=unmatched' ),
+			'UPC reported to GunRack. Thank you!'
+		);
+	}
+
+	protected function viewSnapshot(): void
+	{
+		$dealer = $this->currentDealer();
+		$upcId  = (int) \IPS\Request::i()->upc_id;
+
+		$row = NULL;
+		try
+		{
+			$row = \IPS\Db::i()->select(
+				'*', 'gd_unmatched_upcs',
+				[ 'id=? AND dealer_id=?', $upcId, (int) $dealer->dealer_id ]
+			)->first();
+		}
+		catch ( \Throwable ) {}
+
+		if ( !$row )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=unmatched' ),
+				'Snapshot not found.', 404
+			);
+			return;
+		}
+
+		$snapshot = NULL;
+		if ( !empty( $row['snapshot_json'] ) )
+		{
+			$snapshot = @json_decode( $row['snapshot_json'], true );
+		}
+
+		$html  = '<div class="gdPanel" style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:24px">';
+		$html .= '<h2 style="margin:0 0 12px;font-size:18px;font-weight:600">Feed snapshot for UPC ' . htmlspecialchars( $row['upc'], ENT_QUOTES, 'UTF-8' ) . '</h2>';
+		$html .= '<p style="font-size:13px;color:#64748b;margin:0 0 16px">First seen: ' . htmlspecialchars( $row['first_seen'] ?? '', ENT_QUOTES, 'UTF-8' ) . ' · Last seen: ' . htmlspecialchars( $row['last_seen'] ?? '', ENT_QUOTES, 'UTF-8' ) . ' · Occurrences: ' . (int) ( $row['occurrence_count'] ?? 0 ) . '</p>';
+		if ( $snapshot )
+		{
+			$html .= '<pre style="background:#0f172a;color:#e2e8f0;padding:16px;border-radius:8px;overflow:auto;font-size:12px;font-family:ui-monospace,monospace;white-space:pre-wrap;word-break:break-word">' . htmlspecialchars( json_encode( $snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ), ENT_QUOTES, 'UTF-8' ) . '</pre>';
+		}
+		else
+		{
+			$html .= '<p style="font-size:13px;color:#64748b">No snapshot available for this UPC.</p>';
+		}
+		$html .= '<div style="margin-top:16px"><a href="' . htmlspecialchars( (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=unmatched' ), ENT_QUOTES, 'UTF-8' ) . '" class="gdBtn gdBtn--secondary">&larr; Back to unmatched UPCs</a></div>';
+		$html .= '</div>';
+
+		$this->output( 'viewSnapshot', $html );
+	}
+
+	protected function resetDealer(): bool
+	{
+		$dealer = $this->currentDealer();
+		if ( !$dealer )
+		{
+			return FALSE;
+		}
+
+		$dealerId = (int) $dealer->dealer_id;
+
+		$snapshot = [
+			'dealer_id'         => $dealerId,
+			'created_at'        => date( 'c' ),
+			'gd_dealer_listings'    => [],
+			'gd_unmatched_upcs'     => [],
+			'gd_dealer_category_map'=> [],
+			'gd_dealer_import_log'  => [],
+		];
+
+		foreach ( [ 'gd_dealer_listings', 'gd_unmatched_upcs', 'gd_dealer_category_map', 'gd_dealer_import_log' ] as $tbl )
+		{
+			try
+			{
+				$rows = \IPS\Db::i()->select( '*', $tbl, [ 'dealer_id=?', $dealerId ] );
+				foreach ( $rows as $r )
+				{
+					$snapshot[ $tbl ][] = $r;
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		try
+		{
+			\IPS\Db::i()->insert( 'gd_dealer_reset_backups', [
+				'dealer_id'     => $dealerId,
+				'scope'         => 'B',
+				'snapshot_json' => json_encode( $snapshot ),
+				'created_at'    => date( 'Y-m-d H:i:s' ),
+			] );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'resetDealer backup error: ' . $e->getMessage(), 'gddealer_v196' ); } catch ( \Throwable ) {}
+			return FALSE;
+		}
+
+		foreach ( [ 'gd_dealer_listings', 'gd_unmatched_upcs', 'gd_dealer_category_map', 'gd_dealer_import_log' ] as $tbl )
+		{
+			try { \IPS\Db::i()->delete( $tbl, [ 'dealer_id=?', $dealerId ] ); }
+			catch ( \Throwable ) {}
+		}
+
+		try
+		{
+			\IPS\Db::i()->update( 'gd_dealer_feed_config',
+				[
+					'feed_url'          => '',
+					'auth'              => '',
+					'wizard_state_json' => '',
+				],
+				[ 'dealer_id=?', $dealerId ]
+			);
+		}
+		catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+
+	protected function confirmReset(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$dealer = $this->currentDealer();
+		$typed  = trim( (string) \IPS\Request::i()->confirm_name );
+		$expected = $dealer ? (string) $dealer->dealer_name : '';
+
+		if ( !$dealer or $typed === '' or $typed !== $expected )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=customize' ),
+				'Reset cancelled: confirmation name did not match.', 400
+			);
+			return;
+		}
+
+		$ok = $this->resetDealer();
+
+		if ( $ok )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::external( (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=overview' ) ),
+				'Your dealer data has been reset. Run through the setup wizard to reconfigure your feed. (24-hour undo available - contact support.)'
+			);
+		}
+		else
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=customize' ),
+				'Reset failed. Contact GunRack support.', 500
+			);
+		}
+	}
 }
 
 class dashboard extends _dashboard {}

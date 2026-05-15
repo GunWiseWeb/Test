@@ -484,5 +484,7 @@
     <word key="gddealer_plan_founding_color"><![CDATA[Accent Color]]></word>
     <!-- v1.0.177: My Dealers profile tab -->
     <word key="core_profile_mydealers"><![CDATA[My Dealers]]></word>
+    <!-- v1.0.196: Categories nav label -->
+    <word key="gddealer_front_tab_categories"><![CDATA[Categories]]></word>
   </app>
 </language>

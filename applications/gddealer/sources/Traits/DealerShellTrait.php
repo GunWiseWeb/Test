@@ -272,6 +272,13 @@ HTML;
 		}
 		catch ( \Exception ) {}
 
+		$unreviewedCats = 0;
+		try
+		{
+			$unreviewedCats = \IPS\gddealer\Feed\CategoryMap::unreviewedCount( (int) $this->dealer->dealer_id );
+		}
+		catch ( \Throwable ) {}
+
 		/* Setup wizard completion check - powers the warning badge on
 		 * the Setup Wizard nav item until the dealer finishes the wizard. */
 		$wizardComplete = false;
@@ -312,6 +319,9 @@ HTML;
 					[ 'key' => 'unmatched', 'label' => $lang->addToStack('gddealer_front_tab_unmatched'),
 					  'url' => $urls['unmatched'], 'icon' => 'unmatched',
 					  'badge' => $unmatched > 0 ? [ 'count' => $unmatched, 'variant' => 'urgent' ] : null ],
+					[ 'key' => 'categories', 'label' => $lang->addToStack('gddealer_front_tab_categories'),
+					  'url' => $urls['categories'], 'icon' => 'listings',
+					  'badge' => $unreviewedCats > 0 ? [ 'count' => $unreviewedCats, 'variant' => 'warn' ] : null ],
 				]
 			],
 			'growth' => [

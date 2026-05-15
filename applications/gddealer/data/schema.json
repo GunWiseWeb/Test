@@ -242,6 +242,48 @@
                 "zerofill": false,
                 "values": [],
                 "comment": ""
+            },
+            "status": {
+                "name": "status",
+                "type": "VARCHAR",
+                "length": 32,
+                "decimals": null,
+                "allow_null": false,
+                "default": "pending",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "snapshot_json": {
+                "name": "snapshot_json",
+                "type": "LONGTEXT",
+                "length": null,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "dealer_reported_at": {
+                "name": "dealer_reported_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             }
         },
         "indexes": {
@@ -2398,6 +2440,1306 @@
                 "columns": [
                     "auto_mapped"
                 ]
+            }
+        }
+    },
+    "gd_dealer_support_departments": {
+        "name": "gd_dealer_support_departments",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "name": {
+                "name": "name",
+                "type": "VARCHAR",
+                "length": 128,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "description": {
+                "name": "description",
+                "type": "TEXT",
+                "length": null,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "email": {
+                "name": "email",
+                "type": "VARCHAR",
+                "length": 255,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "visibility": {
+                "name": "visibility",
+                "type": "VARCHAR",
+                "length": 16,
+                "decimals": null,
+                "allow_null": false,
+                "default": "pro",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "position": {
+                "name": "position",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "enabled": {
+                "name": "enabled",
+                "type": "TINYINT",
+                "length": 1,
+                "decimals": null,
+                "allow_null": false,
+                "default": 1,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created_at": {
+                "name": "created_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            },
+            "position": {
+                "type": "key",
+                "name": "position",
+                "length": [ null ],
+                "columns": [ "position" ]
+            },
+            "enabled": {
+                "type": "key",
+                "name": "enabled",
+                "length": [ null ],
+                "columns": [ "enabled" ]
+            }
+        }
+    },
+    "gd_dealer_support_tickets": {
+        "name": "gd_dealer_support_tickets",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "department_id": {
+                "name": "department_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "dealer_id": {
+                "name": "dealer_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "member_id": {
+                "name": "member_id",
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "subject": {
+                "name": "subject",
+                "type": "VARCHAR",
+                "length": 255,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "priority": {
+                "name": "priority",
+                "type": "VARCHAR",
+                "length": 16,
+                "decimals": null,
+                "allow_null": false,
+                "default": "normal",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "status": {
+                "name": "status",
+                "type": "VARCHAR",
+                "length": 32,
+                "decimals": null,
+                "allow_null": false,
+                "default": "open",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "body": {
+                "name": "body",
+                "type": "MEDIUMTEXT",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "assigned_to": {
+                "name": "assigned_to",
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created_at": {
+                "name": "created_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "updated_at": {
+                "name": "updated_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "last_reply_at": {
+                "name": "last_reply_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "last_reply_by": {
+                "name": "last_reply_by",
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "last_reply_role": {
+                "name": "last_reply_role",
+                "type": "VARCHAR",
+                "length": 16,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            },
+            "department_id": {
+                "type": "key",
+                "name": "department_id",
+                "length": [ null ],
+                "columns": [ "department_id" ]
+            },
+            "dealer_id": {
+                "type": "key",
+                "name": "dealer_id",
+                "length": [ null ],
+                "columns": [ "dealer_id" ]
+            },
+            "member_id": {
+                "type": "key",
+                "name": "member_id",
+                "length": [ null ],
+                "columns": [ "member_id" ]
+            },
+            "status": {
+                "type": "key",
+                "name": "status",
+                "length": [ null ],
+                "columns": [ "status" ]
+            },
+            "updated_at": {
+                "type": "key",
+                "name": "updated_at",
+                "length": [ null ],
+                "columns": [ "updated_at" ]
+            }
+        }
+    },
+    "gd_dealer_support_replies": {
+        "name": "gd_dealer_support_replies",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "ticket_id": {
+                "name": "ticket_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "member_id": {
+                "name": "member_id",
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "role": {
+                "name": "role",
+                "type": "VARCHAR",
+                "length": 16,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "body": {
+                "name": "body",
+                "type": "MEDIUMTEXT",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "is_hidden_note": {
+                "name": "is_hidden_note",
+                "type": "TINYINT",
+                "length": 1,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created_at": {
+                "name": "created_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            },
+            "ticket_id": {
+                "type": "key",
+                "name": "ticket_id",
+                "length": [ null ],
+                "columns": [ "ticket_id" ]
+            },
+            "created_at": {
+                "type": "key",
+                "name": "created_at",
+                "length": [ null ],
+                "columns": [ "created_at" ]
+            }
+        }
+    },
+    "gd_dealer_support_events": {
+        "name": "gd_dealer_support_events",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "ticket_id": {
+                "name": "ticket_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "event_type": {
+                "name": "event_type",
+                "type": "VARCHAR",
+                "length": 64,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "actor_id": {
+                "name": "actor_id",
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "actor_role": {
+                "name": "actor_role",
+                "type": "VARCHAR",
+                "length": 16,
+                "decimals": null,
+                "allow_null": false,
+                "default": "system",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "note": {
+                "name": "note",
+                "type": "TEXT",
+                "length": null,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "old_value": {
+                "name": "old_value",
+                "type": "VARCHAR",
+                "length": 64,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "new_value": {
+                "name": "new_value",
+                "type": "VARCHAR",
+                "length": 64,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created_at": {
+                "name": "created_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            },
+            "ticket_id": {
+                "type": "key",
+                "name": "ticket_id",
+                "length": [ null ],
+                "columns": [ "ticket_id" ]
+            },
+            "created_at": {
+                "type": "key",
+                "name": "created_at",
+                "length": [ null ],
+                "columns": [ "created_at" ]
+            }
+        }
+    },
+    "gd_dealer_support_stock_replies": {
+        "name": "gd_dealer_support_stock_replies",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "title": {
+                "name": "title",
+                "type": "VARCHAR",
+                "length": 255,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "body": {
+                "name": "body",
+                "type": "MEDIUMTEXT",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "department_id": {
+                "name": "department_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "position": {
+                "name": "position",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "enabled": {
+                "name": "enabled",
+                "type": "TINYINT",
+                "length": 1,
+                "decimals": null,
+                "allow_null": false,
+                "default": 1,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created_at": {
+                "name": "created_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            }
+        }
+    },
+    "gd_dealer_support_stock_actions": {
+        "name": "gd_dealer_support_stock_actions",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "title": {
+                "name": "title",
+                "type": "VARCHAR",
+                "length": 255,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "reply_body": {
+                "name": "reply_body",
+                "type": "MEDIUMTEXT",
+                "length": null,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "new_status": {
+                "name": "new_status",
+                "type": "VARCHAR",
+                "length": 32,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "new_priority": {
+                "name": "new_priority",
+                "type": "VARCHAR",
+                "length": 16,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "new_assignee": {
+                "name": "new_assignee",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "department_id": {
+                "name": "department_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "position": {
+                "name": "position",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "enabled": {
+                "name": "enabled",
+                "type": "TINYINT",
+                "length": 1,
+                "decimals": null,
+                "allow_null": false,
+                "default": 1,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created_at": {
+                "name": "created_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            }
+        }
+    },
+    "gd_dealer_slug_history": {
+        "name": "gd_dealer_slug_history",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "old_slug": {
+                "name": "old_slug",
+                "type": "VARCHAR",
+                "length": 100,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "dealer_id": {
+                "name": "dealer_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "retired_at": {
+                "name": "retired_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "retired_reason": {
+                "name": "retired_reason",
+                "type": "VARCHAR",
+                "length": 50,
+                "decimals": null,
+                "allow_null": false,
+                "default": "manual_regenerate",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            },
+            "uq_old_slug": {
+                "type": "unique",
+                "name": "uq_old_slug",
+                "length": [ null ],
+                "columns": [ "old_slug" ]
+            },
+            "idx_dealer_id": {
+                "type": "key",
+                "name": "idx_dealer_id",
+                "length": [ null ],
+                "columns": [ "dealer_id" ]
+            }
+        }
+    },
+    "gd_click_log": {
+        "name": "gd_click_log",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "dealer_id": {
+                "name": "dealer_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "upc": {
+                "name": "upc",
+                "type": "VARCHAR",
+                "length": 20,
+                "decimals": null,
+                "allow_null": false,
+                "default": "",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "member_id": {
+                "name": "member_id",
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "user_state": {
+                "name": "user_state",
+                "type": "VARCHAR",
+                "length": 2,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "clicked_at": {
+                "name": "clicked_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            },
+            "idx_dealer_id": {
+                "type": "key",
+                "name": "idx_dealer_id",
+                "length": [ null ],
+                "columns": [ "dealer_id" ]
+            },
+            "idx_upc": {
+                "type": "key",
+                "name": "idx_upc",
+                "length": [ null ],
+                "columns": [ "upc" ]
+            },
+            "idx_clicked_at": {
+                "type": "key",
+                "name": "idx_clicked_at",
+                "length": [ null ],
+                "columns": [ "clicked_at" ]
+            },
+            "idx_member_dealer_upc": {
+                "type": "key",
+                "name": "idx_member_dealer_upc",
+                "length": [ null, null, null ],
+                "columns": [ "member_id", "dealer_id", "upc" ]
+            }
+        }
+    },
+    "gd_click_daily": {
+        "name": "gd_click_daily",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "dealer_id": {
+                "name": "dealer_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "click_date": {
+                "name": "click_date",
+                "type": "DATE",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "click_count": {
+                "name": "click_count",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            },
+            "uq_dealer_date": {
+                "type": "unique",
+                "name": "uq_dealer_date",
+                "length": [ null, null ],
+                "columns": [ "dealer_id", "click_date" ]
+            }
+        }
+    },
+    "gd_dealer_reset_backups": {
+        "name": "gd_dealer_reset_backups",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "dealer_id": {
+                "name": "dealer_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "scope": {
+                "name": "scope",
+                "type": "VARCHAR",
+                "length": 4,
+                "decimals": null,
+                "allow_null": false,
+                "default": "B",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "snapshot_json": {
+                "name": "snapshot_json",
+                "type": "LONGTEXT",
+                "length": null,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created_at": {
+                "name": "created_at",
+                "type": "DATETIME",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            },
+            "idx_dealer": {
+                "type": "key",
+                "name": "idx_dealer",
+                "length": [ null ],
+                "columns": [ "dealer_id" ]
+            },
+            "idx_created": {
+                "type": "key",
+                "name": "idx_created",
+                "length": [ null ],
+                "columns": [ "created_at" ]
             }
         }
     }
