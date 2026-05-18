@@ -7,7 +7,7 @@ GunRack (gunrack.deals) is a firearms price comparison and community platform bu
 1. **Never start on Plugin 2 or Plugin 3 before Plugin 1 has completed two full successful import cycles across all six distributors.** This is a hard gate in the spec.
 2. **All SQL queries must use IPS parameterized queries — no string interpolation of user input into queries ever.**
 3. **Redis must be bound to 127.0.0.1 with requirepass set before the server goes live.** See Appendix C.
-4. **libxml_disable_entity_loader(true) must appear before every XML parse in feed ingestion.** See Appendix C.
+4. **XML feed parsing must pass `LIBXML_NONET` to `simplexml_load_string()` flags. Do NOT call `libxml_disable_entity_loader()` — it is deprecated in PHP 8.0+ and triggers fatal errors in IPS's scheduled-task error handler.**
 5. **All 12 plugins must register CSRF token validation on every state-changing front-end action.** See Appendix C.
 6. **Never store SES credentials or API keys in source code or commit them to Git.**
 
