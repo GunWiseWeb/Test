@@ -215,8 +215,11 @@ class Importer
 
 		try
 		{
+			/* IPS\Db ->first() returns the scalar value (not an assoc
+			 * array) when the SELECT has exactly one column. So $agg
+			 * is the raw MIN price string, or null if no rows matched. */
 			$agg = \IPS\Db::i()->select(
-				'MIN( dealer_price ) AS total_min',
+				'MIN( dealer_price )',
 				'gd_dealer_listings',
 				[ 'upc=? AND listing_status=? AND in_stock=?', $upc, Listing::STATUS_ACTIVE, 1 ]
 			)->first();
@@ -226,7 +229,7 @@ class Importer
 			return;
 		}
 
-		$totalMin = ( $agg['total_min'] !== null ) ? (float) $agg['total_min'] : null;
+		$totalMin = ( $agg !== null ) ? (float) $agg : null;
 
 		$minCpr = null;
 		if ( ! empty( $product['is_ammo'] ) && (int) ( $product['rounds_per_box'] ?? 0 ) > 0 && $totalMin !== null )
