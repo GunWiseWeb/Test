@@ -5,8 +5,11 @@
  * @subpackage  GD Dealer Manager
  * @since       15 Apr 2026
  *
- * Safe XML feed parsing. libxml_disable_entity_loader(true) is invoked
- * before every parse per CLAUDE.md security rule #4 and Appendix C.
+ * Safe XML feed parsing. LIBXML_NONET is passed to simplexml_load_string
+ * to disable network entity loading and prevent XXE attacks. (The legacy
+ * libxml_disable_entity_loader() call was removed in v208 as that function
+ * is deprecated in PHP 8.0+ and triggers fatal errors in some IPS error
+ * handler contexts.)
  */
 
 namespace IPS\gddealer\Feed\Parser;
@@ -29,13 +32,10 @@ class XmlParser
 	 */
 	public static function parse( string $body ): array
 	{
-		/* Disable external entity loading to prevent XXE. PHP 8+ ignores the
-		 * call but LIBXML_NONET + LIBXML_NOENT-off behavior is the effective
-		 * guard; we set both for defense in depth. */
-		if ( function_exists( 'libxml_disable_entity_loader' ) )
-		{
-			@libxml_disable_entity_loader( true );
-		}
+		/* XXE protection: LIBXML_NONET below disables network entity loading,
+		 * which is the effective guard. libxml_disable_entity_loader() was
+		 * removed/deprecated in PHP 8.0+ and triggers fatal errors when
+		 * called, so it's intentionally absent here. */
 		libxml_use_internal_errors( true );
 
 		$sx = simplexml_load_string( $body, \SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA );
