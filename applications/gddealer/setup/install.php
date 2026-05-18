@@ -5165,9 +5165,7 @@ foreach ( $notificationDefaults as $key => $data )
 $emailsXmlPath = __DIR__ . '/../data/emails.xml';
 if ( file_exists( $emailsXmlPath ) )
 {
-	$prev = libxml_disable_entity_loader( TRUE );
-	$xml  = @simplexml_load_file( $emailsXmlPath );
-	libxml_disable_entity_loader( $prev );
+	$xml  = @simplexml_load_file( $emailsXmlPath, \SimpleXMLElement::class, LIBXML_NONET );
 
 	if ( $xml instanceof \SimpleXMLElement )
 	{

@@ -432,6 +432,38 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
 
     Both must pass before tagging.
 
+53. **Template overlay cascade (gddealer-specific)** — the gddealer codebase uses a TWO-STAGE template seed system:
+    1. `install.php` seeds bare-bones template bodies via the `$gddealerTemplates[]` array near the top.
+    2. `install.php`'s bottom `require_once` chain runs overlay files (`setup/templates_XXXXX.php`) that OVERWRITE specific templates with their authoritative final/rich versions.
+
+    When a template appears in BOTH the array AND an overlay file, the OVERLAY is the source of truth. The array body for that template is effectively dead code (the overlay overwrites it at install time).
+
+    Implications:
+    * DO NOT write `foreach ($gddealerTemplates as $tpl) replace()` upgrades — these revert overlays and silently break pages. The v207 disaster came from exactly this mistake.
+    * Template edits go in the OVERLAY file. If you edit `install.php`'s array entry instead, you MUST also mirror the change to every overlay file targeting that template, OR remove the overlay from `install.php`'s require chain.
+    * Before writing any `upgrade.php` that writes to `core_theme_templates`, read `install.php`'s bottom `require_once` chain. Your upgrade must produce the same DB state a fresh install of this version would produce. If it can't, the source-of-truth (`install.php`'s array OR an overlay file) is wrong — fix THERE, not in the upgrade.
+    * Catch-up/re-seed upgrades must enumerate each affected template explicitly. For every template touched, confirm whether an overlay targets it. If yes, re-run the overlay's file (`require_once applications/gddealer/setup/templates_XXXXX.php`) — don't reseed from the array.
+
+54. **Every prompt to Claude Code must be checkable post-build** — every prompt for Claude Code ends with a "Verification before declaring done" section containing exact grep/tar-extraction checks against the BUILT tarball. Each check states the exact command to run and the exact expected count or string. Claude Code skips steps in prompts regularly (v204 shipped 1 of 4 steps). Always verify with grep AFTER build, BEFORE installing. Don't trust "I did all the steps" claims from Claude Code or anyone. If any verification check fails, the build is incomplete and the steps must be redone — do not install a partial tarball.
+
+55. **Static checks ≠ runtime verification** — a "passing" tarball (grep-clean, all verification checks pass) only proves the tarball was BUILT correctly. It does NOT prove the fix WORKS. Always require runtime exercise after deploy:
+    * Imports: run actual import, confirm `status=completed` with non-zero `records_total`. NOT `status=failed rec=0`.
+    * Pages: load actual URL in browser, confirm renders without EX0 or "template throwing an error".
+    * Buttons: click in actual UI, confirm expected response.
+    * Tasks: wait for scheduled task to run, check next log row.
+
+    v208 shipped a grep-clean tarball claiming to fix the libxml deprecation. Imports still failed for hours on prod because the fix was static-correct but masked an unrelated downstream issue. Static = "built it right." Runtime = "it actually works."
+
+56. **One bug at a time** — when Derrick reports a specific broken page, error, or behavior, FIX THAT one thing. Do not drift into adjacent diagnostics ("while we're here, let's also check the imports"). If a related bug is discovered during the investigation: note it explicitly, tell Derrick we found another issue and recommend a separate fix, then return focus to the original ticket. The v208/feedSettings/imports session got tangled because of diagnostic drift. Pattern: ONE broken thing → ONE fix → confirm working → MOVE to next.
+
+57. **PowerShell SSH heredocs are unreliable** — Derrick uses Windows PowerShell to SSH into prod (`ssh -p 2200 root@108.160.146.199`). Multi-line PHP scripts piped via heredoc (`cat > /tmp/x.php << 'PHPEOF' ... PHPEOF`) often arrive mangled — PowerShell duplicates lines, eats `$variables`, or garbles output. When writing prod diagnostic commands: PREFER single-line one-shot commands (`php -r '...'` with semicolons separating statements). If heredoc is unavoidable, keep it ≤20 lines. For complex diagnostics, send commands ONE AT A TIME and have Derrick paste output between each.
+
+58. **`libxml_disable_entity_loader()` is forbidden** — this function is deprecated in PHP 8.0+ and removed in PHP 9.0. Any call to it on Derrick's prod (PHP 8.x) triggers a deprecation that IPS's scheduled-task error handler elevates to a fatal, breaking imports and other XML-handling flows. For XML feed parsing, the effective XXE guard is the `LIBXML_NONET` flag passed to `simplexml_load_string()`. Do NOT call `libxml_disable_entity_loader()`. Audit periodically with:
+    ```bash
+    grep -rn "libxml_disable_entity_loader(" applications/gddealer/ | grep -v "//\|^\s*\*"
+    ```
+    Any hits (excluding comments) need cleanup.
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38
