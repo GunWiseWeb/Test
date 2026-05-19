@@ -867,6 +867,13 @@ class _profile extends \IPS\Dispatcher\Controller
 			'total_in_filter'         => $totalInFilter,
 		];
 
+		try {
+			\IPS\Output::i()->cssFiles = array_merge(
+				\IPS\Output::i()->cssFiles,
+				\IPS\Theme::i()->css( 'dealer.css', 'gddealer', 'front' )
+			);
+		} catch ( \Throwable ) {}
+
 		\IPS\Output::i()->title  = $dealer['dealer_name'];
 		\IPS\Output::i()->output = $this->themeVars() . \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )
 			->dealerProfile( $data );
@@ -890,6 +897,13 @@ class _profile extends \IPS\Dispatcher\Controller
 		];
 
 		$contactEmail = (string) ( $settings->gddealer_help_contact ?: 'dealers@gunrack.deals' );
+
+		try {
+			\IPS\Output::i()->cssFiles = array_merge(
+				\IPS\Output::i()->cssFiles,
+				\IPS\Theme::i()->css( 'dealer.css', 'gddealer', 'front' )
+			);
+		} catch ( \Throwable ) {}
 
 		\IPS\Output::i()->title  = 'Review & Dispute Guidelines';
 		\IPS\Output::i()->output = $this->themeVars() . \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )
@@ -1551,6 +1565,13 @@ class _profile extends \IPS\Dispatcher\Controller
 		)->csrf();
 
 		$csrfKey = (string) \IPS\Session::i()->csrfKey;
+
+		try {
+			\IPS\Output::i()->cssFiles = array_merge(
+				\IPS\Output::i()->cssFiles,
+				\IPS\Theme::i()->css( 'dealer.css', 'gddealer', 'front' )
+			);
+		} catch ( \Throwable ) {}
 
 		\IPS\Output::i()->title  = 'Edit Your Review';
 		\IPS\Output::i()->output = $this->themeVars() . \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )

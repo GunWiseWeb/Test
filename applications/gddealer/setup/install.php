@@ -5412,14 +5412,21 @@ require_once __DIR__ . '/templates_10078.php';
 require_once __DIR__ . '/templates_10158_part3.php';
 require_once __DIR__ . '/templates_10158_part4.php';
 
-/* v1.0.212 — Final canonical pass: enforces single source of truth
- * for the 10 most-volatile templates. Reads from
- * data/canonical_templates/*.tpl and writes to core_theme_templates.
- * Runs AFTER all overlay files so it always has the last word. */
+require_once __DIR__ . '/templates_10071.php';
+require_once __DIR__ . '/templates_10088.php';
+require_once __DIR__ . '/templates_10090a.php';
+require_once __DIR__ . '/templates_10147_help.php';
+require_once __DIR__ . '/templates_10149_part3.php';
+require_once __DIR__ . '/templates_10213_supportTicketView.php';
+
+/* v1.0.213 — Canonical pass: re-runs all overlay files referenced by
+ * CanonicalTemplates::SOURCES to guarantee the 12 managed templates
+ * end up at their authoritative bodies, regardless of require order. */
 try
 {
     require_once __DIR__ . '/../sources/Setup/CanonicalTemplates.php';
     \IPS\gddealer\Setup\CanonicalTemplates::ensure();
+    \IPS\gddealer\Setup\CanonicalTemplates::clearCaches();
 }
 catch ( \Throwable $e )
 {

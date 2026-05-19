@@ -1,24 +1,27 @@
 <?php
 /**
- * @brief       GD Dealer Manager — Canonical Templates enforcement
+ * @brief       GD Dealer Manager — Canonical Templates registry
  * @package     IPS Community Suite
  * @subpackage  GD Dealer Manager
- * @since       v1.0.212
+ * @since       v1.0.213
  *
- * Single source of truth for the 10 most-volatile gddealer templates.
- * Loads body content from data/canonical_templates/*.tpl files and
- * forces core_theme_templates rows to match.
+ * Maps 12 frequently-edited templates to the canonical overlay file(s)
+ * that produce their correct body. `ensure()` re-runs those overlay
+ * files. Used at the end of install.php (for fresh installs) and at
+ * the end of every upgrade.php from v213 onward.
  *
- * Called by install.php at the BOTTOM of the fresh-install cascade,
- * AND by every upgrade.php from v212 onward, as the final step. This
- * guarantees that no matter which install/upgrade path runs, these
- * templates always end up with the canonical body content.
+ * To change a managed template body:
+ *   1. Edit the relevant overlay file (the one in SOURCES below)
+ *   2. Bump version, ship
+ *   3. ensure() will re-run the overlay automatically on the upgrade
  *
- * To update a canonical template body: edit the corresponding
- * .tpl file in data/canonical_templates/ and bump version. That's
- * the only place to edit. Old overlay files and install.php's
- * $gddealerTemplates array entries are ignored (their bodies still
- * get written first, but this class overwrites them at the end).
+ * If a new overlay version is added for a template:
+ *   1. Update the SOURCES entry to point to the NEW overlay file
+ *   2. The old overlay file stays on disk (history) but is no longer
+ *      referenced by ensure().
+ *
+ * DO NOT embed template bodies in this class. The overlay files are
+ * the source of truth.
  */
 
 namespace IPS\gddealer\Setup;
@@ -34,96 +37,79 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 class _CanonicalTemplates
 {
     /**
-     * The 10 templates managed by this class.
+     * Map: template_name => [list of overlay files (relative to setup/)
+     *                       to require in order, last-wins].
      *
-     * Each entry maps template_name to expected template_data signature.
-     * Bodies are loaded from data/canonical_templates/{name}.tpl
+     * Empty array means the template's body is already canonical in
+     * install.php's $gddealerTemplates array — no overlay needed.
      */
-    public const TEMPLATES = [
-        'feedSettings'        => '$data',
-        'overview'            => '$data',
-        'listings'            => '$data',
-        'analytics'           => '$data',
-        'dealerNavIcon'       => '$icon',
-        'dealerShell'         => '$dealer, $activeTab, $nav, $body',
-        'dealerSidebar'       => '$dealer, $activeTab, $nav',
-        'dashboardCustomize'  => '$data',
-        'dealerProfile'       => '$data',
-        'unmatched'           => '$data',
+    public const SOURCES = [
+        'overview'            => [],
+        'unmatched'           => [],
+
+        'feedSettings'        => [ 'templates_10158_part3.php', 'templates_10158_part4.php' ],
+        'listings'            => [ 'templates_10074.php' ],
+        'analytics'           => [ 'templates_10078.php' ],
+        'dealerNavIcon'       => [ 'templates_10149_part3.php' ],
+        'dealerShell'         => [ 'templates_10071.php' ],
+        'dealerSidebar'       => [ 'templates_10071.php' ],
+        'dashboardCustomize'  => [ 'templates_10088.php' ],
+        'dealerProfile'       => [ 'templates_10090a.php' ],
+        'help'                => [ 'templates_10147_help.php' ],
+        'supportTicketView'   => [ 'templates_10213_supportTicketView.php' ],
     ];
 
     /**
-     * Force every managed template's core_theme_templates row to match
-     * its corresponding .tpl file. Idempotent. Safe to call repeatedly.
+     * Re-run every canonical overlay file in order. Deduped — files
+     * shared across templates (e.g. templates_10071 serves both
+     * dealerShell and dealerSidebar) run once.
      *
-     * Returns a summary array: ['written' => N, 'skipped' => N, 'errors' => [...]]
+     * @return array{ran: string[], errors: string[]}
      */
     public static function ensure(): array
     {
-        $dir = \IPS\ROOT_PATH . '/applications/gddealer/data/canonical_templates';
-        $written = 0;
-        $skipped = 0;
-        $errors  = [];
+        $setupDir = \IPS\ROOT_PATH . '/applications/gddealer/setup';
+        $ran      = [];
+        $errors   = [];
 
-        foreach ( self::TEMPLATES as $name => $sig )
-        {
-            $path = $dir . '/' . $name . '.tpl';
+        $files = [];
+        foreach ( self::SOURCES as $tpl => $list ) {
+            foreach ( $list as $f ) {
+                if ( !in_array( $f, $files, true ) ) {
+                    $files[] = $f;
+                }
+            }
+        }
 
-            if ( !is_readable( $path ) )
-            {
-                $errors[] = "missing or unreadable: $path";
+        foreach ( $files as $relPath ) {
+            $absPath = $setupDir . '/' . $relPath;
+            if ( !is_readable( $absPath ) ) {
+                $errors[] = "missing: $relPath";
                 continue;
             }
-
-            $body = file_get_contents( $path );
-            if ( $body === false || $body === '' )
-            {
-                $errors[] = "empty body: $path";
-                continue;
+            try {
+                require_once $absPath;
+                $ran[] = $relPath;
             }
-
-            try
-            {
-                /* Drop any set_id=0 stray row that could compete with set_id=1 */
-                try {
-                    \IPS\Db::i()->delete( 'core_theme_templates', [
-                        'template_app=? AND template_location=? AND template_group=? AND template_name=? AND template_set_id=?',
-                        'gddealer', 'front', 'dealers', $name, 0
-                    ] );
-                } catch ( \Throwable ) {}
-
-                \IPS\Db::i()->replace( 'core_theme_templates', [
-                    'template_set_id'   => 1,
-                    'template_app'      => 'gddealer',
-                    'template_location' => 'front',
-                    'template_group'    => 'dealers',
-                    'template_name'     => $name,
-                    'template_data'     => $sig,
-                    'template_content'  => $body,
-                    'template_updated'  => time(),
-                    'template_version'  => '1.0.212',
-                ] );
-                $written++;
-            }
-            catch ( \Throwable $e )
-            {
-                $errors[] = "$name: " . $e->getMessage();
+            catch ( \Throwable $e ) {
+                $errors[] = "$relPath: " . $e->getMessage();
             }
         }
 
         try {
             \IPS\Log::log(
-                "CanonicalTemplates::ensure() — written=$written skipped=$skipped errors=" . count($errors),
+                'CanonicalTemplates::ensure ran=' . count($ran)
+                . ' errors=' . count($errors)
+                . ( !empty($errors) ? ' details: ' . implode('; ', $errors) : '' ),
                 'gddealer_canonical_templates'
             );
         } catch ( \Throwable ) {}
 
-        return [ 'written' => $written, 'skipped' => $skipped, 'errors' => $errors ];
+        return [ 'ran' => $ran, 'errors' => $errors ];
     }
 
     /**
-     * Clear template-related caches. Call after ensure() if invoked
-     * outside the IPS upgrade flow (which already busts caches).
+     * Clear template-related caches. Call after ensure().
      */
     public static function clearCaches(): void
     {

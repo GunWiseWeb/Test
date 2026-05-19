@@ -31,6 +31,15 @@ class _Application extends \IPS\Application
 	public function installOther()
 	{
 		require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/install.php';
+
+		try {
+			if ( class_exists( '\\IPS\\Theme\\Dev\\Theme' ) ) {
+				\IPS\Theme\Dev\Theme::importDevCss( 'gddealer', 0 );
+			}
+		} catch ( \Throwable $e ) {
+			try { \IPS\Log::log( 'installOther importDevCss failed: ' . $e->getMessage(), 'gddealer_install' ); }
+			catch ( \Throwable ) {}
+		}
 	}
 
 	/**

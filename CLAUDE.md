@@ -464,13 +464,15 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
     ```
     Any hits (excluding comments) need cleanup.
 
-59. **Canonical templates (v212 architecture)** — 10 gddealer templates are managed by `\IPS\gddealer\Setup\CanonicalTemplates`: feedSettings, overview, listings, analytics, dealerNavIcon, dealerShell, dealerSidebar, dashboardCustomize, dealerProfile, unmatched. The SINGLE SOURCE OF TRUTH for each is its `.tpl` file in `applications/gddealer/data/canonical_templates/`. To change a canonical template body: edit the `.tpl` file, bump version, ship — `CanonicalTemplates::ensure()` is automatically called by every install and every upgrade. To change a template's `template_data` signature: edit `CanonicalTemplates::TEMPLATES` constant, update the `.tpl` body to match, update the controller call site, bump version. Every new `upg_*/upgrade.php` MUST end with:
+59. **Canonical templates (v213 architecture)** — 12 gddealer templates are managed by `\IPS\gddealer\Setup\CanonicalTemplates`: feedSettings, overview, listings, analytics, dealerNavIcon, dealerShell, dealerSidebar, dashboardCustomize, dealerProfile, unmatched, help, supportTicketView. The `SOURCES` constant maps each template to the overlay file(s) that write its canonical body. `ensure()` re-runs those overlay files. To change a managed template body: edit the overlay file referenced in SOURCES, bump version, ship. Every new `upg_*/upgrade.php` MUST end with:
     ```php
     require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
     \IPS\gddealer\Setup\CanonicalTemplates::ensure();
     \IPS\gddealer\Setup\CanonicalTemplates::clearCaches();
     ```
-    DO NOT add template bodies for these 10 templates to install.php's `$gddealerTemplates[]` array (ensure() overwrites them). DO NOT write overlay files (`templates_XXXXX.php`) for these 10 templates going forward. To add NEW templates that are NOT yet canonical, the old pattern still applies, but consider adding them to the canonical list if they are likely to be edited again.
+    DO NOT write new overlay files for these 12 templates without updating the SOURCES constant. To add a NEW managed template: add an entry to SOURCES mapping template_name to [array of overlay file paths].
+
+60. **gddealer CSS architecture (v213 native IPS 5 pattern)** — the 91 KB `applications/gddealer/dev/css/front/dealer.css` holds all dashboard component styles. It is loaded via IPS 5's native CSS pipeline: (1) `Application::installOther()` calls `\IPS\Theme\Dev\Theme::importDevCss('gddealer', 0)` to register dev/css into `core_theme_css`, (2) `upg_10213+` scripts call `Theme::compileCss()` to compile to a served URL, (3) every controller that renders dealer output merges via `\IPS\Output::i()->cssFiles = array_merge( cssFiles, \IPS\Theme::i()->css('dealer.css', 'gddealer', 'front') )`. Currently done in `DealerShellTrait::output()` AND `profile.php`'s public profile output sites. DO NOT bring back the inline file-read band-aid. DO NOT add `<style>` blocks to template bodies for component styling. To edit dashboard styling: edit `dev/css/front/dealer.css`, bump version — importDevCss + compileCss steps re-register and recompile on upgrade.
 
 ## Server details
 - Primary IP: 108.160.146.199

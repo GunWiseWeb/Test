@@ -27,11 +27,12 @@ trait DealerShellTrait
 	 */
 	protected function output( string $activeTab, string $body ): void
 	{
-		$css = '';
-		$cssPath = \IPS\ROOT_PATH . '/applications/gddealer/dev/css/front/dealer.css';
-		if ( file_exists( $cssPath ) ) {
-			$css = '<style>' . file_get_contents( $cssPath ) . '</style>';
-		}
+		try {
+			\IPS\Output::i()->cssFiles = array_merge(
+				\IPS\Output::i()->cssFiles,
+				\IPS\Theme::i()->css( 'dealer.css', 'gddealer', 'front' )
+			);
+		} catch ( \Throwable ) {}
 
 		$js = '';
 		$jsPath = \IPS\ROOT_PATH . '/applications/gddealer/dev/js/front/badge-picker.js';
@@ -42,8 +43,7 @@ trait DealerShellTrait
 		$fflOnboardingHtml = $this->fflOnboardingMarkup();
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_frontend_dashboard_title' );
-		\IPS\Output::i()->output = $css
-			. $fflOnboardingHtml
+		\IPS\Output::i()->output = $fflOnboardingHtml
 			. \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->dealerShell(
 				$this->dealerSummary(),
 				$activeTab,
