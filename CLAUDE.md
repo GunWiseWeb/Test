@@ -464,6 +464,14 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
     ```
     Any hits (excluding comments) need cleanup.
 
+59. **Canonical templates (v212 architecture)** — 10 gddealer templates are managed by `\IPS\gddealer\Setup\CanonicalTemplates`: feedSettings, overview, listings, analytics, dealerNavIcon, dealerShell, dealerSidebar, dashboardCustomize, dealerProfile, unmatched. The SINGLE SOURCE OF TRUTH for each is its `.tpl` file in `applications/gddealer/data/canonical_templates/`. To change a canonical template body: edit the `.tpl` file, bump version, ship — `CanonicalTemplates::ensure()` is automatically called by every install and every upgrade. To change a template's `template_data` signature: edit `CanonicalTemplates::TEMPLATES` constant, update the `.tpl` body to match, update the controller call site, bump version. Every new `upg_*/upgrade.php` MUST end with:
+    ```php
+    require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
+    \IPS\gddealer\Setup\CanonicalTemplates::ensure();
+    \IPS\gddealer\Setup\CanonicalTemplates::clearCaches();
+    ```
+    DO NOT add template bodies for these 10 templates to install.php's `$gddealerTemplates[]` array (ensure() overwrites them). DO NOT write overlay files (`templates_XXXXX.php`) for these 10 templates going forward. To add NEW templates that are NOT yet canonical, the old pattern still applies, but consider adding them to the canonical list if they are likely to be edited again.
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38

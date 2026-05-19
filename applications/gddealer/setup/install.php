@@ -5412,6 +5412,21 @@ require_once __DIR__ . '/templates_10078.php';
 require_once __DIR__ . '/templates_10158_part3.php';
 require_once __DIR__ . '/templates_10158_part4.php';
 
+/* v1.0.212 — Final canonical pass: enforces single source of truth
+ * for the 10 most-volatile templates. Reads from
+ * data/canonical_templates/*.tpl and writes to core_theme_templates.
+ * Runs AFTER all overlay files so it always has the last word. */
+try
+{
+    require_once __DIR__ . '/../sources/Setup/CanonicalTemplates.php';
+    \IPS\gddealer\Setup\CanonicalTemplates::ensure();
+}
+catch ( \Throwable $e )
+{
+    try { \IPS\Log::log( 'install.php canonical pass failed: ' . $e->getMessage(), 'gddealer_install' ); }
+    catch ( \Throwable ) {}
+}
+
 /* Force furl + applications + extensions + email-template cache rebuild
    so new routes, templates, and extension classes appear without a manual
    cache flush. */
