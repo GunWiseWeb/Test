@@ -5426,6 +5426,9 @@ try
 {
     require_once __DIR__ . '/../sources/Setup/CanonicalTemplates.php';
     \IPS\gddealer\Setup\CanonicalTemplates::ensure();
+
+    \IPS\gddealer\Setup\CanonicalTemplates::verifyAndForce();
+
     \IPS\gddealer\Setup\CanonicalTemplates::clearCaches();
 }
 catch ( \Throwable $e )

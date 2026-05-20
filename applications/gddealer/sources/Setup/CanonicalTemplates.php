@@ -88,7 +88,7 @@ class _CanonicalTemplates
                 continue;
             }
             try {
-                require_once $absPath;
+                require $absPath;
                 $ran[] = $relPath;
             }
             catch ( \Throwable $e ) {
@@ -106,6 +106,88 @@ class _CanonicalTemplates
         } catch ( \Throwable ) {}
 
         return [ 'ran' => $ran, 'errors' => $errors ];
+    }
+
+    /**
+     * Hard-force a template to its canonical body. Used as a final
+     * safety net after ensure(). Reads body from the source overlay
+     * file (parses its nowdoc), then does REPLACE INTO with set_id=1.
+     * Deletes stray rows at other set_ids. Logs byte counts.
+     */
+    public static function verifyAndForce(): array
+    {
+        $setupDir = \IPS\ROOT_PATH . '/applications/gddealer/setup';
+        $results = [];
+
+        $forced = [
+            'dealerNavIcon'      => [ 'templates_10149_part3.php', 'front', 'dealers', '$icon' ],
+            'feedSettings'       => [ 'templates_10158_part4.php', 'front', 'dealers', '$data' ],
+            'listings'           => [ 'templates_10074.php',       'front', 'dealers', '$data' ],
+            'analytics'          => [ 'templates_10078.php',       'front', 'dealers', '$data' ],
+            'dashboardCustomize' => [ 'templates_10088.php',       'front', 'dealers', '$data' ],
+            'dealerProfile'      => [ 'templates_10090a.php',      'front', 'dealers', '$data' ],
+            'help'               => [ 'templates_10147_help.php',  'front', 'dealers', '$data' ],
+        ];
+
+        foreach ( $forced as $name => [ $sourceFile, $location, $group, $dataSig ] ) {
+            $path = $setupDir . '/' . $sourceFile;
+            if ( !is_readable( $path ) ) {
+                $results[ $name ] = [ 'status' => 'missing_source', 'bytes' => 0 ];
+                continue;
+            }
+
+            $src = file_get_contents( $path );
+
+            $body = null;
+            if ( preg_match( "/\\\$\\w+Tpl\\s*=\\s*<<<'TEMPLATE_EOT'\\n(.*?)\\nTEMPLATE_EOT;/s", $src, $m ) ) {
+                $body = $m[1];
+            }
+            elseif ( preg_match( "/'template_name'\\s*=>\\s*'" . preg_quote( $name, '/' ) . "'.*?'template_content'\\s*=>\\s*<<<'TEMPLATE_EOT'\\n(.*?)\\nTEMPLATE_EOT[,;]/s", $src, $m ) ) {
+                $body = $m[1];
+            }
+            elseif ( preg_match( "/'template_content'\\s*=>\\s*<<<'TEMPLATE_EOT'\\n(.*?)\\nTEMPLATE_EOT[,;]/s", $src, $m ) ) {
+                $body = $m[1];
+            }
+
+            if ( $body === null || $body === '' ) {
+                $results[ $name ] = [ 'status' => 'parse_failed', 'bytes' => 0 ];
+                continue;
+            }
+
+            try {
+                \IPS\Db::i()->delete( 'core_theme_templates', [
+                    'template_app=? AND template_location=? AND template_group=? AND template_name=? AND template_set_id<>?',
+                    'gddealer', $location, $group, $name, 1
+                ] );
+            } catch ( \Throwable ) {}
+
+            try {
+                \IPS\Db::i()->replace( 'core_theme_templates', [
+                    'template_set_id'   => 1,
+                    'template_app'      => 'gddealer',
+                    'template_location' => $location,
+                    'template_group'    => $group,
+                    'template_name'     => $name,
+                    'template_data'     => $dataSig,
+                    'template_content'  => $body,
+                    'template_updated'  => time(),
+                    'template_version'  => '1.0.214',
+                ] );
+                $results[ $name ] = [ 'status' => 'written', 'bytes' => strlen( $body ) ];
+            } catch ( \Throwable $e ) {
+                $results[ $name ] = [ 'status' => 'replace_failed', 'bytes' => strlen( $body ), 'error' => $e->getMessage() ];
+            }
+        }
+
+        try {
+            $summary = '';
+            foreach ( $results as $n => $r ) {
+                $summary .= "$n=" . $r['bytes'] . '/' . $r['status'] . ' ';
+            }
+            \IPS\Log::log( 'CanonicalTemplates::verifyAndForce ' . trim( $summary ), 'gddealer_canonical_templates' );
+        } catch ( \Throwable ) {}
+
+        return $results;
     }
 
     /**
