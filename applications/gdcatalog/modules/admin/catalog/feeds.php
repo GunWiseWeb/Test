@@ -123,10 +123,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 	 */
 	protected function add()
 	{
-		if ( isset( \IPS\Request::i()->csrfKey ) )
-		{
-			\IPS\Session::i()->csrfCheck();
-		}
+		if ( \IPS\Request::i()->requestMethod() === 'POST' ) { \IPS\Session::i()->csrfCheck(); }
 
 		$form = new Form;
 
@@ -321,10 +318,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 	 */
 	protected function edit()
 	{
-		if ( isset( \IPS\Request::i()->csrfKey ) )
-		{
-			\IPS\Session::i()->csrfCheck();
-		}
+		if ( \IPS\Request::i()->requestMethod() === 'POST' ) { \IPS\Session::i()->csrfCheck(); }
 
 		$id   = (int) Request::i()->id;
 		$feed = Distributor::load( $id );

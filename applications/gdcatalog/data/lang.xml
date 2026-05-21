@@ -37,6 +37,11 @@
     <word key="gdcatalog_product_status"><![CDATA[Status]]></word>
     <word key="gdcatalog_product_primary_source"><![CDATA[Primary Source]]></word>
     <word key="gdcatalog_product_locked_fields"><![CDATA[Locked Fields]]></word>
+    <word key="gdcatalog_feed_inactive" js="0"><![CDATA[INACTIVE]]></word>
+    <word key="gdcatalog_feed_status_completed" js="0"><![CDATA[Completed]]></word>
+    <word key="gdcatalog_feed_status_failed" js="0"><![CDATA[Failed]]></word>
+    <word key="gdcatalog_feed_status_running" js="0"><![CDATA[Running]]></word>
+    <word key="gdcatalog_feed_test_connection" js="0"><![CDATA[Test Connection]]></word>
     <word key="gdcatalog_feeds_empty"><![CDATA[No distributor feeds configured yet.]]></word>
     <word key="gdcatalog_conflicts_empty"><![CDATA[No conflict log entries match the current filter.]]></word>
     <word key="gdcatalog_products_empty"><![CDATA[No products match the current filter.]]></word>
