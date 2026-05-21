@@ -5,15 +5,18 @@
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
 				<div style="font-size:2em;font-weight:bold">{expression="number_format($totalProducts)"}</div>
 				<div>Total Products</div>
-				<div style="color:#666">Active: {expression="number_format($activeProducts)"} | Review: {expression="number_format($reviewProducts)"}</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{expression="number_format($activeProducts)"}</div>
+				<div>Active</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{expression="number_format($reviewProducts)"}</div>
+				<div>Admin Review</div>
 			</div>
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
 				<div style="font-size:2em;font-weight:bold">{$pendingConflicts}</div>
 				<div>Pending Conflicts</div>
-			</div>
-			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
-				<div style="font-size:2em;font-weight:bold">0</div>
-				<div>Pending Compliance Flags</div>
 			</div>
 		</div>
 
@@ -23,7 +26,17 @@
 			<div class="ipsEmptyMessage"><p>{lang="gdcatalog_dash_feeds_empty"}</p></div>
 		{{else}}
 		<table class="ipsTable ipsTable_zebra" style="width:100%">
-			<thead><tr><th>#</th><th>Feed</th><th>Products</th><th>Status</th><th>Last Run</th><th>Last Status</th><th style="width:140px">Action</th></tr></thead>
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Feed</th>
+					<th>Products</th>
+					<th>Status</th>
+					<th>Last Run</th>
+					<th>Last Status</th>
+					<th style="width:300px">Actions</th>
+				</tr>
+			</thead>
 			<tbody>
 				{{foreach $distributorStats as $ds}}
 				<tr>
@@ -45,15 +58,27 @@
 						{{endif}}
 					</td>
 					<td>
-						{{if $ds['last_status']}}
+						{{if $ds['is_running']}}
+							<span class="ipsBadge ipsBadge--warning">Running</span>
+						{{elseif $ds['is_failed']}}
+							<span class="ipsBadge ipsBadge--negative">Failed</span>
+						{{elseif $ds['last_status']}}
 							{$ds['last_status']}
 						{{else}}
 							&mdash;
 						{{endif}}
 					</td>
-					<td>
+					<td style="display:flex;gap:4px;flex-wrap:wrap">
 						{{if $ds['active']}}
 							<a href="{$ds['run_import_url']}" class="ipsButton ipsButton--primary ipsButton--small">Run Import</a>
+							{{if $ds['is_sportssouth']}}
+								<a href="{$ds['queue_full_import_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Queue Full Import</a>
+							{{endif}}
+						{{endif}}
+						{{if $ds['is_locked']}}
+							<a href="{$ds['unlock_catalog_url']}" class="ipsButton ipsButton--warning ipsButton--small">Unlock</a>
+						{{else}}
+							<a href="{$ds['lock_catalog_url']}" class="ipsButton ipsButton--light ipsButton--small">Lock</a>
 						{{endif}}
 					</td>
 				</tr>
@@ -61,5 +86,33 @@
 			</tbody>
 		</table>
 		{{endif}}
+
+		<h2 class="ipsType_sectionHead" style="margin:24px 0 12px">Tasks</h2>
+		<div style="display:flex;gap:8px;flex-wrap:wrap">
+			<a href="{$taskUrls['validate_images']}" class="ipsButton ipsButton--secondary ipsButton--small">Validate Images</a>
+			<a href="{$taskUrls['resolve_conflicts']}" class="ipsButton ipsButton--secondary ipsButton--small">Resolve Conflicts</a>
+			<a href="{$taskUrls['prune_log']}" class="ipsButton ipsButton--secondary ipsButton--small">Prune Log</a>
+		</div>
+
+		{{if $osExists}}
+		<h2 class="ipsType_sectionHead" style="margin:24px 0 12px">{lang="gdcatalog_dash_opensearch_status"}</h2>
+		<div style="display:flex;gap:16px;margin-bottom:16px">
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$osStats['doc_count']}</div>
+				<div>{lang="gdcatalog_dash_opensearch_count"}</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$osStats['health']}</div>
+				<div>Cluster Health</div>
+			</div>
+		</div>
+		{{endif}}
+
+		{{if $reindexQueue}}
+		<div style="background:#fef3c7;border:1px solid #f59e0b;padding:12px 16px;border-radius:8px;margin-top:16px">
+			<strong>Reindex Queue:</strong> {$reindexQueue} products awaiting reindexing.
+		</div>
+		{{endif}}
+
 	</div>
 </div>

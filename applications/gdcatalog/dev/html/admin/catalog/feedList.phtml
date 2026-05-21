@@ -22,9 +22,10 @@
 		{{if count($feeds) === 0}}
 			<div class="ipsEmptyMessage"><p>{lang="gdcatalog_feeds_empty"}</p></div>
 		{{else}}
-		<table class="ipsTable ipsTable_zebra" style="width:100%">
+		<table class="ipsTable ipsTable_zebra ipsTable_reorder" style="width:100%" data-reorder-url="{$reorderUrl}" data-csrf-key="{$csrfKey}" data-controller="core.admin.core.table">
 			<thead>
 				<tr>
+					<th style="width:30px"></th>
 					<th style="width:5%">#</th>
 					<th>{lang="gdcatalog_feed_name"}</th>
 					<th>{lang="gdcatalog_feed_distributor"}</th>
@@ -37,9 +38,10 @@
 					<th style="width:100px">Actions</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="gdcatalog-sortable">
 				{{foreach $feeds as $feed}}
-				<tr>
+				<tr data-feed-id="{$feed['id']}">
+					<td class="gdcatalog-drag-handle" style="cursor:grab;width:30px;text-align:center"><i class="fa-solid fa-bars"></i></td>
 					<td>{$feed['priority']}</td>
 					<td><strong>{$feed['feed_name']}</strong></td>
 					<td>{$feed['distributor_label']}</td>
