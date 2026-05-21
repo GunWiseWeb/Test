@@ -11,6 +11,9 @@ $lang = array(
 	'__app_gdcatalog'                          => "GD Master Catalog",
 
 	/* ACP Menu */
+	'menutab__gdcatalog'                       => "GD Catalog",
+	'menutab__gdcatalog_icon'                  => "database",
+	'menu__gdcatalog_catalog'                  => "Master Catalog",
 	'module__gdcatalog_catalog'                => "Master Catalog",
 	'menu__gdcatalog_catalog_dashboard'        => "Dashboard",
 	'menu__gdcatalog_catalog_products'         => "Products",
@@ -58,6 +61,22 @@ $lang = array(
 	'gdcatalog_product_image_url'              => "Image URL",
 	'gdcatalog_product_image_url_desc'         => "URL of product image. Use \"View full size\" at the top of this page to preview after saving. Must start with http:// or https://.",
 	'gdcatalog_product_admin_review'           => "Admin Review Required",
+
+	/* Feed status badges */
+	'gdcatalog_feed_inactive'                  => "INACTIVE",
+	'gdcatalog_feed_status_completed'          => "Completed",
+	'gdcatalog_feed_status_failed'             => "Failed",
+	'gdcatalog_feed_status_running'            => "Running",
+	'gdcatalog_feed_test_connection'           => "Test Connection",
+
+	/* Empty states */
+	'gdcatalog_feeds_empty'                    => "No distributor feeds configured yet.",
+	'gdcatalog_products_empty'                 => "No products match the current filter.",
+	'gdcatalog_compliance_empty_new'           => "No pending compliance restrictions awaiting review.",
+	'gdcatalog_compliance_empty_conflicts'     => "No pending feed conflicts awaiting resolution.",
+	'gdcatalog_compliance_empty_locks'         => "No field locks are currently in place.",
+	'gdcatalog_compliance_empty_admin'         => "No admin-set restrictions recorded yet.",
+	'gdcatalog_dash_feeds_empty'               => "No distributor feeds have been configured yet.",
 
 	/* Feed Configuration */
 	'gdcatalog_feeds_title'                    => "Distributor Feed Configuration",
@@ -162,6 +181,91 @@ $lang = array(
 	'gdcatalog_conflict_manufacturer'          => "Conflict detect: manufacturer",
 	'gdcatalog_conflict_description'           => "Conflict detect: description",
 
+	/* Legacy setting keys (without setting_ prefix) */
+	'gdcatalog_opensearch_host'                => "OpenSearch Host",
+	'gdcatalog_opensearch_host_desc'           => "Direct connection URL for OpenSearch. Default: http://localhost:9200",
+	'gdcatalog_opensearch_index'               => "OpenSearch Index Name",
+	'gdcatalog_opensearch_index_desc'          => "Index name for the product catalog. Default: gunrack_products",
+	'gdcatalog_auto_resolve_hours'             => "Auto-Resolve Conflicts After (Hours)",
+	'gdcatalog_auto_resolve_hours_desc'        => "Hours before unresolved feed conflicts are automatically accepted. Default: 48",
+	'gdcatalog_discontinue_threshold'          => "Discontinue Threshold (Missing Feeds)",
+	'gdcatalog_discontinue_threshold_desc'     => "Consecutive import misses before a product is marked Discontinued. Default: 3",
+
+	/* Digest email */
+	'gdcatalog_digest_email_enabled'           => "Daily Compliance Digest Email",
+	'gdcatalog_digest_email_enabled_desc'      => "When enabled, a daily email summarising new flags, feed conflicts, and lock changes is sent to the recipient below (Spec 2.10.5).",
+	'gdcatalog_digest_email_recipient'         => "Digest Email Recipient",
+	'gdcatalog_digest_email_recipient_desc'    => "Email address that receives the daily compliance digest. Leave empty to disable delivery even if the toggle above is on.",
+
 	/* ACP Permissions */
+	'r__gdcatalog'                             => "GD Master Catalog",
+	'r__catalog_manage'                        => "Can manage Master Catalog (dashboard, products, feeds, conflicts, compliance, settings)?",
 	'gdcatalog_feeds_manage'                   => "Can manage feed configuration",
+
+	/* Product extended fields */
+	'gdcatalog_restriction_states'             => "Restricted States (comma-separated)",
+	'gdcatalog_custom_value'                   => "Custom Value",
+	'gdcatalog_product_action_type'            => "Action Type",
+	'gdcatalog_product_finish'                 => "Finish",
+	'gdcatalog_product_description'            => "Description",
+	'gdcatalog_product_nfa_item'               => "NFA Item",
+	'gdcatalog_product_requires_ffl'           => "Requires FFL",
+	'gdcatalog_product_is_ammo'                => "Is Ammunition",
+
+	/* Feed add/delete/reorder */
+	'gdcatalog_feed_add'                       => "Add Distributor",
+	'gdcatalog_feed_priority'                  => "Priority",
+	'gdcatalog_feed_priority_position'         => "Priority Position",
+	'gdcatalog_feed_distributor_slug'          => "Distributor Slug",
+	'gdcatalog_feed_distributor_label'         => "Distributor Display Name",
+	'gdcatalog_feed_added'                     => "Distributor added. Configure feed URL and credentials, then activate.",
+	'gdcatalog_feed_deleted'                   => "Distributor deleted.",
+	'gdcatalog_feed_deleted_with_reassign'     => "Distributor deleted. %s catalog products reassigned and flagged for admin review.",
+	'gdcatalog_feed_delete_confirm'            => "Delete this distributor? Cascade: all conflict logs, locks, compliance flags, and import history will be removed. Catalog products using this distributor as primary source will be reassigned and flagged for admin review.",
+	'gdcatalog_feed_slug_duplicate'            => "A distributor with this slug already exists. Choose a unique slug.",
+	'gdcatalog_drag_to_reorder'                => "Drag to reorder priority",
+	'gdcatalog_btn_edit'                       => "Edit",
+	'gdcatalog_btn_delete'                     => "Delete",
+
+	/* Conflict log pruning */
+	'gdcatalog_conflict_log_retention_days'      => "Conflict log retention (days)",
+	'gdcatalog_conflict_log_retention_days_desc' => "Auto-resolved conflict log entries older than this many days are pruned daily. Manual overrides (admin-changed) are kept forever. Range: 1-365. Default: 14.",
+	'gdcatalog_btn_clear_auto_resolved'        => "Clear Auto-Resolved",
+	'gdcatalog_filter_scope_all'               => "All",
+	'gdcatalog_filter_scope_manual'            => "Manual Override",
+	'gdcatalog_filter_scope_auto'              => "Auto-Resolved",
+	'gdcatalog_task_prune_conflict_log'        => "Prune old auto-resolved conflict log entries",
+
+	/* Product detail fields */
+	'gdcatalog_product_mpn'                    => "MPN",
+	'gdcatalog_product_mpn_desc'               => "Manufacturer part number (e.g. 4010101).",
+	'gdcatalog_product_manufacturer'           => "Manufacturer",
+	'gdcatalog_product_manufacturer_desc'      => "Actual maker, if different from the consumer brand (e.g. Miroku for Browning).",
+	'gdcatalog_product_importer'               => "Importer",
+	'gdcatalog_product_importer_desc'          => "FFL Type 08 importer of record for imported firearms.",
+	'gdcatalog_product_gun_type'               => "Type",
+	'gdcatalog_product_gun_type_desc'          => "Product type (Pistol, Revolver, Bolt-Action, etc).",
+	'gdcatalog_product_capacity'               => "Capacity",
+	'gdcatalog_product_barrel_length'          => "Barrel Length (inches)",
+	'gdcatalog_product_overall_length'         => "Overall Length (inches)",
+	'gdcatalog_product_weight_oz'              => "Weight (oz)",
+	'gdcatalog_product_safety_type'            => "Safety",
+	'gdcatalog_product_stock_type'             => "Stock / Grips",
+	'gdcatalog_product_sight_type'             => "Sight",
+	'gdcatalog_product_receiver_type'          => "Receiver / Slide",
+	'gdcatalog_product_frame_material'         => "Frame Material",
+
+	/* Image status */
+	'gdcatalog_image_status'                   => "Image Status",
+	'gdcatalog_image_status_all'               => "All Products",
+	'gdcatalog_image_status_present'           => "Has Image URL",
+	'gdcatalog_image_status_missing'           => "Missing Image URL",
+	'gdcatalog_image_validation_batch_size'      => "Image validation batch size",
+	'gdcatalog_image_validation_batch_size_desc' => "Number of image URLs HEAD-checked per hourly task run. Default 2000. Range 1-10000.",
+	'gdcatalog_image_validation_revalidate_days'      => "Image revalidation interval (days)",
+	'gdcatalog_image_validation_revalidate_days_desc' => "After this many days, previously-validated images get re-checked. Default 30. Range 1-365.",
+	'gdcatalog_task_validate_product_images'    => "HEAD-check product image URLs for broken (404) links",
+	'gdcatalog_image_status_unchecked'         => "Never Checked",
+	'gdcatalog_image_status_ok'                => "Verified OK",
+	'gdcatalog_image_status_broken'            => "Broken (404)",
 );

@@ -1,0 +1,54 @@
+<?php
+namespace IPS\gdcatalog\setup\upg_10043;
+use function defined;
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) ) { header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' ); exit; }
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$newStrings = [
+			'gdcatalog_setting_opensearch_host'        => 'OpenSearch Host',
+			'gdcatalog_setting_opensearch_host_desc'   => 'Direct connection URL for OpenSearch. Default: http://localhost:9200',
+			'gdcatalog_setting_opensearch_index'       => 'OpenSearch Index Name',
+			'gdcatalog_setting_opensearch_index_desc'  => 'Index name for the product catalog. Default: gunrack_products',
+			'gdcatalog_setting_auto_resolve'           => 'Auto-Resolve Hours',
+			'gdcatalog_setting_auto_resolve_desc'      => 'Hours before unresolved feed conflicts are automatically accepted. Default: 48',
+			'gdcatalog_setting_discontinue_threshold'  => 'Discontinue Threshold',
+			'gdcatalog_setting_discontinue_desc'       => 'Consecutive import misses before a product is marked Discontinued. Default: 3',
+			'gdcatalog_feed_inactive'                  => 'INACTIVE',
+			'gdcatalog_feed_status_running'            => 'Running',
+			'gdcatalog_feed_status_completed'          => 'Completed',
+			'gdcatalog_feed_status_failed'             => 'Failed',
+			'gdcatalog_feed_test_connection'           => 'Test Connection',
+			'menu__gdcatalog_catalog'                  => 'GD Catalog',
+			'menutab__gdcatalog'                       => 'GD Catalog',
+			'menutab__gdcatalog_icon'                  => 'database',
+			'gdcatalog_products_empty'                 => 'No products found matching your filters.',
+			'gdcatalog_products_title'                 => 'Product Browser',
+		];
+		foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+		{
+			foreach ( $newStrings as $key => $val )
+			{
+				try
+				{
+					\IPS\Db::i()->replace( 'core_sys_lang_words', [
+						'lang_id'      => (int) $langId,
+						'word_app'     => 'gdcatalog',
+						'word_key'     => $key,
+						'word_default' => $val,
+						'word_js'      => 0,
+						'word_export'  => 1,
+					] );
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+
+		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
+		return TRUE;
+	}
+}
+class upgrade extends _upgrade {}

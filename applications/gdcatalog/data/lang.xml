@@ -103,6 +103,14 @@
     <word key="gdcatalog_lock_locked_by"><![CDATA[Locked By]]></word>
     <word key="gdcatalog_lock_locked_at"><![CDATA[Locked At]]></word>
     <word key="gdcatalog_settings_title"><![CDATA[Plugin Settings]]></word>
+    <word key="gdcatalog_setting_opensearch_host" js="0"><![CDATA[OpenSearch Host]]></word>
+    <word key="gdcatalog_setting_opensearch_host_desc" js="0"><![CDATA[Direct connection URL for OpenSearch. Default: http://localhost:9200]]></word>
+    <word key="gdcatalog_setting_opensearch_index" js="0"><![CDATA[OpenSearch Index Name]]></word>
+    <word key="gdcatalog_setting_opensearch_index_desc" js="0"><![CDATA[Index name for the product catalog. Default: gunrack_products]]></word>
+    <word key="gdcatalog_setting_auto_resolve" js="0"><![CDATA[Auto-Resolve Hours]]></word>
+    <word key="gdcatalog_setting_auto_resolve_desc" js="0"><![CDATA[Hours before unresolved feed conflicts are automatically accepted. Default: 48]]></word>
+    <word key="gdcatalog_setting_discontinue_threshold" js="0"><![CDATA[Discontinue Threshold]]></word>
+    <word key="gdcatalog_setting_discontinue_desc" js="0"><![CDATA[Consecutive import misses before a product is marked Discontinued. Default: 3]]></word>
     <word key="gdcatalog_opensearch_host_desc"><![CDATA[Direct connection URL for OpenSearch. Default: http://localhost:9200]]></word>
     <word key="gdcatalog_opensearch_index_desc"><![CDATA[Index name for the product catalog. Default: gunrack_products]]></word>
     <word key="gdcatalog_auto_resolve_hours_desc"><![CDATA[Hours before unresolved feed conflicts are automatically accepted. Default: 48]]></word>

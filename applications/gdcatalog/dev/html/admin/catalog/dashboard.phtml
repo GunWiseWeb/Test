@@ -5,18 +5,19 @@
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
 				<div style="font-size:2em;font-weight:bold">{expression="number_format($totalProducts)"}</div>
 				<div>Total Products</div>
-			</div>
-			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
-				<div style="font-size:2em;font-weight:bold">{expression="number_format($activeProducts)"}</div>
-				<div>Active</div>
-			</div>
-			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
-				<div style="font-size:2em;font-weight:bold">{expression="number_format($reviewProducts)"}</div>
-				<div>Admin Review</div>
+				<div style="color:#666">Active: {expression="number_format($activeProducts)"} | Review: {expression="number_format($reviewProducts)"}</div>
 			</div>
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
 				<div style="font-size:2em;font-weight:bold">{$pendingConflicts}</div>
 				<div>Pending Conflicts</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$lockedFields}</div>
+				<div>Locked Fields</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$reindexQueue}</div>
+				<div>Reindex Queue</div>
 			</div>
 		</div>
 
@@ -69,11 +70,9 @@
 						{{endif}}
 					</td>
 					<td style="display:flex;gap:4px;flex-wrap:wrap">
-						{{if $ds['active']}}
-							<a href="{$ds['run_import_url']}" class="ipsButton ipsButton--primary ipsButton--small">Run Import</a>
-							{{if $ds['is_sportssouth']}}
-								<a href="{$ds['queue_full_import_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Queue Full Import</a>
-							{{endif}}
+						<a href="{$ds['run_import_url']}" class="ipsButton ipsButton--primary ipsButton--small">Run Import</a>
+						{{if $ds['is_sportssouth']}}
+							<a href="{$ds['queue_full_import_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Queue Full Import</a>
 						{{endif}}
 						{{if $ds['is_locked']}}
 							<a href="{$ds['unlock_catalog_url']}" class="ipsButton ipsButton--warning ipsButton--small">Unlock</a>
@@ -94,18 +93,25 @@
 			<a href="{$taskUrls['prune_log']}" class="ipsButton ipsButton--secondary ipsButton--small">Prune Log</a>
 		</div>
 
-		{{if $osExists}}
 		<h2 class="ipsType_sectionHead" style="margin:24px 0 12px">{lang="gdcatalog_dash_opensearch_status"}</h2>
+		{{if $osExists}}
 		<div style="display:flex;gap:16px;margin-bottom:16px">
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
-				<div style="font-size:2em;font-weight:bold">{$osStats['doc_count']}</div>
+				<div style="font-size:2em;font-weight:bold">{expression="isset($osStats['doc_count']) ? number_format($osStats['doc_count']) : '0'"}</div>
 				<div>{lang="gdcatalog_dash_opensearch_count"}</div>
 			</div>
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
-				<div style="font-size:2em;font-weight:bold">{$osStats['health']}</div>
-				<div>Cluster Health</div>
+				<div style="font-size:2em;font-weight:bold">{expression="isset($osStats['size_bytes']) ? number_format($osStats['size_bytes']) : '0'"}</div>
+				<div>Index Size (bytes)</div>
 			</div>
 		</div>
+		<div style="display:flex;gap:8px">
+			<a href="{$osStats['rebuild_url']}" class="ipsButton ipsButton--primary ipsButton--small">{lang="gdcatalog_dash_rebuild_index"}</a>
+			<a href="{$osStats['process_queue_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Process Queue</a>
+		</div>
+		{{else}}
+		<p class="ipsType_light">OpenSearch index not found.</p>
+		<a href="{$osStats['rebuild_url']}" class="ipsButton ipsButton--primary ipsButton--small">Build Index Now</a>
 		{{endif}}
 
 		{{if $reindexQueue}}
