@@ -75,9 +75,9 @@
 							<a href="{$ds['queue_full_import_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Queue Full Import</a>
 						{{endif}}
 						{{if $ds['is_locked']}}
-							<a href="{$ds['unlock_catalog_url']}" class="ipsButton ipsButton--warning ipsButton--small">Unlock</a>
+							<a href="{$ds['unlock_catalog_url']}" class="ipsButton ipsButton--positive ipsButton--small">Unlock</a>
 						{{else}}
-							<a href="{$ds['lock_catalog_url']}" class="ipsButton ipsButton--light ipsButton--small">Lock</a>
+							<a href="{$ds['lock_catalog_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Lock</a>
 						{{endif}}
 					</td>
 				</tr>
