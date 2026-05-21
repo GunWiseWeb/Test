@@ -57,7 +57,7 @@ class AutoResolveConflicts extends \IPS\Task
 					mb_substr( $conflict->incoming_value, 0, 80 )
 				);
 			}
-			catch ( \Exception $e )
+			catch ( \Throwable $e )
 			{
 				\IPS\Log::log(
 					'Auto-resolve failed for conflict #' . $conflict->id . ': ' . $e->getMessage(),
@@ -102,7 +102,7 @@ class AutoResolveConflicts extends \IPS\Task
 				);
 				$email->send( $member );
 			}
-			catch ( \Exception )
+			catch ( \Throwable )
 			{
 				/* Don't let email failure break the task */
 			}

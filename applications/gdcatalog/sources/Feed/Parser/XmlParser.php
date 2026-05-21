@@ -6,7 +6,8 @@
  * @since       12 Apr 2026
  *
  * Parses XML distributor feeds into arrays of key-value records.
- * SECURITY: libxml_disable_entity_loader(true) before every parse (Appendix C).
+ * SECURITY: LIBXML_NONET flag on simplexml_load_string() prevents XXE.
+ * Do NOT call libxml_disable_entity_loader() — deprecated in PHP 8.0+.
  */
 
 namespace IPS\gdcatalog\Feed\Parser;
@@ -34,14 +35,9 @@ class XmlParser
 	 */
 	public static function parse( string $xmlContent ): array
 	{
-		/* SECURITY: Disable external entity loading before every XML parse (Appendix C) */
-		if ( \function_exists( 'libxml_disable_entity_loader' ) )
-		{
-			libxml_disable_entity_loader( true );
-		}
 		libxml_use_internal_errors( true );
 
-		$xml = simplexml_load_string( $xmlContent, 'SimpleXMLElement', LIBXML_NOENT | LIBXML_NONET );
+		$xml = simplexml_load_string( $xmlContent, 'SimpleXMLElement', LIBXML_NONET );
 
 		if ( $xml === false )
 		{

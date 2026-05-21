@@ -227,7 +227,7 @@ class Importer
 			$this->log->complete( $this->stats );
 			$this->feed->markCompleted( $this->stats['total'] );
 		}
-		catch ( \Exception $e )
+		catch ( \Throwable $e )
 		{
 			$this->log->fail( $e->getMessage() );
 			$this->feed->markFailed();
@@ -837,7 +837,7 @@ class Importer
 				);
 			}
 		}
-		catch ( \Exception $e )
+		catch ( \Throwable $e )
 		{
 			$this->stats['errored']++;
 			$this->log->appendError( 'Record error: ' . $e->getMessage() );

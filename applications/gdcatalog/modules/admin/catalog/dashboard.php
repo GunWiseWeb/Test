@@ -53,9 +53,9 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		$activeProducts = 0;
 		$reviewProducts = 0;
 
-		try { $totalProducts  = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog' )->first(); } catch ( \Exception ) {}
-		try { $activeProducts = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'record_status=?', 'active' ] )->first(); } catch ( \Exception ) {}
-		try { $reviewProducts = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'record_status=?', 'admin_review' ] )->first(); } catch ( \Exception ) {}
+		try { $totalProducts  = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog' )->first(); } catch ( \Throwable ) {}
+		try { $activeProducts = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'record_status=?', 'active' ] )->first(); } catch ( \Throwable ) {}
+		try { $reviewProducts = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'record_status=?', 'admin_review' ] )->first(); } catch ( \Throwable ) {}
 
 		/* Per-category counts */
 		$categoryCounts = [];
@@ -64,11 +64,11 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			foreach ( Category::roots() as $cat )
 			{
 				$count = 0;
-				try { $count = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'category_id=?', $cat->id ] )->first(); } catch ( \Exception ) {}
+				try { $count = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'category_id=?', $cat->id ] )->first(); } catch ( \Throwable ) {}
 				$categoryCounts[] = [ 'name' => $cat->name, 'count' => $count ];
 			}
 		}
-		catch ( \Exception ) {}
+		catch ( \Throwable ) {}
 
 		/* Per-distributor stats from latest import logs.
 		 *
@@ -93,7 +93,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 						'run_start DESC', [ 0, 1 ]
 					)->first();
 				}
-				catch ( \Exception ) {}
+				catch ( \Throwable ) {}
 
 				$productCount = 0;
 				try
@@ -103,7 +103,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 						[ 'FIND_IN_SET(?, distributor_sources)', $feed->distributor ]
 					)->first();
 				}
-				catch ( \Exception ) {}
+				catch ( \Throwable ) {}
 
 				$runImportUrl = (string) \IPS\Http\Url::internal(
 					'app=gdcatalog&module=catalog&controller=dashboard&do=runImport&id=' . (int) $feed->id
@@ -202,7 +202,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 				];
 			}
 		}
-		catch ( \Exception ) {}
+		catch ( \Throwable ) {}
 
 		/* v1.0.30: Real OpenSearch probe.
 		 *
@@ -269,10 +269,10 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		$lockedFields      = 0;
 		$reindexQueue      = 0;
 
-		try { $pendingConflicts  = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_feed_conflicts', [ 'status=?', 'pending' ] )->first(); } catch ( \Exception ) {}
-		try { $pendingCompliance = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_flags', [ 'status=?', 'pending_review' ] )->first(); } catch ( \Exception ) {}
-		try { $lockedFields      = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_field_locks' )->first(); } catch ( \Exception ) {}
-		try { $reindexQueue      = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_reindex_queue' )->first(); } catch ( \Exception ) {}
+		try { $pendingConflicts  = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_feed_conflicts', [ 'status=?', 'pending' ] )->first(); } catch ( \Throwable ) {}
+		try { $pendingCompliance = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_flags', [ 'status=?', 'pending_review' ] )->first(); } catch ( \Throwable ) {}
+		try { $lockedFields      = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_field_locks' )->first(); } catch ( \Throwable ) {}
+		try { $reindexQueue      = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_reindex_queue' )->first(); } catch ( \Throwable ) {}
 
 		/* v1.0.29: URLs for the new Run Now buttons in the dashboard. */
 		$taskUrls = [

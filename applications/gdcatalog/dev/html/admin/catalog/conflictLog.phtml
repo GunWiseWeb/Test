@@ -1,0 +1,69 @@
+<ips:template parameters="$entries, $filterField, $filterSource, $filterRule, $filterUpc, $total, $pagination, $entryCount, $formActionUrl" />
+<div class="ipsBox ipsPull">
+	<div class="ipsBox_body ipsPad">
+
+		<div style="display:flex;gap:16px;margin-bottom:24px">
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{expression="number_format( $total )"}</div>
+				<div>Total Conflict Entries</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$entryCount}</div>
+				<div>Showing On This Page</div>
+			</div>
+		</div>
+
+		<form method="get" action="{$formActionUrl}" style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0);align-items:center;flex-wrap:wrap">
+			<input type="text" name="upc" value="{$filterUpc}" placeholder="UPC" class="ipsInput ipsInput--text" style="flex:1;min-width:140px">
+			<input type="text" name="field" value="{$filterField}" placeholder="Field name" class="ipsInput ipsInput--text" style="flex:1;min-width:140px">
+			<input type="text" name="source" value="{$filterSource}" placeholder="Distributor" class="ipsInput ipsInput--text" style="flex:1;min-width:140px">
+			<select name="rule" class="ipsInput ipsInput--select" style="min-width:160px">
+				<option value="">All rules</option>
+				<option value="priority" {{if $filterRule === 'priority'}}selected{{endif}}>Priority</option>
+				<option value="longest" {{if $filterRule === 'longest'}}selected{{endif}}>Longest</option>
+				<option value="highest_res" {{if $filterRule === 'highest_res'}}selected{{endif}}>Highest Res</option>
+				<option value="highest_val" {{if $filterRule === 'highest_val'}}selected{{endif}}>Highest Val</option>
+				<option value="flagged_for_review" {{if $filterRule === 'flagged_for_review'}}selected{{endif}}>Flagged</option>
+				<option value="any_true" {{if $filterRule === 'any_true'}}selected{{endif}}>Any True</option>
+				<option value="admin_override" {{if $filterRule === 'admin_override'}}selected{{endif}}>Admin Override</option>
+			</select>
+			<button type="submit" class="ipsButton ipsButton--primary ipsButton--small">Filter</button>
+		</form>
+
+		{{if $entryCount === 0}}
+			<div class="ipsEmptyMessage"><p>{lang="gdcatalog_conflicts_empty"}</p></div>
+		{{else}}
+		<table class="ipsTable ipsTable_zebra" style="width:100%">
+			<thead>
+				<tr>
+					<th>{lang="gdcatalog_conflict_upc"}</th>
+					<th>{lang="gdcatalog_conflict_field"}</th>
+					<th>{lang="gdcatalog_conflict_winner"}</th>
+					<th>{lang="gdcatalog_conflict_winner_val"}</th>
+					<th>{lang="gdcatalog_conflict_loser"}</th>
+					<th>{lang="gdcatalog_conflict_loser_val"}</th>
+					<th>{lang="gdcatalog_conflict_rule"}</th>
+					<th>{lang="gdcatalog_conflict_date"}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $entries as $entry}}
+				<tr>
+					<td><code>{$entry['upc']}</code></td>
+					<td>{$entry['field_name']}</td>
+					<td>{$entry['winning_source']}</td>
+					<td>{$entry['winning_value']}</td>
+					<td>{$entry['losing_source']}</td>
+					<td>{$entry['losing_value']}</td>
+					<td><span class="ipsBadge ipsBadge--neutral">{$entry['rule_applied']}</span></td>
+					<td>{$entry['resolved_at']}</td>
+				</tr>
+				{{endforeach}}
+			</tbody>
+		</table>
+		{{endif}}
+
+		<div style="margin-top:16px">{$pagination}</div>
+
+	</div>
+</div>

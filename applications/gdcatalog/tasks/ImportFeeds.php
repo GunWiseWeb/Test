@@ -54,7 +54,7 @@ class ImportFeeds extends \IPS\Task
 					$errors[] = $feed->feed_name . ': ' . ( $log->error_log ?? 'unknown error' );
 				}
 			}
-			catch ( \Exception $e )
+			catch ( \Throwable $e )
 			{
 				$errors[] = $feed->feed_name . ': ' . $e->getMessage();
 				$feed->markFailed();

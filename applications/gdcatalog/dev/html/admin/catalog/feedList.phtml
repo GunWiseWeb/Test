@@ -1,0 +1,82 @@
+<ips:template parameters="$feeds, $feedCounts" />
+<div class="ipsBox ipsPull">
+	<div class="ipsBox_body ipsPad">
+
+		<div style="display:flex;gap:16px;margin-bottom:24px">
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$feedCounts['total']}</div>
+				<div>Configured Feeds</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$feedCounts['active']}</div>
+				<div>Active Feeds</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$feedCounts['urls']}</div>
+				<div>URLs Configured</div>
+			</div>
+		</div>
+
+		<p class="ipsType_light" style="margin-bottom:16px">{lang="gdcatalog_feeds_help"}</p>
+
+		{{if count($feeds) === 0}}
+			<div class="ipsEmptyMessage"><p>{lang="gdcatalog_feeds_empty"}</p></div>
+		{{else}}
+		<table class="ipsTable ipsTable_zebra" style="width:100%">
+			<thead>
+				<tr>
+					<th style="width:5%">#</th>
+					<th>{lang="gdcatalog_feed_name"}</th>
+					<th>{lang="gdcatalog_feed_distributor"}</th>
+					<th>{lang="gdcatalog_feed_format"}</th>
+					<th>{lang="gdcatalog_feed_schedule"}</th>
+					<th>{lang="gdcatalog_feed_active"}</th>
+					<th>{lang="gdcatalog_feed_last_run"}</th>
+					<th>{lang="gdcatalog_feed_last_count"}</th>
+					<th>{lang="gdcatalog_feed_last_status"}</th>
+					<th style="width:100px">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $feeds as $feed}}
+				<tr>
+					<td>{$feed['priority']}</td>
+					<td><strong>{$feed['feed_name']}</strong></td>
+					<td>{$feed['distributor_label']}</td>
+					<td>{$feed['feed_format']}</td>
+					<td>{$feed['import_schedule']}</td>
+					<td>
+						{{if $feed['active']}}
+							<span class="ipsBadge ipsBadge--positive">{lang="gdcatalog_feed_active"}</span>
+						{{else}}
+							<span class="ipsBadge ipsBadge--neutral">Inactive</span>
+						{{endif}}
+					</td>
+					<td>
+						{{if $feed['last_run']}}
+							{$feed['last_run']}
+						{{else}}
+							&mdash;
+						{{endif}}
+					</td>
+					<td>{expression="number_format( $feed['last_record_count'] )"}</td>
+					<td>
+						{{if $feed['last_run_status'] === 'completed'}}
+							<span class="ipsBadge ipsBadge--positive">OK</span>
+						{{elseif $feed['last_run_status'] === 'failed'}}
+							<span class="ipsBadge ipsBadge--negative">Failed</span>
+						{{elseif $feed['last_run_status'] === 'running'}}
+							<span class="ipsBadge ipsBadge--warning">Running</span>
+						{{else}}
+							&mdash;
+						{{endif}}
+					</td>
+					<td><a href="{$feed['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a></td>
+				</tr>
+				{{endforeach}}
+			</tbody>
+		</table>
+		{{endif}}
+
+	</div>
+</div>

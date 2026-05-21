@@ -1,0 +1,184 @@
+<ips:template parameters="$tab, $counts, $tabUrls, $pendingFlags, $pendingConflicts, $allLocks, $adminFlags, $addRestrictionUrl" />
+<div class="ipsBox ipsPull">
+	<div style="display:flex;justify-content:flex-end;padding:10px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0)">
+		<a href="{$addRestrictionUrl}" class="ipsButton ipsButton--primary ipsButton--small">Add State Restriction</a>
+	</div>
+	<div class="ipsBox_body ipsPad">
+
+		<div style="display:flex;gap:16px;margin-bottom:24px">
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$counts['new']}</div>
+				<div>{lang="gdcatalog_compliance_tab_new"}</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$counts['conflicts']}</div>
+				<div>{lang="gdcatalog_compliance_tab_conflicts"}</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$counts['locks']}</div>
+				<div>{lang="gdcatalog_compliance_tab_locks"}</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$counts['admin']}</div>
+				<div>{lang="gdcatalog_compliance_tab_admin"}</div>
+			</div>
+		</div>
+
+		<div style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0);justify-content:center">
+			<a href="{$tabUrls['new']}" class="ipsButton {{if $tab === 'new'}}ipsButton--primary{{else}}ipsButton--soft{{endif}} ipsButton--small">{lang="gdcatalog_compliance_tab_new"} <span class="ipsBadge ipsBadge--neutral" style="margin-left:6px">{$counts['new']}</span></a>
+			<a href="{$tabUrls['conflicts']}" class="ipsButton {{if $tab === 'conflicts'}}ipsButton--primary{{else}}ipsButton--soft{{endif}} ipsButton--small">{lang="gdcatalog_compliance_tab_conflicts"} <span class="ipsBadge ipsBadge--neutral" style="margin-left:6px">{$counts['conflicts']}</span></a>
+			<a href="{$tabUrls['locks']}" class="ipsButton {{if $tab === 'locks'}}ipsButton--primary{{else}}ipsButton--soft{{endif}} ipsButton--small">{lang="gdcatalog_compliance_tab_locks"} <span class="ipsBadge ipsBadge--neutral" style="margin-left:6px">{$counts['locks']}</span></a>
+			<a href="{$tabUrls['admin']}" class="ipsButton {{if $tab === 'admin'}}ipsButton--primary{{else}}ipsButton--soft{{endif}} ipsButton--small">{lang="gdcatalog_compliance_tab_admin"} <span class="ipsBadge ipsBadge--neutral" style="margin-left:6px">{$counts['admin']}</span></a>
+		</div>
+
+		{{if $tab === 'new'}}
+			{{if $counts['new'] === 0}}
+				<div class="ipsEmptyMessage"><p>{lang="gdcatalog_compliance_empty_new"}</p></div>
+			{{else}}
+			<table class="ipsTable ipsTable_zebra" style="width:100%">
+				<thead>
+					<tr>
+						<th>UPC</th>
+						<th>Type</th>
+						<th>Value</th>
+						<th>Distributor</th>
+						<th>First Seen</th>
+						<th style="width:220px">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{foreach $pendingFlags as $flag}}
+					<tr>
+						<td><code>{$flag['upc']}</code></td>
+						<td>{$flag['flag_type']}</td>
+						<td><strong>{$flag['flag_value']}</strong></td>
+						<td>{$flag['distributor_id']}</td>
+						<td>{$flag['first_seen_at']}</td>
+						<td>
+							<a href="{$flag['approve_url']}" class="ipsButton ipsButton--primary ipsButton--small">{lang="gdcatalog_compliance_approve"}</a>
+							<a href="{$flag['reject_url']}" class="ipsButton ipsButton--negative ipsButton--small">{lang="gdcatalog_compliance_reject"}</a>
+						</td>
+					</tr>
+					{{endforeach}}
+				</tbody>
+			</table>
+			{{endif}}
+		{{endif}}
+
+		{{if $tab === 'conflicts'}}
+			{{if $counts['conflicts'] === 0}}
+				<div class="ipsEmptyMessage"><p>{lang="gdcatalog_compliance_empty_conflicts"}</p></div>
+			{{else}}
+			<table class="ipsTable ipsTable_zebra" style="width:100%">
+				<thead>
+					<tr>
+						<th>UPC</th>
+						<th>Field</th>
+						<th>Current</th>
+						<th>Incoming</th>
+						<th>Auto-resolve</th>
+						<th style="width:260px">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{foreach $pendingConflicts as $conflict}}
+					<tr>
+						<td><code>{$conflict['upc']}</code></td>
+						<td>{$conflict['field_name']}</td>
+						<td>{$conflict['current_value']}</td>
+						<td>{$conflict['incoming_value']}</td>
+						<td>{$conflict['auto_resolve_at']}</td>
+						<td>
+							<a href="{$conflict['accept_url']}" class="ipsButton ipsButton--primary ipsButton--small">{lang="gdcatalog_compliance_accept_incoming"}</a>
+							<a href="{$conflict['keep_url']}" class="ipsButton ipsButton--secondary ipsButton--small">{lang="gdcatalog_compliance_keep_existing"}</a>
+							<a href="{$conflict['custom_url']}" class="ipsButton ipsButton--secondary ipsButton--small">{lang="gdcatalog_compliance_set_custom"}</a>
+						</td>
+					</tr>
+					{{endforeach}}
+				</tbody>
+			</table>
+			{{endif}}
+		{{endif}}
+
+		{{if $tab === 'locks'}}
+			{{if $counts['locks'] === 0}}
+				<div class="ipsEmptyMessage"><p>{lang="gdcatalog_compliance_empty_locks"}</p></div>
+			{{else}}
+			<table class="ipsTable ipsTable_zebra" style="width:100%">
+				<thead>
+					<tr>
+						<th>UPC</th>
+						<th>Field</th>
+						<th>Locked Value</th>
+						<th>Type</th>
+						<th>Reason</th>
+						<th>Locked At</th>
+						<th style="width:120px">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{foreach $allLocks as $lock}}
+					<tr>
+						<td><code>{$lock['upc']}</code></td>
+						<td>{$lock['field_name']}</td>
+						<td>{$lock['locked_value']}</td>
+						<td>
+							{{if $lock['is_hard_lock']}}
+								<span class="ipsBadge ipsBadge--negative">{lang="gdcatalog_lock_type_hard"}</span>
+							{{else}}
+								<span class="ipsBadge ipsBadge--warning">{lang="gdcatalog_lock_type_distributor"}</span>
+							{{endif}}
+						</td>
+						<td>{$lock['lock_reason']}</td>
+						<td>{$lock['locked_at']}</td>
+						<td>
+							<a href="{$lock['unlock_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm>{lang="gdcatalog_lock_unlock"}</a>
+						</td>
+					</tr>
+					{{endforeach}}
+				</tbody>
+			</table>
+			{{endif}}
+		{{endif}}
+
+		{{if $tab === 'admin'}}
+			{{if $counts['admin'] === 0}}
+				<div class="ipsEmptyMessage"><p>{lang="gdcatalog_compliance_empty_admin"}</p></div>
+			{{else}}
+			<table class="ipsTable ipsTable_zebra" style="width:100%">
+				<thead>
+					<tr>
+						<th>UPC</th>
+						<th>Scope</th>
+						<th>Type</th>
+						<th>Value</th>
+						<th>Set By</th>
+						<th>Date</th>
+						<th>Source</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{foreach $adminFlags as $flag}}
+					<tr>
+						<td><code>{$flag['upc']}</code></td>
+						<td>
+							{{if $flag['listing_id']}}
+								Listing
+							{{else}}
+								Product
+							{{endif}}
+						</td>
+						<td>{$flag['flag_type']}</td>
+						<td><strong>{$flag['flag_value']}</strong></td>
+						<td>{$flag['admin_reviewed_by']}</td>
+						<td>{$flag['admin_reviewed_at']}</td>
+						<td>{$flag['source']}</td>
+					</tr>
+					{{endforeach}}
+				</tbody>
+			</table>
+			{{endif}}
+		{{endif}}
+
+	</div>
+</div>

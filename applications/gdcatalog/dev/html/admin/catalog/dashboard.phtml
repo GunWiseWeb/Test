@@ -1,0 +1,65 @@
+<ips:template parameters="$totalProducts, $activeProducts, $reviewProducts, $categoryCounts, $distributorStats, $osExists, $osStats, $pendingConflicts, $pendingCompliance, $lockedFields, $reindexQueue" />
+<div class="ipsBox ipsPull">
+	<div class="ipsBox_body ipsPad">
+		<div style="display:flex;gap:16px;margin-bottom:24px">
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{expression="number_format($totalProducts)"}</div>
+				<div>Total Products</div>
+				<div style="color:#666">Active: {expression="number_format($activeProducts)"} | Review: {expression="number_format($reviewProducts)"}</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$pendingConflicts}</div>
+				<div>Pending Conflicts</div>
+			</div>
+			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
+				<div style="font-size:2em;font-weight:bold">{$pendingCompliance}</div>
+				<div>Pending Compliance Flags</div>
+			</div>
+		</div>
+
+		<h2 class="ipsType_sectionHead" style="margin:0 0 12px">Distributor Feeds</h2>
+
+		{{if count($distributorStats) === 0}}
+			<div class="ipsEmptyMessage"><p>{lang="gdcatalog_dash_feeds_empty"}</p></div>
+		{{else}}
+		<table class="ipsTable ipsTable_zebra" style="width:100%">
+			<thead><tr><th>#</th><th>Feed</th><th>Products</th><th>Status</th><th>Last Run</th><th>Last Status</th><th style="width:140px">Action</th></tr></thead>
+			<tbody>
+				{{foreach $distributorStats as $ds}}
+				<tr>
+					<td>{$ds['priority']}</td>
+					<td><strong>{$ds['feed_name']}</strong></td>
+					<td>{expression="number_format($ds['product_count'])"}</td>
+					<td>
+						{{if $ds['active']}}
+							<span class="ipsBadge ipsBadge--positive">Active</span>
+						{{else}}
+							<span class="ipsBadge ipsBadge--neutral">Inactive</span>
+						{{endif}}
+					</td>
+					<td>
+						{{if $ds['last_run_start']}}
+							{$ds['last_run_start']}
+						{{else}}
+							&mdash;
+						{{endif}}
+					</td>
+					<td>
+						{{if $ds['last_status']}}
+							{$ds['last_status']}
+						{{else}}
+							&mdash;
+						{{endif}}
+					</td>
+					<td>
+						{{if $ds['active']}}
+							<a href="{$ds['run_import_url']}" class="ipsButton ipsButton--primary ipsButton--small">Run Import</a>
+						{{endif}}
+					</td>
+				</tr>
+				{{endforeach}}
+			</tbody>
+		</table>
+		{{endif}}
+	</div>
+</div>

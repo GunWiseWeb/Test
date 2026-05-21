@@ -194,17 +194,12 @@ class SportsSouthClient
 			return [];
 		}
 
-		$prevEntityState = null;
-		if ( \function_exists( 'libxml_disable_entity_loader' ) )
-		{
-			$prevEntityState = libxml_disable_entity_loader( true );
-		}
 		$prevUseErrors = libxml_use_internal_errors( true );
 
 		try
 		{
 			$outerDoc = new \DOMDocument();
-			$outerDoc->loadXML( $xml );
+			$outerDoc->loadXML( $xml, LIBXML_NONET );
 
 			$innerXml = $xml;
 
@@ -220,7 +215,7 @@ class SportsSouthClient
 			}
 
 			$dataDoc = new \DOMDocument();
-			$dataDoc->loadXML( $innerXml );
+			$dataDoc->loadXML( $innerXml, LIBXML_NONET );
 
 			$rows = [];
 
@@ -255,10 +250,6 @@ class SportsSouthClient
 		finally
 		{
 			libxml_use_internal_errors( $prevUseErrors );
-			if ( $prevEntityState !== null && \function_exists( 'libxml_disable_entity_loader' ) )
-			{
-				libxml_disable_entity_loader( $prevEntityState );
-			}
 		}
 	}
 

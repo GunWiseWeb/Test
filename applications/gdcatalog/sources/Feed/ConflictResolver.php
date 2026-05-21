@@ -572,7 +572,7 @@ class ConflictResolver
 				@unlink( $tmpFile );
 			}
 		}
-		catch ( \Exception )
+		catch ( \Throwable )
 		{
 			@unlink( $tmpFile ?? '' );
 		}

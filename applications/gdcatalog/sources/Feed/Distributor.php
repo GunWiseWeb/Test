@@ -136,7 +136,7 @@ class Distributor extends \IPS\Patterns\ActiveRecord
 		{
 			return \IPS\Text\Encrypt::fromTag( $this->auth_credentials )->decrypt();
 		}
-		catch ( \Exception )
+		catch ( \Throwable )
 		{
 			return null;
 		}
