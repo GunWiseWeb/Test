@@ -113,8 +113,20 @@ class OpenSearchIndexer
 			],
 		];
 
-		$response = $this->request( 'PUT', '/' . $this->index, $mapping );
-		return isset( $response['acknowledged'] ) && $response['acknowledged'] === true;
+		try
+		{
+			$response = $this->request( 'PUT', '/' . $this->index, $mapping );
+			return isset( $response['acknowledged'] ) && $response['acknowledged'] === true;
+		}
+		catch ( \RuntimeException $e )
+		{
+			$msg = $e->getMessage();
+			if ( str_contains( $msg, 'create-index blocked' ) || str_contains( $msg, 'already_exists' ) || str_contains( $msg, 'already exists' ) )
+			{
+				return true;
+			}
+			throw $e;
+		}
 	}
 
 	/**
@@ -273,7 +285,23 @@ class OpenSearchIndexer
 		{
 			$this->deleteIndex();
 		}
-		$this->createIndex();
+
+		try
+		{
+			$this->createIndex();
+		}
+		catch ( \RuntimeException $e )
+		{
+			$msg = $e->getMessage();
+			if ( str_contains( $msg, 'create-index blocked' ) || str_contains( $msg, 'already_exists' ) || str_contains( $msg, 'already exists' ) )
+			{
+				try { \IPS\Log::log( 'gdcatalog rebuildIndex: skipping createIndex — ' . $msg, 'gdcatalog_opensearch' ); } catch ( \Throwable ) {}
+			}
+			else
+			{
+				throw $e;
+			}
+		}
 
 		/* Clear the queue */
 		\IPS\Db::i()->delete( 'gd_reindex_queue' );

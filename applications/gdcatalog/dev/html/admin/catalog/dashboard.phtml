@@ -3,9 +3,9 @@
 	<div class="ipsBox_body ipsPad">
 		<div style="display:flex;gap:16px;margin-bottom:24px">
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
-				<div style="font-size:2em;font-weight:bold">{expression="number_format($totalProducts)"}</div>
+				<div style="font-size:2em;font-weight:bold">{expression="number_format( (int) $totalProducts )"}</div>
 				<div>Total Products</div>
-				<div style="color:#666">Active: {expression="number_format($activeProducts)"} | Review: {expression="number_format($reviewProducts)"}</div>
+				<div style="color:#666">Active: {expression="number_format( (int) $activeProducts )"} | Review: {expression="number_format( (int) $reviewProducts )"}</div>
 			</div>
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
 				<div style="font-size:2em;font-weight:bold">{$pendingConflicts}</div>
@@ -43,7 +43,7 @@
 				<tr>
 					<td>{$ds['priority']}</td>
 					<td><strong>{$ds['feed_name']}</strong></td>
-					<td>{expression="number_format($ds['product_count'])"}</td>
+					<td>{expression="number_format( (int) $ds['product_count'] )"}</td>
 					<td>
 						{{if $ds['active']}}
 							<span class="ipsBadge ipsBadge--positive">Active</span>
