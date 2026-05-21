@@ -131,7 +131,7 @@ class _compliance extends \IPS\Dispatcher\Controller
 
 		$addRestrictionUrl = (string) \IPS\Http\Url::internal(
 			'app=gdcatalog&module=catalog&controller=compliance&do=addRestriction'
-		)->csrf();
+		);
 
 		/* v1.0.16: Paginate the active tab's dataset.
 		 * perPage=50 matches IPS conventions. Slice in PHP since the loaders
@@ -340,7 +340,7 @@ class _compliance extends \IPS\Dispatcher\Controller
 	 */
 	protected function addRestriction()
 	{
-		\IPS\Session::i()->csrfCheck();
+		if ( \IPS\Request::i()->requestMethod() === 'POST' ) { \IPS\Session::i()->csrfCheck(); }
 
 		$form = new \IPS\Helpers\Form;
 		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_product_upc', '', TRUE ) );

@@ -73,7 +73,14 @@
 							&mdash;
 						{{endif}}
 					</td>
-					<td><a href="{$feed['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a></td>
+					<td style="display:flex;gap:4px;flex-wrap:wrap">
+						<a href="{$feed['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a>
+						{{if $feed['is_locked']}}
+							<a href="{$feed['unlock_catalog_url']}" class="ipsButton ipsButton--small ipsButton--positive" data-confirm>Unlock</a>
+						{{else}}
+							<a href="{$feed['lock_catalog_url']}" class="ipsButton ipsButton--small ipsButton--warning" data-confirm>Lock</a>
+						{{endif}}
+					</td>
 				</tr>
 				{{endforeach}}
 			</tbody>

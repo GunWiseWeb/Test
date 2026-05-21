@@ -89,6 +89,13 @@ class _feeds extends \IPS\Dispatcher\Controller
 				'edit_url'          => $editUrl,
 				'delete_url'        => $deleteUrl,
 				'test_url'          => $testUrl,
+				'is_locked'         => (bool) ( $feed->locked ?? false ),
+				'lock_catalog_url'  => (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=dashboard&do=lockCatalog&feed_id=' . (int) $feed->id
+				)->csrf(),
+				'unlock_catalog_url' => (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=dashboard&do=unlockCatalog&feed_id=' . (int) $feed->id
+				)->csrf(),
 			];
 		}
 
