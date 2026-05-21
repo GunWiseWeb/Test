@@ -500,6 +500,33 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
 
 73. **ACP member group `g_signature_limits` is 6 colon-separated parts but IPS may create groups with empty string** — when creating member groups via ACP or via `\IPS\Db::i()->insert('core_groups', [...])` without specifying `g_signature_limits`, the column defaults to empty string. This causes a fatal in `canEditSignature()` (Rule #67). Any code that creates member groups (dealer tier group creation, onboarding, etc.) must explicitly set `g_signature_limits` to a valid 6-part string. The safe default is `'0:0:0:0:0:1'` (signatures enabled, no restrictions). Check all `core_groups` inserts in the codebase.
 
+74. **All templates must live as `.phtml` files in `dev/html/{location}/{group}/` — never seed-only via `install.php`** — the IPS 5 native template architecture requires `.phtml` files in `dev/html/` for dev-mode to work correctly. Plugins that only seed templates via `setup/install.php` into `core_theme_templates` are invisible to the IPS template engine in dev mode, preventing proper error surfacing, template editing in ACP Developer Center, and the Build → `data/theme.xml` pipeline. Required structure for every plugin:
+    ```
+    dev/
+      html/
+        admin/
+          {group}/
+            templateName.phtml    ← first line: <ips:template parameters="$var1, $var2" />
+        front/
+          {group}/
+            templateName.phtml
+      css/
+        front/
+          styles.css
+      js/
+        front/
+          script.js
+      lang.php                    ← IN_DEV language strings
+    ```
+    Rules:
+    - Every `.phtml` file's FIRST LINE must be `<ips:template parameters="$var1, $var2" />` matching exactly the arguments the controller passes
+    - `setup/install.php` template seeding via DB `replace()` should ALSO remain for production fresh installs (IPS uses `core_theme_templates` in production mode, `dev/html/` in dev mode)
+    - ACP Developer Center → Build generates `data/theme.xml` from `dev/html/` files for production shipping
+    - Every new template added to a plugin needs BOTH: a `.phtml` file in `dev/html/` AND a seed in `setup/install.php` (for production fresh installs) AND a seed in the relevant `upg_*/upgrade.php` (for production upgrades)
+    - Verify dev/ files are included in the tarball build command: `Application.php data dev index.html interface modules setup sources tasks extensions`
+
+75. **`dev/html/` directory requires `index.html` files in every subdirectory** — IPS scans the `dev/` directory structure and expects every directory to contain a blank `index.html` to prevent directory listing. Missing `index.html` files don't break functionality but cause IPS installer warnings. Add blank `index.html` to: `dev/`, `dev/html/`, `dev/html/admin/`, `dev/html/admin/{group}/`, `dev/html/front/`, `dev/html/front/{group}/`, `dev/css/`, `dev/css/front/`, `dev/js/`, `dev/js/front/`. The blank `index.html` content: `<html><body></body></html>` or just an empty file.
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38
