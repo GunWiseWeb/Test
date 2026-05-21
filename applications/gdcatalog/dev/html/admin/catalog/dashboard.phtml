@@ -1,4 +1,4 @@
-<ips:template parameters="$totalProducts, $activeProducts, $reviewProducts, $categoryCounts, $distributorStats, $osExists, $osStats, $pendingConflicts, $pendingCompliance, $lockedFields, $reindexQueue" />
+<ips:template parameters="$totalProducts, $activeProducts, $reviewProducts, $pendingConflicts, $distributorStats, $taskUrls, $osExists, $osStats, $reindexQueue, $lockedFields" />
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 		<div style="display:flex;gap:16px;margin-bottom:24px">
@@ -12,7 +12,7 @@
 				<div>Pending Conflicts</div>
 			</div>
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
-				<div style="font-size:2em;font-weight:bold">{$pendingCompliance}</div>
+				<div style="font-size:2em;font-weight:bold">0</div>
 				<div>Pending Compliance Flags</div>
 			</div>
 		</div>

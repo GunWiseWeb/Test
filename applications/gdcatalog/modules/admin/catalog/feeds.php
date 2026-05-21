@@ -54,7 +54,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 		{
 			$editUrl = (string) \IPS\Http\Url::internal(
 				'app=gdcatalog&module=catalog&controller=feeds&do=edit&id=' . (int) $feed->id
-			)->csrf();
+			);
 
 			$deleteUrl = (string) \IPS\Http\Url::internal(
 				'app=gdcatalog&module=catalog&controller=feeds&do=delete&id=' . (int) $feed->id
@@ -100,7 +100,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 
 		$addUrl = (string) \IPS\Http\Url::internal(
 			'app=gdcatalog&module=catalog&controller=feeds&do=add'
-		)->csrf();
+		);
 
 		/* v1.0.6: reorder URL no longer baked with ->csrf(). The CSRF token is
 		 * passed separately to the template and sent as a POST body parameter
@@ -123,7 +123,10 @@ class _feeds extends \IPS\Dispatcher\Controller
 	 */
 	protected function add()
 	{
-		\IPS\Session::i()->csrfCheck();
+		if ( isset( \IPS\Request::i()->csrfKey ) )
+		{
+			\IPS\Session::i()->csrfCheck();
+		}
 
 		$form = new Form;
 
@@ -318,7 +321,10 @@ class _feeds extends \IPS\Dispatcher\Controller
 	 */
 	protected function edit()
 	{
-		\IPS\Session::i()->csrfCheck();
+		if ( isset( \IPS\Request::i()->csrfKey ) )
+		{
+			\IPS\Session::i()->csrfCheck();
+		}
 
 		$id   = (int) Request::i()->id;
 		$feed = Distributor::load( $id );

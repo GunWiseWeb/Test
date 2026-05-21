@@ -1,10 +1,10 @@
-<ips:template parameters="$products, $categories, $search, $status, $catId, $total, $pagination, $formActionUrl, $productCount, $categoryCount" />
+<ips:template parameters="$products, $categories, $search, $status, $catId, $imageStatus, $total, $pagination, $formActionUrl, $productCount, $categoryCount, $addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl" />
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 
 		<div style="display:flex;gap:16px;margin-bottom:24px">
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
-				<div style="font-size:2em;font-weight:bold">{expression="number_format( $total )"}</div>
+				<div style="font-size:2em;font-weight:bold">{expression="number_format( (int) $total )"}</div>
 				<div>Total Matching Products</div>
 			</div>
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
