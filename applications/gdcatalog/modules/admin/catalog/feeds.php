@@ -89,6 +89,27 @@ class _feeds extends \IPS\Dispatcher\Controller
 			if ( $isActive )    { $activeCount++; }
 			if ( $feedUrl !== '' ) { $urlCount++; }
 
+			$authType = (string) ( $feed->auth_type ?? 'none' );
+			$isManualUpload = ( $authType === 'manual_upload' );
+
+			$uploadUrl = '';
+			$runManualUrl = '';
+			$uploadFilename = '';
+			if ( $isManualUpload )
+			{
+				$uploadUrl = (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=feeds&do=uploadFeed&id=' . (int) $feed->id
+				);
+				$runManualUrl = (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=feeds&do=runManualFeed&id=' . (int) $feed->id
+				)->csrf();
+				$filePath = (string) ( $feed->uploaded_file_path ?? '' );
+				if ( $filePath !== '' )
+				{
+					$uploadFilename = basename( $filePath );
+				}
+			}
+
 			$feeds[] = [
 				'id'                => (int) $feed->id,
 				'priority'          => (int) $feed->priority,
@@ -112,6 +133,11 @@ class _feeds extends \IPS\Dispatcher\Controller
 					'app=gdcatalog&module=catalog&controller=dashboard&do=unlockCatalog&feed_id=' . (int) $feed->id
 				)->csrf(),
 				'last_import_log' => $lastImportLogs[ (int) $feed->id ] ?? null,
+				'auth_type'       => $authType,
+				'upload_url'      => $uploadUrl,
+				'run_manual_url'  => $runManualUrl,
+				'has_upload'      => ( $uploadFilename !== '' ),
+				'upload_filename' => $uploadFilename,
 			];
 		}
 
@@ -355,11 +381,20 @@ class _feeds extends \IPS\Dispatcher\Controller
 		] ) );
 		$form->add( new Form\Select( 'gdcatalog_feed_auth_type', $feed->auth_type, TRUE, [
 			'options' => [
-				'none'         => 'None',
-				'basic'        => 'Basic Auth',
-				'apikey'       => 'API Key',
-				'ftp'          => 'FTP Credentials',
-				'sportssouth'  => 'Sports South Web Service',
+				'none'           => 'None',
+				'basic'          => 'Basic Auth',
+				'apikey'         => 'API Key',
+				'ftp'            => 'FTP Credentials',
+				'sportssouth'    => 'Sports South Web Service',
+				'manual_upload'  => 'Manual File Upload',
+			],
+			'toggles' => [
+				'none'          => [ 'gdcatalog_feed_url', 'gdcatalog_feed_auth_credentials' ],
+				'basic'         => [ 'gdcatalog_feed_url', 'gdcatalog_feed_auth_credentials' ],
+				'apikey'        => [ 'gdcatalog_feed_url', 'gdcatalog_feed_auth_credentials' ],
+				'ftp'           => [ 'gdcatalog_feed_url', 'gdcatalog_feed_auth_credentials' ],
+				'sportssouth'   => [ 'gdcatalog_feed_url', 'gdcatalog_feed_auth_credentials' ],
+				'manual_upload' => [],
 			],
 		] ) );
 		$form->add( new Form\TextArea( 'gdcatalog_feed_auth_credentials', $feed->getCredentials() ?? '', FALSE, [
@@ -438,6 +473,139 @@ class _feeds extends \IPS\Dispatcher\Controller
 
 		Output::i()->title  = $feed->feed_name;
 		Output::i()->output = (string) $form;
+	}
+
+	/**
+	 * v1.0.50: Upload a feed file for a manual_upload feed.
+	 * GET renders the upload form; POST receives the file.
+	 */
+	protected function uploadFeed()
+	{
+		$id   = (int) Request::i()->id;
+		$feed = Distributor::load( $id );
+
+		if ( (string) $feed->auth_type !== 'manual_upload' )
+		{
+			Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+				'gdcatalog_upload_wrong_auth_type'
+			);
+			return;
+		}
+
+		if ( \IPS\Request::i()->requestMethod() === 'POST' )
+		{
+			\IPS\Session::i()->csrfCheck();
+
+			if ( !isset( $_FILES['feed_file'] ) || $_FILES['feed_file']['error'] !== UPLOAD_ERR_OK )
+			{
+				Output::i()->redirect(
+					\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+					'gdcatalog_upload_no_file'
+				);
+				return;
+			}
+
+			$uploadDir = \IPS\ROOT_PATH . '/uploads/gdcatalog_feeds';
+			if ( !is_dir( $uploadDir ) )
+			{
+				mkdir( $uploadDir, 0755, true );
+				file_put_contents( $uploadDir . '/.htaccess', "Deny from all\n" );
+			}
+
+			$ext = strtolower( pathinfo( $_FILES['feed_file']['name'], PATHINFO_EXTENSION ) );
+			$allowed = [ 'xml', 'json', 'csv' ];
+			if ( !\in_array( $ext, $allowed, true ) )
+			{
+				Output::i()->redirect(
+					\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+					'gdcatalog_upload_invalid_type'
+				);
+				return;
+			}
+
+			$safeName = 'feed_' . (int) $feed->id . '_' . time() . '.' . $ext;
+			$destPath = $uploadDir . '/' . $safeName;
+
+			if ( !move_uploaded_file( $_FILES['feed_file']['tmp_name'], $destPath ) )
+			{
+				Output::i()->redirect(
+					\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+					'gdcatalog_upload_move_failed'
+				);
+				return;
+			}
+
+			$feed->uploaded_file_path = $destPath;
+			$feed->save();
+
+			Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+				'gdcatalog_upload_success'
+			);
+			return;
+		}
+
+		$uploadActionUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=feeds&do=uploadFeed&id=' . (int) $feed->id
+		);
+		$csrfKey   = \IPS\Session::i()->csrfKey;
+		$backUrl   = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+		$feedName  = (string) $feed->feed_name;
+
+		Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_upload_feed_title' );
+		Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->uploadFeedForm(
+			$uploadActionUrl, $csrfKey, $backUrl, $feedName
+		);
+	}
+
+	/**
+	 * v1.0.50: Run an import on a manual_upload feed using the previously uploaded file.
+	 */
+	protected function runManualFeed()
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$id   = (int) Request::i()->id;
+		$feed = Distributor::load( $id );
+
+		if ( (string) $feed->auth_type !== 'manual_upload' )
+		{
+			Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+				'gdcatalog_upload_wrong_auth_type'
+			);
+			return;
+		}
+
+		$filePath = (string) ( $feed->uploaded_file_path ?? '' );
+		if ( $filePath === '' || !file_exists( $filePath ) )
+		{
+			Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+				'gdcatalog_upload_no_file_stored'
+			);
+			return;
+		}
+
+		try
+		{
+			$log = \IPS\gdcatalog\Feed\Importer::run( $feed );
+
+			Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+				'gdcatalog_manual_import_complete'
+			);
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'Manual feed import failed feed_id=' . $id . ': ' . $e->getMessage(), 'gdcatalog_manual_import' ); } catch ( \Throwable ) {}
+
+			Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+				'gdcatalog_manual_import_failed'
+			);
+		}
 	}
 
 	/**

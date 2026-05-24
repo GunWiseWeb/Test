@@ -269,4 +269,15 @@ $lang = array(
 	'gdcatalog_image_status_ok'                => "Verified OK",
 	'gdcatalog_image_status_broken'            => "Broken (404)",
 	'gdcatalog_restriction_deleted'            => "State restriction deleted.",
+
+	/* Manual Upload (v1.0.50) */
+	'gdcatalog_upload_feed_title'              => "Upload Feed File",
+	'gdcatalog_upload_success'                 => "Feed file uploaded successfully. Use Run Import to process it.",
+	'gdcatalog_upload_no_file'                 => "No file was uploaded or the upload failed.",
+	'gdcatalog_upload_invalid_type'            => "Invalid file type. Only XML, JSON, and CSV files are allowed.",
+	'gdcatalog_upload_move_failed'             => "Failed to save uploaded file. Check server permissions.",
+	'gdcatalog_upload_wrong_auth_type'         => "This feed is not configured for manual file upload.",
+	'gdcatalog_upload_no_file_stored'          => "No uploaded file found. Upload a feed file first.",
+	'gdcatalog_manual_import_complete'         => "Manual feed import completed successfully.",
+	'gdcatalog_manual_import_failed'           => "Manual feed import failed. Check the error log for details.",
 );

@@ -75,13 +75,26 @@
 					</td>
 					<td style="display:flex;gap:4px;flex-wrap:wrap">
 						<a href="{$feed['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a>
+						{{if $feed['auth_type'] === 'manual_upload'}}
+							<a href="{$feed['upload_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Upload</a>
+							{{if $feed['has_upload']}}
+								<a href="{$feed['run_manual_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm>Run Import</a>
+							{{endif}}
+						{{endif}}
 						{{if $feed['is_locked']}}
 							<a href="{$feed['unlock_catalog_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm>Unlock</a>
 						{{else}}
-							<a href="{$feed['lock_catalog_url']}" class="ipsButton ipsButton--secondary ipsButton--small" data-confirm>Lock</a>
+							<a href="{$feed['lock_catalog_url']}" class="ipsButton ipsButton--soft ipsButton--small" data-confirm>Lock</a>
 						{{endif}}
 					</td>
 				</tr>
+				{{if $feed['auth_type'] === 'manual_upload' && $feed['has_upload']}}
+				<tr>
+					<td colspan="11" style="padding:4px 16px 4px 60px;background:#f0f9ff;font-size:0.85em;color:#1e40af">
+						<i class="fa-solid fa-file-arrow-up"></i> Uploaded: <strong>{$feed['upload_filename']}</strong>
+					</td>
+				</tr>
+				{{endif}}
 				{{if $feed['last_import_log']}}
 				<tr>
 					<td colspan="11" style="padding:4px 16px 8px 60px;background:#f9fafb;font-size:0.85em;color:#555">

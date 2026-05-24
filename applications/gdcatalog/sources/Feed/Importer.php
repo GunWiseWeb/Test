@@ -323,6 +323,23 @@ class Importer
 	 */
 	protected function fetchFeed(): string
 	{
+		$authType = $this->feed->auth_type;
+
+		if ( $authType === 'manual_upload' )
+		{
+			$filePath = (string) ( $this->feed->uploaded_file_path ?? '' );
+			if ( $filePath === '' || !file_exists( $filePath ) )
+			{
+				throw new \RuntimeException( 'No uploaded file found for manual_upload feed' );
+			}
+			$content = file_get_contents( $filePath );
+			if ( $content === false )
+			{
+				throw new \RuntimeException( 'Failed to read uploaded file: ' . $filePath );
+			}
+			return $content;
+		}
+
 		$url = $this->feed->feed_url;
 
 		if ( empty( $url ) )
@@ -330,8 +347,7 @@ class Importer
 			throw new \RuntimeException( 'Feed URL is not configured' );
 		}
 
-		$authType = $this->feed->auth_type;
-		$creds    = null;
+		$creds = null;
 
 		if ( $authType !== 'none' )
 		{

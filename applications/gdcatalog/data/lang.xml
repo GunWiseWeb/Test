@@ -218,5 +218,14 @@
     <word key="gdcatalog_product_image_url" js="0"><![CDATA[Image URL]]></word>
     <word key="gdcatalog_product_image_url_desc" js="0"><![CDATA[URL of product image. Use "View full size" at the top of this page to preview after saving. Must start with http:// or https://.]]></word>
     <word key="gdcatalog_restriction_deleted" js="0"><![CDATA[State restriction deleted.]]></word>
+    <word key="gdcatalog_upload_feed_title" js="0"><![CDATA[Upload Feed File]]></word>
+    <word key="gdcatalog_upload_success" js="0"><![CDATA[Feed file uploaded successfully. Use Run Import to process it.]]></word>
+    <word key="gdcatalog_upload_no_file" js="0"><![CDATA[No file was uploaded or the upload failed.]]></word>
+    <word key="gdcatalog_upload_invalid_type" js="0"><![CDATA[Invalid file type. Only XML, JSON, and CSV files are allowed.]]></word>
+    <word key="gdcatalog_upload_move_failed" js="0"><![CDATA[Failed to save uploaded file. Check server permissions.]]></word>
+    <word key="gdcatalog_upload_wrong_auth_type" js="0"><![CDATA[This feed is not configured for manual file upload.]]></word>
+    <word key="gdcatalog_upload_no_file_stored" js="0"><![CDATA[No uploaded file found. Upload a feed file first.]]></word>
+    <word key="gdcatalog_manual_import_complete" js="0"><![CDATA[Manual feed import completed successfully.]]></word>
+    <word key="gdcatalog_manual_import_failed" js="0"><![CDATA[Manual feed import failed. Check the error log for details.]]></word>
   </app>
 </language>

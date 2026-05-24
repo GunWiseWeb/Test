@@ -979,7 +979,8 @@
 					"basic",
 					"apikey",
 					"ftp",
-					"sportssouth"
+					"sportssouth",
+					"manual_upload"
 				],
 				"comment": ""
 			},
@@ -1117,6 +1118,20 @@
 					"failed",
 					"running"
 				],
+				"comment": ""
+			},
+			"uploaded_file_path": {
+				"name": "uploaded_file_path",
+				"type": "VARCHAR",
+				"length": 500,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
 				"comment": ""
 			}
 		},

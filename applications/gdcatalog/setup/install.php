@@ -684,6 +684,29 @@ TEMPLATE_EOT,
 </div>
 TEMPLATE_EOT,
 	],
+	[
+		'template_name' => 'uploadFeedForm',
+		'template_data' => '$uploadActionUrl, $csrfKey, $backUrl, $feedName',
+		'template_content' => <<<'TEMPLATE_EOT'
+<div class="ipsBox ipsPull">
+	<div class="ipsBox_body ipsPad">
+		<h2 style="margin:0 0 16px">Upload Feed File: {$feedName}</h2>
+		<p class="ipsType_light" style="margin-bottom:16px">Select an XML, JSON, or CSV feed file to upload. After uploading, use the Run Import button on the feed list to process it.</p>
+		<form method="post" action="{$uploadActionUrl}" enctype="multipart/form-data">
+			<input type="hidden" name="csrfKey" value="{$csrfKey}">
+			<div style="margin-bottom:16px">
+				<label style="display:block;font-weight:600;margin-bottom:8px">Feed File (XML, JSON, or CSV)</label>
+				<input type="file" name="feed_file" accept=".xml,.json,.csv" required>
+			</div>
+			<div style="display:flex;gap:8px">
+				<button type="submit" class="ipsButton ipsButton--primary">Upload File</button>
+				<a href="{$backUrl}" class="ipsButton ipsButton--soft">Cancel</a>
+			</div>
+		</form>
+	</div>
+</div>
+TEMPLATE_EOT,
+	],
 ];
 
 \IPS\Db::i()->delete( 'core_theme_templates', [
