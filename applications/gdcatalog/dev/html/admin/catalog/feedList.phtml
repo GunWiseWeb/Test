@@ -76,9 +76,9 @@
 					<td style="display:flex;gap:4px;flex-wrap:wrap">
 						<a href="{$feed['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a>
 						{{if $feed['is_locked']}}
-							<a href="{$feed['unlock_catalog_url']}" class="ipsButton ipsButton--small ipsButton--positive" data-confirm>Unlock</a>
+							<a href="{$feed['unlock_catalog_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm>Unlock</a>
 						{{else}}
-							<a href="{$feed['lock_catalog_url']}" class="ipsButton ipsButton--small ipsButton--secondary" data-confirm>Lock</a>
+							<a href="{$feed['lock_catalog_url']}" class="ipsButton ipsButton--secondary ipsButton--small" data-confirm>Lock</a>
 						{{endif}}
 					</td>
 				</tr>

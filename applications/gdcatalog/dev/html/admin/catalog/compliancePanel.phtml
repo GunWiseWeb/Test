@@ -155,6 +155,7 @@
 						<th>Set By</th>
 						<th>Date</th>
 						<th>Source</th>
+						<th style="width:120px">Actions</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -173,6 +174,9 @@
 						<td>{$flag['admin_reviewed_by']}</td>
 						<td>{$flag['admin_reviewed_at']}</td>
 						<td>{$flag['source']}</td>
+						<td>
+							<a href="{$flag['delete_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="Delete this state restriction? This cannot be undone.">{lang="gdcatalog_restriction_deleted"}</a>
+						</td>
 					</tr>
 					{{endforeach}}
 				</tbody>

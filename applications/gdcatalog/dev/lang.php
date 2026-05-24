@@ -268,4 +268,5 @@ $lang = array(
 	'gdcatalog_image_status_unchecked'         => "Never Checked",
 	'gdcatalog_image_status_ok'                => "Verified OK",
 	'gdcatalog_image_status_broken'            => "Broken (404)",
+	'gdcatalog_restriction_deleted'            => "State restriction deleted.",
 );

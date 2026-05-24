@@ -126,6 +126,9 @@ class _compliance extends \IPS\Dispatcher\Controller
 				'admin_reviewed_by'  => (string) ( $flag->admin_reviewed_by ?? '' ),
 				'admin_reviewed_at'  => $flag->admin_reviewed_at ?? null,
 				'source'             => self::formatSource( (string) ( $flag->source ?? '' ) ),
+				'delete_url'         => (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=compliance&do=deleteRestriction&id=' . (int) $flag->id
+				)->csrf(),
 			];
 		}
 
@@ -367,6 +370,23 @@ class _compliance extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title  = 'Add State Restriction';
 		\IPS\Output::i()->output = (string) $form;
+	}
+
+	/**
+	 * Delete an admin-set state restriction.
+	 */
+	protected function deleteRestriction(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		$id   = (int) \IPS\Request::i()->id;
+		try {
+			$flag = \IPS\gdcatalog\Compliance\Flag::load( $id );
+			$flag->delete();
+		} catch ( \Throwable ) {}
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=compliance&tab=admin' ),
+			'gdcatalog_restriction_deleted'
+		);
 	}
 
 	/**
