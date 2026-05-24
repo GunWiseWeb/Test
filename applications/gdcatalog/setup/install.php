@@ -56,21 +56,77 @@ foreach ( $distributors as $dist )
     } catch ( \Exception $e ) {}
 }
 
-/* Seed category taxonomy (Section 2.4) */
+/* Seed category taxonomy (Section 2.4) — expanded v1.0.49 */
 $categories = [
-	'Handguns'               => ['Pistols', 'Revolvers', 'Derringers'],
-	'Rifles'                 => ['Semi-Automatic', 'Bolt-Action', 'Lever-Action', 'Single-Shot', 'Muzzleloaders'],
-	'Shotguns'               => ['Semi-Automatic', 'Pump-Action', 'Break-Action', 'Over/Under', 'Side-by-Side'],
-	'Ammunition'             => ['Handgun Ammo', 'Rifle Ammo', 'Shotgun Ammo', 'Rimfire', 'Specialty/Exotic'],
-	'NFA Items'              => ['Suppressors', 'Short-Barreled Rifles', 'Short-Barreled Shotguns', 'Machine Guns', 'AOW'],
-	'Magazines'              => ['Handgun', 'Rifle', 'Shotgun', 'Drum'],
-	'Optics'                 => ['Red Dots', 'Rifle Scopes', 'LPVOs', 'Prism Scopes', 'Night Vision', 'Thermal', 'Magnifiers'],
-	'Parts & Accessories'    => ['Barrels', 'Triggers', 'Stocks', 'Grips', 'Rails', 'Handguards', 'Muzzle Devices'],
-	'Holsters & Carry'       => ['IWB', 'OWB', 'Shoulder', 'Ankle', 'Appendix', 'Duty', 'Vehicle'],
-	'Storage & Safety'       => ['Gun Safes', 'Hard Cases', 'Soft Cases', 'Lock Boxes', 'Trigger Locks'],
-	'Cleaning & Maintenance' => ['Cleaning Kits', 'Lubricants', 'Solvents', 'Bore Snakes', 'Patches'],
-	'Tactical Gear'          => ['Weapon Lights', 'Lasers', 'Bipods', 'Slings', 'Foregrips', 'Vertical Grips'],
-	'Hunting Gear'           => ['Game Calls', 'Scent Control', 'Blinds', 'Feeders', 'Trail Cameras'],
+	'Handguns' => [
+		'Pistols', 'Revolvers', 'Derringers', 'Single-Shot Pistols', 'Flare Pistols',
+	],
+	'Rifles' => [
+		'Semi-Automatic Rifles', 'Bolt-Action Rifles', 'Lever-Action Rifles',
+		'Pump-Action Rifles', 'Single-Shot Rifles', 'Break-Action Rifles',
+		'Muzzleloaders', 'Rimfire Rifles',
+	],
+	'Shotguns' => [
+		'Semi-Automatic Shotguns', 'Pump-Action Shotguns', 'Break-Action Shotguns',
+		'Over/Under Shotguns', 'Side-by-Side Shotguns', 'Single-Shot Shotguns',
+	],
+	'Ammunition' => [
+		'Handgun Ammunition', 'Rifle Ammunition', 'Shotgun Ammunition',
+		'Rimfire Ammunition', 'Centerfire Ammunition', 'Specialty & Exotic',
+		'Blanks & Less-Lethal',
+	],
+	'NFA Items' => [
+		'Suppressors', 'Short-Barreled Rifles (SBR)', 'Short-Barreled Shotguns (SBS)',
+		'Machine Guns', 'Any Other Weapons (AOW)', 'Destructive Devices',
+	],
+	'Magazines' => [
+		'Handgun Magazines', 'Rifle Magazines', 'Shotgun Magazines',
+		'Drum Magazines', 'Extended Magazines',
+	],
+	'Optics' => [
+		'Red Dot Sights', 'Holographic Sights', 'Rifle Scopes',
+		'LPVOs (1-6x and similar)', 'Prism Scopes', 'Night Vision Optics',
+		'Thermal Optics', 'Magnifiers', 'Laser Sights', 'Iron Sights',
+		'Rangefinders', 'Spotting Scopes', 'Binoculars',
+	],
+	'Parts & Accessories' => [
+		'Barrels', 'Triggers & Trigger Groups', 'Stocks & Chassis',
+		'Grips & Grip Panels', 'Rails & Mounts', 'Handguards & Forends',
+		'Muzzle Devices', 'Bolts & Bolt Carriers', 'Buffers & Springs',
+		'Slides', 'Frames & Receivers', 'Sight Mounts', 'Magazine Wells',
+	],
+	'Holsters & Carry' => [
+		'IWB Holsters', 'OWB Holsters', 'Shoulder Holsters', 'Ankle Holsters',
+		'Appendix Carry (AIWB)', 'Duty Holsters', 'Vehicle Holsters',
+		'Pocket Holsters', 'Chest Rigs & Plate Carriers', 'Magazine Pouches',
+	],
+	'Storage & Safety' => [
+		'Gun Safes', 'Handgun Safes', 'Long Gun Cases (Hard)',
+		'Long Gun Cases (Soft)', 'Handgun Cases', 'Lock Boxes',
+		'Trigger Locks', 'Cable Locks', 'Vault Doors', 'Safe Accessories',
+	],
+	'Cleaning & Maintenance' => [
+		'Cleaning Kits', 'Lubricants & CLP', 'Solvents & Degreasers',
+		'Bore Snakes & Brushes', 'Patches & Jags', 'Ultrasonic Cleaners',
+		'Cleaning Rods', 'Gun Vises & Cradles',
+	],
+	'Tactical Gear' => [
+		'Weapon Lights', 'Bipods & Monopods', 'Slings & Swivels',
+		'Foregrips & Vertical Grips', 'Suppressors & Solvent Traps',
+		'Cheek Rests & Risers', 'Shell Holders & Carriers',
+		'Shooting Bags & Rests', 'Ear & Eye Protection', 'Gloves & Apparel',
+	],
+	'Hunting Gear' => [
+		'Game Calls', 'Scent Control', 'Hunting Blinds', 'Feeders & Attractants',
+		'Trail Cameras', 'Tree Stands', 'Field Dressing Tools', 'Decoys', 'Archery',
+	],
+	'Training & Safety' => [
+		'Firearm Training Tools', 'Dry-Fire Systems', 'Safety Flags',
+		'Snap Caps & Dummy Rounds', 'Books & DVDs',
+	],
+	'Electronics & Comms' => [
+		'Radio & Communication', 'GPS Devices', 'Rangefinder Apps',
+	],
 ];
 
 \IPS\Db::i()->delete( 'gd_categories' );

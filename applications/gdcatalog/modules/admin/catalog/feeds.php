@@ -47,6 +47,21 @@ class _feeds extends \IPS\Dispatcher\Controller
 		$rawFeeds = Distributor::loadAll();
 		$lang     = \IPS\Member::loggedIn()->language();
 
+		$lastImportLogs = [];
+		try
+		{
+			$logRows = \IPS\Db::i()->select(
+				'l.*',
+				[ 'gd_import_log', 'l' ],
+				'l.id IN ( SELECT MAX(id) FROM gd_import_log GROUP BY feed_id )'
+			);
+			foreach ( $logRows as $row )
+			{
+				$lastImportLogs[ (int) $row['feed_id'] ] = $row;
+			}
+		}
+		catch ( \Throwable ) {}
+
 		$feeds = [];
 		$activeCount = 0;
 		$urlCount    = 0;
@@ -96,6 +111,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 				'unlock_catalog_url' => (string) \IPS\Http\Url::internal(
 					'app=gdcatalog&module=catalog&controller=dashboard&do=unlockCatalog&feed_id=' . (int) $feed->id
 				)->csrf(),
+				'last_import_log' => $lastImportLogs[ (int) $feed->id ] ?? null,
 			];
 		}
 

@@ -82,6 +82,25 @@
 						{{endif}}
 					</td>
 				</tr>
+				{{if $feed['last_import_log']}}
+				<tr>
+					<td colspan="11" style="padding:4px 16px 8px 60px;background:#f9fafb;font-size:0.85em;color:#555">
+						<strong>Last Import:</strong>
+						{$feed['last_import_log']['run_start']}
+						&mdash; Processed: {expression="number_format( (int) $feed['last_import_log']['records_total'] )"}
+						| Created: {expression="number_format( (int) $feed['last_import_log']['records_created'] )"}
+						| Updated: {expression="number_format( (int) $feed['last_import_log']['records_updated'] )"}
+						| Skipped: {expression="number_format( (int) $feed['last_import_log']['records_skipped'] )"}
+						| Errors: {expression="number_format( (int) $feed['last_import_log']['records_errored'] )"}
+						{{if $feed['last_import_log']['upc_invalid_count']}}
+						| UPC Invalid: {expression="number_format( (int) $feed['last_import_log']['upc_invalid_count'] )"}
+						{{endif}}
+						{{if $feed['last_import_log']['upc_flagged_count']}}
+						| UPC Flagged: {expression="number_format( (int) $feed['last_import_log']['upc_flagged_count'] )"}
+						{{endif}}
+					</td>
+				</tr>
+				{{endif}}
 				{{endforeach}}
 			</tbody>
 		</table>

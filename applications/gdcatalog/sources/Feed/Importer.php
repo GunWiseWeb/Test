@@ -25,6 +25,7 @@ use IPS\gdcatalog\Feed\Parser\XmlParser;
 use IPS\gdcatalog\Feed\Parser\JsonParser;
 use IPS\gdcatalog\Feed\Parser\CsvParser;
 use IPS\gdcatalog\Feed\Distributor\SportsSouthClient;
+use IPS\gdcatalog\Feed\UpcValidator;
 use IPS\gdcatalog\Log\ImportLog;
 use IPS\gdcatalog\Compliance\FlagProcessor;
 use function defined;
@@ -143,12 +144,14 @@ class Importer
 
 	/** @var array Running stats for import log */
 	protected array $stats = [
-		'total'     => 0,
-		'created'   => 0,
-		'updated'   => 0,
-		'skipped'   => 0,
-		'errored'   => 0,
-		'conflicts' => 0,
+		'total'         => 0,
+		'created'       => 0,
+		'updated'       => 0,
+		'skipped'       => 0,
+		'errored'       => 0,
+		'conflicts'     => 0,
+		'upc_invalid'   => 0,
+		'upc_flagged'   => 0,
 	];
 
 	/**
@@ -792,11 +795,41 @@ class Importer
 			$mapped = FieldMapper::castTypes( $mapped );
 
 			/* Extract UPC — skip if missing (Section 2.6) */
-			$upc = $this->fieldMapper->extractUpc( $rawRecord );
-			if ( $upc === null )
+			$rawUpc = $this->fieldMapper->extractUpc( $rawRecord );
+			if ( $rawUpc === null )
 			{
 				$this->stats['skipped']++;
 				return;
+			}
+
+			$upc = UpcValidator::normalize( $rawUpc );
+			if ( $upc === null )
+			{
+				$this->stats['upc_invalid']++;
+				$this->log->appendError( 'UPC invalid after normalization: ' . $rawUpc );
+				return;
+			}
+
+			if ( strlen( $upc ) === 12 && !UpcValidator::validateCheckDigit( $upc ) )
+			{
+				$this->stats['upc_flagged']++;
+				try
+				{
+					FlagProcessor::createAdminFlag( $upc, null, 'upc_check_digit_mismatch',
+						'original: ' . $rawUpc . ' → normalized: ' . $upc, 0 );
+				}
+				catch ( \Throwable ) {}
+			}
+
+			if ( UpcValidator::isSuspicious( $upc ) )
+			{
+				$this->stats['upc_flagged']++;
+				try
+				{
+					FlagProcessor::createAdminFlag( $upc, null, 'upc_suspicious',
+						'original: ' . $rawUpc . ' → normalized: ' . $upc, 0 );
+				}
+				catch ( \Throwable ) {}
 			}
 
 			$this->seenUpcs[$upc] = true;

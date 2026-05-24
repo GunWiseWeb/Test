@@ -60,14 +60,16 @@ class ImportLog extends \IPS\Patterns\ActiveRecord
 	 */
 	public function complete( array $stats ): void
 	{
-		$this->run_end          = date( 'Y-m-d H:i:s' );
-		$this->records_total    = $stats['total']     ?? 0;
-		$this->records_created  = $stats['created']   ?? 0;
-		$this->records_updated  = $stats['updated']   ?? 0;
-		$this->records_skipped  = $stats['skipped']   ?? 0;
-		$this->records_errored  = $stats['errored']   ?? 0;
-		$this->conflicts_logged = $stats['conflicts'] ?? 0;
-		$this->status           = 'completed';
+		$this->run_end            = date( 'Y-m-d H:i:s' );
+		$this->records_total      = $stats['total']       ?? 0;
+		$this->records_created    = $stats['created']     ?? 0;
+		$this->records_updated    = $stats['updated']     ?? 0;
+		$this->records_skipped    = $stats['skipped']     ?? 0;
+		$this->records_errored    = $stats['errored']     ?? 0;
+		$this->conflicts_logged   = $stats['conflicts']   ?? 0;
+		$this->upc_invalid_count  = $stats['upc_invalid'] ?? 0;
+		$this->upc_flagged_count  = $stats['upc_flagged'] ?? 0;
+		$this->status             = 'completed';
 		$this->save();
 	}
 
