@@ -215,7 +215,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 				[ 'priority >= ?', $position ]
 			);
 
-			\IPS\Db::i()->insert( 'gd_distributor_feeds', [
+			$newId = \IPS\Db::i()->insert( 'gd_distributor_feeds', [
 				'feed_name'       => $feedName,
 				'distributor'     => $slug,
 				'priority'        => $position,
@@ -233,7 +233,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 			catch ( \Throwable ) {}
 
 			Output::i()->redirect(
-				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds&do=edit&id=' . (int) $newId ),
 				'gdcatalog_feed_added'
 			);
 		}
