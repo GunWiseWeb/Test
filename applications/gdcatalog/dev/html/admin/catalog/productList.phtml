@@ -1,12 +1,11 @@
 <ips:template parameters="$products, $categories, $search, $status, $catId, $imageStatus, $total, $pagination, $formActionUrl, $productCount, $categoryCount, $addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl" />
 <div class="ipsBox ipsPull">
+	<div style="display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0)">
+		<a href="{$addProductUrl}" class="ipsButton ipsButton--primary ipsButton--small">+ Add Product</a>
+		<a href="{$importCsvUrl}" class="ipsButton ipsButton--secondary ipsButton--small">Import CSV</a>
+		<a href="{$downloadCsvTemplateUrl}" class="ipsButton ipsButton--soft ipsButton--small">CSV Template</a>
+	</div>
 	<div class="ipsBox_body ipsPad">
-
-		<div style="display:flex;gap:8px;margin-bottom:20px">
-			<a href="{$addProductUrl}" class="ipsButton ipsButton--primary ipsButton--small">+ Add Product</a>
-			<a href="{$importCsvUrl}" class="ipsButton ipsButton--secondary ipsButton--small">Import CSV</a>
-			<a href="{$downloadCsvTemplateUrl}" class="ipsButton ipsButton--soft ipsButton--small">CSV Template</a>
-		</div>
 
 		<div style="display:flex;gap:16px;margin-bottom:24px">
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">

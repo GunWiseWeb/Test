@@ -77,7 +77,7 @@
 						{{if $ds['is_locked']}}
 							<a href="{$ds['unlock_catalog_url']}" class="ipsButton ipsButton--positive ipsButton--small">Unlock</a>
 						{{else}}
-							<a href="{$ds['lock_catalog_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Lock</a>
+							<a href="{$ds['lock_catalog_url']}" class="ipsButton ipsButton--soft ipsButton--small">Lock</a>
 						{{endif}}
 					</td>
 				</tr>
@@ -86,7 +86,7 @@
 		</table>
 		{{endif}}
 
-		<h2 class="ipsType_sectionHead" style="margin:24px 0 12px">Tasks</h2>
+		<h2 class="ipsType_sectionHead" style="margin:24px 0 8px;padding-top:24px;border-top:1px solid var(--i-border-color, #e0e0e0)">Tasks</h2>
 		<div style="display:flex;gap:8px;flex-wrap:wrap">
 			<a href="{$taskUrls['validate_images']}" class="ipsButton ipsButton--secondary ipsButton--small">Validate Images</a>
 			<a href="{$taskUrls['resolve_conflicts']}" class="ipsButton ipsButton--secondary ipsButton--small">Resolve Conflicts</a>
@@ -110,7 +110,7 @@
 			<a href="{$osStats['process_queue_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Process Queue</a>
 		</div>
 		{{else}}
-		<p class="ipsType_light">OpenSearch index not found.</p>
+		<div class="ipsMessage ipsMessage--info" style="margin-top:12px"><p>OpenSearch index not found. Build the index to enable fast product search and conflict resolution.</p></div>
 		<a href="{$osStats['rebuild_url']}" class="ipsButton ipsButton--primary ipsButton--small">Build Index Now</a>
 		{{endif}}
 
