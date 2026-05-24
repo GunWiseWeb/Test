@@ -527,6 +527,51 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
 
 75. **`dev/html/` directory requires `index.html` files in every subdirectory** — IPS scans the `dev/` directory structure and expects every directory to contain a blank `index.html` to prevent directory listing. Missing `index.html` files don't break functionality but cause IPS installer warnings. Add blank `index.html` to: `dev/`, `dev/html/`, `dev/html/admin/`, `dev/html/admin/{group}/`, `dev/html/front/`, `dev/html/front/{group}/`, `dev/css/`, `dev/css/front/`, `dev/js/`, `dev/js/front/`. The blank `index.html` content: `<html><body></body></html>` or just an empty file.
 
+77. **One upgrade version per tarball (IPS 5.0.18 upgrade runner bug)** — never ship multiple new upgrade versions in the same tarball. IPS 5.0.18's upgrade runner has a confirmed bug: when multiple sequential `upg_*` directories exist that need to run (e.g. upg_10041, upg_10042, upg_10043), it crashes on the second iteration with:
+
+    ```
+    Undefined array key "extra"
+    /applications/core/modules/admin/applications/applications.php line 1069
+    ```
+
+    This happens because `$data['extra']['_totalSteps']` is not initialized correctly when looping through multiple upgrade versions in a single upgrade session. The fix:
+
+    - Every tarball ships exactly ONE new `upg_*` directory
+    - That single upgrade step contains ALL changes since the previously installed version
+    - `versions.json` registers only that ONE new version number
+    - Fresh installs use `install.php` (unaffected by this bug)
+    - The upgrade runner only needs to run ONCE
+
+    Wrong (causes crash when upgrading from v1.0.40):
+
+    ```json
+    {
+      "10041": "1.0.41",
+      "10042": "1.0.42",
+      "10043": "1.0.43"
+    }
+    ```
+
+    With directories: `setup/upg_10041/`, `setup/upg_10042/`, `setup/upg_10043/`
+
+    Correct:
+
+    ```json
+    {
+      "10043": "1.0.43"
+    }
+    ```
+
+    With only: `setup/upg_10043/upgrade.php` — containing ALL the changes from 10041, 10042, and 10043 consolidated into one step1() method.
+
+    Verification check to always include:
+
+    ```bash
+    # Confirm only ONE new upg_ directory in tarball
+    tar -tf gdcatalog-v1.0.XX.tar | grep "setup/upg_" | grep "upgrade.php"
+    # expect: exactly one line
+    ```
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38
