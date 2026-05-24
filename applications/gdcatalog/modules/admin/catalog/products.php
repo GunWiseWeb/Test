@@ -452,31 +452,13 @@ class _products extends \IPS\Dispatcher\Controller
 	 * Headers match the canonical fields admin can populate (subset of the
 	 * gd_catalog columns from v1.0.31 add() editableFields).
 	 */
-	protected function downloadCsvTemplate()
+	protected function downloadCsvTemplate(): void
 	{
-		$canonicalFields = [
-			'upc',
-			'title', 'mpn', 'brand', 'manufacturer', 'importer', 'model',
-			'gun_type', 'caliber', 'action_type', 'capacity', 'barrel_length',
-			'overall_length', 'weight_oz', 'finish', 'safety_type',
-			'stock_type', 'sight_type', 'receiver_type', 'frame_material',
-			'image_url', 'msrp', 'description',
-			'nfa_item', 'requires_ffl', 'is_ammo',
-		];
+		$canonicalFields = $this->getCanonicalCsvFields();
 
-		while ( ob_get_level() > 0 )
-		{
-			@ob_end_clean();
-		}
-
-		header( 'Content-Type: text/csv; charset=utf-8' );
-		header( 'Content-Disposition: attachment; filename="gdcatalog_import_template.csv"' );
-		header( 'Cache-Control: no-store, no-cache, must-revalidate' );
-
-		$out = fopen( 'php://output', 'w' );
+		$tmpFile = tempnam( sys_get_temp_dir(), 'gdcat_csv_' );
+		$out = fopen( $tmpFile, 'w' );
 		fputcsv( $out, $canonicalFields );
-
-		/* Add a one-row example so the admin sees the expected format. */
 		fputcsv( $out, [
 			'012345678901', 'Example Rifle 22LR', 'EX-123', 'ExampleBrand', '', '',
 			'ExampleModel-22', 'rifle', '22 LR', 'bolt', '10', '20',
@@ -485,11 +467,24 @@ class _products extends \IPS\Dispatcher\Controller
 			'https://example.com/image.jpg', '499.99', 'Example description',
 			'0', '1', '0',
 		] );
-
 		fclose( $out );
 
-		\IPS\Output::i()->sendOutput( '', 200, 'text/csv' );
-		exit;
+		$csvContent = file_get_contents( $tmpFile );
+		unlink( $tmpFile );
+
+		\IPS\Output::i()->sendOutput(
+			$csvContent,
+			200,
+			'text/csv',
+			[
+				'Content-Disposition' => 'attachment; filename="gdcatalog_import_template.csv"',
+				'Cache-Control'       => 'no-store, no-cache, must-revalidate',
+				'Pragma'              => 'no-cache',
+			],
+			FALSE,
+			FALSE,
+			FALSE
+		);
 	}
 
 	/**
