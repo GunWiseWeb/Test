@@ -38,8 +38,10 @@ class SportsSouthAttributeMap
 			5 => 'stock_type',
 		],
 		'ammunition' => [
-			1 => 'caliber',
-			2 => 'capacity',
+			1 => 'description',
+			2 => 'caliber',
+			3 => 'weight_oz',
+			4 => 'caliber',
 		],
 	];
 

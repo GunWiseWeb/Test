@@ -294,12 +294,11 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		$queueCount = 0;
 		try { $queueCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_queue', [ 'app=?', 'gdcatalog' ] )->first(); } catch ( \Throwable ) {}
 
+		$syncBrandsUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=dashboard&do=syncBrands'
+		)->csrf();
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_dash_title' );
-		/* v1.0.37: arg order must match template_data declaration exactly.
-		 * Template signature is: $totalProducts, $activeProducts,
-		 * $reviewProducts, $pendingConflicts, $distributorStats, $taskUrls,
-		 * $osExists, $osStats, $reindexQueue, $lockedFields, $runQueueUrl,
-		 * $queueCount. */
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->dashboard(
 			$totalProducts,
 			$activeProducts,
@@ -312,7 +311,8 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			$reindexQueue,
 			$lockedFields,
 			$runQueueUrl,
-			$queueCount
+			$queueCount,
+			$syncBrandsUrl
 		);
 	}
 
@@ -700,6 +700,42 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			try { \IPS\Log::log( 'unlockCatalog failed: ' . $e->getMessage(), 'gdcatalog_lock' ); } catch ( \Throwable ) {}
 			\IPS\Output::i()->error( 'Failed to unlock catalog: ' . $e->getMessage(), '2GDC100/U2', 500 );
 		}
+	}
+
+	protected function syncBrands(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$synced = 0;
+		try
+		{
+			$feedRow = \IPS\Db::i()->select( '*', 'gd_distributor_feeds', [ 'distributor=?', 'sports_south' ] )->first();
+			$feed    = Distributor::constructFromData( $feedRow );
+			$client  = \IPS\gdcatalog\Feed\Distributor\SportsSouthClient::fromDistributor( $feed );
+			$brands  = $client->brandUpdate();
+
+			foreach ( $brands as $brand )
+			{
+				try
+				{
+					\IPS\Db::i()->replace( 'gd_sportssouth_brands', [
+						'brdno'  => (int) $brand['BRDNO'],
+						'brdnam' => (string) $brand['BRDNAM'],
+					] );
+					$synced++;
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			\IPS\Log::log( $e, 'gdcatalog_sync_brands' );
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+			\IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_brands_synced', FALSE, [ 'sprintf' => [ $synced ] ] )
+		);
 	}
 }
 

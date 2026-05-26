@@ -270,6 +270,7 @@ $lang = array(
 	'gdcatalog_image_status_broken'            => "Broken (404)",
 	'gdcatalog_queue_ran'                      => "Queue processed: %1\$s job(s) run. Catalog now has %2\$s products.",
 	'gdcatalog_restriction_deleted'            => "State restriction deleted.",
+	'gdcatalog_brands_synced'                  => "%1\$s brand names synced from Sports South.",
 
 	/* Manual Upload (v1.0.50) */
 	'gdcatalog_upload_feed_title'              => "Upload Feed File",

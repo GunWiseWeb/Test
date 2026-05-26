@@ -793,6 +793,32 @@ class Importer
 			$record['PICREF'] = \IPS\gdcatalog\Feed\Distributor\SportsSouthClient::imageUrlForPicref( $picref, $itemno );
 		}
 
+		/* Extract ITATR attributes using category-aware position map */
+		$catId = (string) ( $record['CATID'] ?? '' );
+		if ( $catId !== '' )
+		{
+			try
+			{
+				$catRow = \IPS\Db::i()->select( 'slug', 'gd_categories', [ 'id=?', (int) $catId ] )->first();
+				$catSlug = (string) $catRow;
+				for ( $i = 1; $i <= 20; $i++ )
+				{
+					$key = $i === 10 ? 'ITATR0' : 'ITATR' . $i;
+					$val = trim( (string) ( $record[ $key ] ?? '' ) );
+					if ( $val === '' )
+					{
+						continue;
+					}
+					$col = \IPS\gdcatalog\Feed\Distributor\SportsSouthAttributeMap::resolve( $catSlug, $i );
+					if ( $col !== null )
+					{
+						$record[ '_ATTR_' . $col ] = $val;
+					}
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
 		return $record;
 	}
 
@@ -809,6 +835,19 @@ class Importer
 			/* Map distributor fields → canonical fields */
 			$mapped = $this->fieldMapper->mapRecord( $rawRecord );
 			$mapped = FieldMapper::castTypes( $mapped );
+
+			/* Merge ITATR-extracted attributes from enrichment */
+			foreach ( $rawRecord as $k => $v )
+			{
+				if ( str_starts_with( (string) $k, '_ATTR_' ) )
+				{
+					$col = substr( $k, 6 );
+					if ( $v !== '' && $v !== null )
+					{
+						$mapped[ $col ] = $v;
+					}
+				}
+			}
 
 			/* Extract UPC — skip if missing (Section 2.6) */
 			$rawUpc = $this->fieldMapper->extractUpc( $rawRecord );
