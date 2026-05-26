@@ -268,6 +268,7 @@ $lang = array(
 	'gdcatalog_image_status_unchecked'         => "Never Checked",
 	'gdcatalog_image_status_ok'                => "Verified OK",
 	'gdcatalog_image_status_broken'            => "Broken (404)",
+	'gdcatalog_queue_ran'                      => "Queue processed: %1\$s job(s) run. Catalog now has %2\$s products.",
 	'gdcatalog_restriction_deleted'            => "State restriction deleted.",
 
 	/* Manual Upload (v1.0.50) */

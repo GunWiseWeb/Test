@@ -287,17 +287,19 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			)->csrf(),
 		];
 
+		$runQueueUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=dashboard&do=runQueue'
+		)->csrf();
+
+		$queueCount = 0;
+		try { $queueCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_queue', [ 'app=?', 'gdcatalog' ] )->first(); } catch ( \Throwable ) {}
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_dash_title' );
 		/* v1.0.37: arg order must match template_data declaration exactly.
 		 * Template signature is: $totalProducts, $activeProducts,
 		 * $reviewProducts, $pendingConflicts, $distributorStats, $taskUrls,
-		 * $osExists, $osStats, $reindexQueue, $lockedFields.
-		 *
-		 * Previously this call was passing 12 args including $categoryCounts
-		 * and $pendingCompliance which the template never declares - by
-		 * positional matching $categoryCounts (an array) landed where the
-		 * template expected $pendingConflicts (int), causing
-		 * htmlspecialchars(array given) TypeError. */
+		 * $osExists, $osStats, $reindexQueue, $lockedFields, $runQueueUrl,
+		 * $queueCount. */
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->dashboard(
 			$totalProducts,
 			$activeProducts,
@@ -308,7 +310,9 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			$osExists,
 			$osStats,
 			$reindexQueue,
-			$lockedFields
+			$lockedFields,
+			$runQueueUrl,
+			$queueCount
 		);
 	}
 
@@ -520,6 +524,49 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
 			$message
+		);
+	}
+
+	/**
+	 * v1.0.54: Process all pending gdcatalog queue jobs in one shot.
+	 */
+	protected function runQueue(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$processed = 0;
+		$products  = 0;
+
+		try
+		{
+			$limit = 500;
+			while ( $limit-- > 0 )
+			{
+				$queueRow = \IPS\Db::i()->select(
+					'*', 'core_queue', [ 'app=?', 'gdcatalog' ], 'priority ASC', [ 0, 1 ]
+				)->first();
+
+				$task = \IPS\Task::constructFromData( $queueRow );
+				$task->runAndLog();
+				$processed++;
+			}
+		}
+		catch ( \UnderflowException )
+		{
+			// Queue empty — normal exit
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'runQueue error after ' . $processed . ' jobs: ' . $e->getMessage(), 'gdcatalog_run_queue' ); } catch ( \Throwable ) {}
+		}
+
+		try { $products = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog' )->first(); } catch ( \Throwable ) {}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
+			\IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_queue_ran', FALSE, [
+				'sprintf' => [ $processed, number_format( $products ) ]
+			] )
 		);
 	}
 

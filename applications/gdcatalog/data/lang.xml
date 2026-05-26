@@ -217,6 +217,7 @@
     <word key="gdcatalog_add_product_btn" js="0"><![CDATA[+ Add Product]]></word>
     <word key="gdcatalog_product_image_url" js="0"><![CDATA[Image URL]]></word>
     <word key="gdcatalog_product_image_url_desc" js="0"><![CDATA[URL of product image. Use "View full size" at the top of this page to preview after saving. Must start with http:// or https://.]]></word>
+    <word key="gdcatalog_queue_ran" js="0"><![CDATA[Queue processed: %1$s job(s) run. Catalog now has %2$s products.]]></word>
     <word key="gdcatalog_restriction_deleted" js="0"><![CDATA[State restriction deleted.]]></word>
     <word key="gdcatalog_upload_feed_title" js="0"><![CDATA[Upload Feed File]]></word>
     <word key="gdcatalog_upload_success" js="0"><![CDATA[Feed file uploaded successfully. Use Run Import to process it.]]></word>
