@@ -572,6 +572,19 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
     # expect: exactly one line
     ```
 
+78. **Never use bare `delete()` on user-configurable data tables in `install.php` — always guard with a row count check** — `setup/install.php` runs on fresh installs AND on reinstalls (when admin removes and re-adds the app). A bare `\IPS\Db::i()->delete( 'table_name', [...] )` without checking whether the table already has user-configured data will wipe admin customizations on reinstall. For tables where the admin may have added, edited, or reordered rows (e.g. `gd_distributor_feeds`, `gd_categories`, `core_theme_templates`), guard destructive operations with a row count check:
+
+    ```php
+    $existing = (int) \IPS\Db::i()->select( 'COUNT(*)', 'table_name', $where )->first();
+    if ( $existing === 0 )
+    {
+        // Safe to seed defaults — table is empty / no matching rows
+        \IPS\Db::i()->insert( 'table_name', [...] );
+    }
+    ```
+
+    For `core_theme_templates` seeding specifically, use `\IPS\Db::i()->replace()` (INSERT ... ON DUPLICATE KEY UPDATE) which preserves user edits when keys don't collide, rather than DELETE-all-then-INSERT which destroys any admin template customizations. The only acceptable use of bare `delete()` in install.php is for truly disposable/regenerable data (cache tables, queue tables) where loss has zero user impact.
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38
