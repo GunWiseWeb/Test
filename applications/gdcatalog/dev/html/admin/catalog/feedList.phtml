@@ -38,7 +38,7 @@
 					<th>{lang="gdcatalog_feed_last_run"}</th>
 					<th>{lang="gdcatalog_feed_last_count"}</th>
 					<th>{lang="gdcatalog_feed_last_status"}</th>
-					<th style="width:100px">Actions</th>
+					<th style="width:320px">Actions</th>
 				</tr>
 			</thead>
 			<tbody class="gdcatalog-sortable">
@@ -76,28 +76,28 @@
 							&mdash;
 						{{endif}}
 					</td>
-					<td style="display:flex;gap:4px;flex-wrap:wrap">
+					<td>
 						<a href="{$feed['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a>
+						<a href="{$feed['delete_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="Delete this feed and all associated data?">Delete</a>
+						{{if $feed['test_url']}}
+						<a href="{$feed['test_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Test Connection</a>
+						{{endif}}
 						{{if $feed['auth_type'] === 'manual_upload'}}
-							<a href="{$feed['upload_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Upload</a>
+							<a href="{$feed['upload_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Upload File</a>
 							{{if $feed['has_upload']}}
-								<a href="{$feed['run_manual_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm>Run Import</a>
+							<a href="{$feed['run_manual_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm data-confirmMessage="Run import using {$feed['upload_filename']}?">Run Import</a>
+							<span style="font-size:0.85em;display:block;margin-top:2px;color:var(--i-color-soft)">{$feed['upload_filename']}</span>
+							{{else}}
+							<span style="font-size:0.85em;display:block;margin-top:2px;color:var(--i-color-soft)">No file uploaded</span>
 							{{endif}}
 						{{endif}}
 						{{if $feed['is_locked']}}
-							<a href="{$feed['unlock_catalog_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm>Unlock</a>
+						<a href="{$feed['unlock_catalog_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm>Unlock</a>
 						{{else}}
-							<a href="{$feed['lock_catalog_url']}" class="ipsButton ipsButton--soft ipsButton--small" data-confirm>Lock</a>
+						<a href="{$feed['lock_catalog_url']}" class="ipsButton ipsButton--soft ipsButton--small" data-confirm>Lock</a>
 						{{endif}}
 					</td>
 				</tr>
-				{{if $feed['auth_type'] === 'manual_upload' && $feed['has_upload']}}
-				<tr>
-					<td colspan="11" style="padding:4px 16px 4px 60px;background:#f0f9ff;font-size:0.85em;color:#1e40af">
-						<i class="fa-solid fa-file-arrow-up"></i> Uploaded: <strong>{$feed['upload_filename']}</strong>
-					</td>
-				</tr>
-				{{endif}}
 				{{if $feed['last_import_log']}}
 				<tr>
 					<td colspan="11" style="padding:4px 16px 8px 60px;background:#f9fafb;font-size:0.85em;color:#555">
