@@ -23,6 +23,9 @@
 		</div>
 
 		<form method="get" action="{$formActionUrl}" style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0);align-items:center;flex-wrap:wrap">
+			<input type="hidden" name="app" value="gdcatalog">
+			<input type="hidden" name="module" value="catalog">
+			<input type="hidden" name="controller" value="products">
 			<input type="text" name="q" value="{$search}" placeholder="Search UPC, title, or brand..." class="ipsInput ipsInput--text" style="flex:1;min-width:200px">
 			<select name="status" class="ipsInput ipsInput--select" style="min-width:140px">
 				<option value="">All statuses</option>

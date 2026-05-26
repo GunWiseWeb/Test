@@ -1237,12 +1237,19 @@ class Importer
 	 */
 	protected function queueReindex( string $upc ): void
 	{
-		/* Store UPCs to reindex — batch processed after import completes.
-		   The OpenSearchIndexer (Step 7) will consume this queue. */
-		\IPS\Db::i()->replace( 'gd_reindex_queue', [
-			'upc'        => $upc,
-			'queued_at'  => date( 'Y-m-d H:i:s' ),
-		] );
+		try
+		{
+			$queueCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_reindex_queue' )->first();
+			if ( $queueCount > 10000 )
+			{
+				return;
+			}
+			\IPS\Db::i()->replace( 'gd_reindex_queue', [
+				'upc'        => $upc,
+				'queued_at'  => date( 'Y-m-d H:i:s' ),
+			] );
+		}
+		catch ( \Throwable ) {}
 	}
 
 	/**

@@ -732,6 +732,15 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			\IPS\Log::log( $e, 'gdcatalog_sync_brands' );
 		}
 
+		if ( $synced > 0 )
+		{
+			try
+			{
+				\IPS\Task\Queue::queue( 'gdcatalog', 'ResolveBrands', [ 'offset' => 0 ] );
+			}
+			catch ( \Throwable ) {}
+		}
+
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
 			\IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_brands_synced', FALSE, [ 'sprintf' => [ $synced ] ] )

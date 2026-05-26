@@ -14,6 +14,9 @@
 		</div>
 
 		<form method="get" action="{$formActionUrl}" style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0);align-items:center;flex-wrap:wrap">
+			<input type="hidden" name="app" value="gdcatalog">
+			<input type="hidden" name="module" value="catalog">
+			<input type="hidden" name="controller" value="conflicts">
 			<input type="text" name="upc" value="{$filterUpc}" placeholder="UPC" class="ipsInput ipsInput--text" style="flex:1;min-width:140px">
 			<input type="text" name="field" value="{$filterField}" placeholder="Field name" class="ipsInput ipsInput--text" style="flex:1;min-width:140px">
 			<input type="text" name="source" value="{$filterSource}" placeholder="Distributor" class="ipsInput ipsInput--text" style="flex:1;min-width:140px">
