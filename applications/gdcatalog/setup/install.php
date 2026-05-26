@@ -31,29 +31,32 @@ $defaultConflictFields = json_encode([
 	'description'       => false,
 ]);
 
-\IPS\Db::i()->delete( 'gd_distributor_feeds' );
-
-foreach ( $distributors as $dist )
+/* Only seed default feeds on a fresh install — never wipe existing feed config */
+$existingFeedCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_distributor_feeds' )->first();
+if ( $existingFeedCount === 0 )
 {
-    try {
-        \IPS\Db::i()->insert( 'gd_distributor_feeds', [
-            'feed_name'                => $dist['feed_name'],
-            'distributor'              => $dist['distributor'],
-            'priority'                 => $dist['priority'],
-            'feed_url'                 => '',
-            'feed_format'              => 'xml',
-            'auth_type'                => 'none',
-            'auth_credentials'         => NULL,
-            'field_mapping'            => NULL,
-            'category_mapping'         => NULL,
-            'import_schedule'          => '6hr',
-            'conflict_detection_fields'=> $defaultConflictFields,
-            'active'                   => 0,
-            'last_run'                 => NULL,
-            'last_record_count'        => 0,
-            'last_run_status'          => NULL,
-        ]);
-    } catch ( \Exception $e ) {}
+    foreach ( $distributors as $dist )
+    {
+        try {
+            \IPS\Db::i()->insert( 'gd_distributor_feeds', [
+                'feed_name'                => $dist['feed_name'],
+                'distributor'              => $dist['distributor'],
+                'priority'                 => $dist['priority'],
+                'feed_url'                 => '',
+                'feed_format'              => 'xml',
+                'auth_type'                => 'none',
+                'auth_credentials'         => NULL,
+                'field_mapping'            => NULL,
+                'category_mapping'         => NULL,
+                'import_schedule'          => '6hr',
+                'conflict_detection_fields'=> $defaultConflictFields,
+                'active'                   => 0,
+                'last_run'                 => NULL,
+                'last_record_count'        => 0,
+                'last_run_status'          => NULL,
+            ]);
+        } catch ( \Throwable ) {}
+    }
 }
 
 /* Seed category taxonomy (Section 2.4) — expanded v1.0.49 */
@@ -129,41 +132,44 @@ $categories = [
 	],
 ];
 
-\IPS\Db::i()->delete( 'gd_categories' );
-
-$position = 0;
-foreach ( $categories as $parentName => $children )
+/* Only seed categories on a fresh install — never wipe existing category config */
+$existingCategoryCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_categories' )->first();
+if ( $existingCategoryCount === 0 )
 {
-    $slug = mb_strtolower( preg_replace( '/[^a-z0-9]+/i', '-', $parentName ) );
-    $slug = trim( $slug, '-' );
-
-    try {
-        $parentId = \IPS\Db::i()->insert( 'gd_categories', [
-            'parent_id'     => 0,
-            'name'          => $parentName,
-            'slug'          => $slug,
-            'position'      => $position++,
-            'product_count' => 0,
-        ]);
-    } catch ( \Exception $e ) {
-        try { $parentId = \IPS\Db::i()->select( 'id', 'gd_categories', [ 'slug=?', $slug ] )->first(); } catch ( \Exception $e2 ) { continue; }
-    }
-
-    $childPos = 0;
-    foreach ( $children as $childName )
+    $position = 0;
+    foreach ( $categories as $parentName => $children )
     {
-        $childSlug = $slug . '-' . mb_strtolower( preg_replace( '/[^a-z0-9]+/i', '-', $childName ) );
-        $childSlug = trim( $childSlug, '-' );
+        $slug = mb_strtolower( preg_replace( '/[^a-z0-9]+/i', '-', $parentName ) );
+        $slug = trim( $slug, '-' );
 
         try {
-            \IPS\Db::i()->insert( 'gd_categories', [
-                'parent_id'     => $parentId,
-                'name'          => $childName,
-                'slug'          => $childSlug,
-                'position'      => $childPos++,
+            $parentId = \IPS\Db::i()->insert( 'gd_categories', [
+                'parent_id'     => 0,
+                'name'          => $parentName,
+                'slug'          => $slug,
+                'position'      => $position++,
                 'product_count' => 0,
             ]);
-        } catch ( \Exception $e ) {}
+        } catch ( \Throwable ) {
+            try { $parentId = (int) \IPS\Db::i()->select( 'id', 'gd_categories', [ 'slug=?', $slug ] )->first(); } catch ( \Throwable ) { continue; }
+        }
+
+        $childPos = 0;
+        foreach ( $children as $childName )
+        {
+            $childSlug = $slug . '-' . mb_strtolower( preg_replace( '/[^a-z0-9]+/i', '-', $childName ) );
+            $childSlug = trim( $childSlug, '-' );
+
+            try {
+                \IPS\Db::i()->insert( 'gd_categories', [
+                    'parent_id'     => $parentId,
+                    'name'          => $childName,
+                    'slug'          => $childSlug,
+                    'position'      => $childPos++,
+                    'product_count' => 0,
+                ]);
+            } catch ( \Throwable ) {}
+        }
     }
 }
 
