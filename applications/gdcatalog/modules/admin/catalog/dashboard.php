@@ -720,7 +720,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 				{
 					\IPS\Db::i()->replace( 'gd_sportssouth_brands', [
 						'brdno'  => (int) $brand['BRDNO'],
-						'brdnam' => (string) $brand['BRDNAM'],
+						'brdnam' => (string) $brand['BRDNM'],
 					] );
 					$synced++;
 				}

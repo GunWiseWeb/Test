@@ -2298,6 +2298,51 @@
 			}
 		}
 	},
+	"gd_sportssouth_brands": {
+		"name": "gd_sportssouth_brands",
+		"columns": {
+			"brdno": {
+				"name": "brdno",
+				"type": "INT",
+				"length": 11,
+				"decimals": null,
+				"allow_null": false,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"brdnam": {
+				"name": "brdnam",
+				"type": "VARCHAR",
+				"length": 255,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			}
+		},
+		"indexes": {
+			"PRIMARY": {
+				"type": "primary",
+				"name": "PRIMARY",
+				"columns": [
+					"brdno"
+				],
+				"length": [
+					null
+				]
+			}
+		}
+	},
 	"gd_reindex_queue": {
 		"name": "gd_reindex_queue",
 		"columns": {
