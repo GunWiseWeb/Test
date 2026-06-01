@@ -1,4 +1,4 @@
-<ips:template parameters="$products, $categories, $search, $status, $catId, $imageStatus, $total, $pagination, $formActionUrl, $productCount, $categoryCount, $addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl" />
+<ips:template parameters="$products, $categories, $search, $status, $catId, $imageStatus, $total, $pagination, $formActionUrl, $productCount, $categoryCount, $addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl, $completeness" />
 <div class="ipsBox ipsPull">
 	<div style="display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0)">
 		<a href="{$addProductUrl}" class="ipsButton ipsButton--primary ipsButton--small">+ Add Product</a>
@@ -47,6 +47,12 @@
 				<option value="ok" {{if $imageStatus === 'ok'}}selected{{endif}}>Image OK</option>
 				<option value="unchecked" {{if $imageStatus === 'unchecked'}}selected{{endif}}>Not Checked</option>
 			</select>
+			<select name="completeness" class="ipsInput ipsInput--select" style="min-width:160px">
+				<option value="">All completeness</option>
+				<option value="incomplete" {{if $completeness === 'incomplete'}}selected{{endif}}>Incomplete (&lt;80%)</option>
+				<option value="missing_image" {{if $completeness === 'missing_image'}}selected{{endif}}>Missing Image</option>
+				<option value="complete" {{if $completeness === 'complete'}}selected{{endif}}>Complete (80%+)</option>
+			</select>
 			<button type="submit" class="ipsButton ipsButton--primary ipsButton--small">Filter</button>
 		</form>
 
@@ -63,6 +69,7 @@
 					<th>{lang="gdcatalog_product_caliber"}</th>
 					<th>{lang="gdcatalog_product_msrp"}</th>
 					<th>{lang="gdcatalog_product_status"}</th>
+					<th>Score</th>
 					<th>{lang="gdcatalog_product_primary_source"}</th>
 					<th style="width:180px">Actions</th>
 				</tr>
@@ -95,6 +102,17 @@
 							<span class="ipsBadge ipsBadge--negative">{lang="gdcatalog_status_discontinued"}</span>
 						{{else}}
 							<span class="ipsBadge ipsBadge--neutral">{lang="gdcatalog_status_pending"}</span>
+						{{endif}}
+					</td>
+					<td>
+						{{if $product['completeness_score'] >= 80}}
+							<span class="ipsBadge ipsBadge--positive">{$product['completeness_score']}%</span>
+						{{elseif $product['completeness_score'] >= 50}}
+							<span class="ipsBadge ipsBadge--warning">{$product['completeness_score']}%</span>
+						{{elseif $product['completeness_score'] > 0}}
+							<span class="ipsBadge ipsBadge--negative">{$product['completeness_score']}%</span>
+						{{else}}
+							<span class="ipsBadge ipsBadge--neutral">&mdash;</span>
 						{{endif}}
 					</td>
 					<td>{$product['primary_source']}</td>

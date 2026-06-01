@@ -827,6 +827,30 @@ class Importer
 		if ( !empty( $record['IMODEL'] ) )  $record['_ATTR_model']          = (string) $record['IMODEL'];
 		if ( !empty( $record['MFGINO'] ) )  $record['_ATTR_mpn']            = (string) $record['MFGINO'];
 
+		/* Fallback: parse title/description for missing attributes */
+		$titleParseInput = [];
+		foreach ( $record as $k => $v )
+		{
+			if ( str_starts_with( (string) $k, '_ATTR_' ) && $v !== '' )
+			{
+				$titleParseInput[ substr( $k, 6 ) ] = $v;
+			}
+		}
+		$sTitle = (string) ( $record['SHDESC'] ?? '' );
+		$sDesc  = (string) ( $record['IDESC'] ?? '' );
+		if ( $sTitle !== '' || $sDesc !== '' )
+		{
+			$canonicalCatId = isset( $record['_CATEGORY_ID'] ) ? (int) $record['_CATEGORY_ID'] : 0;
+			$parsed = TitleParser::parse( $sTitle, $sDesc, $canonicalCatId, $titleParseInput );
+			foreach ( $parsed as $col => $val )
+			{
+				if ( !isset( $record[ '_ATTR_' . $col ] ) || $record[ '_ATTR_' . $col ] === '' )
+				{
+					$record[ '_ATTR_' . $col ] = $val;
+				}
+			}
+		}
+
 		return $record;
 	}
 

@@ -972,6 +972,20 @@
                 "zerofill": false,
                 "values": [],
                 "comment": ""
+            },
+            "completeness_score": {
+                "name": "completeness_score",
+                "type": "TINYINT",
+                "length": 3,
+                "decimals": null,
+                "allow_null": false,
+                "default": "0",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             }
         },
         "indexes": {

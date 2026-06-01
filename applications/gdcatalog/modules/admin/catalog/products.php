@@ -94,10 +94,11 @@ class _products extends \IPS\Dispatcher\Controller
 	 */
 	protected function manage()
 	{
-		$where   = [];
-		$search  = \IPS\Request::i()->q ?? '';
-		$status  = \IPS\Request::i()->status ?? '';
-		$catId   = (int) ( \IPS\Request::i()->category ?? 0 );
+		$where        = [];
+		$search       = \IPS\Request::i()->q ?? '';
+		$status       = \IPS\Request::i()->status ?? '';
+		$catId        = (int) ( \IPS\Request::i()->category ?? 0 );
+		$completeness = (string) ( \IPS\Request::i()->completeness ?? '' );
 
 		if ( $search !== '' )
 		{
@@ -186,6 +187,19 @@ class _products extends \IPS\Dispatcher\Controller
 			}
 		}
 
+		if ( $completeness === 'incomplete' )
+		{
+			$where[] = [ 'completeness_score < 80 AND completeness_score > 0' ];
+		}
+		elseif ( $completeness === 'missing_image' )
+		{
+			$where[] = [ 'image_url IS NULL OR image_url=?', '' ];
+		}
+		elseif ( $completeness === 'complete' )
+		{
+			$where[] = [ 'completeness_score >= 80' ];
+		}
+
 		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
 		$perPage = 50;
 
@@ -234,6 +248,8 @@ class _products extends \IPS\Dispatcher\Controller
 
 				/* v1.0.34: Locked fields count for the Lock column. */
 				'locked_fields_count' => $lockedFieldsCount,
+
+				'completeness_score' => (int) ( $product->completeness_score ?? 0 ),
 			];
 		}
 
@@ -278,7 +294,7 @@ class _products extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->productList(
 			$products, $categories, $search, $status, $catId, $imageStatus,
 			$total, $pagination, $formActionUrl, $productCount, $categoryCount,
-			$addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl
+			$addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl, $completeness
 		);
 	}
 

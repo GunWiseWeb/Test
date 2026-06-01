@@ -60,10 +60,40 @@ class _BackfillAttributes extends \IPS\Task\Queue\Handler
 				if ( !empty( $raw['IMODEL'] ) )  $updates['model']          = (string) $raw['IMODEL'];
 				if ( !empty( $raw['MFGINO'] ) )  $updates['mpn']            = (string) $raw['MFGINO'];
 
+				if ( !empty( $raw['SHDESC'] ) || !empty( $raw['IDESC'] ) )
+				{
+					$title       = (string) ( $raw['SHDESC'] ?? '' );
+					$description = (string) ( $raw['IDESC']  ?? '' );
+					$canonicalCatId = 0;
+					try
+					{
+						$canonicalCatId = (int) \IPS\Db::i()->select( 'category_id', 'gd_catalog', [ 'upc=?', $row['upc'] ] )->first();
+					}
+					catch ( \Throwable ) {}
+
+					$parsed = \IPS\gdcatalog\Feed\TitleParser::parse( $title, $description, $canonicalCatId, $updates );
+					foreach ( $parsed as $col => $val )
+					{
+						if ( !isset( $updates[ $col ] ) || $updates[ $col ] === '' )
+						{
+							$updates[ $col ] = $val;
+						}
+					}
+				}
+
 				if ( !empty( $updates ) )
 				{
 					\IPS\Db::i()->update( 'gd_catalog', $updates, [ 'upc=?', $row['upc'] ] );
 				}
+
+				try
+				{
+					$fullProduct = \IPS\Db::i()->select( '*', 'gd_catalog', [ 'upc=?', $row['upc'] ] )->first();
+					$score = \IPS\gdcatalog\Feed\CompletenessScorer::score( $fullProduct );
+					\IPS\Db::i()->update( 'gd_catalog', [ 'completeness_score' => $score ], [ 'upc=?', $row['upc'] ] );
+				}
+				catch ( \Throwable ) {}
+
 				$count++;
 			}
 			catch ( \Throwable ) {}
