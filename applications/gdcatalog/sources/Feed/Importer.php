@@ -898,6 +898,12 @@ class Importer
 			}
 			unset( $mapped['category'] );
 
+			/* Resolve numeric category_id through category_mapping (e.g. SS CATID → canonical) */
+			if ( isset( $mapped['category_id'] ) && (int) $mapped['category_id'] > 0 )
+			{
+				$mapped['category_id'] = $this->categoryMapper->resolve( $mapped['category_id'] );
+			}
+
 			/* Check if UPC exists */
 			$existing = $this->loadProduct( $upc );
 

@@ -25,13 +25,37 @@ $sportsSouthFieldMapping = json_encode([
     'LENGTH'  => 'overall_length',
 ]);
 
+$sportsSouthCategoryMapping = json_encode([
+    5 => 23, 6 => 23, 26 => 2, 64 => 3, 96 => 4,
+    40 => 8, 58 => 8, 94 => 15,
+    48 => 16, 59 => 16,
+    49 => 23, 70 => 23, 71 => 23, 72 => 23, 86 => 23,
+    90 => 23, 91 => 23, 36 => 23, 12 => 23, 4 => 23,
+    18 => 38,
+    9 => 44, 10 => 44, 32 => 44, 39 => 44, 41 => 44,
+    46 => 44, 50 => 44, 52 => 44, 55 => 44, 78 => 44,
+    79 => 44, 80 => 44,
+    8 => 58, 23 => 58, 37 => 58, 63 => 58, 66 => 58,
+    67 => 58, 74 => 58, 77 => 58, 81 => 58,
+    28 => 72, 84 => 72,
+    15 => 83, 44 => 83,
+    17 => 94, 87 => 94,
+    31 => 103, 51 => 103, 53 => 103, 75 => 103,
+    83 => 103, 25 => 103,
+    7 => 114, 19 => 114, 21 => 114, 22 => 114,
+    27 => 114, 45 => 114,
+    93 => 31,
+    20 => 130, 62 => 130,
+    1 => 58, 2 => 58, 13 => 58,
+]);
+
 $distributors = [
-    ['feed_name' => 'RSR Group Primary',        'distributor' => 'rsr_group',     'priority' => 1, 'field_mapping' => null],
-    ['feed_name' => 'Sports South Primary',      'distributor' => 'sports_south',  'priority' => 2, 'field_mapping' => $sportsSouthFieldMapping],
-    ['feed_name' => "Davidson's Primary",        'distributor' => 'davidsons',     'priority' => 3, 'field_mapping' => null],
-    ['feed_name' => "Lipsey's Primary",          'distributor' => 'lipseys',       'priority' => 4, 'field_mapping' => null],
-    ['feed_name' => 'Zanders Sporting Goods',    'distributor' => 'zanders',       'priority' => 5, 'field_mapping' => null],
-    ['feed_name' => 'Bill Hicks Primary',        'distributor' => 'bill_hicks',    'priority' => 6, 'field_mapping' => null],
+    ['feed_name' => 'RSR Group Primary',        'distributor' => 'rsr_group',     'priority' => 1, 'field_mapping' => null,                    'category_mapping' => null],
+    ['feed_name' => 'Sports South Primary',      'distributor' => 'sports_south',  'priority' => 2, 'field_mapping' => $sportsSouthFieldMapping, 'category_mapping' => $sportsSouthCategoryMapping],
+    ['feed_name' => "Davidson's Primary",        'distributor' => 'davidsons',     'priority' => 3, 'field_mapping' => null,                    'category_mapping' => null],
+    ['feed_name' => "Lipsey's Primary",          'distributor' => 'lipseys',       'priority' => 4, 'field_mapping' => null,                    'category_mapping' => null],
+    ['feed_name' => 'Zanders Sporting Goods',    'distributor' => 'zanders',       'priority' => 5, 'field_mapping' => null,                    'category_mapping' => null],
+    ['feed_name' => 'Bill Hicks Primary',        'distributor' => 'bill_hicks',    'priority' => 6, 'field_mapping' => null,                    'category_mapping' => null],
 ];
 
 /* Default conflict detection fields per Section 2.11.2 */
@@ -62,7 +86,7 @@ if ( $existingFeedCount === 0 )
                 'auth_type'                => 'none',
                 'auth_credentials'         => NULL,
                 'field_mapping'            => $dist['field_mapping'] ?? null,
-                'category_mapping'         => NULL,
+                'category_mapping'         => $dist['category_mapping'] ?? null,
                 'import_schedule'          => '6hr',
                 'conflict_detection_fields'=> $defaultConflictFields,
                 'active'                   => 0,

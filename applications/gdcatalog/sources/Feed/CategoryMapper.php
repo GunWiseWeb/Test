@@ -120,6 +120,23 @@ class CategoryMapper
 	}
 
 	/**
+	 * Resolve a raw numeric category ID to a canonical category ID using the mapping.
+	 * Used when the field mapping maps CATID directly to category_id (numeric → numeric).
+	 *
+	 * @param  int|string $rawCatId  Raw distributor category ID
+	 * @return int  Canonical category ID, or the raw value if no mapping found
+	 */
+	public function resolve( int|string $rawCatId ): int
+	{
+		$key = (string) $rawCatId;
+		if ( isset( $this->map[ $key ] ) )
+		{
+			return (int) $this->map[ $key ];
+		}
+		return (int) $rawCatId;
+	}
+
+	/**
 	 * Get all distributor category strings that could not be mapped during this run.
 	 *
 	 * @return array<string, string>  normalised => original
