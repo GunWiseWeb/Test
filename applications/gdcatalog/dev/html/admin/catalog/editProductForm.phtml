@@ -1,0 +1,12 @@
+<ips:template parameters="$form, $product" />
+<div class="ipsBox ipsPull">
+	<div style="padding:10px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0)">
+		<h2 class="ipsType_sectionHead" style="margin:0">Edit Product: {$product['upc']}</h2>
+	</div>
+	<div class="ipsBox_body ipsPad">
+		<div class="ipsMessage ipsMessage--info" style="margin-bottom:16px">
+			<p>Changing the UPC will delete the existing product record and create a new one with the new UPC. All other data will be preserved.</p>
+		</div>
+		{$form|raw}
+	</div>
+</div>

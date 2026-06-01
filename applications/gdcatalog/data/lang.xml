@@ -229,5 +229,19 @@
     <word key="gdcatalog_upload_no_file_stored" js="0"><![CDATA[No uploaded file found. Upload a feed file first.]]></word>
     <word key="gdcatalog_manual_import_complete" js="0"><![CDATA[Manual feed import completed successfully.]]></word>
     <word key="gdcatalog_manual_import_failed" js="0"><![CDATA[Manual feed import failed. Check the error log for details.]]></word>
+    <word key="gdcatalog_product_not_found" js="0"><![CDATA[Product not found.]]></word>
+    <word key="gdcatalog_upc_edit_failed" js="0"><![CDATA[Failed to change UPC. The new UPC may already exist.]]></word>
+    <word key="gdcatalog_product_saved" js="0"><![CDATA[Product saved.]]></word>
+    <word key="gdcatalog_edit_product_title" js="0"><![CDATA[Edit Product]]></word>
+    <word key="gdcatalog_edit_upc" js="0"><![CDATA[UPC]]></word>
+    <word key="gdcatalog_edit_title" js="0"><![CDATA[Title]]></word>
+    <word key="gdcatalog_edit_brand" js="0"><![CDATA[Brand]]></word>
+    <word key="gdcatalog_edit_caliber" js="0"><![CDATA[Caliber]]></word>
+    <word key="gdcatalog_edit_model" js="0"><![CDATA[Model]]></word>
+    <word key="gdcatalog_edit_mpn" js="0"><![CDATA[MPN / Manufacturer SKU]]></word>
+    <word key="gdcatalog_edit_msrp" js="0"><![CDATA[MSRP]]></word>
+    <word key="gdcatalog_edit_status" js="0"><![CDATA[Status]]></word>
+    <word key="gdcatalog_edit_description" js="0"><![CDATA[Description]]></word>
+    <word key="gdcatalog_edit_image_url" js="0"><![CDATA[Image URL]]></word>
   </app>
 </language>

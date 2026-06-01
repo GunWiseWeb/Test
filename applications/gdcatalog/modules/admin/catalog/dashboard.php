@@ -298,6 +298,13 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'app=gdcatalog&module=catalog&controller=dashboard&do=syncBrands'
 		)->csrf();
 
+		$monitorUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=dashboard&do=monitor'
+		);
+
+		\IPS\Output::i()->jsVars['gdcatalog_monitor_url'] = $monitorUrl;
+		\IPS\Output::i()->js( 'dashboardMonitor.js', 'gdcatalog', 'interface' );
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_dash_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->dashboard(
 			$totalProducts,
@@ -312,7 +319,8 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			$lockedFields,
 			$runQueueUrl,
 			$queueCount,
-			$syncBrandsUrl
+			$syncBrandsUrl,
+			$monitorUrl
 		);
 	}
 
@@ -744,6 +752,83 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=dashboard' ),
 			\IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_brands_synced', FALSE, [ 'sprintf' => [ $synced ] ] )
+		);
+	}
+
+	protected function monitor(): void
+	{
+		$data = [
+			'products'          => 0,
+			'active'            => 0,
+			'queue_total'       => 0,
+			'queue_jobs'        => [],
+			'pending_conflicts' => 0,
+			'broken_images'     => 0,
+			'no_image'          => 0,
+			'last_import'       => [],
+			'feeds'             => [],
+			'timestamp'         => time(),
+		];
+
+		try { $data['products']          = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog' )->first(); } catch ( \Throwable ) {}
+		try { $data['active']            = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'record_status=?', 'active' ] )->first(); } catch ( \Throwable ) {}
+		try { $data['queue_total']       = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_queue', [ 'app=?', 'gdcatalog' ] )->first(); } catch ( \Throwable ) {}
+		try { $data['pending_conflicts'] = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_flags', [ 'status=?', 'pending_review' ] )->first(); } catch ( \Throwable ) {}
+		try { $data['broken_images']     = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'image_validated=1 AND (image_http_status >= 400 OR image_http_status = 0)' ] )->first(); } catch ( \Throwable ) {}
+		try { $data['no_image']          = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'image_url IS NULL OR image_url=?', '' ] )->first(); } catch ( \Throwable ) {}
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'key, data', 'core_queue', [ 'app=?', 'gdcatalog' ] ) as $row )
+			{
+				$qData  = json_decode( $row['data'], true );
+				$offset = $qData['offset'] ?? 0;
+				$data['queue_jobs'][] = [ 'key' => $row['key'], 'offset' => $offset ];
+			}
+		}
+		catch ( \Throwable ) {}
+
+		try
+		{
+			$row = \IPS\Db::i()->select(
+				'feed_id, status, records_created, records_updated, records_errored, run_started_at, run_completed_at',
+				'gd_import_log',
+				[],
+				'id DESC',
+				[ 0, 1 ]
+			)->first();
+			$data['last_import'] = [
+				'feed_id'   => $row['feed_id'],
+				'status'    => $row['status'],
+				'created'   => $row['records_created'],
+				'updated'   => $row['records_updated'],
+				'errored'   => $row['records_errored'],
+				'started'   => $row['run_started_at'],
+				'completed' => $row['run_completed_at'],
+			];
+		}
+		catch ( \Throwable ) {}
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'id, feed_name, active, last_run, last_run_status, last_record_count', 'gd_distributor_feeds' ) as $row )
+			{
+				$data['feeds'][] = [
+					'id'          => $row['id'],
+					'name'        => $row['feed_name'],
+					'active'      => (bool) $row['active'],
+					'last_run'    => $row['last_run'],
+					'last_status' => $row['last_run_status'],
+					'last_count'  => $row['last_record_count'],
+				];
+			}
+		}
+		catch ( \Throwable ) {}
+
+		\IPS\Output::i()->sendOutput(
+			json_encode( $data ),
+			200,
+			'application/json'
 		);
 	}
 }

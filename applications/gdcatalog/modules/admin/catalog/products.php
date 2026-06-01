@@ -199,7 +199,7 @@ class _products extends \IPS\Dispatcher\Controller
 			$product = Product::constructFromData( $row );
 
 			$editUrl = (string) \IPS\Http\Url::internal(
-				'app=gdcatalog&module=catalog&controller=products&do=edit&upc=' . urlencode( (string) $product->upc )
+				'app=gdcatalog&module=catalog&controller=products&do=editProduct&upc=' . urlencode( (string) $product->upc )
 			);
 			$approveUrl = (string) \IPS\Http\Url::internal(
 				'app=gdcatalog&module=catalog&controller=products&do=resolveReview&upc=' . urlencode( (string) $product->upc )
@@ -783,8 +783,100 @@ class _products extends \IPS\Dispatcher\Controller
 		];
 	}
 
+	protected function editProduct(): void
+	{
+		if ( \IPS\Request::i()->requestMethod() === 'POST' )
+		{
+			\IPS\Session::i()->csrfCheck();
+		}
+
+		$upc = (string) \IPS\Request::i()->upc;
+		try
+		{
+			$product = \IPS\Db::i()->select( '*', 'gd_catalog', [ 'upc=?', $upc ] )->first();
+		}
+		catch ( \UnderflowException )
+		{
+			\IPS\Output::i()->error( 'gdcatalog_product_not_found', '2GDC/1', 404 );
+			return;
+		}
+
+		$form = new \IPS\Helpers\Form;
+		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_upc', $product['upc'], TRUE, [ 'regex' => '/^[0-9]{8,13}$/' ] ) );
+		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_title', $product['title'], TRUE ) );
+		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_brand', $product['brand'], FALSE ) );
+		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_caliber', $product['caliber'] ?? '', FALSE ) );
+		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_model', $product['model'] ?? '', FALSE ) );
+		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_mpn', $product['mpn'] ?? '', FALSE ) );
+		$form->add( new \IPS\Helpers\Form\Number( 'gdcatalog_edit_msrp', $product['msrp'] ?? 0, FALSE, [ 'decimals' => 2 ] ) );
+		$form->add( new \IPS\Helpers\Form\Select( 'gdcatalog_edit_status', $product['record_status'], TRUE, [
+			'options' => [
+				'active'       => 'Active',
+				'discontinued' => 'Discontinued',
+				'admin_review' => 'Admin Review',
+				'pending'      => 'Pending',
+			]
+		] ) );
+		$form->add( new \IPS\Helpers\Form\TextArea( 'gdcatalog_edit_description', $product['description'] ?? '', FALSE ) );
+		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_image_url', $product['image_url'] ?? '', FALSE ) );
+
+		if ( $values = $form->values() )
+		{
+			$newUpc = preg_replace( '/[^0-9]/', '', $values['gdcatalog_edit_upc'] );
+
+			if ( $newUpc !== $upc )
+			{
+				$newData = $product;
+				$newData['upc']           = $newUpc;
+				$newData['title']         = $values['gdcatalog_edit_title'];
+				$newData['brand']         = $values['gdcatalog_edit_brand'];
+				$newData['caliber']       = $values['gdcatalog_edit_caliber'] ?: null;
+				$newData['model']         = $values['gdcatalog_edit_model'] ?: null;
+				$newData['mpn']           = $values['gdcatalog_edit_mpn'] ?: null;
+				$newData['msrp']          = $values['gdcatalog_edit_msrp'];
+				$newData['record_status'] = $values['gdcatalog_edit_status'];
+				$newData['description']   = $values['gdcatalog_edit_description'] ?: null;
+				$newData['image_url']     = $values['gdcatalog_edit_image_url'] ?: null;
+
+				try
+				{
+					\IPS\Db::i()->delete( 'gd_catalog', [ 'upc=?', $upc ] );
+					\IPS\Db::i()->insert( 'gd_catalog', $newData );
+				}
+				catch ( \Throwable $e )
+				{
+					\IPS\Log::log( $e, 'gdcatalog_upc_edit' );
+					\IPS\Output::i()->error( 'gdcatalog_upc_edit_failed', '2GDC/2', 500 );
+					return;
+				}
+			}
+			else
+			{
+				\IPS\Db::i()->update( 'gd_catalog', [
+					'title'         => $values['gdcatalog_edit_title'],
+					'brand'         => $values['gdcatalog_edit_brand'],
+					'caliber'       => $values['gdcatalog_edit_caliber'] ?: null,
+					'model'         => $values['gdcatalog_edit_model'] ?: null,
+					'mpn'           => $values['gdcatalog_edit_mpn'] ?: null,
+					'msrp'          => $values['gdcatalog_edit_msrp'],
+					'record_status' => $values['gdcatalog_edit_status'],
+					'description'   => $values['gdcatalog_edit_description'] ?: null,
+					'image_url'     => $values['gdcatalog_edit_image_url'] ?: null,
+				], [ 'upc=?', $upc ] );
+			}
+
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products' ),
+				'gdcatalog_product_saved'
+			);
+		}
+
+		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_edit_product_title' );
+		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->editProductForm( $form, $product );
+	}
+
 	/**
-	 * Edit a single product.
+	 * Edit a single product (legacy form).
 	 */
 	protected function edit()
 	{

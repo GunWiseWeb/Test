@@ -1,6 +1,46 @@
-<ips:template parameters="$totalProducts, $activeProducts, $reviewProducts, $pendingConflicts, $distributorStats, $taskUrls, $osExists, $osStats, $reindexQueue, $lockedFields, $runQueueUrl, $queueCount, $syncBrandsUrl" />
+<ips:template parameters="$totalProducts, $activeProducts, $reviewProducts, $pendingConflicts, $distributorStats, $taskUrls, $osExists, $osStats, $reindexQueue, $lockedFields, $runQueueUrl, $queueCount, $syncBrandsUrl, $monitorUrl" />
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
+		<div id="gdcatalog-monitor" class="ipsBox" style="margin-bottom:16px;padding:16px" data-monitor-url="{$monitorUrl}">
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+				<h3 style="margin:0;font-size:1em;font-weight:600">Live Catalog Status</h3>
+				<span style="font-size:0.8em;color:var(--i-color-soft)">Updated: <span id="gdc-updated">&mdash;</span></span>
+			</div>
+			<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:12px">
+				<div style="text-align:center;padding:8px;background:var(--i-background-2);border-radius:4px">
+					<div style="font-size:1.4em;font-weight:bold" id="gdc-products">&mdash;</div>
+					<div style="font-size:0.75em">Total Products</div>
+				</div>
+				<div style="text-align:center;padding:8px;background:var(--i-background-2);border-radius:4px">
+					<div style="font-size:1.4em;font-weight:bold;color:var(--i-positive)" id="gdc-active">&mdash;</div>
+					<div style="font-size:0.75em">Active</div>
+				</div>
+				<div style="text-align:center;padding:8px;background:var(--i-background-2);border-radius:4px">
+					<div style="font-size:1.4em;font-weight:bold;color:var(--i-warning)" id="gdc-conflicts">&mdash;</div>
+					<div style="font-size:0.75em">Pending Conflicts</div>
+				</div>
+				<div style="text-align:center;padding:8px;background:var(--i-background-2);border-radius:4px">
+					<div style="font-size:1.4em;font-weight:bold;color:var(--i-negative)" id="gdc-broken">&mdash;</div>
+					<div style="font-size:0.75em">Broken Images</div>
+				</div>
+				<div style="text-align:center;padding:8px;background:var(--i-background-2);border-radius:4px">
+					<div style="font-size:1.4em;font-weight:bold" id="gdc-no-image">&mdash;</div>
+					<div style="font-size:0.75em">No Image</div>
+				</div>
+				<div style="text-align:center;padding:8px;background:var(--i-background-2);border-radius:4px">
+					<div style="font-size:1.4em;font-weight:bold;color:var(--i-primary)" id="gdc-queue">&mdash;</div>
+					<div style="font-size:0.75em">Queue Jobs</div>
+				</div>
+			</div>
+			<div style="margin-bottom:8px">
+				<span style="font-size:0.8em;font-weight:600">Active Jobs:</span>
+				<span id="gdc-jobs" style="margin-left:8px"></span>
+			</div>
+			<div>
+				<span style="font-size:0.8em;font-weight:600">Last Import:</span>
+				<span id="gdc-last-import" style="margin-left:8px;font-size:0.8em;color:var(--i-color-soft)">&mdash;</span>
+			</div>
+		</div>
 		<div style="display:flex;gap:16px;margin-bottom:24px">
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
 				<div style="font-size:2em;font-weight:bold">{expression="number_format( (int) $totalProducts )"}</div>

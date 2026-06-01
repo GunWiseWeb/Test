@@ -272,6 +272,22 @@ $lang = array(
 	'gdcatalog_restriction_deleted'            => "State restriction deleted.",
 	'gdcatalog_brands_synced'                  => "%1\$s brand names synced from Sports South.",
 
+	/* Edit Product */
+	'gdcatalog_product_not_found'              => "Product not found.",
+	'gdcatalog_upc_edit_failed'                => "Failed to change UPC. The new UPC may already exist.",
+	'gdcatalog_product_saved'                  => "Product saved.",
+	'gdcatalog_edit_product_title'             => "Edit Product",
+	'gdcatalog_edit_upc'                       => "UPC",
+	'gdcatalog_edit_title'                     => "Title",
+	'gdcatalog_edit_brand'                     => "Brand",
+	'gdcatalog_edit_caliber'                   => "Caliber",
+	'gdcatalog_edit_model'                     => "Model",
+	'gdcatalog_edit_mpn'                       => "MPN / Manufacturer SKU",
+	'gdcatalog_edit_msrp'                      => "MSRP",
+	'gdcatalog_edit_status'                    => "Status",
+	'gdcatalog_edit_description'               => "Description",
+	'gdcatalog_edit_image_url'                 => "Image URL",
+
 	/* Manual Upload (v1.0.50) */
 	'gdcatalog_upload_feed_title'              => "Upload Feed File",
 	'gdcatalog_upload_success'                 => "Feed file uploaded successfully. Use Run Import to process it.",
