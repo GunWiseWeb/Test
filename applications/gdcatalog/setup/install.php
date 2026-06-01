@@ -20,7 +20,7 @@ $sportsSouthFieldMapping = json_encode([
     'PICREF'  => 'image_url',
     'IMODEL'  => 'model',
     'MFGINO'  => 'mpn',
-    'WTPBX'   => 'weight_oz',
+    'WTPBX'   => 'weight_lbs',
     'LENGTH'  => 'overall_length',
 ]);
 

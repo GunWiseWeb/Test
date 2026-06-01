@@ -303,7 +303,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		)->csrf();
 
 		$monitorUrl = (string) \IPS\Http\Url::internal(
-			'app=gdcatalog&module=catalog&controller=dashboard&do=monitor'
+			'app=gdcatalog&module=catalog&controller=dashboard&do=monitor', 'admin'
 		);
 
 		\IPS\Output::i()->jsVars['gdcatalog_monitor_url'] = $monitorUrl;

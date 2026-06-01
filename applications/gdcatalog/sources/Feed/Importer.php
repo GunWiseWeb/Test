@@ -978,18 +978,12 @@ class Importer
 		$product->upc = $upc;
 
 		/* Apply all mapped values — only set columns that actually exist in gd_catalog */
-		static $validColumns = null;
-		if ( $validColumns === null )
+		$validColumns = [];
+		try
 		{
-			try
-			{
-				$validColumns = array_keys( \IPS\Db::i()->getTableDefinition( 'gd_catalog' )['columns'] );
-			}
-			catch ( \Throwable )
-			{
-				$validColumns = [];
-			}
+			$validColumns = array_keys( \IPS\Db::i()->getTableDefinition( 'gd_catalog' )['columns'] );
 		}
+		catch ( \Throwable ) {}
 		foreach ( $mapped as $field => $value )
 		{
 			if ( $value !== null && $value !== '' && in_array( $field, $validColumns, true ) )
@@ -1053,18 +1047,12 @@ class Importer
 			$this->log
 		);
 
-		static $validColumns = null;
-		if ( $validColumns === null )
+		$validColumns = [];
+		try
 		{
-			try
-			{
-				$validColumns = array_keys( \IPS\Db::i()->getTableDefinition( 'gd_catalog' )['columns'] );
-			}
-			catch ( \Throwable )
-			{
-				$validColumns = [];
-			}
+			$validColumns = array_keys( \IPS\Db::i()->getTableDefinition( 'gd_catalog' )['columns'] );
 		}
+		catch ( \Throwable ) {}
 		foreach ( $mapped as $field => $incomingValue )
 		{
 			if ( $field === 'upc' || $incomingValue === null )
