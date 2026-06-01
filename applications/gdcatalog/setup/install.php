@@ -47,6 +47,7 @@ $sportsSouthCategoryMapping = json_encode([
     93 => 31,
     20 => 130, 62 => 130,
     1 => 58, 2 => 58, 13 => 58,
+    14 => 58, 30 => 58, 82 => 58,
 ]);
 
 $distributors = [

@@ -133,7 +133,7 @@ class CategoryMapper
 		{
 			return (int) $this->map[ $key ];
 		}
-		return (int) $rawCatId;
+		return 58;
 	}
 
 	/**
