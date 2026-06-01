@@ -15,7 +15,6 @@ $sportsSouthFieldMapping = json_encode([
     'ITUPC'   => 'upc',
     'SHDESC'  => 'title',
     'IDESC'   => 'description',
-    'SCNAM1'  => 'brand',
     'CATID'   => 'category_id',
     'CPRC'    => 'msrp',
     'PICREF'  => 'image_url',
