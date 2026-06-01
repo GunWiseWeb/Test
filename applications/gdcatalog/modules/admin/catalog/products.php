@@ -199,7 +199,7 @@ class _products extends \IPS\Dispatcher\Controller
 			$product = Product::constructFromData( $row );
 
 			$editUrl = (string) \IPS\Http\Url::internal(
-				'app=gdcatalog&module=catalog&controller=products&do=editProduct&upc=' . urlencode( (string) $product->upc )
+				'app=gdcatalog&module=catalog&controller=products&do=edit&upc=' . urlencode( (string) $product->upc )
 			);
 			$approveUrl = (string) \IPS\Http\Url::internal(
 				'app=gdcatalog&module=catalog&controller=products&do=resolveReview&upc=' . urlencode( (string) $product->upc )
@@ -900,6 +900,13 @@ class _products extends \IPS\Dispatcher\Controller
 
 		$form = new \IPS\Helpers\Form;
 
+		$form->add( new \IPS\Helpers\Form\Text(
+			'gdcatalog_product_upc',
+			$product->upc,
+			TRUE,
+			[ 'regex' => '/^[0-9]{8,13}$/' ]
+		) );
+
 		/* Editable fields - v1.0.27 expanded with master record fields. */
 		$editableFields = [
 			/* Identity */
@@ -983,6 +990,64 @@ class _products extends \IPS\Dispatcher\Controller
 		if ( $values = $form->values() )
 		{
 			\IPS\Session::i()->csrfCheck();
+
+			$newUpc = preg_replace( '/[^0-9]/', '', (string) $values['gdcatalog_product_upc'] );
+			$oldUpc = (string) $product->upc;
+
+			if ( $newUpc !== $oldUpc )
+			{
+				foreach ( $editableFields as $field => $config )
+				{
+					$product->$field = $values[ 'gdcatalog_product_' . $field ];
+				}
+				$product->nfa_item      = (int) $values['gdcatalog_product_nfa_item'];
+				$product->requires_ffl  = (int) $values['gdcatalog_product_requires_ffl'];
+				$product->is_ammo       = (int) $values['gdcatalog_product_is_ammo'];
+				$product->record_status = $values['gdcatalog_product_status'];
+				$product->last_updated  = date( 'Y-m-d H:i:s' );
+
+				$allData = [];
+				try
+				{
+					foreach ( \IPS\Db::i()->select( '*', 'gd_catalog', [ 'upc=?', $oldUpc ] )->first() as $col => $val )
+					{
+						$allData[ $col ] = $val;
+					}
+				}
+				catch ( \Throwable )
+				{
+					$allData = [];
+				}
+
+				foreach ( $editableFields as $field => $config )
+				{
+					$allData[ $field ] = $product->$field;
+				}
+				$allData['upc']           = $newUpc;
+				$allData['nfa_item']      = $product->nfa_item;
+				$allData['requires_ffl']  = $product->requires_ffl;
+				$allData['is_ammo']       = $product->is_ammo;
+				$allData['record_status'] = $product->record_status;
+				$allData['last_updated']  = $product->last_updated;
+
+				try
+				{
+					\IPS\Db::i()->delete( 'gd_catalog', [ 'upc=?', $oldUpc ] );
+					\IPS\Db::i()->insert( 'gd_catalog', $allData );
+				}
+				catch ( \Throwable $e )
+				{
+					\IPS\Log::log( $e, 'gdcatalog_upc_edit' );
+					\IPS\Output::i()->error( 'gdcatalog_upc_edit_failed', '2GDC/2', 500 );
+					return;
+				}
+
+				\IPS\Output::i()->redirect(
+					\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products' ),
+					'gdcatalog_product_saved'
+				);
+				return;
+			}
 
 			foreach ( $editableFields as $field => $config )
 			{
