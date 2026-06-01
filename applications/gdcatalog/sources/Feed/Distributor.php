@@ -271,7 +271,32 @@ class Distributor extends \IPS\Patterns\ActiveRecord
 	 */
 	public function isRunning(): bool
 	{
-		return $this->last_run_status === 'running';
+		if ( $this->last_run_status !== 'running' )
+		{
+			return FALSE;
+		}
+
+		if ( $this->last_run !== null )
+		{
+			$lastRun = strtotime( (string) $this->last_run );
+			if ( $lastRun && ( time() - $lastRun ) > 7200 )
+			{
+				$this->last_run_status = 'failed';
+				try { $this->save(); } catch ( \Throwable ) {}
+				return FALSE;
+			}
+		}
+
+		return TRUE;
+	}
+
+	public function resetRunningStatus(): void
+	{
+		if ( $this->last_run_status === 'running' )
+		{
+			$this->last_run_status = 'failed';
+			$this->save();
+		}
 	}
 
 	/**

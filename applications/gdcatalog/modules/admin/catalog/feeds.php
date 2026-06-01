@@ -132,6 +132,11 @@ class _feeds extends \IPS\Dispatcher\Controller
 				'unlock_catalog_url' => (string) \IPS\Http\Url::internal(
 					'app=gdcatalog&module=catalog&controller=dashboard&do=unlockCatalog&feed_id=' . (int) $feed->id
 				)->csrf(),
+				'reset_url' => $feed->last_run_status === 'running'
+					? (string) \IPS\Http\Url::internal(
+						'app=gdcatalog&module=catalog&controller=feeds&do=resetFeedStatus&id=' . (int) $feed->id
+					  )->csrf()
+					: null,
 				'last_import_log' => $lastImportLogs[ (int) $feed->id ] ?? null,
 				'auth_type'       => $authType,
 				'upload_url'      => $uploadUrl,
@@ -934,6 +939,23 @@ class _feeds extends \IPS\Dispatcher\Controller
 			Output::i()->title  = 'Sports South Connection Test - Failed';
 			Output::i()->output = $html;
 		}
+	}
+	protected function resetFeedStatus(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$feedId = (int) Request::i()->id;
+		try
+		{
+			$feed = Distributor::load( $feedId );
+			$feed->resetRunningStatus();
+		}
+		catch ( \Throwable ) {}
+
+		Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+			'Feed status reset.'
+		);
 	}
 }
 

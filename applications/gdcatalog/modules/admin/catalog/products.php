@@ -98,7 +98,7 @@ class _products extends \IPS\Dispatcher\Controller
 		$search       = \IPS\Request::i()->q ?? '';
 		$status       = \IPS\Request::i()->status ?? '';
 		$catId        = (int) ( \IPS\Request::i()->category ?? 0 );
-		$completeness = (string) ( \IPS\Request::i()->completeness ?? '' );
+		$missingField = (string) ( \IPS\Request::i()->missing_field ?? '' );
 
 		if ( $search !== '' )
 		{
@@ -187,17 +187,23 @@ class _products extends \IPS\Dispatcher\Controller
 			}
 		}
 
-		if ( $completeness === 'incomplete' )
+		$validMissingFields = [
+			'caliber', 'capacity', 'action_type', 'barrel_length', 'weight_lbs',
+			'overall_length', 'gun_type', 'safety_type', 'sight_type', 'stock_material',
+			'trigger_type', 'grips', 'gauge', 'bullet_type', 'rounds_per_box',
+			'magnification', 'metal_finish', 'frame_finish', 'image_url', 'brand', 'mpn',
+		];
+
+		if ( $missingField !== '' && in_array( $missingField, $validMissingFields, true ) )
 		{
-			$where[] = [ 'completeness_score < 80 AND completeness_score > 0' ];
-		}
-		elseif ( $completeness === 'missing_image' )
-		{
-			$where[] = [ 'image_url IS NULL OR image_url=?', '' ];
-		}
-		elseif ( $completeness === 'complete' )
-		{
-			$where[] = [ 'completeness_score >= 80' ];
+			if ( $missingField === 'image_url' )
+			{
+				$where[] = [ 'image_url IS NULL OR image_url=?', '' ];
+			}
+			else
+			{
+				$where[] = [ $missingField . ' IS NULL OR ' . $missingField . '=?', '' ];
+			}
 		}
 
 		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
@@ -250,6 +256,12 @@ class _products extends \IPS\Dispatcher\Controller
 				'locked_fields_count' => $lockedFieldsCount,
 
 				'completeness_score' => (int) ( $product->completeness_score ?? 0 ),
+				'missing_fields' => ( function() use ( $product ) {
+					$keyFields = ['caliber','capacity','action_type','barrel_length','weight_lbs','image_url'];
+					$missing = [];
+					foreach ( $keyFields as $f ) { if ( empty( $product->$f ) ) { $missing[] = $f; } }
+					return $missing;
+				} )(),
 			];
 		}
 
@@ -294,7 +306,7 @@ class _products extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->productList(
 			$products, $categories, $search, $status, $catId, $imageStatus,
 			$total, $pagination, $formActionUrl, $productCount, $categoryCount,
-			$addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl, $completeness
+			$addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl, $missingField
 		);
 	}
 

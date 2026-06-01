@@ -91,6 +91,9 @@
 							<span style="font-size:0.85em;display:block;margin-top:2px;color:var(--i-color-soft)">No file uploaded</span>
 							{{endif}}
 						{{endif}}
+						{{if $feed['reset_url']}}
+						<a href="{$feed['reset_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="Reset this feed's running status? Only do this if the import is stuck.">Reset Status</a>
+						{{endif}}
 						{{if $feed['is_locked']}}
 						<a href="{$feed['unlock_catalog_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm>Unlock</a>
 						{{else}}

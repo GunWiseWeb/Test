@@ -1,4 +1,4 @@
-<ips:template parameters="$products, $categories, $search, $status, $catId, $imageStatus, $total, $pagination, $formActionUrl, $productCount, $categoryCount, $addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl, $completeness" />
+<ips:template parameters="$products, $categories, $search, $status, $catId, $imageStatus, $total, $pagination, $formActionUrl, $productCount, $categoryCount, $addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl, $missingField" />
 <div class="ipsBox ipsPull">
 	<div style="display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0)">
 		<a href="{$addProductUrl}" class="ipsButton ipsButton--primary ipsButton--small">+ Add Product</a>
@@ -47,11 +47,35 @@
 				<option value="ok" {{if $imageStatus === 'ok'}}selected{{endif}}>Image OK</option>
 				<option value="unchecked" {{if $imageStatus === 'unchecked'}}selected{{endif}}>Not Checked</option>
 			</select>
-			<select name="completeness" class="ipsInput ipsInput--select" style="min-width:160px">
-				<option value="">All completeness</option>
-				<option value="incomplete" {{if $completeness === 'incomplete'}}selected{{endif}}>Incomplete (&lt;80%)</option>
-				<option value="missing_image" {{if $completeness === 'missing_image'}}selected{{endif}}>Missing Image</option>
-				<option value="complete" {{if $completeness === 'complete'}}selected{{endif}}>Complete (80%+)</option>
+			<select name="missing_field" class="ipsInput ipsInput--select" style="min-width:180px">
+				<option value="">All products</option>
+				<optgroup label="Firearms">
+					<option value="caliber" {{if $missingField === 'caliber'}}selected{{endif}}>Missing: Caliber</option>
+					<option value="capacity" {{if $missingField === 'capacity'}}selected{{endif}}>Missing: Capacity</option>
+					<option value="action_type" {{if $missingField === 'action_type'}}selected{{endif}}>Missing: Action Type</option>
+					<option value="barrel_length" {{if $missingField === 'barrel_length'}}selected{{endif}}>Missing: Barrel Length</option>
+					<option value="weight_lbs" {{if $missingField === 'weight_lbs'}}selected{{endif}}>Missing: Weight</option>
+					<option value="overall_length" {{if $missingField === 'overall_length'}}selected{{endif}}>Missing: Overall Length</option>
+					<option value="gun_type" {{if $missingField === 'gun_type'}}selected{{endif}}>Missing: Gun Type</option>
+					<option value="safety_type" {{if $missingField === 'safety_type'}}selected{{endif}}>Missing: Safety</option>
+					<option value="sight_type" {{if $missingField === 'sight_type'}}selected{{endif}}>Missing: Sights</option>
+					<option value="stock_material" {{if $missingField === 'stock_material'}}selected{{endif}}>Missing: Stock</option>
+					<option value="trigger_type" {{if $missingField === 'trigger_type'}}selected{{endif}}>Missing: Trigger</option>
+					<option value="gauge" {{if $missingField === 'gauge'}}selected{{endif}}>Missing: Gauge</option>
+				</optgroup>
+				<optgroup label="Ammo">
+					<option value="bullet_type" {{if $missingField === 'bullet_type'}}selected{{endif}}>Missing: Bullet Type</option>
+					<option value="rounds_per_box" {{if $missingField === 'rounds_per_box'}}selected{{endif}}>Missing: Rounds/Box</option>
+				</optgroup>
+				<optgroup label="Optics">
+					<option value="magnification" {{if $missingField === 'magnification'}}selected{{endif}}>Missing: Magnification</option>
+				</optgroup>
+				<optgroup label="General">
+					<option value="image_url" {{if $missingField === 'image_url'}}selected{{endif}}>Missing: Image</option>
+					<option value="brand" {{if $missingField === 'brand'}}selected{{endif}}>Missing: Brand</option>
+					<option value="mpn" {{if $missingField === 'mpn'}}selected{{endif}}>Missing: MPN</option>
+					<option value="metal_finish" {{if $missingField === 'metal_finish'}}selected{{endif}}>Missing: Finish</option>
+				</optgroup>
 			</select>
 			<button type="submit" class="ipsButton ipsButton--primary ipsButton--small">Filter</button>
 		</form>
@@ -69,7 +93,7 @@
 					<th>{lang="gdcatalog_product_caliber"}</th>
 					<th>{lang="gdcatalog_product_msrp"}</th>
 					<th>{lang="gdcatalog_product_status"}</th>
-					<th>Score</th>
+					<th>Missing</th>
 					<th>{lang="gdcatalog_product_primary_source"}</th>
 					<th style="width:180px">Actions</th>
 				</tr>
@@ -104,15 +128,13 @@
 							<span class="ipsBadge ipsBadge--neutral">{lang="gdcatalog_status_pending"}</span>
 						{{endif}}
 					</td>
-					<td>
-						{{if $product['completeness_score'] >= 80}}
-							<span class="ipsBadge ipsBadge--positive">{$product['completeness_score']}%</span>
-						{{elseif $product['completeness_score'] >= 50}}
-							<span class="ipsBadge ipsBadge--warning">{$product['completeness_score']}%</span>
-						{{elseif $product['completeness_score'] > 0}}
-							<span class="ipsBadge ipsBadge--negative">{$product['completeness_score']}%</span>
+					<td style="font-size:0.75em">
+						{{if count($product['missing_fields']) === 0}}
+							<span class="ipsBadge ipsBadge--positive">Complete</span>
 						{{else}}
-							<span class="ipsBadge ipsBadge--neutral">&mdash;</span>
+							{{foreach $product['missing_fields'] as $mf}}
+							<span class="ipsBadge ipsBadge--warning" style="margin:1px">{$mf}</span>
+							{{endforeach}}
 						{{endif}}
 					</td>
 					<td>{$product['primary_source']}</td>
