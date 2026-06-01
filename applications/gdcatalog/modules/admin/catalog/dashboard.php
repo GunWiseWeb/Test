@@ -33,6 +33,10 @@ class _dashboard extends \IPS\Dispatcher\Controller
 
 	public function execute(): void
 	{
+		if ( \IPS\Request::i()->do === 'monitor' )
+		{
+			\IPS\Output::i()->bypassCsrfKeyCheck = TRUE;
+		}
 		\IPS\Dispatcher::i()->checkAcpPermission( 'catalog_manage' );
 		parent::execute();
 	}

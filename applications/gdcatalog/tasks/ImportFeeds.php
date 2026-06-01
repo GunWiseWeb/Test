@@ -53,6 +53,19 @@ class ImportFeeds extends \IPS\Task
 				{
 					$errors[] = $feed->feed_name . ': ' . ( $log->error_log ?? 'unknown error' );
 				}
+				else
+				{
+					try
+					{
+						\IPS\Task\Queue::queue( 'gdcatalog', 'BackfillAttributes', [ 'offset' => 0 ] );
+					}
+					catch ( \Throwable ) {}
+					try
+					{
+						\IPS\Task\Queue::queue( 'gdcatalog', 'ResolveBrands', [ 'offset' => 0 ] );
+					}
+					catch ( \Throwable ) {}
+				}
 			}
 			catch ( \Throwable $e )
 			{
