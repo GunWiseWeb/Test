@@ -40,6 +40,13 @@
 					<option value="{$cat['id']}" {{if $catId === $cat['id']}}selected{{endif}}>{$cat['name']}</option>
 				{{endforeach}}
 			</select>
+			<select name="image_status" class="ipsInput ipsInput--select" style="min-width:160px">
+				<option value="">All images</option>
+				<option value="missing" {{if $imageStatus === 'missing'}}selected{{endif}}>No Image</option>
+				<option value="broken" {{if $imageStatus === 'broken'}}selected{{endif}}>Broken Image</option>
+				<option value="ok" {{if $imageStatus === 'ok'}}selected{{endif}}>Image OK</option>
+				<option value="unchecked" {{if $imageStatus === 'unchecked'}}selected{{endif}}>Not Checked</option>
+			</select>
 			<button type="submit" class="ipsButton ipsButton--primary ipsButton--small">Filter</button>
 		</form>
 
@@ -50,6 +57,7 @@
 			<thead>
 				<tr>
 					<th>{lang="gdcatalog_product_upc"}</th>
+					<th style="width:60px">Image</th>
 					<th>{lang="gdcatalog_product_title"}</th>
 					<th>{lang="gdcatalog_product_brand"}</th>
 					<th>{lang="gdcatalog_product_caliber"}</th>
@@ -63,6 +71,17 @@
 				{{foreach $products as $product}}
 				<tr>
 					<td><code>{$product['upc']}</code></td>
+					<td>
+						{{if $product['image_url']}}
+							{{if $product['image_http_status'] >= 400}}
+								<span class="ipsBadge ipsBadge--negative" title="Broken image">&#10007;</span>
+							{{else}}
+								<img src="{$product['image_url']}" style="width:40px;height:40px;object-fit:contain" loading="lazy">
+							{{endif}}
+						{{else}}
+							<span class="ipsBadge ipsBadge--neutral" title="No image">&mdash;</span>
+						{{endif}}
+					</td>
 					<td>{$product['title']}</td>
 					<td>{$product['brand']}</td>
 					<td>{$product['caliber']}</td>
