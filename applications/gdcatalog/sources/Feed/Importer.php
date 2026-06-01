@@ -793,31 +793,39 @@ class Importer
 			$record['PICREF'] = \IPS\gdcatalog\Feed\Distributor\SportsSouthClient::imageUrlForPicref( $picref, $itemno );
 		}
 
-		/* Extract ITATR attributes using category-aware position map */
-		$catId = (string) ( $record['CATID'] ?? '' );
-		if ( $catId !== '' )
+		/* Extract ALL ITATR attributes using category-aware position map */
+		$ssCatId = (int) ( $record['CATID'] ?? 0 );
+		if ( $ssCatId > 0 )
 		{
-			try
+			for ( $i = 1; $i <= 20; $i++ )
 			{
-				$catRow = \IPS\Db::i()->select( 'slug', 'gd_categories', [ 'id=?', (int) $catId ] )->first();
-				$catSlug = (string) $catRow;
-				for ( $i = 1; $i <= 20; $i++ )
+				$itatrKey = $i === 10 ? 'ITATR0' : 'ITATR' . $i;
+				$val = trim( (string) ( $record[ $itatrKey ] ?? '' ) );
+				if ( $val === '' )
 				{
-					$key = $i === 10 ? 'ITATR0' : 'ITATR' . $i;
-					$val = trim( (string) ( $record[ $key ] ?? '' ) );
-					if ( $val === '' )
+					continue;
+				}
+				$col = \IPS\gdcatalog\Feed\Distributor\SportsSouthAttributeMap::resolve( $ssCatId, $i );
+				if ( $col !== null )
+				{
+					if ( $col === 'features' && isset( $record['_ATTR_features'] ) && $record['_ATTR_features'] !== '' )
 					{
-						continue;
+						$record['_ATTR_features'] .= ', ' . $val;
 					}
-					$col = \IPS\gdcatalog\Feed\Distributor\SportsSouthAttributeMap::resolve( $catSlug, $i );
-					if ( $col !== null )
+					else
 					{
 						$record[ '_ATTR_' . $col ] = $val;
 					}
 				}
 			}
-			catch ( \Throwable ) {}
 		}
+
+		/* Map top-level fields to canonical columns */
+		if ( !empty( $record['SERIES'] ) )  $record['_ATTR_features']       = trim( ( $record['_ATTR_features'] ?? '' ) . ' ' . $record['SERIES'] );
+		if ( !empty( $record['LENGTH'] ) )  $record['_ATTR_overall_length'] = (string) $record['LENGTH'];
+		if ( !empty( $record['WTPBX'] ) )   $record['_ATTR_weight_lbs']     = (string) $record['WTPBX'];
+		if ( !empty( $record['IMODEL'] ) )  $record['_ATTR_model']          = (string) $record['IMODEL'];
+		if ( !empty( $record['MFGINO'] ) )  $record['_ATTR_mpn']            = (string) $record['MFGINO'];
 
 		return $record;
 	}

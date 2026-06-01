@@ -12,51 +12,254 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 class SportsSouthAttributeMap
 {
 	const MAP = [
-		'handguns' => [
-			1 => 'caliber',
-			2 => 'capacity',
-			3 => 'action_type',
-			4 => 'barrel_length',
-			5 => 'finish',
-			6 => 'frame_material',
-			7 => 'receiver_type',
-			8 => 'sight_type',
-		],
-		'rifles' => [
-			1 => 'caliber',
+		// PISTOLS (CATID 26)
+		26 => [
+			1 => 'gun_type',
 			2 => 'action_type',
-			3 => 'capacity',
+			3 => 'caliber',
 			4 => 'barrel_length',
-			5 => 'finish',
-			6 => 'stock_type',
+			5 => 'capacity',
+			6 => 'safety_type',
+			7 => 'grips',
+			8 => 'sight_type',
+			9 => 'weight_lbs',
+			10 => 'frame_finish',
 		],
-		'shotguns' => [
+		// RIFLES CENTERFIRE (CATID 40)
+		40 => [
 			1 => 'action_type',
-			2 => 'capacity',
-			3 => 'barrel_length',
-			4 => 'finish',
-			5 => 'stock_type',
-		],
-		'ammunition' => [
-			1 => 'description',
 			2 => 'caliber',
-			3 => 'weight_oz',
-			4 => 'caliber',
+			3 => 'barrel_length',
+			4 => 'capacity',
+			5 => 'trigger_type',
+			6 => 'safety_type',
+			7 => 'overall_length',
+			8 => 'weight_lbs',
+			9 => 'stock_material',
+			10 => 'metal_finish',
+		],
+		// RIFLES TACTICAL (CATID 58)
+		58 => [
+			1 => 'action_type',
+			2 => 'caliber',
+			3 => 'barrel_length',
+			4 => 'capacity',
+			5 => 'trigger_type',
+			6 => 'safety_type',
+			7 => 'overall_length',
+			8 => 'weight_lbs',
+			9 => 'stock_material',
+			10 => 'metal_finish',
+		],
+		// RIFLES RIMFIRE (CATID 94)
+		94 => [
+			1 => 'action_type',
+			2 => 'caliber',
+			3 => 'barrel_length',
+			4 => 'capacity',
+			5 => 'trigger_type',
+			6 => 'safety_type',
+			7 => 'overall_length',
+			8 => 'weight_lbs',
+			9 => 'stock_material',
+			10 => 'metal_finish',
+		],
+		// SHOTGUNS (CATID 48)
+		48 => [
+			1 => 'action_type',
+			2 => 'gauge',
+			3 => 'barrel_length',
+			4 => 'capacity',
+			5 => 'chamber',
+			6 => 'overall_length',
+			7 => 'weight_lbs',
+			8 => 'choke_config',
+			9 => 'receiver_desc',
+			10 => 'stock_material',
+		],
+		// SHOTGUNS TACTICAL (CATID 59)
+		59 => [
+			1 => 'action_type',
+			2 => 'gauge',
+			3 => 'barrel_length',
+			4 => 'capacity',
+			5 => 'chamber',
+			6 => 'overall_length',
+			7 => 'weight_lbs',
+			8 => 'choke_config',
+			9 => 'receiver_desc',
+			10 => 'stock_material',
+		],
+		// REVOLVERS (CATID 64)
+		64 => [
+			1 => 'gun_type',
+			2 => 'action_type',
+			3 => 'caliber',
+			4 => 'barrel_length',
+			5 => 'capacity',
+			6 => 'hammer_style',
+			7 => 'grips',
+			8 => 'sight_type',
+			9 => 'weight_lbs',
+			10 => 'frame_finish',
+		],
+		// BREAK-ACTION HANDGUNS (CATID 96)
+		96 => [
+			1 => 'gun_type',
+			2 => 'action_type',
+			3 => 'caliber',
+			4 => 'barrel_length',
+			5 => 'capacity',
+			6 => 'safety_type',
+			7 => 'grips',
+			8 => 'sight_type',
+			9 => 'weight_lbs',
+			10 => 'metal_finish',
+		],
+		// CENTERFIRE HANDGUN ROUNDS (CATID 5)
+		5 => [
+			1 => 'caliber',
+			2 => 'bullet_type',
+			3 => 'bullet_weight',
+			4 => 'muzzle_energy',
+			5 => 'muzzle_velocity',
+			6 => 'rounds_per_box',
+			7 => 'boxes_per_case',
+			8 => 'features',
+			9 => 'casing_material',
+			10 => 'features',
+		],
+		// RIMFIRE ROUNDS (CATID 6)
+		6 => [
+			1 => 'caliber',
+			2 => 'bullet_type',
+			3 => 'bullet_weight',
+			4 => 'muzzle_energy',
+			5 => 'muzzle_velocity',
+			6 => 'casing_material',
+			8 => 'rounds_per_box',
+			9 => 'boxes_per_case',
+		],
+		// CENTERFIRE RIFLE ROUNDS (CATID 70)
+		70 => [
+			1 => 'caliber',
+			2 => 'bullet_type',
+			3 => 'bullet_weight',
+			4 => 'muzzle_energy',
+			5 => 'muzzle_velocity',
+			6 => 'rounds_per_box',
+			7 => 'boxes_per_case',
+			8 => 'features',
+			9 => 'casing_material',
+		],
+		// SHOTSHELL LOADS (CATID 49)
+		49 => [
+			1 => 'gauge',
+			2 => 'gun_type',
+			3 => 'barrel_length',
+			4 => 'bullet_weight',
+			5 => 'caliber',
+			6 => 'muzzle_velocity',
+			7 => 'rounds_per_box',
+			8 => 'boxes_per_case',
+			9 => 'features',
+		],
+		// MAGAZINES (CATID 18)
+		18 => [
+			1 => 'caliber',
+			2 => 'capacity',
+			3 => 'finish',
+			4 => 'model',
+			5 => 'stock_material',
+			6 => 'gun_type',
+		],
+		// SCOPES (CATID 46)
+		46 => [
+			1 => 'magnification',
+			2 => 'objective_mm',
+			3 => 'features',
+			4 => 'eye_relief',
+			5 => 'tube_diameter',
+			6 => 'overall_length',
+			7 => 'weight_lbs',
+			8 => 'reticle',
+			9 => 'features',
+			10 => 'features',
+		],
+		// RED DOT (CATID 39)
+		39 => [
+			1 => 'magnification',
+			2 => 'objective_mm',
+			3 => 'features',
+			4 => 'eye_relief',
+			5 => 'caliber',
+			6 => 'tube_diameter',
+			7 => 'overall_length',
+			8 => 'weight_lbs',
+			9 => 'finish',
+			10 => 'features',
+		],
+		// HOLSTERS (CATID 28)
+		28 => [
+			1 => 'gun_type',
+			2 => 'finish',
+			3 => 'stock_material',
+			4 => 'features',
+			5 => 'features',
+			6 => 'finish',
+			7 => 'features',
+		],
+		// STOCKS (CATID 37)
+		37 => [
+			1 => 'gun_type',
+			2 => 'features',
+			3 => 'features',
+			4 => 'stock_material',
+			5 => 'finish',
+			6 => 'features',
+		],
+		// SUPPRESSORS (CATID 93)
+		93 => [
+			1 => 'gun_type',
+			2 => 'caliber',
+			3 => 'overall_length',
+			4 => 'features',
+			9 => 'features',
+		],
+		// EXTRA BARRELS (CATID 8)
+		8 => [
+			1 => 'caliber',
+			2 => 'barrel_length',
+			3 => 'model',
+			4 => 'features',
+			5 => 'sight_type',
+			6 => 'features',
+			7 => 'finish',
+			8 => 'gun_type',
+			9 => 'choke_config',
+		],
+		// FIREARM PARTS (CATID 74)
+		74 => [
+			1 => 'gun_type',
+			2 => 'model',
+			3 => 'features',
+			4 => 'features',
+			5 => 'stock_material',
+			6 => 'action_type',
+			7 => 'trigger_type',
+			8 => 'safety_type',
+			9 => 'features',
+			10 => 'finish',
 		],
 	];
 
-	public static function resolve( string $categorySlug, int $itatrPosition ): ?string
+	public static function resolve( int|string $catId, int $itatrPosition ): ?string
 	{
-		$slugLower = mb_strtolower( $categorySlug );
-
-		foreach ( self::MAP as $key => $positions )
+		$catIdInt = (int) $catId;
+		if ( isset( self::MAP[ $catIdInt ] ) )
 		{
-			if ( str_contains( $slugLower, $key ) )
-			{
-				return $positions[ $itatrPosition ] ?? null;
-			}
+			return self::MAP[ $catIdInt ][ $itatrPosition ] ?? null;
 		}
-
 		return null;
 	}
 }
