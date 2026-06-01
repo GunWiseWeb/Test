@@ -196,9 +196,26 @@ class _products extends \IPS\Dispatcher\Controller
 
 		if ( $missingField !== '' && in_array( $missingField, $validMissingFields, true ) )
 		{
+			$relevantCats = [];
+			foreach ( \IPS\gdcatalog\Feed\CompletenessScorer::REQUIRED_FIELDS as $cId => $fields )
+			{
+				if ( in_array( $missingField, $fields, true ) )
+				{
+					$relevantCats[] = $cId;
+				}
+			}
+
 			if ( $missingField === 'image_url' )
 			{
 				$where[] = [ 'image_url IS NULL OR image_url=?', '' ];
+			}
+			elseif ( !empty( $relevantCats ) )
+			{
+				$catPlaceholders = implode( ',', array_fill( 0, count( $relevantCats ), '?' ) );
+				$where[] = array_merge(
+					[ '( ' . $missingField . ' IS NULL OR ' . $missingField . '=? ) AND category_id IN (' . $catPlaceholders . ')', '' ],
+					$relevantCats
+				);
 			}
 			else
 			{
@@ -257,9 +274,25 @@ class _products extends \IPS\Dispatcher\Controller
 
 				'completeness_score' => (int) ( $product->completeness_score ?? 0 ),
 				'missing_fields' => ( function() use ( $product ) {
-					$keyFields = ['caliber','capacity','action_type','barrel_length','weight_lbs','image_url'];
+					$pCatId = (int) ( $product->category_id ?? 0 );
+					$requiredFields = \IPS\gdcatalog\Feed\CompletenessScorer::REQUIRED_FIELDS[ $pCatId ] ?? [];
+					if ( empty( $requiredFields ) )
+					{
+						try
+						{
+							$parentId = (int) \IPS\Db::i()->select( 'parent_id', 'gd_categories', [ 'id=?', $pCatId ] )->first();
+							$requiredFields = \IPS\gdcatalog\Feed\CompletenessScorer::REQUIRED_FIELDS[ $parentId ] ?? [];
+						}
+						catch ( \Throwable ) {}
+					}
+					$baseFields = [ 'title', 'brand', 'msrp', 'image_url' ];
+					$allRequired = array_unique( array_merge( $baseFields, $requiredFields ) );
 					$missing = [];
-					foreach ( $keyFields as $f ) { if ( empty( $product->$f ) ) { $missing[] = $f; } }
+					foreach ( $allRequired as $f )
+					{
+						$val = $product->$f ?? null;
+						if ( $val === null || $val === '' ) { $missing[] = $f; }
+					}
 					return $missing;
 				} )(),
 			];
