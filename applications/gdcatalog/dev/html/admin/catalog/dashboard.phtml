@@ -1,4 +1,4 @@
-<ips:template parameters="$totalProducts, $activeProducts, $reviewProducts, $pendingConflicts, $distributorStats, $taskUrls, $osExists, $osStats, $reindexQueue, $lockedFields, $runQueueUrl, $queueCount, $syncBrandsUrl, $monitorUrl" />
+<ips:template parameters="$totalProducts, $activeProducts, $reviewProducts, $pendingConflicts, $distributorStats, $taskUrls, $osExists, $osStats, $reindexQueue, $lockedFields, $runQueueUrl, $queueCount, $syncBrandsUrl, $monitorUrl, $conflictLogCount" />
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 		<div id="gdcatalog-monitor" class="ipsBox" style="margin-bottom:16px;padding:16px" data-monitor-url="{$monitorUrl}">
@@ -129,8 +129,10 @@
 		<h2 class="ipsType_sectionHead" style="margin:24px 0 8px;padding-top:24px;border-top:1px solid var(--i-border-color, #e0e0e0)">Tasks</h2>
 		<div style="display:flex;gap:8px;flex-wrap:wrap">
 			<a href="{$taskUrls['validate_images']}" class="ipsButton ipsButton--secondary ipsButton--small">Validate Images</a>
-			<a href="{$taskUrls['resolve_conflicts']}" class="ipsButton ipsButton--secondary ipsButton--small">Resolve Conflicts</a>
-			<a href="{$taskUrls['prune_log']}" class="ipsButton ipsButton--secondary ipsButton--small">Prune Log</a>
+			{{if $pendingConflicts > 0}}
+			<a href="{$taskUrls['resolve_conflicts']}" class="ipsButton ipsButton--secondary ipsButton--small">Resolve Conflicts ({$pendingConflicts})</a>
+			{{endif}}
+			<a href="{$taskUrls['prune_log']}" class="ipsButton ipsButton--secondary ipsButton--small">Prune Log ({expression="number_format( (int) $conflictLogCount )"})</a>
 			<a href="{$syncBrandsUrl}" class="ipsButton ipsButton--secondary ipsButton--small" data-confirm data-confirmMessage="Sync brand names from Sports South API?">Sync SS Brands</a>
 		</div>
 

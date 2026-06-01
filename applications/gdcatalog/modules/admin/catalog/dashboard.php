@@ -306,6 +306,9 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'app=gdcatalog&module=catalog&controller=dashboard&do=monitor', 'admin'
 		);
 
+		$conflictLogCount = 0;
+		try { $conflictLogCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_feed_conflicts' )->first(); } catch ( \Throwable ) {}
+
 		\IPS\Output::i()->jsVars['gdcatalog_monitor_url'] = $monitorUrl;
 		\IPS\Output::i()->js( 'dashboardMonitor.js', 'gdcatalog', 'interface' );
 
@@ -324,7 +327,8 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			$runQueueUrl,
 			$queueCount,
 			$syncBrandsUrl,
-			$monitorUrl
+			$monitorUrl,
+			$conflictLogCount
 		);
 	}
 

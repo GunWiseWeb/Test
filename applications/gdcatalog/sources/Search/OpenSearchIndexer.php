@@ -306,34 +306,49 @@ class OpenSearchIndexer
 		/* Clear the queue */
 		\IPS\Db::i()->delete( 'gd_reindex_queue' );
 
-		/* Bulk index all active products */
+		/* Bulk index all active products — paginated to limit memory */
+		$prevLimit = ini_get( 'memory_limit' );
+		ini_set( 'memory_limit', '256M' );
+
+		$columns = 'upc, title, brand, model, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, record_status, image_url, description';
+
 		$count    = 0;
-		$bulkBody = '';
-		$batchMax = 500;
+		$offset   = 0;
+		$batchMax = 250;
 
-		foreach (
-			\IPS\Db::i()->select( '*', 'gd_catalog', [ 'record_status=?', Product::STATUS_ACTIVE ] ) as $row
-		)
+		while ( true )
 		{
-			$product = Product::constructFromData( $row );
-			$doc     = $this->productToDocument( $product );
+			$rows = iterator_to_array(
+				\IPS\Db::i()->select( $columns, 'gd_catalog', [ 'record_status=?', Product::STATUS_ACTIVE ], 'upc ASC', [ $offset, $batchMax ] )
+			);
 
-			$bulkBody .= json_encode( [ 'index' => [ '_index' => $this->index, '_id' => $product->upc ] ] ) . "\n";
-			$bulkBody .= json_encode( $doc ) . "\n";
-			$count++;
+			if ( empty( $rows ) )
+			{
+				break;
+			}
 
-			if ( $count % $batchMax === 0 )
+			$bulkBody = '';
+			foreach ( $rows as $row )
+			{
+				$product = Product::constructFromData( $row );
+				$doc     = $this->productToDocument( $product );
+
+				$bulkBody .= json_encode( [ 'index' => [ '_index' => $this->index, '_id' => $product->upc ] ] ) . "\n";
+				$bulkBody .= json_encode( $doc ) . "\n";
+				$count++;
+			}
+
+			if ( $bulkBody !== '' )
 			{
 				$this->request( 'POST', '/_bulk', null, $bulkBody );
-				$bulkBody = '';
 			}
+
+			$offset += $batchMax;
+			unset( $rows, $bulkBody );
+			gc_collect_cycles();
 		}
 
-		/* Flush remaining */
-		if ( $bulkBody !== '' )
-		{
-			$this->request( 'POST', '/_bulk', null, $bulkBody );
-		}
+		ini_set( 'memory_limit', $prevLimit ?: '128M' );
 
 		return $count;
 	}
