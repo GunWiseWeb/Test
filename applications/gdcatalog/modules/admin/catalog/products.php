@@ -959,7 +959,7 @@ class _products extends \IPS\Dispatcher\Controller
 		}
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_edit_product_title' );
-		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->editProductForm( $form, $product );
+		\IPS\Output::i()->output = (string) $form;
 	}
 
 	/**
