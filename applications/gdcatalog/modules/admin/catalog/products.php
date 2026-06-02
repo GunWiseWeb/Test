@@ -1081,47 +1081,47 @@ class _products extends \IPS\Dispatcher\Controller
 				'accessory' => 'Accessory / Other',
 			],
 			'toggles' => [
-				'firearm'   => [
-					'gdcatalog_product_gun_type_row', 'gdcatalog_product_action_type_row',
-					'gdcatalog_product_safety_type_row', 'gdcatalog_product_trigger_type_row',
-					'gdcatalog_product_caliber_row', 'gdcatalog_product_capacity_row',
-					'gdcatalog_product_barrel_length_row', 'gdcatalog_product_overall_length_row',
-					'gdcatalog_product_weight_lbs_row', 'gdcatalog_product_finish_row',
-					'gdcatalog_product_metal_finish_row', 'gdcatalog_product_frame_finish_row',
-					'gdcatalog_product_stock_material_row', 'gdcatalog_product_stock_type_row',
-					'gdcatalog_product_sight_type_row', 'gdcatalog_product_grips_row',
-					'gdcatalog_product_hammer_style_row', 'gdcatalog_product_receiver_desc_row',
-					'gdcatalog_product_receiver_type_row', 'gdcatalog_product_frame_material_row',
-					'gdcatalog_product_slide_material_row', 'gdcatalog_product_features_row',
+				'firearm' => [
+					'gdcatalog_product_gun_type', 'gdcatalog_product_action_type',
+					'gdcatalog_product_safety_type', 'gdcatalog_product_trigger_type',
+					'gdcatalog_product_caliber', 'gdcatalog_product_capacity',
+					'gdcatalog_product_barrel_length', 'gdcatalog_product_overall_length',
+					'gdcatalog_product_weight_lbs', 'gdcatalog_product_finish',
+					'gdcatalog_product_metal_finish', 'gdcatalog_product_frame_finish',
+					'gdcatalog_product_stock_material', 'gdcatalog_product_stock_type',
+					'gdcatalog_product_sight_type', 'gdcatalog_product_grips',
+					'gdcatalog_product_hammer_style', 'gdcatalog_product_receiver_desc',
+					'gdcatalog_product_receiver_type', 'gdcatalog_product_frame_material',
+					'gdcatalog_product_slide_material', 'gdcatalog_product_features',
 				],
-				'shotgun'   => [
-					'gdcatalog_product_action_type_row', 'gdcatalog_product_gauge_row',
-					'gdcatalog_product_capacity_row', 'gdcatalog_product_barrel_length_row',
-					'gdcatalog_product_overall_length_row', 'gdcatalog_product_weight_lbs_row',
-					'gdcatalog_product_choke_config_row', 'gdcatalog_product_chamber_row',
-					'gdcatalog_product_stock_material_row', 'gdcatalog_product_finish_row',
-					'gdcatalog_product_receiver_desc_row', 'gdcatalog_product_features_row',
+				'shotgun' => [
+					'gdcatalog_product_action_type', 'gdcatalog_product_gauge',
+					'gdcatalog_product_capacity', 'gdcatalog_product_barrel_length',
+					'gdcatalog_product_overall_length', 'gdcatalog_product_weight_lbs',
+					'gdcatalog_product_choke_config', 'gdcatalog_product_chamber',
+					'gdcatalog_product_stock_material', 'gdcatalog_product_finish',
+					'gdcatalog_product_receiver_desc', 'gdcatalog_product_features',
 				],
-				'ammo'      => [
-					'gdcatalog_product_caliber_row', 'gdcatalog_product_bullet_type_row',
-					'gdcatalog_product_bullet_weight_row', 'gdcatalog_product_muzzle_velocity_row',
-					'gdcatalog_product_muzzle_energy_row', 'gdcatalog_product_rounds_per_box_row',
-					'gdcatalog_product_boxes_per_case_row', 'gdcatalog_product_casing_material_row',
-					'gdcatalog_product_features_row',
+				'ammo' => [
+					'gdcatalog_product_caliber', 'gdcatalog_product_bullet_type',
+					'gdcatalog_product_bullet_weight', 'gdcatalog_product_muzzle_velocity',
+					'gdcatalog_product_muzzle_energy', 'gdcatalog_product_rounds_per_box',
+					'gdcatalog_product_boxes_per_case', 'gdcatalog_product_casing_material',
+					'gdcatalog_product_features',
 				],
-				'optic'     => [
-					'gdcatalog_product_magnification_row', 'gdcatalog_product_objective_mm_row',
-					'gdcatalog_product_reticle_row', 'gdcatalog_product_tube_diameter_row',
-					'gdcatalog_product_eye_relief_row', 'gdcatalog_product_finish_row',
-					'gdcatalog_product_weight_lbs_row', 'gdcatalog_product_features_row',
+				'optic' => [
+					'gdcatalog_product_magnification', 'gdcatalog_product_objective_mm',
+					'gdcatalog_product_reticle', 'gdcatalog_product_tube_diameter',
+					'gdcatalog_product_eye_relief', 'gdcatalog_product_finish',
+					'gdcatalog_product_weight_lbs', 'gdcatalog_product_features',
 				],
-				'magazine'  => [
-					'gdcatalog_product_caliber_row', 'gdcatalog_product_capacity_row',
-					'gdcatalog_product_finish_row', 'gdcatalog_product_features_row',
+				'magazine' => [
+					'gdcatalog_product_caliber', 'gdcatalog_product_capacity',
+					'gdcatalog_product_finish', 'gdcatalog_product_features',
 				],
 				'accessory' => [
-					'gdcatalog_product_finish_row', 'gdcatalog_product_weight_lbs_row',
-					'gdcatalog_product_features_row',
+					'gdcatalog_product_finish', 'gdcatalog_product_weight_lbs',
+					'gdcatalog_product_features',
 				],
 			],
 		] ) );
@@ -1183,6 +1183,17 @@ class _products extends \IPS\Dispatcher\Controller
 				$product->record_status = $values['gdcatalog_product_status'];
 				$product->last_updated  = date( 'Y-m-d H:i:s' );
 
+				$intColumns   = [ 'rounds_per_box', 'boxes_per_case', 'nfa_item', 'requires_ffl', 'is_ammo' ];
+				$floatColumns = [ 'msrp', 'weight_oz' ];
+				foreach ( $intColumns as $col )
+				{
+					if ( isset( $product->$col ) && $product->$col === '' ) { $product->$col = null; }
+				}
+				foreach ( $floatColumns as $col )
+				{
+					if ( isset( $product->$col ) && $product->$col === '' ) { $product->$col = null; }
+				}
+
 				$allData = [];
 				try
 				{
@@ -1236,6 +1247,18 @@ class _products extends \IPS\Dispatcher\Controller
 			$product->is_ammo       = (int) $values['gdcatalog_product_is_ammo'];
 			$product->record_status = $values['gdcatalog_product_status'];
 			$product->last_updated  = date( 'Y-m-d H:i:s' );
+
+			$intColumns   = [ 'rounds_per_box', 'boxes_per_case', 'nfa_item', 'requires_ffl', 'is_ammo' ];
+			$floatColumns = [ 'msrp', 'weight_oz' ];
+			foreach ( $intColumns as $col )
+			{
+				if ( isset( $product->$col ) && $product->$col === '' ) { $product->$col = null; }
+			}
+			foreach ( $floatColumns as $col )
+			{
+				if ( isset( $product->$col ) && $product->$col === '' ) { $product->$col = null; }
+			}
+
 			$product->save();
 
 			/* Reindex */

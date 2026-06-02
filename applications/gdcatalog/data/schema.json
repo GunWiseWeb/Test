@@ -284,8 +284,8 @@
             },
             "rounds_per_box": {
                 "name": "rounds_per_box",
-                "type": "INT",
-                "length": null,
+                "type": "VARCHAR",
+                "length": 50,
                 "decimals": null,
                 "allow_null": true,
                 "default": null,
