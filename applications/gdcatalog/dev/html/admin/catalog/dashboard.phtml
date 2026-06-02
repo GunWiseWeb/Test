@@ -127,12 +127,15 @@
 		{{endif}}
 
 		<h2 class="ipsType_sectionHead" style="margin:24px 0 8px;padding-top:24px;border-top:1px solid var(--i-border-color, #e0e0e0)">Tasks</h2>
-		<div style="display:flex;gap:8px;flex-wrap:wrap">
+		<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
 			<a href="{$taskUrls['validate_images']}" class="ipsButton ipsButton--secondary ipsButton--small">Validate Images</a>
 			{{if $pendingConflicts > 0}}
-			<a href="{$taskUrls['resolve_conflicts']}" class="ipsButton ipsButton--secondary ipsButton--small">Resolve Conflicts ({$pendingConflicts})</a>
+			<a href="{$taskUrls['resolve_conflicts']}" class="ipsButton ipsButton--secondary ipsButton--small">Resolve Conflicts</a>
 			{{endif}}
-			<a href="{$taskUrls['prune_log']}" class="ipsButton ipsButton--secondary ipsButton--small">Prune Log ({expression="number_format( (int) $conflictLogCount )"})</a>
+			<a href="{$taskUrls['prune_log']}" class="ipsButton ipsButton--secondary ipsButton--small">Prune Log</a>
+			{{if $conflictLogCount > 0}}
+			<span class="ipsType_light" style="font-size:0.85em">({expression="number_format($conflictLogCount)"} entries)</span>
+			{{endif}}
 			<a href="{$syncBrandsUrl}" class="ipsButton ipsButton--secondary ipsButton--small" data-confirm data-confirmMessage="Sync brand names from Sports South API?">Sync SS Brands</a>
 		</div>
 

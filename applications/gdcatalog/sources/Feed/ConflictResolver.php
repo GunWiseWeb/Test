@@ -45,6 +45,12 @@ class ConflictResolver
 	/** @var int Count of fields this distributor won in this pass */
 	protected int $fieldWins = 0;
 
+	const SKIP_CONFLICT_FIELDS = [
+		'raw_distributor_data', 'image_validated', 'image_validated_at',
+		'image_http_status', 'distributor_last_seen', 'last_updated',
+		'completeness_score', 'distributor_sources', 'primary_source',
+	];
+
 	public function __construct( Product $product, Distributor $feed, ImportLog $log )
 	{
 		$this->product = $product;
@@ -62,13 +68,18 @@ class ConflictResolver
 	 */
 	public function resolve( string $field, mixed $incomingValue ): array
 	{
+		if ( in_array( $field, self::SKIP_CONFLICT_FIELDS, true ) )
+		{
+			return [ 'changed' => false, 'conflict' => false ];
+		}
+
 		$currentValue = $this->product->$field ?? null;
 
 		/* ── Check field locks (Section 2.2.3) ── */
 		if ( $this->isLocked( $field ) )
 		{
 			/* Still log a conflict if incoming differs from locked value (Section 2.11.5 step 6) */
-			if ( $this->valuesDiffer( $currentValue, $incomingValue ) )
+			if ( $this->valuesDiffer( $currentValue, $incomingValue, $field ) )
 			{
 				$this->writeFeedConflict( $field, $currentValue, $incomingValue );
 			}
@@ -120,7 +131,7 @@ class ConflictResolver
 			? $this->distributorRank( $currentOwner )
 			: PHP_INT_MAX;
 
-		$conflict = $this->valuesDiffer( $current, $incoming );
+		$conflict = $this->valuesDiffer( $current, $incoming, $field );
 
 		if ( $incomingRank <= $currentRank )
 		{
@@ -166,7 +177,7 @@ class ConflictResolver
 
 		$incomingLen = mb_strlen( (string) $incoming );
 		$currentLen  = mb_strlen( (string) $current );
-		$conflict    = $this->valuesDiffer( $current, $incoming );
+		$conflict    = $this->valuesDiffer( $current, $incoming, $field );
 
 		if ( $incomingLen > $currentLen )
 		{
@@ -207,7 +218,7 @@ class ConflictResolver
 			return [ 'changed' => true, 'conflict' => false ];
 		}
 
-		$conflict = $this->valuesDiffer( $current, $incoming );
+		$conflict = $this->valuesDiffer( $current, $incoming, $field );
 
 		$incomingRes = $this->getImageResolution( (string) $incoming );
 		$currentRes  = $this->getImageResolution( (string) $current );
@@ -516,9 +527,30 @@ class ConflictResolver
 	 * @param  mixed $b
 	 * @return bool
 	 */
-	protected function valuesDiffer( mixed $a, mixed $b ): bool
+	protected function valuesDiffer( mixed $a, mixed $b, string $field = '' ): bool
 	{
-		return trim( (string) ( $a ?? '' ) ) !== trim( (string) ( $b ?? '' ) );
+		$normA = $this->normalizeValue( $field, $a );
+		$normB = $this->normalizeValue( $field, $b );
+		return $normA !== $normB;
+	}
+
+	protected function normalizeValue( string $field, mixed $value ): string
+	{
+		$numericFields = [
+			'overall_length', 'barrel_length', 'weight_lbs', 'weight_oz',
+			'msrp', 'capacity', 'rounds_per_box', 'boxes_per_case',
+			'muzzle_velocity', 'muzzle_energy', 'bullet_weight',
+			'magnification', 'objective_mm', 'tube_diameter', 'eye_relief',
+		];
+
+		$str = trim( (string) ( $value ?? '' ) );
+
+		if ( in_array( $field, $numericFields, true ) && is_numeric( $str ) )
+		{
+			return rtrim( rtrim( number_format( (float) $str, 4, '.', '' ), '0' ), '.' );
+		}
+
+		return strtolower( $str );
 	}
 
 	/**

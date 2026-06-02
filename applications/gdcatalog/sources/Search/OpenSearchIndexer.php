@@ -307,27 +307,27 @@ class OpenSearchIndexer
 		\IPS\Db::i()->delete( 'gd_reindex_queue' );
 
 		/* Bulk index all active products — paginated to limit memory */
-		$prevLimit = ini_get( 'memory_limit' );
+		$previousMemLimit = ini_get( 'memory_limit' );
 		ini_set( 'memory_limit', '256M' );
 
-		$columns = 'upc, title, brand, model, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, record_status, image_url, description';
-
 		$count    = 0;
-		$offset   = 0;
+		$bulkBody = '';
 		$batchMax = 250;
+		$offset   = 0;
 
-		while ( true )
+		$indexColumns = 'upc, title, brand, model, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, record_status, image_url, description';
+
+		while ( TRUE )
 		{
-			$rows = iterator_to_array(
-				\IPS\Db::i()->select( $columns, 'gd_catalog', [ 'record_status=?', Product::STATUS_ACTIVE ], 'upc ASC', [ $offset, $batchMax ] )
+			$rows = \IPS\Db::i()->select(
+				$indexColumns,
+				'gd_catalog',
+				[ 'record_status=?', Product::STATUS_ACTIVE ],
+				'upc ASC',
+				[ $offset, $batchMax ]
 			);
 
-			if ( empty( $rows ) )
-			{
-				break;
-			}
-
-			$bulkBody = '';
+			$batchCount = 0;
 			foreach ( $rows as $row )
 			{
 				$product = Product::constructFromData( $row );
@@ -336,19 +336,23 @@ class OpenSearchIndexer
 				$bulkBody .= json_encode( [ 'index' => [ '_index' => $this->index, '_id' => $product->upc ] ] ) . "\n";
 				$bulkBody .= json_encode( $doc ) . "\n";
 				$count++;
+				$batchCount++;
 			}
 
 			if ( $bulkBody !== '' )
 			{
 				$this->request( 'POST', '/_bulk', null, $bulkBody );
+				$bulkBody = '';
 			}
 
-			$offset += $batchMax;
-			unset( $rows, $bulkBody );
+			unset( $rows );
 			gc_collect_cycles();
+
+			if ( $batchCount < $batchMax ) break;
+			$offset += $batchMax;
 		}
 
-		ini_set( 'memory_limit', $prevLimit ?: '128M' );
+		ini_set( 'memory_limit', $previousMemLimit );
 
 		return $count;
 	}
