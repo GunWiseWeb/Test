@@ -113,3 +113,4 @@ class _BackfillAttributes extends \IPS\Task\Queue\Handler
 		return [ 'current' => $offset, 'end' => $total ];
 	}
 }
+class BackfillAttributes extends _BackfillAttributes {}

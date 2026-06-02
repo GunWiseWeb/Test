@@ -23,7 +23,7 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 	exit;
 }
 
-class AutoResolveConflicts extends \IPS\Task
+class _AutoResolveConflicts extends \IPS\Task
 {
 	/**
 	 * Execute the task.
@@ -109,3 +109,4 @@ class AutoResolveConflicts extends \IPS\Task
 		}
 	}
 }
+class AutoResolveConflicts extends _AutoResolveConflicts {}

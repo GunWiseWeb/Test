@@ -81,3 +81,4 @@ class _ResolveBrands extends \IPS\Task\Queue\Handler
 		return [ 'current' => $offset, 'end' => $total ];
 	}
 }
+class ResolveBrands extends _ResolveBrands {}

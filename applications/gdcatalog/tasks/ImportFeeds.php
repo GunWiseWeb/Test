@@ -23,7 +23,7 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 	exit;
 }
 
-class ImportFeeds extends \IPS\Task
+class _ImportFeeds extends \IPS\Task
 {
 	/**
 	 * Execute the task.
@@ -84,3 +84,4 @@ class ImportFeeds extends \IPS\Task
 			: null;
 	}
 }
+class ImportFeeds extends _ImportFeeds {}
