@@ -304,6 +304,11 @@
     <word key="gddealer_settings_quicklinks"><![CDATA[Overview Quick Links]]></word>
     <word key="gddealer_quicklinks_json"><![CDATA[Quick Links (JSON)]]></word>
     <word key="gddealer_directory_title"><![CDATA[Dealer Directory]]></word>
+    <word key="gddealer_directory_subtitle"><![CDATA[%1$s active dealers on GunRack.deals]]></word>
+    <word key="gddealer_directory_no_results"><![CDATA[No dealers found]]></word>
+    <word key="gddealer_directory_search"><![CDATA[Search]]></word>
+    <word key="gddealer_directory_filter_tier"><![CDATA[Tier]]></word>
+    <word key="gddealer_directory_sort"><![CDATA[Sort By]]></word>
     <word key="gddealer_followed"><![CDATA[You are now following this dealer.]]></word>
     <word key="gddealer_unfollowed"><![CDATA[You have unfollowed this dealer.]]></word>
     <word key="gddealer_follow_area_dealer"><![CDATA[Dealers]]></word>

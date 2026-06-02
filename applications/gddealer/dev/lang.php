@@ -13,5 +13,11 @@ $lang = [
 	'gddealer_unmatched_title'           => 'Unmatched UPCs',
 	'gddealer_settings_title'            => 'Dealer Manager Settings',
 	'gddealer_frontend_dashboard_title'  => 'Dealer Dashboard',
+	'gddealer_directory_title'           => 'Dealer Directory',
+	'gddealer_directory_subtitle'        => '%1$s active dealers on GunRack.deals',
+	'gddealer_directory_no_results'      => 'No dealers found',
+	'gddealer_directory_search'          => 'Search',
+	'gddealer_directory_filter_tier'     => 'Tier',
+	'gddealer_directory_sort'            => 'Sort By',
 	'task__DealerImportFeeds'            => 'Import Dealer Feeds',
 ];
