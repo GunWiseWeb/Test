@@ -1057,6 +1057,75 @@ class _products extends \IPS\Dispatcher\Controller
 			'description'    => [ 'TextArea', null ],
 		];
 
+		$catId = (int) $product->category_id;
+		$firearmCats   = [1,2,3,4,5,7,8,9,10,11,12,13,14,15,31,64,96];
+		$shotgunCats   = [16,17,18,19,20,21,22];
+		$ammoCats      = [23,24,25,26,27,28,29,30];
+		$opticCats     = [44,45,46,47,48,49,50,51];
+		$magazineCats  = [38];
+
+		if ( in_array( $catId, $firearmCats, true ) )       $defaultType = 'firearm';
+		elseif ( in_array( $catId, $shotgunCats, true ) )   $defaultType = 'shotgun';
+		elseif ( in_array( $catId, $ammoCats, true ) )      $defaultType = 'ammo';
+		elseif ( in_array( $catId, $opticCats, true ) )     $defaultType = 'optic';
+		elseif ( in_array( $catId, $magazineCats, true ) )  $defaultType = 'magazine';
+		else                                                 $defaultType = 'accessory';
+
+		$form->add( new \IPS\Helpers\Form\Select( 'gdcatalog_product_type_group', $defaultType, FALSE, [
+			'options' => [
+				'firearm'   => 'Firearm (Pistol / Rifle)',
+				'shotgun'   => 'Shotgun',
+				'ammo'      => 'Ammunition',
+				'optic'     => 'Optic / Scope',
+				'magazine'  => 'Magazine',
+				'accessory' => 'Accessory / Other',
+			],
+			'toggles' => [
+				'firearm'   => [
+					'gdcatalog_product_gun_type_row', 'gdcatalog_product_action_type_row',
+					'gdcatalog_product_safety_type_row', 'gdcatalog_product_trigger_type_row',
+					'gdcatalog_product_caliber_row', 'gdcatalog_product_capacity_row',
+					'gdcatalog_product_barrel_length_row', 'gdcatalog_product_overall_length_row',
+					'gdcatalog_product_weight_lbs_row', 'gdcatalog_product_finish_row',
+					'gdcatalog_product_metal_finish_row', 'gdcatalog_product_frame_finish_row',
+					'gdcatalog_product_stock_material_row', 'gdcatalog_product_stock_type_row',
+					'gdcatalog_product_sight_type_row', 'gdcatalog_product_grips_row',
+					'gdcatalog_product_hammer_style_row', 'gdcatalog_product_receiver_desc_row',
+					'gdcatalog_product_receiver_type_row', 'gdcatalog_product_frame_material_row',
+					'gdcatalog_product_slide_material_row', 'gdcatalog_product_features_row',
+				],
+				'shotgun'   => [
+					'gdcatalog_product_action_type_row', 'gdcatalog_product_gauge_row',
+					'gdcatalog_product_capacity_row', 'gdcatalog_product_barrel_length_row',
+					'gdcatalog_product_overall_length_row', 'gdcatalog_product_weight_lbs_row',
+					'gdcatalog_product_choke_config_row', 'gdcatalog_product_chamber_row',
+					'gdcatalog_product_stock_material_row', 'gdcatalog_product_finish_row',
+					'gdcatalog_product_receiver_desc_row', 'gdcatalog_product_features_row',
+				],
+				'ammo'      => [
+					'gdcatalog_product_caliber_row', 'gdcatalog_product_bullet_type_row',
+					'gdcatalog_product_bullet_weight_row', 'gdcatalog_product_muzzle_velocity_row',
+					'gdcatalog_product_muzzle_energy_row', 'gdcatalog_product_rounds_per_box_row',
+					'gdcatalog_product_boxes_per_case_row', 'gdcatalog_product_casing_material_row',
+					'gdcatalog_product_features_row',
+				],
+				'optic'     => [
+					'gdcatalog_product_magnification_row', 'gdcatalog_product_objective_mm_row',
+					'gdcatalog_product_reticle_row', 'gdcatalog_product_tube_diameter_row',
+					'gdcatalog_product_eye_relief_row', 'gdcatalog_product_finish_row',
+					'gdcatalog_product_weight_lbs_row', 'gdcatalog_product_features_row',
+				],
+				'magazine'  => [
+					'gdcatalog_product_caliber_row', 'gdcatalog_product_capacity_row',
+					'gdcatalog_product_finish_row', 'gdcatalog_product_features_row',
+				],
+				'accessory' => [
+					'gdcatalog_product_finish_row', 'gdcatalog_product_weight_lbs_row',
+					'gdcatalog_product_features_row',
+				],
+			],
+		] ) );
+
 		foreach ( $editableFields as $field => $config )
 		{
 			$isLocked = $product->isFieldLocked( $field );
@@ -1071,10 +1140,6 @@ class _products extends \IPS\Dispatcher\Controller
 				$config[0] === 'Number' ? [ 'decimals' => 2 ] : []
 			);
 
-			/* v1.0.32: Inject 🔒 LOCKED indicator into the field's description
-			 * when this field is in the locked_fields JSON. Distributor
-			 * imports cannot overwrite locked fields - they create conflicts
-			 * instead. */
 			if ( $isLocked )
 			{
 				$formField->description = '🔒 LOCKED — Distributor imports cannot overwrite this field.';

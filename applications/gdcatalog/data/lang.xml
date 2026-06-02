@@ -180,23 +180,55 @@
     <word key="gdcatalog_filter_scope_manual" js="0"><![CDATA[Manual Override]]></word>
     <word key="gdcatalog_filter_scope_auto" js="0"><![CDATA[Auto-Resolved]]></word>
     <word key="gdcatalog_task_prune_conflict_log" js="0"><![CDATA[Prune old auto-resolved conflict log entries]]></word>
-    <word key="gdcatalog_product_mpn" js="0"><![CDATA[MPN]]></word>
+    <word key="gdcatalog_product_mpn" js="0"><![CDATA[MPN / Manufacturer SKU]]></word>
     <word key="gdcatalog_product_mpn_desc" js="0"><![CDATA[Manufacturer part number (e.g. 4010101).]]></word>
     <word key="gdcatalog_product_manufacturer" js="0"><![CDATA[Manufacturer]]></word>
     <word key="gdcatalog_product_manufacturer_desc" js="0"><![CDATA[Actual maker, if different from the consumer brand (e.g. Miroku for Browning).]]></word>
     <word key="gdcatalog_product_importer" js="0"><![CDATA[Importer]]></word>
     <word key="gdcatalog_product_importer_desc" js="0"><![CDATA[FFL Type 08 importer of record for imported firearms.]]></word>
-    <word key="gdcatalog_product_gun_type" js="0"><![CDATA[Type]]></word>
+    <word key="gdcatalog_product_gun_type" js="0"><![CDATA[Gun Type]]></word>
     <word key="gdcatalog_product_gun_type_desc" js="0"><![CDATA[Product type (Pistol, Revolver, Bolt-Action, etc).]]></word>
     <word key="gdcatalog_product_capacity" js="0"><![CDATA[Capacity]]></word>
-    <word key="gdcatalog_product_barrel_length" js="0"><![CDATA[Barrel Length (inches)]]></word>
-    <word key="gdcatalog_product_overall_length" js="0"><![CDATA[Overall Length (inches)]]></word>
+    <word key="gdcatalog_product_barrel_length" js="0"><![CDATA[Barrel Length]]></word>
+    <word key="gdcatalog_product_overall_length" js="0"><![CDATA[Overall Length]]></word>
     <word key="gdcatalog_product_weight_oz" js="0"><![CDATA[Weight (oz)]]></word>
+    <word key="gdcatalog_product_weight_lbs" js="0"><![CDATA[Weight (lbs)]]></word>
     <word key="gdcatalog_product_safety_type" js="0"><![CDATA[Safety]]></word>
-    <word key="gdcatalog_product_stock_type" js="0"><![CDATA[Stock / Grips]]></word>
-    <word key="gdcatalog_product_sight_type" js="0"><![CDATA[Sight]]></word>
-    <word key="gdcatalog_product_receiver_type" js="0"><![CDATA[Receiver / Slide]]></word>
+    <word key="gdcatalog_product_trigger_type" js="0"><![CDATA[Trigger]]></word>
+    <word key="gdcatalog_product_gauge" js="0"><![CDATA[Gauge]]></word>
+    <word key="gdcatalog_product_stock_type" js="0"><![CDATA[Stock Type]]></word>
+    <word key="gdcatalog_product_stock_material" js="0"><![CDATA[Stock Material]]></word>
+    <word key="gdcatalog_product_sight_type" js="0"><![CDATA[Sights]]></word>
+    <word key="gdcatalog_product_grips" js="0"><![CDATA[Grips]]></word>
+    <word key="gdcatalog_product_hammer_style" js="0"><![CDATA[Hammer Style]]></word>
+    <word key="gdcatalog_product_choke_config" js="0"><![CDATA[Choke Configuration]]></word>
+    <word key="gdcatalog_product_chamber" js="0"><![CDATA[Chamber]]></word>
+    <word key="gdcatalog_product_receiver_desc" js="0"><![CDATA[Receiver Description]]></word>
+    <word key="gdcatalog_product_receiver_type" js="0"><![CDATA[Receiver Type]]></word>
     <word key="gdcatalog_product_frame_material" js="0"><![CDATA[Frame Material]]></word>
+    <word key="gdcatalog_product_slide_material" js="0"><![CDATA[Slide Material]]></word>
+    <word key="gdcatalog_product_metal_finish" js="0"><![CDATA[Metal Finish]]></word>
+    <word key="gdcatalog_product_frame_finish" js="0"><![CDATA[Frame Finish]]></word>
+    <word key="gdcatalog_product_bullet_type" js="0"><![CDATA[Bullet Type]]></word>
+    <word key="gdcatalog_product_bullet_weight" js="0"><![CDATA[Bullet Weight]]></word>
+    <word key="gdcatalog_product_muzzle_velocity" js="0"><![CDATA[Muzzle Velocity]]></word>
+    <word key="gdcatalog_product_muzzle_energy" js="0"><![CDATA[Muzzle Energy]]></word>
+    <word key="gdcatalog_product_rounds_per_box" js="0"><![CDATA[Rounds Per Box]]></word>
+    <word key="gdcatalog_product_boxes_per_case" js="0"><![CDATA[Boxes Per Case]]></word>
+    <word key="gdcatalog_product_casing_material" js="0"><![CDATA[Casing Material]]></word>
+    <word key="gdcatalog_product_magnification" js="0"><![CDATA[Magnification]]></word>
+    <word key="gdcatalog_product_objective_mm" js="0"><![CDATA[Objective (mm)]]></word>
+    <word key="gdcatalog_product_reticle" js="0"><![CDATA[Reticle]]></word>
+    <word key="gdcatalog_product_tube_diameter" js="0"><![CDATA[Tube Diameter]]></word>
+    <word key="gdcatalog_product_eye_relief" js="0"><![CDATA[Eye Relief]]></word>
+    <word key="gdcatalog_product_features" js="0"><![CDATA[Features]]></word>
+    <word key="gdcatalog_product_type_group" js="0"><![CDATA[Product Type]]></word>
+    <word key="gdcatalog_product_type_firearm" js="0"><![CDATA[Firearm]]></word>
+    <word key="gdcatalog_product_type_shotgun" js="0"><![CDATA[Shotgun]]></word>
+    <word key="gdcatalog_product_type_ammo" js="0"><![CDATA[Ammunition]]></word>
+    <word key="gdcatalog_product_type_optic" js="0"><![CDATA[Optic]]></word>
+    <word key="gdcatalog_product_type_magazine" js="0"><![CDATA[Magazine]]></word>
+    <word key="gdcatalog_product_type_accessory" js="0"><![CDATA[Accessory / Other]]></word>
     <word key="gdcatalog_image_status" js="0"><![CDATA[Image Status]]></word>
     <word key="gdcatalog_image_status_all" js="0"><![CDATA[All Products]]></word>
     <word key="gdcatalog_image_status_present" js="0"><![CDATA[Has Image URL]]></word>
