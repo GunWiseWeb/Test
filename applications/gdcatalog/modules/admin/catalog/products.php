@@ -368,37 +368,63 @@ class _products extends \IPS\Dispatcher\Controller
 		/* Same editable fields as edit() - kept in sync intentionally. */
 		$editableFields = [
 			/* Identity */
-			'title'          => [ 'Text', 255 ],
-			'mpn'            => [ 'Text', 50 ],
-			'brand'          => [ 'Text', 100 ],
-			'manufacturer'   => [ 'Text', 100 ],
-			'importer'       => [ 'Text', 100 ],
-			'model'          => [ 'Text', 100 ],
+			'title'          => [ 'Text',     255 ],
+			'mpn'            => [ 'Text',     100 ],
+			'brand'          => [ 'Text',     100 ],
+			'manufacturer'   => [ 'Text',     100 ],
+			'importer'       => [ 'Text',     100 ],
+			'model'          => [ 'Text',     100 ],
 
 			/* Classification */
-			'gun_type'       => [ 'Text', 50 ],
+			'gun_type'       => [ 'Text',     100 ],
+			'action_type'    => [ 'Text',     100 ],
+			'safety_type'    => [ 'Text',     100 ],
+			'trigger_type'   => [ 'Text',     255 ],
 
-			/* Core specs */
-			'caliber'        => [ 'Text', 50 ],
-			'action_type'    => [ 'Text', 50 ],
-			'capacity'       => [ 'Number', null ],
-			'barrel_length'  => [ 'Number', null ],
-			'overall_length' => [ 'Number', null ],
-			'weight_oz'      => [ 'Number', null ],
+			/* Firearm specs */
+			'caliber'        => [ 'Text',     100 ],
+			'capacity'       => [ 'Text',     50  ],
+			'barrel_length'  => [ 'Text',     50  ],
+			'overall_length' => [ 'Text',     50  ],
+			'weight_lbs'     => [ 'Text',     50  ],
+			'gauge'          => [ 'Text',     50  ],
 
-			/* Configuration / appearance */
-			'finish'         => [ 'Text', 100 ],
-			'safety_type'    => [ 'Text', 100 ],
-			'stock_type'     => [ 'Text', 100 ],
-			'sight_type'     => [ 'Text', 100 ],
-			'receiver_type'  => [ 'Text', 255 ],
-			'frame_material' => [ 'Text', 100 ],
+			/* Appearance */
+			'finish'         => [ 'Text',     100 ],
+			'metal_finish'   => [ 'Text',     255 ],
+			'frame_finish'   => [ 'Text',     255 ],
+			'stock_material' => [ 'Text',     100 ],
+			'stock_type'     => [ 'Text',     100 ],
+			'sight_type'     => [ 'Text',     100 ],
+			'grips'          => [ 'Text',     255 ],
+			'hammer_style'   => [ 'Text',     100 ],
+			'choke_config'   => [ 'Text',     100 ],
+			'chamber'        => [ 'Text',     100 ],
+			'receiver_desc'  => [ 'Text',     255 ],
+			'receiver_type'  => [ 'Text',     255 ],
+			'frame_material' => [ 'Text',     100 ],
+			'slide_material' => [ 'Text',     100 ],
 
-			/* Image */
-			'image_url'      => [ 'Text', 500 ],
+			/* Ammunition */
+			'bullet_type'      => [ 'Text',   100 ],
+			'bullet_weight'    => [ 'Text',   50  ],
+			'muzzle_velocity'  => [ 'Text',   50  ],
+			'muzzle_energy'    => [ 'Text',   50  ],
+			'rounds_per_box'   => [ 'Text',   50  ],
+			'boxes_per_case'   => [ 'Text',   50  ],
+			'casing_material'  => [ 'Text',   100 ],
 
-			/* Pricing + content */
-			'msrp'           => [ 'Number', null ],
+			/* Optics */
+			'magnification'  => [ 'Text',     100 ],
+			'objective_mm'   => [ 'Text',     50  ],
+			'reticle'        => [ 'Text',     100 ],
+			'tube_diameter'  => [ 'Text',     50  ],
+			'eye_relief'     => [ 'Text',     100 ],
+
+			/* General */
+			'features'       => [ 'TextArea', null ],
+			'image_url'      => [ 'Text',     500 ],
+			'msrp'           => [ 'Number',   null ],
 			'description'    => [ 'TextArea', null ],
 		];
 
@@ -968,41 +994,66 @@ class _products extends \IPS\Dispatcher\Controller
 			[ 'regex' => '/^[0-9]{8,13}$/' ]
 		) );
 
-		/* Editable fields - v1.0.27 expanded with master record fields. */
+		/* Editable fields - v1.0.74 expanded with all attribute columns. */
 		$editableFields = [
 			/* Identity */
-			'title'          => [ 'Text', 255 ],
-			'mpn'            => [ 'Text', 50 ],
-			'brand'          => [ 'Text', 100 ],
-			'manufacturer'   => [ 'Text', 100 ],
-			'importer'       => [ 'Text', 100 ],
-			'model'          => [ 'Text', 100 ],
+			'title'          => [ 'Text',     255 ],
+			'mpn'            => [ 'Text',     100 ],
+			'brand'          => [ 'Text',     100 ],
+			'manufacturer'   => [ 'Text',     100 ],
+			'importer'       => [ 'Text',     100 ],
+			'model'          => [ 'Text',     100 ],
 
 			/* Classification */
-			'gun_type'       => [ 'Text', 50 ],
+			'gun_type'       => [ 'Text',     100 ],
+			'action_type'    => [ 'Text',     100 ],
+			'safety_type'    => [ 'Text',     100 ],
+			'trigger_type'   => [ 'Text',     255 ],
 
-			/* Core specs */
-			'caliber'        => [ 'Text', 50 ],
-			'action_type'    => [ 'Text', 50 ],
-			'capacity'       => [ 'Number', null ],
-			'barrel_length'  => [ 'Number', null ],
-			'overall_length' => [ 'Number', null ],
-			'weight_oz'      => [ 'Number', null ],
+			/* Firearm specs */
+			'caliber'        => [ 'Text',     100 ],
+			'capacity'       => [ 'Text',     50  ],
+			'barrel_length'  => [ 'Text',     50  ],
+			'overall_length' => [ 'Text',     50  ],
+			'weight_lbs'     => [ 'Text',     50  ],
+			'gauge'          => [ 'Text',     50  ],
 
-			/* Configuration / appearance */
-			'finish'         => [ 'Text', 100 ],
-			'safety_type'    => [ 'Text', 100 ],
-			'stock_type'     => [ 'Text', 100 ],
-			'sight_type'     => [ 'Text', 100 ],
-			'receiver_type'  => [ 'Text', 255 ],
-			'frame_material' => [ 'Text', 100 ],
+			/* Appearance */
+			'finish'         => [ 'Text',     100 ],
+			'metal_finish'   => [ 'Text',     255 ],
+			'frame_finish'   => [ 'Text',     255 ],
+			'stock_material' => [ 'Text',     100 ],
+			'stock_type'     => [ 'Text',     100 ],
+			'sight_type'     => [ 'Text',     100 ],
+			'grips'          => [ 'Text',     255 ],
+			'hammer_style'   => [ 'Text',     100 ],
+			'choke_config'   => [ 'Text',     100 ],
+			'chamber'        => [ 'Text',     100 ],
+			'receiver_desc'  => [ 'Text',     255 ],
+			'receiver_type'  => [ 'Text',     255 ],
+			'frame_material' => [ 'Text',     100 ],
+			'slide_material' => [ 'Text',     100 ],
 
-			/* v1.0.34: Image URL is editable on existing products so admins can
-			 * fix broken/404 URLs from the image validation badge. */
-			'image_url'      => [ 'Text', 500 ],
+			/* Ammunition */
+			'bullet_type'      => [ 'Text',   100 ],
+			'bullet_weight'    => [ 'Text',   50  ],
+			'muzzle_velocity'  => [ 'Text',   50  ],
+			'muzzle_energy'    => [ 'Text',   50  ],
+			'rounds_per_box'   => [ 'Text',   50  ],
+			'boxes_per_case'   => [ 'Text',   50  ],
+			'casing_material'  => [ 'Text',   100 ],
 
-			/* Pricing + content */
-			'msrp'           => [ 'Number', null ],
+			/* Optics */
+			'magnification'  => [ 'Text',     100 ],
+			'objective_mm'   => [ 'Text',     50  ],
+			'reticle'        => [ 'Text',     100 ],
+			'tube_diameter'  => [ 'Text',     50  ],
+			'eye_relief'     => [ 'Text',     100 ],
+
+			/* General */
+			'features'       => [ 'TextArea', null ],
+			'image_url'      => [ 'Text',     500 ],
+			'msrp'           => [ 'Number',   null ],
 			'description'    => [ 'TextArea', null ],
 		];
 
@@ -1283,9 +1334,16 @@ class _products extends \IPS\Dispatcher\Controller
 		/* Same field list as add() and edit(). Kept in sync intentionally. */
 		$lockable = [
 			'title', 'mpn', 'brand', 'manufacturer', 'importer', 'model',
-			'gun_type', 'caliber', 'action_type', 'capacity', 'barrel_length',
-			'overall_length', 'weight_oz', 'finish', 'safety_type',
-			'stock_type', 'sight_type', 'receiver_type', 'frame_material',
+			'gun_type', 'action_type', 'safety_type', 'trigger_type',
+			'caliber', 'capacity', 'barrel_length', 'overall_length',
+			'weight_lbs', 'gauge', 'finish', 'metal_finish', 'frame_finish',
+			'stock_material', 'stock_type', 'sight_type', 'grips',
+			'hammer_style', 'choke_config', 'chamber', 'receiver_desc',
+			'receiver_type', 'frame_material', 'slide_material',
+			'bullet_type', 'bullet_weight', 'muzzle_velocity',
+			'muzzle_energy', 'rounds_per_box', 'boxes_per_case',
+			'casing_material', 'magnification', 'objective_mm', 'reticle',
+			'tube_diameter', 'eye_relief', 'features',
 			'image_url', 'msrp', 'description',
 		];
 
@@ -1329,9 +1387,16 @@ class _products extends \IPS\Dispatcher\Controller
 
 		$lockable = [
 			'title', 'mpn', 'brand', 'manufacturer', 'importer', 'model',
-			'gun_type', 'caliber', 'action_type', 'capacity', 'barrel_length',
-			'overall_length', 'weight_oz', 'finish', 'safety_type',
-			'stock_type', 'sight_type', 'receiver_type', 'frame_material',
+			'gun_type', 'action_type', 'safety_type', 'trigger_type',
+			'caliber', 'capacity', 'barrel_length', 'overall_length',
+			'weight_lbs', 'gauge', 'finish', 'metal_finish', 'frame_finish',
+			'stock_material', 'stock_type', 'sight_type', 'grips',
+			'hammer_style', 'choke_config', 'chamber', 'receiver_desc',
+			'receiver_type', 'frame_material', 'slide_material',
+			'bullet_type', 'bullet_weight', 'muzzle_velocity',
+			'muzzle_energy', 'rounds_per_box', 'boxes_per_case',
+			'casing_material', 'magnification', 'objective_mm', 'reticle',
+			'tube_diameter', 'eye_relief', 'features',
 			'image_url', 'msrp', 'description',
 		];
 
