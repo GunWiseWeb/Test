@@ -53,6 +53,7 @@ $lang = array(
 	'gdcatalog_product_lock_field'             => "Lock This Field",
 	'gdcatalog_product_unlock_field'           => "Unlock",
 	'gdcatalog_save_manual'                    => "Save Product",
+	'gdcatalog_save_product'                   => "Save Product",
 	'gdcatalog_product_lock_warning'           => "🔒 This field is locked. Distributor imports cannot overwrite it.",
 	'gdcatalog_bulk_lock_label'                => "Bulk Lock",
 	'gdcatalog_lock_all_fields'                => "Lock All Populated Fields",
