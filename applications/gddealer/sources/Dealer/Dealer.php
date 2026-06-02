@@ -111,7 +111,14 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 		$now = new \DateTime();
 
 		$out = [];
-		foreach ( \IPS\Db::i()->select( '*', 'gd_dealer_feed_config', [ 'active=? AND suspended=?', 1, 0 ] ) as $row )
+		foreach ( \IPS\Db::i()->select( '*', 'gd_dealer_feed_config', [
+			'active=? AND suspended=? AND (
+				(feed_delivery_mode=? AND feed_url IS NOT NULL AND feed_url != ?)
+				OR
+				(feed_delivery_mode=? AND uploaded_feed_path IS NOT NULL AND uploaded_feed_path != ?)
+			)',
+			1, 0, 'url', '', 'upload', ''
+		] ) as $row )
 		{
 			$dealer = static::constructFromData( $row );
 			if ( $dealer->isDueForImport( $now ) )

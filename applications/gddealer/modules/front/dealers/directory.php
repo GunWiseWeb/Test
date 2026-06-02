@@ -83,12 +83,15 @@ class _directory extends \IPS\Dispatcher\Controller
 		try
 		{
 			foreach ( \IPS\Db::i()->select(
-				'd.*, COUNT(DISTINCT l.id) as listing_count, COUNT(DISTINCT r.id) as total_reviews, COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) as avg_overall',
+				'd.dealer_id, d.dealer_name, d.dealer_slug, d.subscription_tier, d.is_founding_member, d.created_at, d.active,
+				 COUNT(DISTINCT l.id) as listing_count,
+				 COUNT(DISTINCT r.id) as total_reviews,
+				 COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) as avg_overall',
 				[ 'gd_dealer_feed_config', 'd' ],
 				$whereMain,
 				$orderBy,
 				[ $offset, $perPage ],
-				'd.dealer_id'
+				'd.dealer_id, d.dealer_name, d.dealer_slug, d.subscription_tier, d.is_founding_member, d.created_at, d.active'
 			)->join(
 				[ 'gd_dealer_listings', 'l' ],
 				"l.dealer_id = d.dealer_id AND l.listing_status = 'active'",
