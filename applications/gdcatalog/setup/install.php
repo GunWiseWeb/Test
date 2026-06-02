@@ -773,3 +773,9 @@ foreach ( $gdcatalogTemplates as $tpl )
         ]);
     } catch ( \Exception $e ) {}
 }
+
+try
+{
+    \IPS\Db::i()->update( 'core_tasks', [ 'enabled' => 1 ], [ 'app=? AND `key`=?', 'core', 'queue' ] );
+}
+catch ( \Throwable ) {}
