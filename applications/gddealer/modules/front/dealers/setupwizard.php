@@ -121,7 +121,7 @@ class _setupwizard extends \IPS\Dispatcher\Controller
             'save_step4'    => (string) \IPS\Http\Url::internal( $base . '&do=saveStep4', 'front', $seo ),
             'step5'         => (string) \IPS\Http\Url::internal( $base . '&do=step5', 'front', $seo ),
             'save_step5'    => (string) \IPS\Http\Url::internal( $base . '&do=saveStep5', 'front', $seo ),
-            'dashboard'     => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=overview', 'front', 'dealer_dashboard' ),
+            'dashboard'     => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=overview', 'front', 'dealers_dashboard' ),
             'feed_schema'   => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=feedschema', 'front', 'dealers_feed_schema' ),
         ];
     }
