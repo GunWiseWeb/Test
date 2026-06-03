@@ -56,6 +56,10 @@
         "dealers_profile": {
             "friendly": "dealer/{@dealer_slug}",
             "real": "app=gddealer&module=dealers&controller=profile"
+        },
+        "gddealer_admin_flagged_upcs": {
+            "friendly": "gddealer/flagged-upcs",
+            "real": "app=gddealer&module=dealers&controller=flaggedUpcs"
         }
     }
 }

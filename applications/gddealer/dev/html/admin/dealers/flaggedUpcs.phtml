@@ -1,0 +1,68 @@
+<ips:template parameters="$flags, $total, $pagination, $statusFilter, $dealerFilter, $typeFilter, $counts" />
+<div class="ipsBox">
+	<div class="ipsBox__header" style="display:flex;justify-content:space-between;align-items:center">
+		<h1 class="ipsType_pageTitle">{lang="gddealer_flagged_upcs_title"}</h1>
+		<div style="display:flex;gap:8px;font-size:0.85em">
+			<a href="?app=gddealer&module=dealers&controller=flaggedUpcs&flag_status=submitted" class="ipsBadge {{if $statusFilter === 'submitted'}}ipsBadge--warning{{else}}ipsBadge--neutral{{endif}}">{lang="gddealer_flag_status_submitted"} ({$counts['submitted']})</a>
+			<a href="?app=gddealer&module=dealers&controller=flaggedUpcs&flag_status=new" class="ipsBadge {{if $statusFilter === 'new'}}ipsBadge--negative{{else}}ipsBadge--neutral{{endif}}">{lang="gddealer_flag_status_new"} ({$counts['new']})</a>
+			<a href="?app=gddealer&module=dealers&controller=flaggedUpcs&flag_status=resolved" class="ipsBadge {{if $statusFilter === 'resolved'}}ipsBadge--positive{{else}}ipsBadge--neutral{{endif}}">{lang="gddealer_flag_status_resolved"} ({$counts['resolved']})</a>
+			<a href="?app=gddealer&module=dealers&controller=flaggedUpcs&flag_status=dismissed" class="ipsBadge {{if $statusFilter === 'dismissed'}}ipsBadge--neutral{{else}}ipsBadge--neutral{{endif}}">{lang="gddealer_flag_status_dismissed"} ({$counts['dismissed']})</a>
+			<a href="?app=gddealer&module=dealers&controller=flaggedUpcs&flag_status=all" class="ipsBadge ipsBadge--neutral">{lang="gddealer_flag_status_all"}</a>
+		</div>
+	</div>
+	<div class="ipsBox__content">
+		<p style="color:#666;margin:0 0 16px">{$total} {lang="gddealer_flagged_upcs_count"}</p>
+		{{if count($flags) === 0}}
+		<p style="text-align:center;color:#999;padding:32px 0">{lang="gddealer_flagged_upcs_empty"}</p>
+		{{else}}
+		<table class="ipsTable ipsTable_zebra">
+			<thead>
+				<tr>
+					<th>{lang="gddealer_flag_col_dealer"}</th>
+					<th>{lang="gddealer_flag_col_upc"}</th>
+					<th>{lang="gddealer_flag_col_type"}</th>
+					<th>{lang="gddealer_flag_col_dealer_value"}</th>
+					<th>{lang="gddealer_flag_col_catalog_value"}</th>
+					<th>{lang="gddealer_flag_col_status"}</th>
+					<th>{lang="gddealer_flag_col_submitted"}</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $flags as $flag}}
+				<tr>
+					<td>{$flag['dealer_name']}</td>
+					<td>
+						<code style="font-size:0.85em">{$flag['upc']}</code>
+						{{if $flag['catalog_title']}}
+						<div style="font-size:0.8em;color:#666">{$flag['catalog_title']}</div>
+						{{endif}}
+					</td>
+					<td><span class="ipsBadge ipsBadge--neutral">{$flag['flag_type']}</span></td>
+					<td style="color:#dc2626;font-weight:500">{$flag['dealer_value']}</td>
+					<td style="color:#16a34a">{$flag['catalog_value']}</td>
+					<td>
+						{{if $flag['status'] === 'new'}}
+						<span class="ipsBadge ipsBadge--negative">{lang="gddealer_flag_status_new"}</span>
+						{{elseif $flag['status'] === 'submitted'}}
+						<span class="ipsBadge ipsBadge--warning">{lang="gddealer_flag_status_submitted"}</span>
+						{{elseif $flag['status'] === 'resolved'}}
+						<span class="ipsBadge ipsBadge--positive">{lang="gddealer_flag_status_resolved"}</span>
+						{{elseif $flag['status'] === 'dismissed'}}
+						<span class="ipsBadge ipsBadge--neutral">{lang="gddealer_flag_status_dismissed"}</span>
+						{{endif}}
+					</td>
+					<td style="font-size:0.85em;color:#666">{$flag['submitted_at']}</td>
+					<td>
+						<a href="{$flag['detail_url']}" class="ipsButton ipsButton--small ipsButton--primary">{lang="gddealer_flag_review"}</a>
+					</td>
+				</tr>
+				{{endforeach}}
+			</tbody>
+		</table>
+		{{if $pagination}}
+		<div style="margin-top:16px">{$pagination|raw}</div>
+		{{endif}}
+		{{endif}}
+	</div>
+</div>

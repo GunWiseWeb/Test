@@ -1,0 +1,103 @@
+<ips:template parameters="$flag, $dealerName, $product, $resolveUrl, $dismissUrl, $noteUrl, $backUrl" />
+<div class="ipsBox" style="max-width:800px">
+	<div class="ipsBox__header" style="display:flex;justify-content:space-between;align-items:center">
+		<h1 class="ipsType_pageTitle">{lang="gddealer_flagged_upc_detail_title"}</h1>
+		<a href="{$backUrl}" class="ipsButton ipsButton--secondary ipsButton--small">&larr; {lang="gddealer_flag_back"}</a>
+	</div>
+	<div class="ipsBox__content">
+
+		{{/* Summary card */}}
+		<div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:16px;margin-bottom:24px">
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.9em">
+				<div><strong>{lang="gddealer_flag_col_dealer"}:</strong> {$dealerName}</div>
+				<div><strong>{lang="gddealer_flag_col_upc"}:</strong> <code>{$flag['upc']}</code></div>
+				<div><strong>{lang="gddealer_flag_col_type"}:</strong> <span class="ipsBadge ipsBadge--neutral">{$flag['flag_type']}</span></div>
+				<div><strong>{lang="gddealer_flag_col_status"}:</strong>
+					{{if $flag['status'] === 'submitted'}}
+					<span class="ipsBadge ipsBadge--warning">{lang="gddealer_flag_status_submitted"}</span>
+					{{elseif $flag['status'] === 'resolved'}}
+					<span class="ipsBadge ipsBadge--positive">{lang="gddealer_flag_status_resolved"}</span>
+					{{elseif $flag['status'] === 'dismissed'}}
+					<span class="ipsBadge ipsBadge--neutral">{lang="gddealer_flag_status_dismissed"}</span>
+					{{else}}
+					<span class="ipsBadge ipsBadge--negative">{lang="gddealer_flag_status_new"}</span>
+					{{endif}}
+				</div>
+				{{if $flag['submitted_at']}}
+				<div><strong>{lang="gddealer_flag_col_submitted"}:</strong> {$flag['submitted_at']}</div>
+				{{endif}}
+			</div>
+		</div>
+
+		{{/* Value comparison */}}
+		<h3 style="margin:0 0 12px;font-size:1em">{lang="gddealer_flag_value_comparison"}</h3>
+		<table class="ipsTable" style="margin-bottom:24px">
+			<thead>
+				<tr>
+					<th>{lang="gddealer_flag_col_catalog_value"}</th>
+					<th>{lang="gddealer_flag_col_dealer_value"}</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td style="color:#16a34a;font-weight:500">{$flag['catalog_value']}</td>
+					<td style="color:#dc2626;font-weight:500">{$flag['dealer_value']}</td>
+				</tr>
+			</tbody>
+		</table>
+
+		{{/* Catalog product context */}}
+		{{if $product}}
+		<h3 style="margin:0 0 12px;font-size:1em">{lang="gddealer_flag_catalog_context"}</h3>
+		<div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:12px;margin-bottom:24px;font-size:0.85em">
+			<div><strong>Title:</strong> {$product['title']}</div>
+			<div><strong>Brand:</strong> {$product['brand']}</div>
+			<div><strong>MPN:</strong> {$product['mpn']}</div>
+		</div>
+		{{endif}}
+
+		{{/* Admin note */}}
+		<h3 style="margin:0 0 12px;font-size:1em">{lang="gddealer_flag_admin_note"}</h3>
+		{{if $flag['status'] === 'submitted' || $flag['status'] === 'new'}}
+		<form method="post" action="{$noteUrl}" style="margin-bottom:24px">
+			<input type="hidden" name="csrfKey" value="{expression="\IPS\Session::i()->csrfKey"}">
+			<textarea name="admin_note" class="ipsInput ipsInput--text" style="width:100%;min-height:80px;margin-bottom:8px">{$flag['admin_note']}</textarea>
+			<button type="submit" class="ipsButton ipsButton--secondary ipsButton--small">{lang="gddealer_flag_save_note"}</button>
+		</form>
+
+		{{/* Action buttons */}}
+		<h3 style="margin:0 0 12px;font-size:1em">{lang="gddealer_flag_actions"}</h3>
+		<div style="display:flex;gap:12px;flex-wrap:wrap">
+			{{/* Resolve — catalog is WRONG, update it with dealer's value */}}
+			<form method="post" action="{$resolveUrl}">
+				<input type="hidden" name="csrfKey" value="{expression="\IPS\Session::i()->csrfKey"}">
+				<input type="hidden" name="admin_note" value="{$flag['admin_note']}">
+				<input type="hidden" name="update_catalog" value="1">
+				<button type="submit" class="ipsButton ipsButton--positive" data-confirm data-confirmMessage="{lang="gddealer_flag_resolve_confirm"}">{lang="gddealer_flag_resolve_update"}</button>
+			</form>
+			{{/* Resolve without updating catalog */}}
+			<form method="post" action="{$resolveUrl}">
+				<input type="hidden" name="csrfKey" value="{expression="\IPS\Session::i()->csrfKey"}">
+				<input type="hidden" name="admin_note" value="{$flag['admin_note']}">
+				<input type="hidden" name="update_catalog" value="0">
+				<button type="submit" class="ipsButton ipsButton--secondary" data-confirm data-confirmMessage="{lang="gddealer_flag_resolve_no_update_confirm"}">{lang="gddealer_flag_resolve_no_update"}</button>
+			</form>
+			{{/* Dismiss — dealer is WRONG, catalog stays */}}
+			<form method="post" action="{$dismissUrl}">
+				<input type="hidden" name="csrfKey" value="{expression="\IPS\Session::i()->csrfKey"}">
+				<input type="hidden" name="admin_note" value="{$flag['admin_note']}">
+				<button type="submit" class="ipsButton ipsButton--negative" data-confirm data-confirmMessage="{lang="gddealer_flag_dismiss_confirm"}">{lang="gddealer_flag_dismiss"}</button>
+			</form>
+		</div>
+		{{else}}
+		<div style="background:#f0f0f0;border-radius:4px;padding:12px;color:#666;margin-bottom:16px">
+			{{if $flag['admin_note']}}
+			{$flag['admin_note']}
+			{{else}}
+			<em>{lang="gddealer_flag_no_note"}</em>
+			{{endif}}
+		</div>
+		{{endif}}
+
+	</div>
+</div>
