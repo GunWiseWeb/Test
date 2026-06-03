@@ -1,21 +1,4 @@
-<?php
-if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) ) { header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' ); exit; }
-
-/**
- * v1.0.149 PART 3 of 3 - Update dealerNavIcon template to add 'wizard' icon.
- *
- * The Catalog section's new "Setup Wizard" item uses 'icon' => 'wizard',
- * but the icon template has no matching branch, so the SVG silently fails
- * to render. This seed file rewrites the whole template (per project rule
- * #38) to include all 11 existing icon branches PLUS a new wizard icon
- * (sparkle / magic wand silhouette, suggesting guided setup).
- *
- * Following project rule #38: replaces whole template body.
- * Following project rule #28: full body declared inline as nowdoc.
- * Following project rule #19: uses update() to overwrite existing row.
- */
-
-$navIconTpl = <<<'TEMPLATE_EOT'
+<ips:template parameters="$icon" />
 {{if $icon === 'dashboard'}}
 <svg class="gdNavItem__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
 {{elseif $icon === 'listings'}}
@@ -43,22 +26,3 @@ $navIconTpl = <<<'TEMPLATE_EOT'
 {{elseif $icon === 'dataFlags'}}
 <svg class="gdNavItem__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
 {{endif}}
-TEMPLATE_EOT;
-
-try
-{
-    \IPS\Db::i()->update( 'core_theme_templates',
-        [
-            'template_data'    => '$icon',
-            'template_content' => $navIconTpl,
-            'template_updated' => time(),
-        ],
-        [ 'template_app=? AND template_location=? AND template_group=? AND template_name=?',
-          'gddealer', 'front', 'dealers', 'dealerNavIcon' ]
-    );
-}
-catch ( \Throwable $e )
-{
-    try { \IPS\Log::log( 'templates_10149_part3.php update failed: ' . $e->getMessage(), 'gddealer_upg_10149' ); }
-    catch ( \Throwable ) {}
-}

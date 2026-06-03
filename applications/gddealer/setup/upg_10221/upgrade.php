@@ -34,7 +34,7 @@ class _upgrade
 		}
 
 		$strings = [
-			'gddealer_front_tab_data_flags' => 'Data Flags',
+			'gddealer_front_tab_data_flags' => 'Flagged UPCs',
 			'gddealer_flag_submitted'       => 'Flag submitted for admin review.',
 			'gddealer_flag_type_mpn'        => 'MPN Mismatch',
 			'gddealer_flag_type_title'      => 'Title Mismatch',

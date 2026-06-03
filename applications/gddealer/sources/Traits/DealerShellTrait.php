@@ -330,7 +330,7 @@ HTML;
 					  'url' => $urls['unmatched'], 'icon' => 'unmatched',
 					  'badge' => $unmatched > 0 ? [ 'count' => $unmatched, 'variant' => 'urgent' ] : null ],
 					[ 'key' => 'dataFlags', 'label' => $lang->addToStack('gddealer_front_tab_data_flags'),
-					  'url' => $urls['dataFlags'], 'icon' => 'flag',
+					  'url' => $urls['dataFlags'], 'icon' => 'dataFlags',
 					  'badge' => $flagCount > 0 ? [ 'count' => $flagCount, 'variant' => 'warn' ] : null ],
 					[ 'key' => 'categories', 'label' => $lang->addToStack('gddealer_front_tab_categories'),
 					  'url' => $urls['categories'], 'icon' => 'listings',

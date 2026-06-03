@@ -522,7 +522,7 @@
     <!-- v1.0.201: FFL section lang strings (placeholder for future i18n) -->
     <word key="gddealer_front_customize_ffl_section_title"><![CDATA[FFL license]]></word>
     <word key="gddealer_front_customize_ffl_section_intro"><![CDATA[Required for the verified badge on your public profile. Admin reviews within 24 hours.]]></word>
-    <word key="gddealer_front_tab_data_flags"><![CDATA[Data Flags]]></word>
+    <word key="gddealer_front_tab_data_flags"><![CDATA[Flagged UPCs]]></word>
     <word key="gddealer_flag_submitted"><![CDATA[Flag submitted for admin review.]]></word>
     <word key="gddealer_flag_type_mpn"><![CDATA[MPN Mismatch]]></word>
     <word key="gddealer_flag_type_title"><![CDATA[Title Mismatch]]></word>
