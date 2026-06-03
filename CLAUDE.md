@@ -10,6 +10,7 @@ GunRack (gunrack.deals) is a firearms price comparison and community platform bu
 4. **XML feed parsing must pass `LIBXML_NONET` to `simplexml_load_string()` flags. Do NOT call `libxml_disable_entity_loader()` — it is deprecated in PHP 8.0+ and triggers fatal errors in IPS's scheduled-task error handler.**
 5. **All 12 plugins must register CSRF token validation on every state-changing front-end action.** See Appendix C.
 6. **Never store SES credentials or API keys in source code or commit them to Git.**
+7. **Never overwrite `dev/lang.php` from scratch — always ADD to the existing file.** Before writing anything to `dev/lang.php`: (1) read the FULL existing file, (2) ADD new strings to the existing array — NEVER regenerate the whole file. The file must contain ALL strings from previous versions PLUS new ones. Wiping and rewriting loses accumulated strings from dozens of prior versions.
 
 ## Known landmines — check these before shipping any plugin build
 These are the high-friction spots that have broken production deploys multiple times. Skim this list first, then see the numbered rule for details.

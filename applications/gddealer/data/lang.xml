@@ -7,10 +7,10 @@
     <word key="menu__gddealer_dealers"><![CDATA[Dealer Manager]]></word>
     <word key="module__gddealer_dealers"><![CDATA[Dealer Manager]]></word>
     <word key="menu__gddealer_dealers_dashboard"><![CDATA[Dashboard]]></word>
-    <word key="menu__gddealer_dealers_dealers"><![CDATA[Dealers]]></word>
+    <word key="menu__gddealer_dealers_dealers"><![CDATA[Manage Dealers]]></word>
     <word key="menu__gddealer_dealers_mrr"><![CDATA[MRR Dashboard]]></word>
     <word key="menu__gddealer_dealers_unmatched"><![CDATA[Unmatched UPCs]]></word>
-    <word key="menu__gddealer_dealers_disputes"><![CDATA[Disputed Reviews]]></word>
+    <word key="menu__gddealer_dealers_disputes"><![CDATA[Disputes]]></word>
     <word key="menu__gddealer_dealers_settings"><![CDATA[Settings]]></word>
     <word key="menu__gddealer_dashboard"><![CDATA[Dealer Dashboard]]></word>
     <word key="module__gddealer_dashboard"><![CDATA[Dealer Dashboard]]></word>
@@ -18,10 +18,20 @@
     <word key="gddealer_dash_total_dealers"><![CDATA[Total Dealers]]></word>
     <word key="gddealer_dash_active_dealers"><![CDATA[Active Dealers]]></word>
     <word key="gddealer_dash_suspended_dealers"><![CDATA[Suspended Dealers]]></word>
-    <word key="gddealer_dash_total_listings"><![CDATA[Total Dealer Listings]]></word>
-    <word key="gddealer_dash_in_stock_listings"><![CDATA[In-Stock Listings]]></word>
+    <word key="gddealer_dash_total_listings"><![CDATA[Total Listings]]></word>
+    <word key="gddealer_dash_in_stock_listings"><![CDATA[In Stock Listings]]></word>
     <word key="gddealer_dash_last_run"><![CDATA[Last Import Run]]></word>
-    <word key="gddealer_dash_unmatched_total"><![CDATA[Total Unmatched UPCs]]></word>
+    <word key="gddealer_dash_pending_conflicts"><![CDATA[Pending Conflicts]]></word>
+    <word key="gddealer_dash_pending_reviews"><![CDATA[Pending Reviews]]></word>
+    <word key="gddealer_dash_open_disputes"><![CDATA[Open Disputes]]></word>
+    <word key="gddealer_dash_pending_ffl"><![CDATA[Pending FFL Verifications]]></word>
+    <word key="gddealer_dash_tier_breakdown"><![CDATA[Subscription Tier Breakdown]]></word>
+    <word key="gddealer_dash_tier"><![CDATA[Tier]]></word>
+    <word key="gddealer_dash_dealers"><![CDATA[Dealers]]></word>
+    <word key="gddealer_dash_manage_dealers"><![CDATA[Manage Dealers]]></word>
+    <word key="gddealer_dash_mrr_dashboard"><![CDATA[MRR Dashboard]]></word>
+    <word key="gddealer_dash_unmatched_upcs"><![CDATA[Unmatched UPCs]]></word>
+    <word key="gddealer_dash_unmatched_total"><![CDATA[Unmatched UPCs]]></word>
     <word key="gddealer_dealers_title"><![CDATA[Dealers]]></word>
     <word key="gddealer_dealer_name"><![CDATA[Dealer Name]]></word>
     <word key="gddealer_dealer_tier"><![CDATA[Subscription Tier]]></word>
@@ -392,7 +402,7 @@
     <word key="gddealer_pm_response_title"><![CDATA[%s responded to your review]]></word>
     <word key="gddealer_pm_response_body"><![CDATA[%s has posted a public response to your review on GunRack.deals. View it here: %s]]></word>
     <word key="gddealer_all_reviews_title"><![CDATA[All Reviews]]></word>
-    <word key="menu__gddealer_dealers_reviews"><![CDATA[All Reviews]]></word>
+    <word key="menu__gddealer_dealers_reviews"><![CDATA[Reviews]]></word>
     <word key="gddealer_review_updated"><![CDATA[Your review has been updated.]]></word>
     <word key="gddealer_cannot_edit_disputed"><![CDATA[You cannot edit a review that is currently under dispute.]]></word>
     <word key="gddealer_review_body"><![CDATA[Your review]]></word>
@@ -527,5 +537,9 @@
     <word key="gddealer_flag_type_mpn"><![CDATA[MPN Mismatch]]></word>
     <word key="gddealer_flag_type_title"><![CDATA[Title Mismatch]]></word>
     <word key="gddealer_flag_type_brand"><![CDATA[Brand Mismatch]]></word>
+    <word key="task__ComputeRankSnapshots"><![CDATA[Compute Rank Snapshots]]></word>
+    <word key="gddealer_no_results"><![CDATA[No results found.]]></word>
+    <word key="gddealer_save"><![CDATA[Save]]></word>
+    <word key="gddealer_cancel"><![CDATA[Cancel]]></word>
   </app>
 </language>
