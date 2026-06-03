@@ -1256,6 +1256,108 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		]);
 	}
 
+	/* ---------------- Tab: Data Flags (v1.0.221) ---------------- */
+
+	protected function dataFlags(): void
+	{
+		$dealer    = $this->dealer;
+		$dealerId  = (int) $dealer->dealer_id;
+		$page      = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
+		$perPage   = 50;
+		$offset    = ( $page - 1 ) * $perPage;
+
+		$statusFilter = (string) ( \IPS\Request::i()->flag_status ?? 'new' );
+		$validStatuses = [ 'new', 'submitted', 'resolved', 'all' ];
+		if ( !in_array( $statusFilter, $validStatuses, true ) ) {
+			$statusFilter = 'new';
+		}
+
+		$where = [ [ 'dealer_id=?', $dealerId ] ];
+		if ( $statusFilter !== 'all' ) {
+			$where[] = [ 'status=?', $statusFilter ];
+		}
+
+		$total = 0;
+		$flags = [];
+		$newCount = 0;
+		try {
+			$total = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_data_flags', $where )->first();
+			$newCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_data_flags', [ 'dealer_id=? AND status=?', $dealerId, 'new' ] )->first();
+
+			foreach ( \IPS\Db::i()->select( '*', 'gd_dealer_data_flags', $where, 'created_at DESC', [ $offset, $perPage ] ) as $row ) {
+				$submitUrl = (string) \IPS\Http\Url::internal(
+					'app=gddealer&module=dealers&controller=dashboard&do=submitDataFlag&flag_id=' . (int) $row['id']
+				)->csrf();
+
+				$catalogTitle = '';
+				try {
+					$catalogTitle = (string) \IPS\Db::i()->select( 'title', 'gd_catalog', [ 'upc=?', $row['upc'] ] )->first();
+				} catch ( \Throwable ) {}
+
+				$flags[] = [
+					'id'            => (int) $row['id'],
+					'upc'           => (string) $row['upc'],
+					'catalog_title' => $catalogTitle,
+					'flag_type'     => (string) $row['flag_type'],
+					'dealer_value'  => (string) $row['dealer_value'],
+					'catalog_value' => (string) $row['catalog_value'],
+					'status'        => (string) $row['status'],
+					'submitted_at'  => (string) ( $row['submitted_at'] ?? '' ),
+					'admin_note'    => (string) ( $row['admin_note'] ?? '' ),
+					'created_at'    => (string) $row['created_at'],
+					'submit_url'    => $submitUrl,
+				];
+			}
+		} catch ( \Throwable ) {}
+
+		$pagination = '';
+		if ( $total > $perPage ) {
+			$pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'front' )->pagination(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=dataFlags', 'front', 'dealers_dashboard' ),
+				(int) ceil( $total / $perPage ),
+				$page,
+				$perPage
+			);
+		}
+
+		$data = [
+			'flags'         => $flags,
+			'total'         => $total,
+			'status_filter' => $statusFilter,
+			'pagination'    => $pagination,
+			'new_count'     => $newCount,
+		];
+
+		$this->output( 'dataFlags',
+			\IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->dataFlags( $data )
+		);
+	}
+
+	protected function submitDataFlag(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$flagId   = (int) \IPS\Request::i()->flag_id;
+		$dealerId = (int) $this->dealer->dealer_id;
+		$now      = date( 'Y-m-d H:i:s' );
+
+		try {
+			$flag = \IPS\Db::i()->select( '*', 'gd_dealer_data_flags', [ 'id=? AND dealer_id=?', $flagId, $dealerId ] )->first();
+
+			if ( $flag['status'] === 'new' ) {
+				\IPS\Db::i()->update( 'gd_dealer_data_flags', [
+					'status'       => 'submitted',
+					'submitted_at' => $now,
+					'updated_at'   => $now,
+				], [ 'id=?', $flagId ] );
+			}
+		} catch ( \Throwable ) {}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=dataFlags', 'front', 'dealers_dashboard' )
+		);
+	}
+
 	/* ---------------- Tab: Categories (v1.0.188) ---------------- */
 
 	protected function categories(): void

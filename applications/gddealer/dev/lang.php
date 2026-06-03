@@ -40,5 +40,10 @@ $lang = [
 	'gddealer_unmatched_first_seen'      => 'First Seen',
 	'gddealer_unmatched_last_seen'       => 'Last Seen',
 	'gddealer_unmatched_count'           => 'Count',
+	'gddealer_front_tab_data_flags'      => 'Data Flags',
+	'gddealer_flag_submitted'            => 'Flag submitted for admin review.',
+	'gddealer_flag_type_mpn'             => 'MPN Mismatch',
+	'gddealer_flag_type_title'           => 'Title Mismatch',
+	'gddealer_flag_type_brand'           => 'Brand Mismatch',
 	'task__DealerImportFeeds'            => 'Import Dealer Feeds',
 ];

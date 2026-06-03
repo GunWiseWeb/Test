@@ -241,6 +241,7 @@ HTML;
 			'setupWizard'   => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=setupwizard', 'front', 'dealers_setup_wizard' ),
 			'listings'      => (string) \IPS\Http\Url::internal( $base . 'listings' ),
 			'unmatched'     => (string) \IPS\Http\Url::internal( $base . 'unmatched' ),
+			'dataFlags'     => (string) \IPS\Http\Url::internal( $base . 'dataFlags' ),
 			'categories'    => (string) \IPS\Http\Url::internal( $base . 'categories' ),
 			'analytics'     => (string) \IPS\Http\Url::internal( $base . 'analytics' ),
 			'reviews'       => (string) \IPS\Http\Url::internal( $base . 'reviews' ),
@@ -273,6 +274,13 @@ HTML;
 			)->first();
 		}
 		catch ( \Exception ) {}
+
+		$flagCount = 0;
+		try
+		{
+			$flagCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_data_flags', [ 'dealer_id=? AND status=?', (int) $this->dealer->dealer_id, 'new' ] )->first();
+		}
+		catch ( \Throwable ) {}
 
 		$unreviewedCats = 0;
 		try
@@ -321,6 +329,9 @@ HTML;
 					[ 'key' => 'unmatched', 'label' => $lang->addToStack('gddealer_front_tab_unmatched'),
 					  'url' => $urls['unmatched'], 'icon' => 'unmatched',
 					  'badge' => $unmatched > 0 ? [ 'count' => $unmatched, 'variant' => 'urgent' ] : null ],
+					[ 'key' => 'dataFlags', 'label' => $lang->addToStack('gddealer_front_tab_data_flags'),
+					  'url' => $urls['dataFlags'], 'icon' => 'flag',
+					  'badge' => $flagCount > 0 ? [ 'count' => $flagCount, 'variant' => 'warn' ] : null ],
 					[ 'key' => 'categories', 'label' => $lang->addToStack('gddealer_front_tab_categories'),
 					  'url' => $urls['categories'], 'icon' => 'listings',
 					  'badge' => $unreviewedCats > 0 ? [ 'count' => $unreviewedCats, 'variant' => 'warn' ] : null ],

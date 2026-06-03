@@ -3729,5 +3729,133 @@
                 "columns": [ "created_at" ]
             }
         }
+    },
+    "gd_dealer_data_flags": {
+        "name": "gd_dealer_data_flags",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 11,
+                "allow_null": false,
+                "auto_increment": true,
+                "unsigned": true
+            },
+            "dealer_id": {
+                "name": "dealer_id",
+                "type": "INT",
+                "length": 11,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": true
+            },
+            "upc": {
+                "name": "upc",
+                "type": "VARCHAR",
+                "length": 14,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "flag_type": {
+                "name": "flag_type",
+                "type": "VARCHAR",
+                "length": 50,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "dealer_value": {
+                "name": "dealer_value",
+                "type": "TEXT",
+                "length": null,
+                "allow_null": true,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "catalog_value": {
+                "name": "catalog_value",
+                "type": "TEXT",
+                "length": null,
+                "allow_null": true,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "status": {
+                "name": "status",
+                "type": "VARCHAR",
+                "length": 20,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": false,
+                "default": "new"
+            },
+            "submitted_at": {
+                "name": "submitted_at",
+                "type": "DATETIME",
+                "length": null,
+                "allow_null": true,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "resolved_at": {
+                "name": "resolved_at",
+                "type": "DATETIME",
+                "length": null,
+                "allow_null": true,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "admin_note": {
+                "name": "admin_note",
+                "type": "TEXT",
+                "length": null,
+                "allow_null": true,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "created_at": {
+                "name": "created_at",
+                "type": "DATETIME",
+                "length": null,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "updated_at": {
+                "name": "updated_at",
+                "type": "DATETIME",
+                "length": null,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": false
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            },
+            "idx_dealer_upc": {
+                "type": "unique",
+                "name": "idx_dealer_upc",
+                "length": [ null, null, null ],
+                "columns": [ "dealer_id", "upc", "flag_type" ]
+            },
+            "idx_dealer": {
+                "type": "key",
+                "name": "idx_dealer",
+                "length": [ null ],
+                "columns": [ "dealer_id" ]
+            },
+            "idx_status": {
+                "type": "key",
+                "name": "idx_status",
+                "length": [ null ],
+                "columns": [ "status" ]
+            }
+        }
     }
 }

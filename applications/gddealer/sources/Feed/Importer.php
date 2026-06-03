@@ -20,6 +20,7 @@ use IPS\gddealer\Log\ImportLog;
 use IPS\gddealer\Feed\Parser\XmlParser;
 use IPS\gddealer\Feed\Parser\JsonParser;
 use IPS\gddealer\Feed\Parser\CsvParser;
+use IPS\gddealer\Feed\DataFlagChecker;
 use function defined;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
@@ -121,6 +122,9 @@ class Importer
 				}
 
 				$listing = Listing::loadFor( (int) $dealer->dealer_id, $upc );
+
+				DataFlagChecker::check( (int) $dealer->dealer_id, $upc, $canonical );
+
 				if ( $listing === null )
 				{
 					$listing = self::createListing( $dealer, $canonical, $runStart );

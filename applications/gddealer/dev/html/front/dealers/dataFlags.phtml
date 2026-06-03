@@ -1,0 +1,72 @@
+<ips:template parameters="$data" />
+<div class="ipsBox" style="background:#fff;border:1px solid var(--i-border-color,#e0e0e0);border-radius:8px">
+	<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--i-border-color,#f0f0f0)">
+		<h3 style="margin:0;font-size:1em;font-weight:700">Data Flags
+			{{if $data['new_count'] > 0}}
+			<span class="ipsBadge ipsBadge--negative" style="margin-left:6px">{$data['new_count']} new</span>
+			{{endif}}
+		</h3>
+		<div style="display:flex;gap:8px">
+			<a href="?do=dataFlags&flag_status=new" class="ipsButton ipsButton--small {{if $data['status_filter'] === 'new'}}ipsButton--primary{{else}}ipsButton--secondary{{endif}}">New</a>
+			<a href="?do=dataFlags&flag_status=submitted" class="ipsButton ipsButton--small {{if $data['status_filter'] === 'submitted'}}ipsButton--primary{{else}}ipsButton--secondary{{endif}}">Submitted</a>
+			<a href="?do=dataFlags&flag_status=resolved" class="ipsButton ipsButton--small {{if $data['status_filter'] === 'resolved'}}ipsButton--primary{{else}}ipsButton--secondary{{endif}}">Resolved</a>
+			<a href="?do=dataFlags&flag_status=all" class="ipsButton ipsButton--small {{if $data['status_filter'] === 'all'}}ipsButton--primary{{else}}ipsButton--secondary{{endif}}">All</a>
+		</div>
+	</div>
+	<div style="padding:18px">
+		{{if count($data['flags']) === 0}}
+		<p style="text-align:center;color:#999;padding:24px 0">No data flags matching this filter.</p>
+		{{else}}
+		<p style="color:#666;font-size:0.9em;margin-bottom:16px">These UPCs were found in the GunRack catalog but your feed data differs from the catalog data. Review each flag and submit it for admin review if you believe your data is correct.</p>
+		<table class="ipsTable ipsTable_zebra" style="width:100%">
+			<thead>
+				<tr>
+					<th>UPC</th>
+					<th>Field</th>
+					<th>Your Value</th>
+					<th>Catalog Value</th>
+					<th>Status</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $data['flags'] as $flag}}
+				<tr>
+					<td>
+						<code style="font-size:0.85em">{$flag['upc']}</code>
+						{{if $flag['catalog_title']}}
+						<div style="font-size:0.8em;color:#666;margin-top:2px">{$flag['catalog_title']}</div>
+						{{endif}}
+					</td>
+					<td><span class="ipsBadge ipsBadge--neutral">{$flag['flag_type']}</span></td>
+					<td style="color:#dc2626">{$flag['dealer_value']}</td>
+					<td style="color:#16a34a">{$flag['catalog_value']}</td>
+					<td>
+						{{if $flag['status'] === 'new'}}
+						<span class="ipsBadge ipsBadge--negative">New</span>
+						{{elseif $flag['status'] === 'submitted'}}
+						<span class="ipsBadge ipsBadge--warning">Submitted</span>
+						{{elseif $flag['status'] === 'resolved'}}
+						<span class="ipsBadge ipsBadge--positive">Resolved</span>
+						{{endif}}
+						{{if $flag['admin_note']}}
+						<div style="font-size:0.8em;color:#666;margin-top:2px">Note: {$flag['admin_note']}</div>
+						{{endif}}
+					</td>
+					<td>
+						{{if $flag['status'] === 'new'}}
+						<a href="{$flag['submit_url']}" class="ipsButton ipsButton--small ipsButton--primary" data-confirm data-confirmMessage="Submit this flag for admin review? This indicates you believe your feed data is correct.">Submit for Review</a>
+						{{elseif $flag['status'] === 'submitted'}}
+						<span style="font-size:0.85em;color:#999">Awaiting review</span>
+						{{endif}}
+					</td>
+				</tr>
+				{{endforeach}}
+			</tbody>
+		</table>
+		{{if $data['pagination']}}
+		<div style="margin-top:16px">{$data['pagination']|raw}</div>
+		{{endif}}
+		{{endif}}
+	</div>
+</div>
