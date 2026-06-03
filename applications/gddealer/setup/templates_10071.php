@@ -15,7 +15,7 @@ $gddealerV10071Templates[] = [
     'location'          => 'front',
     'group'             => 'dealers',
     'template_name'     => 'dealerShell',
-    'template_data'     => '$dealer, $activeTab, $nav, $body',
+    'template_data'     => '$dealer, $activeTab, $nav, $body, $suspended=false, $suspensionReason=\'\'',
     'template_content'  => <<<'TEMPLATE_EOT'
 <div class="gdDealerApp">
 

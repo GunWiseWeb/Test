@@ -48,7 +48,9 @@ trait DealerShellTrait
 				$this->dealerSummary(),
 				$activeTab,
 				$this->sidebarNav(),
-				$body
+				$body,
+				(bool) ( $this->dealer->suspended ?? false ),
+				(string) ( $this->dealer->suspension_reason ?? '' )
 			)
 			. $js;
 	}
