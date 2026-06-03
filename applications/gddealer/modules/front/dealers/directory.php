@@ -83,13 +83,13 @@ class _directory extends \IPS\Dispatcher\Controller
 		try
 		{
 			foreach ( \IPS\Db::i()->select(
-				'ANY_VALUE(d.dealer_id) as dealer_id,
-				 ANY_VALUE(d.dealer_name) as dealer_name,
-				 ANY_VALUE(d.dealer_slug) as dealer_slug,
-				 ANY_VALUE(d.subscription_tier) as subscription_tier,
-				 ANY_VALUE(d.is_founding_member) as is_founding_member,
-				 ANY_VALUE(d.created_at) as created_at,
-				 ANY_VALUE(d.active) as active,
+				'MAX(d.dealer_id) as dealer_id,
+				 MAX(d.dealer_name) as dealer_name,
+				 MAX(d.dealer_slug) as dealer_slug,
+				 MAX(d.subscription_tier) as subscription_tier,
+				 MAX(d.is_founding_member) as is_founding_member,
+				 MAX(d.created_at) as created_at,
+				 MAX(d.active) as active,
 				 COUNT(DISTINCT l.id) as listing_count,
 				 COUNT(DISTINCT r.id) as total_reviews,
 				 COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) as avg_overall',
