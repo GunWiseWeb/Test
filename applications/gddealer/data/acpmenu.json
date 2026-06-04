@@ -24,6 +24,12 @@
 			"do": "",
 			"restriction": "dealer_manage"
 		},
+		"flaggedUpcs": {
+			"tab": "gddealer",
+			"controller": "flaggedUpcs",
+			"do": "",
+			"restriction": "dealer_manage"
+		},
 		"disputes": {
 			"tab": "gddealer",
 			"controller": "dealers",
