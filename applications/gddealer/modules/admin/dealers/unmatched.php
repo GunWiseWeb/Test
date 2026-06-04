@@ -60,6 +60,10 @@ class _unmatched extends \IPS\Dispatcher\Controller
 				'app=gddealer&module=dealers&controller=unmatched&do=addToCatalog&id=' . (int) $r['id']
 			)->csrf();
 
+			$reviewUrl = (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=unmatched&do=review&upc_id=' . (int) $r['id']
+			);
+
 			$rows[] = [
 				'id'               => (int) $r['id'],
 				'upc'              => (string) $r['upc'],
@@ -69,6 +73,7 @@ class _unmatched extends \IPS\Dispatcher\Controller
 				'occurrence_count' => (int) $r['occurrence_count'],
 				'exclude_url'      => $excludeUrl,
 				'add_url'          => $addUrl,
+				'review_url'       => $reviewUrl,
 			];
 		}
 
@@ -98,41 +103,126 @@ class _unmatched extends \IPS\Dispatcher\Controller
 		);
 	}
 
-	/**
-	 * Add an unmatched UPC to the master catalog with placeholder values.
-	 * Admin can then open the catalog to flesh out the details.
-	 */
-	protected function addToCatalog()
+	protected function review(): void
+	{
+		\IPS\Dispatcher::i()->checkAcpPermission( 'gddealer_dealer_manage' );
+
+		$id = (int) \IPS\Request::i()->upc_id;
+
+		try {
+			$row = \IPS\Db::i()->select( '*', 'gd_unmatched_upcs', [ 'id=?', $id ] )->first();
+		} catch ( \Throwable ) {
+			\IPS\Output::i()->error( 'node_error', '2GDD/2', 404 );
+			return;
+		}
+
+		$snapshot = [];
+		if ( !empty( $row['snapshot_json'] ) ) {
+			try { $snapshot = json_decode( (string) $row['snapshot_json'], true ) ?: []; } catch ( \Throwable ) {}
+		}
+
+		$dealerName = '';
+		try {
+			$d = \IPS\Db::i()->select( 'dealer_name', 'gd_dealer_feed_config', [ 'dealer_id=?', (int) $row['dealer_id'] ] )->first();
+			$dealerName = (string) $d;
+		} catch ( \Throwable ) {}
+
+		$categories = [];
+		try {
+			foreach ( \IPS\Db::i()->select( 'id, name, parent_id', 'gd_categories', [], 'name ASC' ) as $cat ) {
+				$categories[ (int) $cat['id'] ] = (string) $cat['name'];
+			}
+		} catch ( \Throwable ) {}
+
+		$submitUrl = (string) \IPS\Http\Url::internal(
+			'app=gddealer&module=dealers&controller=unmatched&do=addToCatalog&upc_id=' . $id
+		)->csrf();
+		$backUrl = (string) \IPS\Http\Url::internal(
+			'app=gddealer&module=dealers&controller=unmatched'
+		);
+
+		\IPS\Output::i()->title = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_unmatched_review_title' );
+		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'admin' )->unmatchedUpcReview(
+			$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl
+		);
+	}
+
+	protected function addToCatalog(): void
 	{
 		\IPS\Session::i()->csrfCheck();
+		\IPS\Dispatcher::i()->checkAcpPermission( 'gddealer_dealer_manage' );
 
-		$id = (int) \IPS\Request::i()->id;
-		$row = \IPS\Db::i()->select( '*', 'gd_unmatched_upcs', [ 'id=?', $id ] )->first();
+		$id  = (int) ( \IPS\Request::i()->upc_id ?? \IPS\Request::i()->id ?? 0 );
+		$now = date( 'Y-m-d H:i:s' );
+
+		try {
+			$row = \IPS\Db::i()->select( '*', 'gd_unmatched_upcs', [ 'id=?', $id ] )->first();
+		} catch ( \Throwable ) {
+			\IPS\Output::i()->error( 'node_error', '2GDD/3', 404 );
+			return;
+		}
+
 		$upc = (string) $row['upc'];
 
-		try
-		{
-			\IPS\Db::i()->insert( 'gd_catalog', [
-				'upc'            => $upc,
-				'title'          => 'Placeholder — UPC ' . $upc,
-				'brand'          => '',
-				'category_id'    => 0,
-				'record_status'  => 'admin_review',
-				'primary_source' => 'dealer_feed',
-				'last_updated'   => date( 'Y-m-d H:i:s' ),
-			]);
-		}
-		catch ( \Exception $e )
-		{
-			/* Swallow duplicate key — product may have been added by another
-			 * admin in a race. Continue with the sweep below. */
+		$exists = false;
+		try {
+			\IPS\Db::i()->select( 'upc', 'gd_catalog', [ 'upc=?', $upc ] )->first();
+			$exists = true;
+		} catch ( \Throwable ) {}
+
+		if ( $exists ) {
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' ),
+				'gddealer_unmatched_already_exists'
+			);
+			return;
 		}
 
-		\IPS\Db::i()->delete( 'gd_unmatched_upcs', [ 'upc=?', $upc ]);
+		$data = [
+			'upc'            => $upc,
+			'title'          => trim( (string) ( \IPS\Request::i()->title ?? '' ) ),
+			'brand'          => trim( (string) ( \IPS\Request::i()->brand ?? '' ) ),
+			'model'          => trim( (string) ( \IPS\Request::i()->model ?? '' ) ),
+			'mpn'            => trim( (string) ( \IPS\Request::i()->mpn ?? '' ) ),
+			'category_id'    => (int) ( \IPS\Request::i()->category_id ?? 0 ),
+			'caliber'        => trim( (string) ( \IPS\Request::i()->caliber ?? '' ) ) ?: null,
+			'action_type'    => trim( (string) ( \IPS\Request::i()->action_type ?? '' ) ) ?: null,
+			'capacity'       => trim( (string) ( \IPS\Request::i()->capacity ?? '' ) ) ?: null,
+			'barrel_length'  => trim( (string) ( \IPS\Request::i()->barrel_length ?? '' ) ) ?: null,
+			'overall_length' => trim( (string) ( \IPS\Request::i()->overall_length ?? '' ) ) ?: null,
+			'weight_lbs'     => trim( (string) ( \IPS\Request::i()->weight_lbs ?? '' ) ) ?: null,
+			'msrp'           => (float) ( \IPS\Request::i()->msrp ?? 0 ) ?: null,
+			'description'    => trim( (string) ( \IPS\Request::i()->description ?? '' ) ) ?: null,
+			'image_url'      => trim( (string) ( \IPS\Request::i()->image_url ?? '' ) ) ?: null,
+			'requires_ffl'   => (int) ( \IPS\Request::i()->requires_ffl ?? 0 ),
+			'nfa_item'       => (int) ( \IPS\Request::i()->nfa_item ?? 0 ),
+			'is_ammo'        => (int) ( \IPS\Request::i()->is_ammo ?? 0 ),
+			'record_status'  => 'active',
+			'primary_source' => 'admin',
+			'created_at'     => $now,
+			'updated_at'     => $now,
+		];
+
+		$data = array_filter( $data, fn($v) => $v !== null && $v !== '' );
+		$data['upc'] = $upc;
+
+		try {
+			\IPS\Db::i()->insert( 'gd_catalog', $data );
+		} catch ( \Throwable $e ) {
+			\IPS\Output::i()->error( $e->getMessage(), '2GDD/4', 500 );
+			return;
+		}
+
+		try {
+			\IPS\Db::i()->update( 'gd_unmatched_upcs', [
+				'status'    => 'added_to_catalog',
+				'last_seen' => $now,
+			], [ 'id=?', $id ] );
+		} catch ( \Throwable ) {}
 
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' ),
-			'Placeholder product created in catalog — edit in Master Catalog to complete'
+			'gddealer_unmatched_added_to_catalog'
 		);
 	}
 }

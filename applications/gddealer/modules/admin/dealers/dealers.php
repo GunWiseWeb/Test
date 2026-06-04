@@ -195,7 +195,14 @@ class _dealers extends \IPS\Dispatcher\Controller
 				'app=gddealer&module=dealers&controller=dealers&do=regenerateSlug&id=' . (int) $dealer->dealer_id
 			),
 			'disputes_suspended'   => (bool) ( $dealer->disputes_suspended ?? 0 ),
+			'failed_log_count'     => 0,
+			'clear_logs_url'       => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=clearFailedLogs&dealer_id=' . (int) $dealer->dealer_id )->csrf(),
+			'reset_feed_url'       => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=resetFeed&dealer_id=' . (int) $dealer->dealer_id )->csrf(),
 		];
+
+		try {
+			$dealerData['failed_log_count'] = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_import_log', [ 'dealer_id=? AND status=?', (int) $dealer->dealer_id, 'failed' ] )->first();
+		} catch ( \Throwable ) {}
 
 		$backUrl    = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers' );
 		$editUrl    = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=edit&id=' . (int) $dealer->dealer_id )->csrf();
@@ -1850,6 +1857,68 @@ class _dealers extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=fflVerifications' ),
 			'Rejection attempts reset for ' . (string) $dealer['dealer_name'] . '. They can now re-submit.'
+		);
+	}
+	protected function clearFailedLogs(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		\IPS\Dispatcher::i()->checkAcpPermission( 'gddealer_dealer_manage' );
+
+		$dealerId = (int) \IPS\Request::i()->dealer_id;
+
+		try {
+			$deleted = \IPS\Db::i()->delete(
+				'gd_dealer_import_log',
+				[ 'dealer_id=? AND status=?', $dealerId, 'failed' ]
+			);
+		} catch ( \Throwable ) { $deleted = 0; }
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=view&id=' . $dealerId ),
+			\IPS\Member::loggedIn()->language()->addToStack( 'gddealer_logs_cleared', FALSE, [ 'sprintf' => [ $deleted ] ] )
+		);
+	}
+
+	protected function resetFeed(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		\IPS\Dispatcher::i()->checkAcpPermission( 'gddealer_dealer_manage' );
+
+		$dealerId = (int) \IPS\Request::i()->dealer_id;
+
+		try {
+			\IPS\Db::i()->update( 'gd_dealer_feed_config', [
+				'feed_url'            => null,
+				'feed_format'         => null,
+				'feed_auth_type'      => null,
+				'feed_auth_config'    => null,
+				'field_mapping'       => null,
+				'last_run'            => null,
+				'last_run_status'     => null,
+				'last_record_count'   => 0,
+				'uploaded_feed_path'  => null,
+			], [ 'dealer_id=?', $dealerId ] );
+		} catch ( \Throwable ) {}
+
+		try {
+			\IPS\Db::i()->delete( 'gd_dealer_listings', [ 'dealer_id=?', $dealerId ] );
+		} catch ( \Throwable ) {}
+
+		try {
+			\IPS\Db::i()->delete( 'gd_dealer_import_log', [ 'dealer_id=?', $dealerId ] );
+		} catch ( \Throwable ) {}
+
+		try {
+			\IPS\Db::i()->delete( 'gd_unmatched_upcs', [ 'dealer_id=?', $dealerId ] );
+		} catch ( \Throwable ) {}
+
+		try {
+			\IPS\Db::i()->delete( 'gd_dealer_data_flags', [ 'dealer_id=?', $dealerId ] );
+		} catch ( \Throwable ) {}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=view&id=' . $dealerId ),
+			'gddealer_feed_reset_done'
 		);
 	}
 }

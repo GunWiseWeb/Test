@@ -1,0 +1,205 @@
+<ips:template parameters="$dealer, $logs, $listings, $backUrl, $editUrl, $importUrl, $suspendUrl, $invoiceUrl, $disputeSuspendUrl, $reviews" />
+<div class="ipsBox ipsPull">
+	<div class="ipsBox_body">
+
+		<div style="padding:16px 20px">
+			<a href="{$backUrl}" style="color:#666;text-decoration:none">&larr; Back to dealer list</a>
+		</div>
+
+		<div style="background:#fff;border:1px solid var(--i-border-color,#e0e0e0);border-radius:8px;display:flex;flex-wrap:wrap;margin:0 20px 16px">
+			<div style="flex:1 1 180px;padding:16px 20px;border-right:1px solid var(--i-border-color,#e0e0e0)">
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Subscription Tier</div>
+				<div style="font-weight:700;font-size:1.05em">{$dealer['subscription_tier']}</div>
+			</div>
+			<div style="flex:1 1 180px;padding:16px 20px;border-right:1px solid var(--i-border-color,#e0e0e0)">
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">MRR Contribution</div>
+				<div style="font-weight:700;font-size:1.05em">{$dealer['mrr']}</div>
+			</div>
+			<div style="flex:1 1 180px;padding:16px 20px;border-right:1px solid var(--i-border-color,#e0e0e0)">
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Feed Format</div>
+				<div style="font-weight:700;font-size:1.05em">{$dealer['feed_format']}</div>
+			</div>
+			<div style="flex:1 1 180px;padding:16px 20px;border-right:1px solid var(--i-border-color,#e0e0e0)">
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Schedule</div>
+				<div style="font-weight:700;font-size:1.05em">{$dealer['import_schedule']}</div>
+			</div>
+			<div style="flex:1 1 180px;padding:16px 20px">
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Last Record Count</div>
+				<div style="font-weight:700;font-size:1.05em">{expression="number_format( $dealer['last_record_count'] )"}</div>
+			</div>
+		</div>
+
+		<div style="background:#fff;border:1px solid var(--i-border-color,#e0e0e0);border-radius:8px;margin:0 20px 16px">
+			<div style="padding:16px 20px;border-bottom:1px solid var(--i-border-color,#e0e0e0)">
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Feed URL</div>
+				<div style="font-weight:700;font-size:1.05em"><code>{$dealer['feed_url']}</code></div>
+			</div>
+			<div style="padding:16px 20px;border-bottom:1px solid var(--i-border-color,#e0e0e0)">
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">API Key</div>
+				<div style="font-family:monospace;font-size:0.85em;background:#f4f4f4;padding:6px 10px;border-radius:4px;word-break:break-all">{$dealer['api_key']}</div>
+			</div>
+			{{if $dealer['profile_url']}}
+			<div style="padding:16px 20px;border-top:1px solid var(--i-border-color,#e0e0e0)">
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Public Profile URL</div>
+				<div style="display:flex;gap:8px;align-items:center">
+					<code style="font-size:0.85em;background:#f4f4f4;padding:6px 10px;border-radius:4px;flex:1;word-break:break-all">{$dealer['profile_url']}</code>
+					<a href="{$dealer['profile_url']}" target="_blank" class="ipsButton ipsButton--normal ipsButton--small">View</a>
+				</div>
+			</div>
+			{{endif}}
+			{{if $dealer['trial_expires_at']}}
+			<div style="padding:16px 20px;border-bottom:1px solid var(--i-border-color,#e0e0e0)">
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Trial Expires</div>
+				<div style="font-weight:700;font-size:1.05em">
+					{$dealer['trial_expires_at']}
+					{{if $dealer['trial_expires_soon']}}
+						<span class="ipsBadge ipsBadge--warning" style="margin-left:8px">Expires within 30 days</span>
+					{{endif}}
+				</div>
+			</div>
+			{{endif}}
+			{{if $dealer['billing_note']}}
+			<div style="padding:16px 20px">
+				<div style="font-size:0.8em;color:#666;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Billing Notes</div>
+				<div style="font-size:0.95em;white-space:pre-wrap">{$dealer['billing_note']}</div>
+			</div>
+			{{endif}}
+		</div>
+
+		{{if $dealer['disputes_suspended']}}
+		<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:10px 16px;margin:0 20px 12px;display:flex;align-items:center;gap:8px">
+			<span class="ipsBadge ipsBadge--negative">DISPUTES SUSPENDED</span>
+			<span style="font-size:0.85em;color:#991b1b">This dealer cannot file new review contests until an admin lifts the suspension.</span>
+		</div>
+		{{endif}}
+
+		<div style="padding:12px 20px;border-top:1px solid var(--i-border-color,#e0e0e0);border-bottom:1px solid var(--i-border-color,#e0e0e0);display:flex;gap:8px;flex-wrap:wrap">
+			<a href="{$editUrl}" class="ipsButton ipsButton--primary ipsButton--small">Edit Feed Config</a>
+			<a href="{$importUrl}" class="ipsButton ipsButton--normal ipsButton--small">Force Import Now</a>
+			{{if $dealer['failed_log_count'] > 0}}
+			<a href="{$dealer['clear_logs_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="{lang="gddealer_confirm_clear_logs"}">{lang="gddealer_clear_failed_logs"} ({$dealer['failed_log_count']})</a>
+			{{endif}}
+			<a href="{$dealer['reset_feed_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="{lang="gddealer_confirm_reset_feed"}">{lang="gddealer_reset_feed"}</a>
+			<a href="{$invoiceUrl}" class="ipsButton ipsButton--normal ipsButton--small">View in Commerce</a>
+			<a href="{$suspendUrl}" class="ipsButton ipsButton--negative ipsButton--small">{{if $dealer['suspended']}}Unsuspend Dealer{{else}}Suspend Dealer{{endif}}</a>
+			<a href="{$disputeSuspendUrl}" class="ipsButton ipsButton--small {{if $dealer['disputes_suspended']}}ipsButton--positive{{else}}ipsButton--warning{{endif}}">{{if $dealer['disputes_suspended']}}Unsuspend Disputes{{else}}Suspend Disputes{{endif}}</a>
+		</div>
+
+		<div style="padding:12px 20px;font-weight:700;font-size:0.9em;text-transform:uppercase;letter-spacing:0.05em;color:#666;border-bottom:1px solid var(--i-border-color,#e0e0e0)">Recent Import Log</div>
+		<table class="ipsTable ipsTable_zebra" style="width:100%">
+			<thead>
+				<tr>
+					<th>Started</th>
+					<th>Status</th>
+					<th>Total</th>
+					<th>New</th>
+					<th>Updated</th>
+					<th>Unchanged</th>
+					<th>Unmatched</th>
+					<th>Drops</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $logs as $l}}
+				<tr>
+					<td>{$l['run_start']}</td>
+					<td>
+						{{if $l['status'] === 'completed'}}
+							<span class="ipsBadge ipsBadge--positive">OK</span>
+						{{elseif $l['status'] === 'failed'}}
+							<span class="ipsBadge ipsBadge--negative">Failed</span>
+						{{else}}
+							<span class="ipsBadge ipsBadge--warning">{$l['status']}</span>
+						{{endif}}
+					</td>
+					<td>{$l['records_total']}</td>
+					<td>{$l['records_created']}</td>
+					<td>{$l['records_updated']}</td>
+					<td>{$l['records_unchanged']}</td>
+					<td>{$l['records_unmatched']}</td>
+					<td>{$l['price_drops']}</td>
+				</tr>
+				{{if $l['error_log']}}
+				<tr><td colspan="8"><pre style="white-space:pre-wrap;color:#c00;margin:0">{$l['error_log']}</pre></td></tr>
+				{{endif}}
+				{{endforeach}}
+				{{if count( $logs ) === 0}}
+				<tr><td colspan="8" style="text-align:center;color:#999;padding:24px">No imports have run for this dealer yet.</td></tr>
+				{{endif}}
+			</tbody>
+		</table>
+
+		<div style="padding:12px 20px;font-weight:700;font-size:0.9em;text-transform:uppercase;letter-spacing:0.05em;color:#666;border-bottom:1px solid var(--i-border-color,#e0e0e0)">Recent Listings</div>
+		<table class="ipsTable ipsTable_zebra" style="width:100%">
+			<thead>
+				<tr><th>UPC</th><th>Price</th><th>Stock</th><th>Status</th><th>Last Updated</th></tr>
+			</thead>
+			<tbody>
+				{{foreach $listings as $l}}
+				<tr>
+					<td><code>{$l['upc']}</code></td>
+					<td>{$l['dealer_price']}</td>
+					<td>
+						{{if $l['in_stock']}}
+							<span class="ipsBadge ipsBadge--positive">In Stock</span>
+						{{else}}
+							<span class="ipsBadge ipsBadge--neutral">Out</span>
+						{{endif}}
+					</td>
+					<td>{$l['listing_status']}</td>
+					<td>{$l['last_updated']}</td>
+				</tr>
+				{{endforeach}}
+				{{if count( $listings ) === 0}}
+				<tr><td colspan="5" style="text-align:center;color:#999;padding:24px">No listings.</td></tr>
+				{{endif}}
+			</tbody>
+		</table>
+
+		<div style="padding:12px 20px;font-weight:700;font-size:0.9em;text-transform:uppercase;letter-spacing:0.05em;color:#666;border-bottom:1px solid var(--i-border-color,#e0e0e0);border-top:1px solid var(--i-border-color,#e0e0e0)">Recent Reviews</div>
+		<table class="ipsTable ipsTable_zebra" style="width:100%">
+			<thead>
+				<tr><th>Reviewer</th><th>Pricing</th><th>Shipping</th><th>Service</th><th>Status</th><th>Posted</th><th style="text-align:right">Actions</th></tr>
+			</thead>
+			<tbody>
+				{{foreach $reviews as $r}}
+				<tr>
+					<td><strong>{$r['member_name']}</strong></td>
+					<td>{$r['rating_pricing']} / 5</td>
+					<td>{$r['rating_shipping']} / 5</td>
+					<td>{$r['rating_service']} / 5</td>
+					<td>
+						{{if $r['dispute_status'] === 'none'}}
+							<span class="ipsBadge ipsBadge--neutral">Live</span>
+						{{elseif $r['dispute_status'] === 'pending_customer'}}
+							<span class="ipsBadge ipsBadge--warning">Pending Customer</span>
+						{{elseif $r['dispute_status'] === 'pending_admin'}}
+							<span class="ipsBadge ipsBadge--warning">Pending Admin</span>
+						{{elseif $r['dispute_status'] === 'resolved_dealer'}}
+							<span class="ipsBadge ipsBadge--positive">Upheld</span>
+						{{elseif $r['dispute_status'] === 'dismissed'}}
+							<span class="ipsBadge ipsBadge--neutral">Dismissed</span>
+						{{else}}
+							<span class="ipsBadge ipsBadge--neutral">{$r['dispute_status']}</span>
+						{{endif}}
+					</td>
+					<td>{$r['created_at']}</td>
+					<td style="text-align:right">
+						<a href="{$r['delete_url']}" class="ipsButton ipsButton--negative ipsButton--tiny"
+						   data-confirm data-confirmMessage="Are you sure you want to delete this review? This cannot be undone.">
+							<i class="fa-solid fa-trash" aria-hidden="true"></i>
+						</a>
+					</td>
+				</tr>
+				{{if $r['review_body']}}
+				<tr><td colspan="7" style="color:#555;background:#fafafa"><em>{$r['review_body']|raw}</em></td></tr>
+				{{endif}}
+				{{endforeach}}
+				{{if count( $reviews ) === 0}}
+				<tr><td colspan="7" style="text-align:center;color:#999;padding:24px">No reviews yet.</td></tr>
+				{{endif}}
+			</tbody>
+		</table>
+
+	</div>
+</div>

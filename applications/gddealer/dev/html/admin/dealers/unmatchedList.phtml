@@ -1,0 +1,42 @@
+<ips:template parameters="$rows, $total, $pagination" />
+<div class="ipsBox ipsPull">
+	<div class="ipsBox_body">
+
+		<div style="padding:12px 20px;color:#666;font-size:0.9em">{expression="number_format( $total )"} unmatched UPCs across all dealer feeds.</div>
+
+		<table class="ipsTable ipsTable_zebra" style="width:100%">
+			<thead>
+				<tr>
+					<th>{lang="gddealer_unmatched_upc"}</th>
+					<th>{lang="gddealer_unmatched_dealer"}</th>
+					<th>{lang="gddealer_unmatched_first_seen"}</th>
+					<th>{lang="gddealer_unmatched_last_seen"}</th>
+					<th>{lang="gddealer_unmatched_count"}</th>
+					<th>{lang="gddealer_unmatched_actions"}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $rows as $r}}
+				<tr>
+					<td><code>{$r['upc']}</code></td>
+					<td>{$r['dealer_name']}</td>
+					<td>{$r['first_seen']}</td>
+					<td>{$r['last_seen']}</td>
+					<td>{$r['occurrence_count']}</td>
+					<td>
+						<a href="{$r['review_url']}" class="ipsButton ipsButton--small ipsButton--primary">{lang="gddealer_unmatched_review"}</a>
+						<a href="{$r['add_url']}" class="ipsButton ipsButton--small ipsButton--positive">{lang="gddealer_unmatched_add_to_catalog"}</a>
+						<a href="{$r['exclude_url']}" class="ipsButton ipsButton--small ipsButton--neutral">{lang="gddealer_unmatched_exclude"}</a>
+					</td>
+				</tr>
+				{{endforeach}}
+				{{if count( $rows ) === 0}}
+				<tr><td colspan="6" style="text-align:center;color:#999;padding:24px">No unmatched UPCs.</td></tr>
+				{{endif}}
+			</tbody>
+		</table>
+
+		<div style="padding:12px 20px">{$pagination|raw}</div>
+
+	</div>
+</div>

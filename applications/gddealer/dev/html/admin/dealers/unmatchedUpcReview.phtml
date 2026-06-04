@@ -1,0 +1,109 @@
+<ips:template parameters="$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl" />
+<div class="ipsBox" style="max-width:900px">
+	<div class="ipsBox__header" style="display:flex;justify-content:space-between;align-items:center">
+		<h1 class="ipsType_pageTitle">{lang="gddealer_unmatched_review_title"}</h1>
+		<a href="{$backUrl}" class="ipsButton ipsButton--secondary ipsButton--small">&larr; {lang="gddealer_flag_back"}</a>
+	</div>
+	<div class="ipsBox__content">
+
+		<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:12px;margin-bottom:20px;font-size:0.9em">
+			<strong>UPC:</strong> <code>{$row['upc']}</code> &nbsp;|&nbsp;
+			<strong>{lang="gddealer_unmatched_dealer"}:</strong> {$dealerName} &nbsp;|&nbsp;
+			<strong>{lang="gddealer_unmatched_first_seen"}:</strong> {$row['first_seen']} &nbsp;|&nbsp;
+			<strong>{lang="gddealer_unmatched_count"}:</strong> {$row['occurrence_count']}
+		</div>
+
+		{{if count($snapshot) > 0}}
+		<h3 style="font-size:0.95em;margin:0 0 8px">{lang="gddealer_unmatched_dealer_data"}</h3>
+		<div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:4px;padding:12px;margin-bottom:20px;font-size:0.85em;font-family:monospace">
+			{{foreach $snapshot as $k => $v}}
+			<div><strong>{$k}:</strong> {$v}</div>
+			{{endforeach}}
+		</div>
+		{{endif}}
+
+		<h3 style="font-size:0.95em;margin:0 0 12px">{lang="gddealer_unmatched_add_form_title"}</h3>
+		<form method="post" action="{$submitUrl}">
+			<input type="hidden" name="csrfKey" value="{expression="\IPS\Session::i()->csrfKey"}">
+			<input type="hidden" name="upc_id" value="{$row['id']}">
+
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_title"} *</label>
+					<input type="text" name="title" class="ipsInput ipsInput--text" style="width:100%" required>
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_brand"}</label>
+					<input type="text" name="brand" class="ipsInput ipsInput--text" style="width:100%">
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_mpn"}</label>
+					<input type="text" name="mpn" class="ipsInput ipsInput--text" style="width:100%">
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_model"}</label>
+					<input type="text" name="model" class="ipsInput ipsInput--text" style="width:100%">
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gddealer_unmatched_category"} *</label>
+					<select name="category_id" class="ipsInput ipsInput--select" style="width:100%" required>
+						<option value="">-- Select Category --</option>
+						{{foreach $categories as $catId => $catName}}
+						<option value="{$catId}">{$catName}</option>
+						{{endforeach}}
+					</select>
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_msrp"}</label>
+					<input type="number" name="msrp" step="0.01" class="ipsInput ipsInput--text" style="width:100%">
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_caliber"}</label>
+					<input type="text" name="caliber" class="ipsInput ipsInput--text" style="width:100%">
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_action_type"}</label>
+					<input type="text" name="action_type" class="ipsInput ipsInput--text" style="width:100%">
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_capacity"}</label>
+					<input type="text" name="capacity" class="ipsInput ipsInput--text" style="width:100%">
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_barrel_length"}</label>
+					<input type="text" name="barrel_length" class="ipsInput ipsInput--text" style="width:100%">
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_weight_lbs"}</label>
+					<input type="text" name="weight_lbs" class="ipsInput ipsInput--text" style="width:100%">
+				</div>
+				<div>
+					<label class="ipsFieldRow__label">{lang="gdcatalog_product_image_url"}</label>
+					<input type="text" name="image_url" class="ipsInput ipsInput--text" style="width:100%">
+				</div>
+			</div>
+
+			<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+				<label style="display:flex;align-items:center;gap:6px">
+					<input type="checkbox" name="requires_ffl" value="1"> {lang="gdcatalog_product_requires_ffl"}
+				</label>
+				<label style="display:flex;align-items:center;gap:6px">
+					<input type="checkbox" name="nfa_item" value="1"> {lang="gdcatalog_product_nfa_item"}
+				</label>
+				<label style="display:flex;align-items:center;gap:6px">
+					<input type="checkbox" name="is_ammo" value="1"> {lang="gdcatalog_product_is_ammo"}
+				</label>
+			</div>
+
+			<div style="margin-bottom:16px">
+				<label class="ipsFieldRow__label">{lang="gdcatalog_product_description"}</label>
+				<textarea name="description" class="ipsInput ipsInput--text" style="width:100%;min-height:80px"></textarea>
+			</div>
+
+			<div style="display:flex;gap:12px">
+				<button type="submit" class="ipsButton ipsButton--positive">{lang="gddealer_unmatched_add_to_catalog"}</button>
+				<a href="{$backUrl}" class="ipsButton ipsButton--secondary">{lang="gddealer_cancel"}</a>
+			</div>
+		</form>
+	</div>
+</div>
