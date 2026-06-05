@@ -25,6 +25,27 @@ class _results extends \IPS\Dispatcher\Controller
                 // No product with this UPC — fall through to normal search results
             }
         }
+
+        // If the query exactly matches a single product's MPN, go straight to that product
+        // (exact match only — avoids fuzzy "similar" results for part numbers)
+        if ( $query !== '' ) {
+            try {
+                $mpnCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'mpn=? AND record_status=?', $query, 'active' ] )->first();
+                if ( $mpnCount === 1 ) {
+                    $mpnUpc = (string) \IPS\Db::i()->select( 'upc', 'gd_catalog', [ 'mpn=? AND record_status=?', $query, 'active' ] )->first();
+                    if ( $mpnUpc !== '' ) {
+                        \IPS\Output::i()->redirect(
+                            \IPS\Http\Url::internal(
+                                'app=gdsearch&module=search&controller=results&do=product&upc=' . $mpnUpc,
+                                'front', 'gdsearch_product'
+                            )
+                        );
+                    }
+                }
+            } catch ( \Throwable ) {
+                // fall through to normal search results
+            }
+        }
         $page       = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
         $sort       = (string) ( \IPS\Request::i()->sort ?? 'relevance' );
         $perPage    = max( 12, min( 48, (int) ( \IPS\Settings::i()->gdsearch_results_per_page ?: 24 ) ) );
