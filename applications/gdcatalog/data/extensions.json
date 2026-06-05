@@ -5,7 +5,8 @@
             "LockDistributorCatalog": "IPS\\gdcatalog\\extensions\\core\\Queue\\LockDistributorCatalog",
             "CsvBulkImport": "IPS\\gdcatalog\\extensions\\core\\Queue\\CsvBulkImport",
             "ResolveBrands": "IPS\\gdcatalog\\extensions\\core\\Queue\\ResolveBrands",
-            "BackfillAttributes": "IPS\\gdcatalog\\extensions\\core\\Queue\\BackfillAttributes"
+            "BackfillAttributes": "IPS\\gdcatalog\\extensions\\core\\Queue\\BackfillAttributes",
+            "RebuildSearchIndex": "IPS\\gdcatalog\\extensions\\core\\Queue\\RebuildSearchIndex"
         }
     }
 }

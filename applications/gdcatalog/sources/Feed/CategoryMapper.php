@@ -84,6 +84,15 @@ class CategoryMapper
 		return $this->idCache[ $slug ];
 	}
 
+	protected ?int $uncatId = null;
+
+	/**
+	 * Resolve a distributor CATID strictly through the explicit mapping table.
+	 * Unmapped CATIDs go to the visible "Uncategorized" holding category.
+	 * The old numeric-id / name / slug fallbacks were removed: a CATID that
+	 * happened to equal one of our category IDs was being silently miscategorised
+	 * (e.g. SS CATID 47 "Targets" landing in category 47 "Rifle Scopes").
+	 */
 	public function resolve( int|string $rawCatId ): int
 	{
 		$key = (string) $rawCatId;
@@ -93,23 +102,28 @@ class CategoryMapper
 			return (int) $this->map[ $key ];
 		}
 
-		if ( is_numeric( $key ) && isset( $this->canonicalById[ $key ] ) )
-		{
-			return $this->canonicalById[ $key ];
-		}
+		return $this->uncategorizedId();
+	}
 
-		$lower = strtolower( $key );
-		if ( isset( $this->canonicalByName[ $lower ] ) )
+	protected function uncategorizedId(): int
+	{
+		if ( $this->uncatId !== null )
 		{
-			return $this->canonicalByName[ $lower ];
+			return $this->uncatId;
 		}
-
-		if ( isset( $this->canonicalBySlug[ $lower ] ) )
+		try
 		{
-			return $this->canonicalBySlug[ $lower ];
+			$this->uncatId = (int) \IPS\Db::i()->select( 'id', 'gd_categories', [ 'name=? AND parent_id=?', 'Uncategorized', 0 ] )->first();
 		}
-
-		return 58;
+		catch ( \Throwable )
+		{
+			$this->uncatId = 58;
+		}
+		if ( $this->uncatId <= 0 )
+		{
+			$this->uncatId = 58;
+		}
+		return $this->uncatId;
 	}
 
 	public function resolveFromCsv( string $value ): int
@@ -117,7 +131,7 @@ class CategoryMapper
 		$value = trim( $value );
 		if ( $value === '' )
 		{
-			return 58;
+			return $this->uncategorizedId();
 		}
 
 		$result = $this->resolve( $value );
@@ -138,7 +152,7 @@ class CategoryMapper
 			return $this->resolveFromCsv( trim( end( $parts ) ) );
 		}
 
-		return 58;
+		return $this->uncategorizedId();
 	}
 
 	public function getUnmatched(): array

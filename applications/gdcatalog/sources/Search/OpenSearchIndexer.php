@@ -279,6 +279,62 @@ class OpenSearchIndexer
 	 *
 	 * @return int  Number of documents indexed
 	 */
+	/**
+	 * Delete + recreate the index (empty) with the current mapping, and clear the reindex queue.
+	 */
+	public function recreateIndex(): void
+	{
+		if ( $this->indexExists() )
+		{
+			$this->deleteIndex();
+		}
+		try
+		{
+			$this->createIndex();
+		}
+		catch ( \RuntimeException $e )
+		{
+			$msg = $e->getMessage();
+			if ( !( str_contains( $msg, 'create-index blocked' ) || str_contains( $msg, 'already_exists' ) || str_contains( $msg, 'already exists' ) ) )
+			{
+				throw $e;
+			}
+		}
+		try { \IPS\Db::i()->delete( 'gd_reindex_queue' ); } catch ( \Throwable ) {}
+	}
+
+	/**
+	 * Bulk-index one batch of active products by offset. Returns the number indexed.
+	 * Used by the RebuildSearchIndex background queue so a full rebuild never blocks/times out.
+	 */
+	public function indexBatch( int $offset, int $batchSize = 250 ): int
+	{
+		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, record_status, image_url, description';
+		$rows = \IPS\Db::i()->select(
+			$indexColumns,
+			'gd_catalog',
+			[ 'record_status=?', Product::STATUS_ACTIVE ],
+			'upc ASC',
+			[ $offset, $batchSize ]
+		);
+
+		$bulkBody = '';
+		$count    = 0;
+		foreach ( $rows as $row )
+		{
+			$product = Product::constructFromData( $row );
+			$doc     = $this->productToDocument( $product );
+			$bulkBody .= json_encode( [ 'index' => [ '_index' => $this->index, '_id' => $product->upc ] ] ) . "\n";
+			$bulkBody .= json_encode( $doc ) . "\n";
+			$count++;
+		}
+		if ( $bulkBody !== '' )
+		{
+			$this->request( 'POST', '/_bulk', null, $bulkBody );
+		}
+		return $count;
+	}
+
 	public function rebuildIndex(): int
 	{
 		/* Drop and recreate */
