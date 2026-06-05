@@ -96,6 +96,7 @@ class OpenSearchIndexer
 					]],
 					'brand'        => [ 'type' => 'keyword' ],
 					'model'        => [ 'type' => 'text', 'analyzer' => 'product_analyzer' ],
+					'mpn'          => [ 'type' => 'text', 'analyzer' => 'product_analyzer', 'fields' => [ 'keyword' => [ 'type' => 'keyword' ] ] ],
 					'category'     => [ 'type' => 'keyword' ],
 					'subcategory'  => [ 'type' => 'keyword' ],
 					'caliber'      => [ 'type' => 'keyword' ],
@@ -315,7 +316,7 @@ class OpenSearchIndexer
 		$batchMax = 250;
 		$offset   = 0;
 
-		$indexColumns = 'upc, title, brand, model, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, record_status, image_url, description';
+		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, record_status, image_url, description';
 
 		while ( TRUE )
 		{
@@ -392,6 +393,7 @@ class OpenSearchIndexer
 			'title'         => $product->title ?? '',
 			'brand'         => $product->brand ?? '',
 			'model'         => $product->model ?? '',
+			'mpn'           => $product->mpn ?? '',
 			'category'      => $catName,
 			'subcategory'   => $subcatName ?: ( $product->subcategory ?? '' ),
 			'caliber'       => $product->caliber ?? '',
