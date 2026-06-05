@@ -35,14 +35,25 @@ class Searcher
         $must   = [];
         $filter = [];
 
-        // Full-text query
+        // Full-text query: name (title), MPN, brand, model, caliber, etc.
+        // MPNs are often exact alphanumeric codes, so we OR an analyzed match,
+        // a prefix match, and an exact keyword match for the mpn field.
         if ( $query !== '' ) {
             $must[] = [
-                'multi_match' => [
-                    'query'  => $query,
-                    'fields' => [ 'title^3', 'brand^2', 'model^2', 'caliber^2', 'description', 'category', 'subcategory' ],
-                    'type'   => 'best_fields',
-                    'fuzziness' => 'AUTO',
+                'bool' => [
+                    'should' => [
+                        [
+                            'multi_match' => [
+                                'query'     => $query,
+                                'fields'    => [ 'title^3', 'mpn^4', 'brand^2', 'model^2', 'caliber^2', 'description', 'category', 'subcategory' ],
+                                'type'      => 'best_fields',
+                                'fuzziness' => 'AUTO',
+                            ],
+                        ],
+                        [ 'match_phrase_prefix' => [ 'mpn'   => [ 'query' => $query, 'boost' => 5 ] ] ],
+                        [ 'term'                => [ 'mpn.keyword'   => [ 'value' => $query, 'boost' => 8 ] ] ],
+                    ],
+                    'minimum_should_match' => 1,
                 ],
             ];
         } else {
