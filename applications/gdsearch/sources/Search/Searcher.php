@@ -123,16 +123,25 @@ class Searcher
         // Load live dealer pricing
         $pricing = $this->loadPricing( $upcs, !empty( $filters['in_stock'] ) );
 
+        // Load ammo/spec extras from the catalog (grain etc. are not in the index)
+        $extras = $this->loadCatalogExtras( $upcs );
+
         $results = [];
         foreach ( $hits as $hit ) {
             $src = $hit['_source'];
             $upc = $src['upc'];
-            $results[] = array_merge( $src, [
-                'best_price'    => $pricing[ $upc ]['best_price'] ?? null,
-                'dealer_count'  => $pricing[ $upc ]['dealer_count'] ?? 0,
-                'in_stock'      => $pricing[ $upc ]['in_stock'] ?? false,
-                'score'         => $hit['_score'] ?? 0,
-            ] );
+            // Defaults guarantee the keys exist for the template (avoids undefined-key notices)
+            $results[] = array_merge(
+                [ 'caliber' => '', 'bullet_weight' => '', 'bullet_type' => '', 'casing_material' => '', 'rounds_per_box' => '' ],
+                $src,
+                $extras[ $upc ] ?? [],
+                [
+                    'best_price'    => $pricing[ $upc ]['best_price'] ?? null,
+                    'dealer_count'  => $pricing[ $upc ]['dealer_count'] ?? 0,
+                    'in_stock'      => $pricing[ $upc ]['in_stock'] ?? false,
+                    'score'         => $hit['_score'] ?? 0,
+                ]
+            );
         }
 
         // Filter out-of-stock if requested
@@ -145,6 +154,32 @@ class Searcher
             'results'      => $results,
             'aggregations' => $aggs,
         ];
+    }
+
+    /**
+     * Load catalog spec extras (grain/bullet type/casing/rounds) for a list of UPCs.
+     * These live in gd_catalog and are not stored in the search index.
+     */
+    protected function loadCatalogExtras( array $upcs ): array
+    {
+        if ( empty( $upcs ) ) return [];
+        $out = [];
+        try {
+            foreach ( \IPS\Db::i()->select(
+                'upc, caliber, bullet_weight, bullet_type, casing_material, rounds_per_box',
+                'gd_catalog',
+                \IPS\Db::i()->in( 'upc', $upcs )
+            ) as $row ) {
+                $out[ $row['upc'] ] = [
+                    'caliber'         => (string) ( $row['caliber'] ?? '' ),
+                    'bullet_weight'   => (string) ( $row['bullet_weight'] ?? '' ),
+                    'bullet_type'     => (string) ( $row['bullet_type'] ?? '' ),
+                    'casing_material' => (string) ( $row['casing_material'] ?? '' ),
+                    'rounds_per_box'  => (string) ( $row['rounds_per_box'] ?? '' ),
+                ];
+            }
+        } catch ( \Throwable ) {}
+        return $out;
     }
 
     /**
