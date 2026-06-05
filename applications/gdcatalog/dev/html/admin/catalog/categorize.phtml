@@ -1,0 +1,85 @@
+<ips:template parameters="$groups, $cats, $options, $uncat, $bulkUrl, $hiddenUrl, $productUrl, $csrfKey, $products" />
+<div class="ipsBox ipsPull">
+	<div class="ipsBox_body ipsPad">
+
+		<h2 class="ipsType_sectionTitle">Category Visibility</h2>
+		<p class="ipsType_light">Checked categories are hidden from the storefront (dropdown + browse). Direct links still work.</p>
+		<form method="post" action="{$hiddenUrl}" style="margin-bottom:32px">
+			<input type="hidden" name="csrfKey" value="{$csrfKey}">
+			<div style="display:flex;flex-wrap:wrap;gap:6px 24px;margin:12px 0">
+				{{foreach $cats as $c}}
+				<label style="display:flex;align-items:center;gap:6px;min-width:240px">
+					<input type="checkbox" name="hidden[{$c['id']}]" value="1" {{if $c['hidden']}}checked{{endif}}>
+					<span>{$c['name']} <span class="ipsType_light">({expression="number_format( (int) $c['product_count'] )"})</span></span>
+				</label>
+				{{endforeach}}
+			</div>
+			<button type="submit" class="ipsButton ipsButton--primary ipsButton--small">Save Visibility</button>
+		</form>
+
+		<hr>
+
+		<h2 class="ipsType_sectionTitle">Reassign Uncategorized by Source Category (CATID)</h2>
+		{{if !$uncat}}
+			<p class="ipsType_warning">No "Uncategorized" category found.</p>
+		{{elseif !count( $groups )}}
+			<p class="ipsType_light">Nothing in Uncategorized — all clear.</p>
+		{{else}}
+		<form method="post" action="{$bulkUrl}">
+			<input type="hidden" name="csrfKey" value="{$csrfKey}">
+			<table class="ipsTable">
+				<thead><tr><th>CATID</th><th>Count</th><th>Sample product</th><th>Move to category</th></tr></thead>
+				<tbody>
+				{{foreach $groups as $g}}
+					<tr>
+						<td><code>{$g['catid']}</code></td>
+						<td>{expression="number_format( (int) $g['n'] )"}</td>
+						<td class="ipsType_light">{$g['sample']}</td>
+						<td>
+							<select name="cat[{$g['catid']}]" class="ipsInput ipsInput--select" style="min-width:240px">
+								<option value="0">— leave in Uncategorized —</option>
+								{{foreach $options as $oid => $olabel}}
+									<option value="{$oid}">{$olabel}</option>
+								{{endforeach}}
+							</select>
+						</td>
+					</tr>
+				{{endforeach}}
+				</tbody>
+			</table>
+			<div style="margin-top:12px"><button type="submit" class="ipsButton ipsButton--primary">Apply Reassignments</button></div>
+		</form>
+		{{endif}}
+
+		{{if $uncat and count( $products )}}
+		<hr>
+		<h2 class="ipsType_sectionTitle">Per-Product Override</h2>
+		<p class="ipsType_light">Showing up to 300 uncategorized products. Pick a category and Apply per row.</p>
+		<table class="ipsTable">
+			<thead><tr><th>UPC</th><th>Title</th><th>Brand</th><th>Category</th></tr></thead>
+			<tbody>
+			{{foreach $products as $p}}
+				<tr>
+					<td><code>{$p['upc']}</code></td>
+					<td>{$p['title']}</td>
+					<td class="ipsType_light">{$p['brand']}</td>
+					<td>
+						<form method="post" action="{$productUrl}" style="display:flex;gap:6px">
+							<input type="hidden" name="csrfKey" value="{$csrfKey}">
+							<input type="hidden" name="upc" value="{$p['upc']}">
+							<select name="category_id" class="ipsInput ipsInput--select" style="min-width:220px">
+								{{foreach $options as $oid => $olabel}}
+									<option value="{$oid}">{$olabel}</option>
+								{{endforeach}}
+							</select>
+							<button type="submit" class="ipsButton ipsButton--secondary ipsButton--small">Apply</button>
+						</form>
+					</td>
+				</tr>
+			{{endforeach}}
+			</tbody>
+		</table>
+		{{endif}}
+
+	</div>
+</div>

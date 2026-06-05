@@ -6,6 +6,9 @@
 		"products": {
 			"catalog_manage": "catalog_manage"
 		},
+		"categorize": {
+			"catalog_manage": "catalog_manage"
+		},
 		"feeds": {
 			"catalog_manage": "catalog_manage"
 		},

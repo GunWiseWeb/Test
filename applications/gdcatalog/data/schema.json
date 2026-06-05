@@ -1159,6 +1159,20 @@
                 "zerofill": false,
                 "values": [],
                 "comment": ""
+            },
+            "hidden": {
+                "name": "hidden",
+                "type": "TINYINT",
+                "length": 1,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             }
         },
         "indexes": {

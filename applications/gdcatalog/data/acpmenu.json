@@ -12,6 +12,12 @@
 			"do": "",
 			"restriction": "catalog_manage"
 		},
+		"categorize": {
+			"tab": "gdcatalog",
+			"controller": "categorize",
+			"do": "",
+			"restriction": "catalog_manage"
+		},
 		"feeds": {
 			"tab": "gdcatalog",
 			"controller": "feeds",
