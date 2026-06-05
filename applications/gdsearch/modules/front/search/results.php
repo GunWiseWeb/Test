@@ -80,10 +80,19 @@ class _results extends \IPS\Dispatcher\Controller
 
         $pagination = '';
         if ( $total > $perPage ) {
-            $baseUrl = \IPS\Http\Url::internal(
-                'app=gdsearch&module=search&controller=results' . ( $query ? '&q=' . urlencode( $query ) : '' ),
-                'front', 'gdsearch_results'
-            );
+            // Preserve the active query, filters, and sort in pagination links
+            $paginationQs = 'app=gdsearch&module=search&controller=results';
+            if ( $query !== '' )                  { $paginationQs .= '&q=' . urlencode( $query ); }
+            if ( $filters['category'] !== '' )    { $paginationQs .= '&category=' . urlencode( $filters['category'] ); }
+            if ( $filters['brand'] !== '' )       { $paginationQs .= '&brand=' . urlencode( $filters['brand'] ); }
+            if ( $filters['caliber'] !== '' )     { $paginationQs .= '&caliber=' . urlencode( $filters['caliber'] ); }
+            if ( !empty( $filters['in_stock'] ) ) { $paginationQs .= '&in_stock=1'; }
+            if ( !empty( $filters['requires_ffl'] ) ) { $paginationQs .= '&requires_ffl=1'; }
+            if ( $filters['min_price'] > 0 )      { $paginationQs .= '&min_price=' . urlencode( (string) $filters['min_price'] ); }
+            if ( $filters['max_price'] > 0 )      { $paginationQs .= '&max_price=' . urlencode( (string) $filters['max_price'] ); }
+            if ( $sort !== 'relevance' )          { $paginationQs .= '&sort=' . urlencode( $sort ); }
+
+            $baseUrl = \IPS\Http\Url::internal( $paginationQs, 'front', 'gdsearch_results' );
             $pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
                 $baseUrl,
                 (int) ceil( $total / $perPage ),
