@@ -50,7 +50,7 @@
 					<select name="category" class="ipsInput ipsInput--select" style="width:100%" onchange="this.form.submit()">
 						<option value="">All Categories</option>
 						{{foreach $categories as $cat}}
-						<option value="{$cat['name']}" {{if $filters['category'] === $cat['name']}}selected{{endif}}>{$cat['name']}</option>
+						<option value="{$cat['id']}" {{if $filters['category_id'] === $cat['id']}}selected{{endif}}>{$cat['name']}</option>
 						{{endforeach}}
 					</select>
 				</div>
@@ -91,7 +91,7 @@
 					<input type="hidden" name="module" value="search">
 					<input type="hidden" name="controller" value="results">
 					<input type="hidden" name="q" value="{$query}">
-					<input type="hidden" name="category" value="{$filters['category']}">
+					<input type="hidden" name="category" value="{$filters['category_id']}">
 					<input type="hidden" name="brand" value="{$filters['brand']}">
 					<input type="hidden" name="caliber" value="{$filters['caliber']}">
 					{{if $filters['in_stock']}}<input type="hidden" name="in_stock" value="1">{{endif}}

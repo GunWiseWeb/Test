@@ -53,8 +53,18 @@ class _results extends \IPS\Dispatcher\Controller
         $validSorts = [ 'relevance', 'price_asc', 'price_desc', 'brand' ];
         if ( !in_array( $sort, $validSorts, true ) ) { $sort = 'relevance'; }
 
+        // Category filter is passed as an integer ID (immune to & and spaces in category names)
+        $categoryId   = max( 0, (int) ( \IPS\Request::i()->category ?? 0 ) );
+        $categoryName = '';
+        if ( $categoryId > 0 ) {
+            try {
+                $categoryName = (string) \IPS\Db::i()->select( 'name', 'gd_categories', [ 'id=?', $categoryId ] )->first();
+            } catch ( \Throwable ) { $categoryId = 0; }
+        }
+
         $filters = [
-            'category'     => trim( (string) ( \IPS\Request::i()->category ?? '' ) ),
+            'category'     => $categoryName,
+            'category_id'  => $categoryId,
             'brand'        => trim( (string) ( \IPS\Request::i()->brand ?? '' ) ),
             'caliber'      => trim( (string) ( \IPS\Request::i()->caliber ?? '' ) ),
             'in_stock'     => !empty( \IPS\Request::i()->in_stock ),
@@ -83,7 +93,7 @@ class _results extends \IPS\Dispatcher\Controller
             // Preserve the active query, filters, and sort in pagination links
             $paginationQs = 'app=gdsearch&module=search&controller=results';
             if ( $query !== '' )                  { $paginationQs .= '&q=' . urlencode( $query ); }
-            if ( $filters['category'] !== '' )    { $paginationQs .= '&category=' . urlencode( $filters['category'] ); }
+            if ( $filters['category_id'] > 0 )   { $paginationQs .= '&category=' . $filters['category_id']; }
             if ( $filters['brand'] !== '' )       { $paginationQs .= '&brand=' . urlencode( $filters['brand'] ); }
             if ( $filters['caliber'] !== '' )     { $paginationQs .= '&caliber=' . urlencode( $filters['caliber'] ); }
             if ( !empty( $filters['in_stock'] ) ) { $paginationQs .= '&in_stock=1'; }
