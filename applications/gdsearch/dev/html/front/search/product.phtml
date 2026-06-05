@@ -1,0 +1,115 @@
+<ips:template parameters="$product, $listings, $categoryName, $backUrl" />
+<div style="max-width:1100px;margin:0 auto;padding:16px">
+
+	<a href="{$backUrl}" style="display:inline-flex;align-items:center;gap:6px;color:#666;text-decoration:none;margin-bottom:20px;font-size:0.9em">
+		&larr; {lang="gdsearch_back_to_results"}
+	</a>
+
+	<div style="display:grid;grid-template-columns:300px 1fr;gap:32px;margin-bottom:32px">
+
+		{{/* Product image */}}
+		<div>
+			{{if $product['image_url']}}
+			<div style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:16px;text-align:center">
+				<img src="{$product['image_url']}" style="max-width:100%;max-height:280px;object-fit:contain" alt="{$product['title']}">
+			</div>
+			{{endif}}
+		</div>
+
+		{{/* Product details */}}
+		<div>
+			{{if $product['brand']}}<div style="color:#666;font-size:0.9em;margin-bottom:4px">{$product['brand']}</div>{{endif}}
+			<h1 style="margin:0 0 8px;font-size:1.4em;line-height:1.3">{$product['title']}</h1>
+
+			<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+				{{if $categoryName}}<span class="ipsBadge ipsBadge--neutral">{$categoryName}</span>{{endif}}
+				{{if $product['requires_ffl']}}<span class="ipsBadge ipsBadge--warning">{lang="gdsearch_requires_ffl"}</span>{{endif}}
+				{{if $product['nfa_item']}}<span class="ipsBadge ipsBadge--negative">{lang="gdsearch_nfa_item"}</span>{{endif}}
+				{{if $product['is_ammo']}}<span class="ipsBadge ipsBadge--neutral">Ammo</span>{{endif}}
+			</div>
+
+			{{/* Key specs */}}
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;font-size:0.88em">
+				{{if $product['upc']}}<div><span style="color:#888">UPC:</span> <code>{$product['upc']}</code></div>{{endif}}
+				{{if $product['mpn']}}<div><span style="color:#888">{lang="gdsearch_mpn"}:</span> {$product['mpn']}</div>{{endif}}
+				{{if $product['caliber']}}<div><span style="color:#888">{lang="gdsearch_caliber"}:</span> {$product['caliber']}</div>{{endif}}
+				{{if $product['action_type']}}<div><span style="color:#888">{lang="gdsearch_action_type"}:</span> {$product['action_type']}</div>{{endif}}
+				{{if $product['capacity']}}<div><span style="color:#888">{lang="gdsearch_capacity"}:</span> {$product['capacity']}</div>{{endif}}
+				{{if $product['barrel_length']}}<div><span style="color:#888">{lang="gdsearch_barrel_length"}:</span> {$product['barrel_length']}</div>{{endif}}
+				{{if $product['overall_length']}}<div><span style="color:#888">{lang="gdsearch_overall_length"}:</span> {$product['overall_length']}</div>{{endif}}
+				{{if $product['weight_lbs']}}<div><span style="color:#888">{lang="gdsearch_weight"}:</span> {$product['weight_lbs']} lbs</div>{{endif}}
+				{{if $product['msrp']}}<div><span style="color:#888">{lang="gdsearch_msrp"}:</span> ${expression="number_format((float)$product['msrp'],2)"}</div>{{endif}}
+			</div>
+
+			{{if $product['description']}}
+			<p style="color:#555;font-size:0.9em;line-height:1.5;margin:0">{$product['description']}</p>
+			{{endif}}
+		</div>
+	</div>
+
+	{{/* Price comparison table */}}
+	<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden">
+		<div style="padding:16px 20px;border-bottom:1px solid #f0f0f0;background:#f8f9fa">
+			<h2 style="margin:0;font-size:1.05em;font-weight:700">{lang="gdsearch_price_comparison"} <span style="font-weight:400;color:#888;font-size:0.9em">({expression="count($listings)"} {lang="gdsearch_dealers"})</span></h2>
+		</div>
+		{{if count($listings) === 0}}
+		<div style="padding:32px;text-align:center;color:#999">
+			<p>{lang="gdsearch_no_listings"}</p>
+		</div>
+		{{else}}
+		<table style="width:100%;border-collapse:collapse">
+			<thead>
+				<tr style="background:#f8f9fa;font-size:0.82em;text-transform:uppercase;letter-spacing:0.04em;color:#888">
+					<th style="padding:10px 16px;text-align:left">{lang="gdsearch_dealer"}</th>
+					<th style="padding:10px 16px;text-align:right">{lang="gdsearch_price"}</th>
+					<th style="padding:10px 16px;text-align:center">{lang="gdsearch_shipping"}</th>
+					<th style="padding:10px 16px;text-align:center">{lang="gdsearch_stock"}</th>
+					<th style="padding:10px 16px;text-align:center">{lang="gdsearch_condition"}</th>
+					<th style="padding:10px 16px;text-align:center"></th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $listings as $i => $listing}}
+				<tr style="border-top:1px solid #f0f0f0{{if $i === 0}};background:#f0fdf4{{endif}}">
+					<td style="padding:12px 16px">
+						<div style="font-weight:600;font-size:0.9em">{$listing['dealer_name']}</div>
+						{{if $listing['tier'] === 'founding' || $listing['tier'] === 'enterprise' || $listing['tier'] === 'pro'}}
+						<span class="ipsBadge ipsBadge--positive" style="font-size:0.7em">{expression="ucfirst($listing['tier'])"}</span>
+						{{endif}}
+					</td>
+					<td style="padding:12px 16px;text-align:right">
+						<div style="font-weight:700;font-size:1.05em;color:{{if $i === 0}}#16a34a{{else}}#1a1a1a{{endif}}">${expression="number_format((float)$listing['price'],2)"}</div>
+					</td>
+					<td style="padding:12px 16px;text-align:center;font-size:0.85em">
+						{{if $listing['free_shipping']}}
+						<span style="color:#16a34a;font-weight:600">{lang="gdsearch_free_shipping"}</span>
+						{{elseif $listing['shipping_cost']}}
+						<span style="color:#666">${expression="number_format((float)$listing['shipping_cost'],2)"}</span>
+						{{else}}
+						<span style="color:#999">—</span>
+						{{endif}}
+					</td>
+					<td style="padding:12px 16px;text-align:center">
+						{{if $listing['in_stock']}}
+						<span class="ipsBadge ipsBadge--positive">{lang="gdsearch_in_stock"}{{if $listing['stock_qty'] > 0}} ({$listing['stock_qty']}){{endif}}</span>
+						{{else}}
+						<span class="ipsBadge ipsBadge--neutral">{lang="gdsearch_out_of_stock"}</span>
+						{{endif}}
+					</td>
+					<td style="padding:12px 16px;text-align:center;font-size:0.85em;color:#666">
+						{expression="ucfirst($listing['condition'])"}
+					</td>
+					<td style="padding:12px 16px;text-align:center">
+						{{if $listing['listing_url']}}
+						<a href="{$listing['listing_url']}" target="_blank" rel="nofollow noopener" class="ipsButton ipsButton--primary ipsButton--small">{lang="gdsearch_buy_now"}</a>
+						{{else}}
+						<a href="{url="app=gddealer&module=dealers&controller=profile&dealer_slug={$listing['dealer_slug']}"}" class="ipsButton ipsButton--secondary ipsButton--small">{lang="gdsearch_view_dealer"}</a>
+						{{endif}}
+					</td>
+				</tr>
+				{{endforeach}}
+			</tbody>
+		</table>
+		{{endif}}
+	</div>
+</div>

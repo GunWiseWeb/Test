@@ -39,4 +39,22 @@
     <word key="gdsearch_total_results" js="0" export="1">%1$s results</word>
     <word key="gdsearch_search_again" js="0" export="1">Search Again</word>
     <word key="gdsearch_filter_clear" js="0" export="1">Clear Filters</word>
+    <word key="gdsearch_search_submit" js="0" export="1">Search</word>
+    <word key="gdsearch_results_for" js="0" export="1">results for</word>
+    <word key="gdsearch_results_total" js="0" export="1">products</word>
+    <word key="gdsearch_dealers" js="0" export="1">dealers</word>
+    <word key="gdsearch_no_listings" js="0" export="1">No dealer listings available.</word>
+    <word key="gdsearch_filter_apply" js="0" export="1">Apply Filters</word>
+    <word key="gdsearch_filters" js="0" export="1">Filters</word>
+    <word key="gdsearch_back_to_results" js="0" export="1">Back to Results</word>
+    <word key="gdsearch_mpn" js="0" export="1">MPN</word>
+    <word key="gdsearch_caliber" js="0" export="1">Caliber</word>
+    <word key="gdsearch_action_type" js="0" export="1">Action</word>
+    <word key="gdsearch_capacity" js="0" export="1">Capacity</word>
+    <word key="gdsearch_barrel_length" js="0" export="1">Barrel Length</word>
+    <word key="gdsearch_overall_length" js="0" export="1">Overall Length</word>
+    <word key="gdsearch_weight" js="0" export="1">Weight</word>
+    <word key="gdsearch_condition" js="0" export="1">Condition</word>
+    <word key="gdsearch_free_shipping" js="0" export="1">Free</word>
+    <word key="gdsearch_view_dealer" js="0" export="1">View Dealer</word>
 </language>

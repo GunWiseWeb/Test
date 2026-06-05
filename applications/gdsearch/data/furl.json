@@ -1,10 +1,13 @@
 {
-    "gdsearch_results": {
-        "friendly": "search",
-        "real": "app=gdsearch&module=search&controller=results"
-    },
-    "gdsearch_product": {
-        "friendly": "product/{@upc}",
-        "real": "app=gdsearch&module=search&controller=results&do=product"
+    "topLevel": "catalog",
+    "pages": {
+        "gdsearch_results": {
+            "friendly": "",
+            "real": "app=gdsearch&module=search&controller=results"
+        },
+        "gdsearch_product": {
+            "friendly": "product/{@upc}",
+            "real": "app=gdsearch&module=search&controller=results&do=product"
+        }
     }
 }

@@ -1,19 +1,118 @@
 <?php
 namespace IPS\gdsearch\modules\front\search;
+
 use function defined;
+
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) ) { header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' ); exit; }
+
 class _results extends \IPS\Dispatcher\Controller
 {
     protected function manage(): void
     {
-        $query = trim( (string) ( \IPS\Request::i()->q ?? '' ) );
+        $query      = trim( (string) ( \IPS\Request::i()->q ?? '' ) );
+        $page       = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
+        $sort       = (string) ( \IPS\Request::i()->sort ?? 'relevance' );
+        $perPage    = max( 12, min( 48, (int) ( \IPS\Settings::i()->gdsearch_results_per_page ?: 24 ) ) );
 
-        \IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_results_title' );
+        $validSorts = [ 'relevance', 'price_asc', 'price_desc', 'brand' ];
+        if ( !in_array( $sort, $validSorts, true ) ) { $sort = 'relevance'; }
+
+        $filters = [
+            'category'     => trim( (string) ( \IPS\Request::i()->category ?? '' ) ),
+            'brand'        => trim( (string) ( \IPS\Request::i()->brand ?? '' ) ),
+            'caliber'      => trim( (string) ( \IPS\Request::i()->caliber ?? '' ) ),
+            'in_stock'     => !empty( \IPS\Request::i()->in_stock ),
+            'requires_ffl' => !empty( \IPS\Request::i()->requires_ffl ),
+            'min_price'    => (float) ( \IPS\Request::i()->min_price ?? 0 ),
+            'max_price'    => (float) ( \IPS\Request::i()->max_price ?? 0 ),
+        ];
+
+        $results    = [];
+        $total      = 0;
+        $aggs       = [];
+        $error      = '';
+
+        try {
+            $searcher = new \IPS\gdsearch\Search\Searcher();
+            $data     = $searcher->search( $query, $filters, $sort, $page, $perPage );
+            $results  = $data['results'];
+            $total    = $data['total'];
+            $aggs     = $data['aggregations'];
+        } catch ( \Throwable $e ) {
+            $error = $e->getMessage();
+        }
+
+        $pagination = '';
+        if ( $total > $perPage ) {
+            $baseUrl = \IPS\Http\Url::internal(
+                'app=gdsearch&module=search&controller=results' . ( $query ? '&q=' . urlencode( $query ) : '' ),
+                'front', 'gdsearch_results'
+            );
+            $pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'front' )->pagination(
+                $baseUrl,
+                (int) ceil( $total / $perPage ),
+                $page,
+                $perPage
+            );
+        }
+
+        // Build category list from gd_categories for filter dropdown
+        $categories = [];
+        try {
+            foreach ( \IPS\Db::i()->select( 'id, name', 'gd_categories', [ 'parent_id=?', 0 ], 'name ASC' ) as $cat ) {
+                $categories[] = [ 'id' => (int) $cat['id'], 'name' => (string) $cat['name'] ];
+            }
+        } catch ( \Throwable ) {}
+
+        \IPS\Output::i()->title = $query
+            ? $query . ' — ' . \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_results_title' )
+            : \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_results_title' );
+
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->results(
-            $query,
-            [],
-            0,
-            ''
+            $query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error
+        );
+    }
+
+    protected function product(): void
+    {
+        $upc = trim( (string) ( \IPS\Request::i()->upc ?? '' ) );
+
+        if ( !preg_match( '/^[0-9]{8,14}$/', $upc ) ) {
+            \IPS\Output::i()->error( 'node_error', '2GDS/1', 404 );
+            return;
+        }
+
+        // Load product from gd_catalog
+        $product = [];
+        try {
+            $product = \IPS\Db::i()->select( '*', 'gd_catalog', [ 'upc=? AND record_status=?', $upc, 'active' ] )->first();
+        } catch ( \Throwable ) {
+            \IPS\Output::i()->error( 'node_error', '2GDS/2', 404 );
+            return;
+        }
+
+        // Load dealer listings
+        $listings = [];
+        try {
+            $searcher = new \IPS\gdsearch\Search\Searcher();
+            $listings = $searcher->getDealerListings( $upc );
+        } catch ( \Throwable ) {}
+
+        // Load category name
+        $categoryName = '';
+        try {
+            $cat = \IPS\Db::i()->select( 'name', 'gd_categories', [ 'id=?', (int) $product['category_id'] ] )->first();
+            $categoryName = (string) $cat;
+        } catch ( \Throwable ) {}
+
+        $backUrl = (string) \IPS\Http\Url::internal(
+            'app=gdsearch&module=search&controller=results',
+            'front', 'gdsearch_results'
+        );
+
+        \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
+        \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
+            $product, $listings, $categoryName, $backUrl
         );
     }
 }
