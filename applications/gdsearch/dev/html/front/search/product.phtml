@@ -1,23 +1,36 @@
 <ips:template parameters="$product, $listings, $categoryName, $backUrl" />
-<div style="max-width:1100px;margin:0 auto;padding:16px">
+<style>
+.gdsp-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box }
+.gdsp-top { display:grid; grid-template-columns:420px 1fr; gap:36px }
+.gdsp-imgbox { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:20px; text-align:center }
+.gdsp-imgbox img { max-width:100%; max-height:400px; object-fit:contain }
+.gdsp-noimg { background:#f1f5f9; border-radius:10px; height:360px; display:flex; align-items:center; justify-content:center; color:#cbd5e1; font-size:3em }
+.gdsp-specs { display:grid; grid-template-columns:1fr 1fr; gap:10px 24px; font-size:0.92em }
+@media (max-width:768px) {
+	.gdsp-wrap { padding:10px }
+	.gdsp-top { grid-template-columns:1fr; gap:20px }
+	.gdsp-specs { grid-template-columns:1fr }
+}
+</style>
+<div class="gdsp-wrap">
 
 	<a href="{$backUrl}" style="display:inline-flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;margin-bottom:20px;font-size:0.9em">&larr; {lang="gdsearch_back_to_results"}</a>
 
 	<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:28px;margin-bottom:24px;box-shadow:0 1px 3px rgba(15,23,42,0.06)">
-		<div style="display:grid;grid-template-columns:300px 1fr;gap:32px">
+		<div class="gdsp-top">
 			<div>
 				{{if $product['image_url']}}
-				<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;text-align:center">
-					<img src="{$product['image_url']}" style="max-width:100%;max-height:280px;object-fit:contain" alt="{$product['title']}">
+				<div class="gdsp-imgbox">
+					<img src="{$product['image_url']}" alt="{$product['title']}">
 				</div>
 				{{else}}
-				<div style="background:#f1f5f9;border-radius:10px;height:260px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:2.4em">&#128230;</div>
+				<div class="gdsp-noimg">&#128230;</div>
 				{{endif}}
 			</div>
 
 			<div>
 				{{if $product['brand']}}<div style="color:#64748b;font-size:0.85em;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">{$product['brand']}</div>{{endif}}
-				<h1 style="margin:0 0 12px;font-size:1.5em;line-height:1.3;color:#0f172a">{$product['title']}</h1>
+				<h1 style="margin:0 0 12px;font-size:1.6em;line-height:1.3;color:#0f172a">{$product['title']}</h1>
 
 				<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
 					{{if $categoryName}}<span class="ipsBadge ipsBadge--neutral">{$categoryName}</span>{{endif}}
@@ -28,7 +41,7 @@
 
 				<div style="border-top:1px solid #f1f5f9;padding-top:16px">
 					<div style="font-size:0.72em;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;margin-bottom:10px">Specifications</div>
-					<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font-size:0.9em">
+					<div class="gdsp-specs">
 						{{if $product['upc']}}<div><span style="color:#94a3b8">UPC:</span> <code>{$product['upc']}</code></div>{{endif}}
 						{{if $product['mpn']}}<div><span style="color:#94a3b8">{lang="gdsearch_mpn"}:</span> <strong>{$product['mpn']}</strong></div>{{endif}}
 						{{if $product['caliber']}}<div><span style="color:#94a3b8">{lang="gdsearch_caliber"}:</span> <strong>{$product['caliber']}</strong></div>{{endif}}
@@ -42,7 +55,7 @@
 				</div>
 
 				{{if $product['description']}}
-				<p style="color:#475569;font-size:0.9em;line-height:1.55;margin:16px 0 0">{$product['description']}</p>
+				<p style="color:#475569;font-size:0.92em;line-height:1.55;margin:16px 0 0">{$product['description']}</p>
 				{{endif}}
 			</div>
 		</div>
@@ -57,7 +70,8 @@
 			<p style="margin:0">{lang="gdsearch_no_listings"}</p>
 		</div>
 		{{else}}
-		<table style="width:100%;border-collapse:collapse">
+		<div style="overflow-x:auto">
+		<table style="width:100%;border-collapse:collapse;min-width:560px">
 			<thead>
 				<tr style="background:#f8fafc;font-size:0.72em;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8">
 					<th style="padding:11px 16px;text-align:left">{lang="gdsearch_dealer"}</th>
@@ -110,6 +124,7 @@
 				{{endforeach}}
 			</tbody>
 		</table>
+		</div>
 		{{endif}}
 	</div>
 </div>

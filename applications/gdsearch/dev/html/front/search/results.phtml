@@ -22,6 +22,9 @@
 <div class="gdsr-wrap">
 
 	<form method="get" action="{url="app=gdsearch&module=search&controller=results"}" style="margin-bottom:24px">
+		<input type="hidden" name="app" value="gdsearch">
+		<input type="hidden" name="module" value="search">
+		<input type="hidden" name="controller" value="results">
 		<div style="display:flex;gap:8px">
 			<input type="text" name="q" class="ipsInput ipsInput--text" style="flex:1;font-size:1.1em;padding:12px 16px" value="{$query}" placeholder="{lang="gdsearch_search_placeholder"}">
 			<button type="submit" class="ipsButton ipsButton--primary" style="padding:12px 28px">{lang="gdsearch_search_submit"}</button>
@@ -36,6 +39,9 @@
 
 		<div>
 			<form method="get" action="{url="app=gdsearch&module=search&controller=results"}">
+				<input type="hidden" name="app" value="gdsearch">
+				<input type="hidden" name="module" value="search">
+				<input type="hidden" name="controller" value="results">
 				<input type="hidden" name="q" value="{$query}">
 				<input type="hidden" name="sort" value="{$sort}">
 
@@ -81,6 +87,9 @@
 					{{if $query}}{expression="number_format($total)"} {lang="gdsearch_results_for"} <strong>{$query}</strong>{{else}}{expression="number_format($total)"} {lang="gdsearch_results_total"}{{endif}}
 				</p>
 				<form method="get" action="{url="app=gdsearch&module=search&controller=results"}">
+					<input type="hidden" name="app" value="gdsearch">
+					<input type="hidden" name="module" value="search">
+					<input type="hidden" name="controller" value="results">
 					<input type="hidden" name="q" value="{$query}">
 					<input type="hidden" name="category" value="{$filters['category']}">
 					<input type="hidden" name="brand" value="{$filters['brand']}">
