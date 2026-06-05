@@ -1,0 +1,22 @@
+[
+    {
+        "key": "gdsearch_results_per_page",
+        "default": "24",
+        "type": "Text"
+    },
+    {
+        "key": "gdsearch_show_out_of_stock",
+        "default": "1",
+        "type": "YesNo"
+    },
+    {
+        "key": "gdsearch_min_price",
+        "default": "0",
+        "type": "Text"
+    },
+    {
+        "key": "gdsearch_max_price",
+        "default": "0",
+        "type": "Text"
+    }
+]

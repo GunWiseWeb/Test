@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language>
+    <word key="__app_gdsearch" js="0" export="1">GD Search</word>
+    <word key="menutab__gdsearch" js="0" export="1">GD Search</word>
+    <word key="menutab__gdsearch_icon" js="0" export="1">magnifying-glass</word>
+    <word key="menu__gdsearch_search_settings" js="0" export="1">Settings</word>
+    <word key="module__gdsearch_search" js="0" export="1">Search</word>
+    <word key="gdsearch_settings_title" js="0" export="1">Search Settings</word>
+    <word key="gdsearch_results_per_page" js="0" export="1">Results Per Page</word>
+    <word key="gdsearch_show_out_of_stock" js="0" export="1">Show Out of Stock Products</word>
+    <word key="gdsearch_search_placeholder" js="0" export="1">Search firearms, ammo, accessories...</word>
+    <word key="gdsearch_results_title" js="0" export="1">Search Results</word>
+    <word key="gdsearch_no_results" js="0" export="1">No products found matching your search.</word>
+    <word key="gdsearch_filter_category" js="0" export="1">Category</word>
+    <word key="gdsearch_filter_brand" js="0" export="1">Brand</word>
+    <word key="gdsearch_filter_caliber" js="0" export="1">Caliber</word>
+    <word key="gdsearch_filter_price" js="0" export="1">Price Range</word>
+    <word key="gdsearch_filter_in_stock" js="0" export="1">In Stock Only</word>
+    <word key="gdsearch_filter_requires_ffl" js="0" export="1">FFL Required</word>
+    <word key="gdsearch_sort_relevance" js="0" export="1">Best Match</word>
+    <word key="gdsearch_sort_price_asc" js="0" export="1">Price: Low to High</word>
+    <word key="gdsearch_sort_price_desc" js="0" export="1">Price: High to Low</word>
+    <word key="gdsearch_sort_brand" js="0" export="1">Brand A–Z</word>
+    <word key="gdsearch_dealers_from" js="0" export="1">from %1$s dealers</word>
+    <word key="gdsearch_best_price" js="0" export="1">Best Price</word>
+    <word key="gdsearch_msrp" js="0" export="1">MSRP</word>
+    <word key="gdsearch_in_stock" js="0" export="1">In Stock</word>
+    <word key="gdsearch_out_of_stock" js="0" export="1">Out of Stock</word>
+    <word key="gdsearch_requires_ffl" js="0" export="1">FFL Required</word>
+    <word key="gdsearch_nfa_item" js="0" export="1">NFA Item</word>
+    <word key="gdsearch_view_dealers" js="0" export="1">View All Dealers</word>
+    <word key="gdsearch_product_title" js="0" export="1">Product Details</word>
+    <word key="gdsearch_price_comparison" js="0" export="1">Price Comparison</word>
+    <word key="gdsearch_dealer" js="0" export="1">Dealer</word>
+    <word key="gdsearch_price" js="0" export="1">Price</word>
+    <word key="gdsearch_shipping" js="0" export="1">Shipping</word>
+    <word key="gdsearch_stock" js="0" export="1">Stock</word>
+    <word key="gdsearch_buy_now" js="0" export="1">Buy Now</word>
+    <word key="gdsearch_total_results" js="0" export="1">%1$s results</word>
+    <word key="gdsearch_search_again" js="0" export="1">Search Again</word>
+    <word key="gdsearch_filter_clear" js="0" export="1">Clear Filters</word>
+</language>

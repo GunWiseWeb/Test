@@ -1,0 +1,14 @@
+{
+    "admin": {
+        "search": {
+            "default_controller": "settings",
+            "protected": false
+        }
+    },
+    "front": {
+        "search": {
+            "default_controller": "results",
+            "protected": false
+        }
+    }
+}

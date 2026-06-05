@@ -1,0 +1,10 @@
+{
+    "search": {
+        "settings": {
+            "tab": "gdsearch",
+            "controller": "settings",
+            "do": "",
+            "restriction": "search_manage"
+        }
+    }
+}
