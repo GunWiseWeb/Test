@@ -48,7 +48,7 @@ class _results extends \IPS\Dispatcher\Controller
                 'app=gdsearch&module=search&controller=results' . ( $query ? '&q=' . urlencode( $query ) : '' ),
                 'front', 'gdsearch_results'
             );
-            $pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'front' )->pagination(
+            $pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
                 $baseUrl,
                 (int) ceil( $total / $perPage ),
                 $page,
