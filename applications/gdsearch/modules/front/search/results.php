@@ -10,6 +10,21 @@ class _results extends \IPS\Dispatcher\Controller
     protected function manage(): void
     {
         $query      = trim( (string) ( \IPS\Request::i()->q ?? '' ) );
+
+        // If the query is a bare UPC that exists in the catalog, go straight to the product page
+        if ( $query !== '' && preg_match( '/^[0-9]{8,14}$/', $query ) ) {
+            try {
+                \IPS\Db::i()->select( 'upc', 'gd_catalog', [ 'upc=? AND record_status=?', $query, 'active' ] )->first();
+                \IPS\Output::i()->redirect(
+                    \IPS\Http\Url::internal(
+                        'app=gdsearch&module=search&controller=results&do=product&upc=' . $query,
+                        'front', 'gdsearch_product'
+                    )
+                );
+            } catch ( \UnderflowException ) {
+                // No product with this UPC — fall through to normal search results
+            }
+        }
         $page       = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
         $sort       = (string) ( \IPS\Request::i()->sort ?? 'relevance' );
         $perPage    = max( 12, min( 48, (int) ( \IPS\Settings::i()->gdsearch_results_per_page ?: 24 ) ) );
