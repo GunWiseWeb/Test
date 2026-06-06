@@ -146,17 +146,31 @@ class Searcher
             ],
             'sort' => [ $sortClause ],
             'aggs' => [
-                'categories' => [ 'terms' => [ 'field' => 'category.keyword',  'size' => 20 ] ],
-                'brands'     => [ 'terms' => [ 'field' => 'brand.keyword',     'size' => 50 ] ],
-                'calibers'   => [ 'terms' => [ 'field' => 'caliber.keyword',   'size' => 50 ] ],
-                'actions'      => [ 'terms' => [ 'field' => 'action_type.keyword', 'size' => 30 ] ],
-                'capacities'   => [ 'terms' => [ 'field' => 'capacity',            'size' => 40 ] ],
-                'casings'      => [ 'terms' => [ 'field' => 'case_type.keyword',   'size' => 20 ] ],
-                'bullet_types'   => [ 'terms' => [ 'field' => 'bullet_type.keyword', 'size' => 30 ] ],
-                'barrel_present' => [ 'filter' => [ 'bool' => [
-                    'must'     => [ [ 'range' => [ 'barrel_length' => [ 'gt' => 0 ] ] ] ],
-                    'must_not' => [ [ 'term'  => [ 'is_ammo' => true ] ] ],
-                ] ] ],
+                'categories' => [ 'terms' => [ 'field' => 'category.keyword', 'size' => 20 ] ],
+                'brands'     => [ 'terms' => [ 'field' => 'brand.keyword',    'size' => 50 ] ],
+                /* Type-specific facets scoped to their product type so bled attribute values
+                   (e.g. a holster color landing in caliber) never surface. */
+                'calibers' => [
+                    'filter' => [ 'bool' => [ 'should' => [ [ 'term' => [ 'requires_ffl' => true ] ], [ 'term' => [ 'is_ammo' => true ] ] ], 'minimum_should_match' => 1 ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'caliber.keyword', 'size' => 50 ] ] ],
+                ],
+                'actions' => [
+                    'filter' => [ 'bool' => [ 'must' => [ [ 'term' => [ 'requires_ffl' => true ] ] ], 'must_not' => [ [ 'term' => [ 'is_ammo' => true ] ] ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'action_type.keyword', 'size' => 30 ] ] ],
+                ],
+                'capacities' => [
+                    'filter' => [ 'bool' => [ 'must' => [ [ 'term' => [ 'requires_ffl' => true ] ] ], 'must_not' => [ [ 'term' => [ 'is_ammo' => true ] ] ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'capacity', 'size' => 40 ] ] ],
+                ],
+                'casings' => [
+                    'filter' => [ 'term' => [ 'is_ammo' => true ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'case_type.keyword', 'size' => 20 ] ] ],
+                ],
+                'bullet_types' => [
+                    'filter' => [ 'term' => [ 'is_ammo' => true ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'bullet_type.keyword', 'size' => 30 ] ] ],
+                ],
+                'barrel_present' => [ 'filter' => [ 'bool' => [ 'must' => [ [ 'range' => [ 'barrel_length' => [ 'gt' => 0 ] ] ], [ 'term' => [ 'requires_ffl' => true ] ] ], 'must_not' => [ [ 'term' => [ 'is_ammo' => true ] ] ] ] ] ],
             ],
         ];
 

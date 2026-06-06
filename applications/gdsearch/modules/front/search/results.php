@@ -114,6 +114,16 @@ class _results extends \IPS\Dispatcher\Controller
             $results  = $data['results'];
             $total    = $data['total'];
             $aggs     = $data['aggregations'];
+
+            /* Scoped facet aggs return buckets one level deeper under 'values' — lift them up to the
+               flat shape the blank-strip loop and template expect. */
+            foreach ( [ 'calibers', 'actions', 'capacities', 'casings', 'bullet_types' ] as $scopedAgg )
+            {
+                if ( isset( $aggs[ $scopedAgg ]['values']['buckets'] ) )
+                {
+                    $aggs[ $scopedAgg ]['buckets'] = $aggs[ $scopedAgg ]['values']['buckets'];
+                }
+            }
         } catch ( \Throwable $e ) {
             $error = $e->getMessage();
         }
