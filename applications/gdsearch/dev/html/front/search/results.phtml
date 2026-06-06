@@ -71,9 +71,9 @@
 				<div class="gdsr-side-box">
 					<h3 class="gdsr-fh">{lang="gdsearch_filter_price"}</h3>
 					<div style="display:flex;gap:6px;align-items:center">
-						<input type="number" name="min_price" placeholder="Min" class="ipsInput ipsInput--text" style="width:100%" value="{{if $filters['min_price'] > 0}}{$filters['min_price']}{{endif}}">
+						<input type="number" name="min_price" placeholder="Min" class="ipsInput ipsInput--text" style="width:100%" value="{{if $filters['min_price'] > 0}}{$filters['min_price']}{{endif}}" onchange="this.form.submit()">
 						<span style="color:#94a3b8">&ndash;</span>
-						<input type="number" name="max_price" placeholder="Max" class="ipsInput ipsInput--text" style="width:100%" value="{{if $filters['max_price'] > 0}}{$filters['max_price']}{{endif}}">
+						<input type="number" name="max_price" placeholder="Max" class="ipsInput ipsInput--text" style="width:100%" value="{{if $filters['max_price'] > 0}}{$filters['max_price']}{{endif}}" onchange="this.form.submit()">
 					</div>
 				</div>
 
@@ -82,7 +82,7 @@
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_brand"}</h3>
 					<div class="gdsr-facet-list">
 						{{foreach $aggs['brands']['buckets'] as $b}}
-						<label class="gdsr-facet-opt"><input type="checkbox" name="brand[]" value="{$b['key']}" {{if is_array($filters['brand']) and in_array($b['key'], $filters['brand'])}}checked{{endif}}><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+						<label class="gdsr-facet-opt"><input type="checkbox" name="brand[]" value="{$b['key']}" {{if is_array($filters['brand']) and in_array($b['key'], $filters['brand'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
 						{{endforeach}}
 					</div>
 				</div>
@@ -93,7 +93,7 @@
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_caliber"}</h3>
 					<div class="gdsr-facet-list">
 						{{foreach $aggs['calibers']['buckets'] as $b}}
-						<label class="gdsr-facet-opt"><input type="checkbox" name="caliber[]" value="{$b['key']}" {{if is_array($filters['caliber']) and in_array($b['key'], $filters['caliber'])}}checked{{endif}}><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+						<label class="gdsr-facet-opt"><input type="checkbox" name="caliber[]" value="{$b['key']}" {{if is_array($filters['caliber']) and in_array($b['key'], $filters['caliber'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
 						{{endforeach}}
 					</div>
 				</div>
@@ -104,7 +104,7 @@
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_action"}</h3>
 					<div class="gdsr-facet-list">
 						{{foreach $aggs['actions']['buckets'] as $b}}
-						<label class="gdsr-facet-opt"><input type="checkbox" name="action[]" value="{$b['key']}" {{if is_array($filters['action']) and in_array($b['key'], $filters['action'])}}checked{{endif}}><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+						<label class="gdsr-facet-opt"><input type="checkbox" name="action[]" value="{$b['key']}" {{if is_array($filters['action']) and in_array($b['key'], $filters['action'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
 						{{endforeach}}
 					</div>
 				</div>
@@ -115,7 +115,7 @@
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_capacity"}</h3>
 					<div class="gdsr-facet-list">
 						{{foreach $aggs['capacities']['buckets'] as $b}}
-						<label class="gdsr-facet-opt"><input type="checkbox" name="capacity[]" value="{$b['key']}" {{if is_array($filters['capacity']) and in_array($b['key'], $filters['capacity'])}}checked{{endif}}><span>{$b['key']} rds</span><em>{$b['doc_count']}</em></label>
+						<label class="gdsr-facet-opt"><input type="checkbox" name="capacity[]" value="{$b['key']}" {{if is_array($filters['capacity']) and in_array($b['key'], $filters['capacity'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']} rds</span><em>{$b['doc_count']}</em></label>
 						{{endforeach}}
 					</div>
 				</div>
@@ -126,7 +126,7 @@
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_barrel"}</h3>
 					<div class="gdsr-facet-list">
 						{{foreach $barrelBands as $bandKey => $bandLabel}}
-						<label class="gdsr-facet-opt"><input type="checkbox" name="barrel[]" value="{$bandKey}" {{if is_array($filters['barrel']) and in_array($bandKey, $filters['barrel'])}}checked{{endif}}><span>{$bandLabel}</span></label>
+						<label class="gdsr-facet-opt"><input type="checkbox" name="barrel[]" value="{$bandKey}" {{if is_array($filters['barrel']) and in_array($bandKey, $filters['barrel'])}}checked{{endif}} onchange="this.form.submit()"><span>{$bandLabel}</span></label>
 						{{endforeach}}
 					</div>
 				</div>
@@ -137,7 +137,7 @@
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_casing"}</h3>
 					<div class="gdsr-facet-list">
 						{{foreach $aggs['casings']['buckets'] as $b}}
-						<label class="gdsr-facet-opt"><input type="checkbox" name="casing[]" value="{$b['key']}" {{if is_array($filters['casing']) and in_array($b['key'], $filters['casing'])}}checked{{endif}}><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+						<label class="gdsr-facet-opt"><input type="checkbox" name="casing[]" value="{$b['key']}" {{if is_array($filters['casing']) and in_array($b['key'], $filters['casing'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
 						{{endforeach}}
 					</div>
 				</div>
@@ -148,7 +148,7 @@
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_bullet"}</h3>
 					<div class="gdsr-facet-list">
 						{{foreach $aggs['bullet_types']['buckets'] as $b}}
-						<label class="gdsr-facet-opt"><input type="checkbox" name="bullet_type[]" value="{$b['key']}" {{if is_array($filters['bullet_type']) and in_array($b['key'], $filters['bullet_type'])}}checked{{endif}}><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+						<label class="gdsr-facet-opt"><input type="checkbox" name="bullet_type[]" value="{$b['key']}" {{if is_array($filters['bullet_type']) and in_array($b['key'], $filters['bullet_type'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
 						{{endforeach}}
 					</div>
 				</div>
@@ -159,7 +159,7 @@
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_grain"}</h3>
 					<div class="gdsr-facet-list">
 						{{foreach $grainBands as $bandKey => $bandLabel}}
-						<label class="gdsr-facet-opt"><input type="checkbox" name="grain[]" value="{$bandKey}" {{if is_array($filters['grain']) and in_array($bandKey, $filters['grain'])}}checked{{endif}}><span>{$bandLabel}</span></label>
+						<label class="gdsr-facet-opt"><input type="checkbox" name="grain[]" value="{$bandKey}" {{if is_array($filters['grain']) and in_array($bandKey, $filters['grain'])}}checked{{endif}} onchange="this.form.submit()"><span>{$bandLabel}</span></label>
 						{{endforeach}}
 					</div>
 				</div>
@@ -167,7 +167,7 @@
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_velocity"}</h3>
 					<div class="gdsr-facet-list">
 						{{foreach $velocityBands as $bandKey => $bandLabel}}
-						<label class="gdsr-facet-opt"><input type="checkbox" name="velocity[]" value="{$bandKey}" {{if is_array($filters['velocity']) and in_array($bandKey, $filters['velocity'])}}checked{{endif}}><span>{$bandLabel}</span></label>
+						<label class="gdsr-facet-opt"><input type="checkbox" name="velocity[]" value="{$bandKey}" {{if is_array($filters['velocity']) and in_array($bandKey, $filters['velocity'])}}checked{{endif}} onchange="this.form.submit()"><span>{$bandLabel}</span></label>
 						{{endforeach}}
 					</div>
 				</div>
@@ -175,17 +175,12 @@
 
 				<div class="gdsr-side-box">
 					<h3 class="gdsr-fh">{lang="gdsearch_filters"}</h3>
-					<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
-						<input type="checkbox" name="in_stock" value="1" {{if $filters['in_stock']}}checked{{endif}}>
-						<span style="font-size:0.9em">{lang="gdsearch_filter_in_stock"}</span>
-					</label>
 					<label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-						<input type="checkbox" name="requires_ffl" value="1" {{if $filters['requires_ffl']}}checked{{endif}}>
-						<span style="font-size:0.9em">{lang="gdsearch_filter_requires_ffl"}</span>
+						<input type="checkbox" name="in_stock" value="1" {{if $filters['in_stock']}}checked{{endif}} onchange="this.form.submit()">
+						<span style="font-size:0.9em">{lang="gdsearch_filter_in_stock"}</span>
 					</label>
 				</div>
 
-				<button type="submit" class="ipsButton ipsButton--primary ipsButton--small" style="width:100%;margin-bottom:6px">{lang="gdsearch_filter_apply"}</button>
 				<a href="{url="app=gdsearch&module=search&controller=results"}&q={$query}" class="ipsButton ipsButton--text ipsButton--small" style="width:100%;text-align:center">{lang="gdsearch_filter_clear"}</a>
 			</form>
 		</div>
@@ -212,7 +207,6 @@
 					{{foreach $filters['velocity'] as $v}}<input type="hidden" name="velocity[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['barrel'] as $v}}<input type="hidden" name="barrel[]" value="{$v}">{{endforeach}}
 					{{if $filters['in_stock']}}<input type="hidden" name="in_stock" value="1">{{endif}}
-					{{if $filters['requires_ffl']}}<input type="hidden" name="requires_ffl" value="1">{{endif}}
 					<select name="sort" class="ipsInput ipsInput--select" onchange="this.form.submit()">
 						<option value="relevance" {{if $sort === 'relevance'}}selected{{endif}}>{lang="gdsearch_sort_relevance"}</option>
 						<option value="price_asc" {{if $sort === 'price_asc'}}selected{{endif}}>{lang="gdsearch_sort_price_asc"}</option>
