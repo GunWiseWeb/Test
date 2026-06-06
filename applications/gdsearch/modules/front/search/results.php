@@ -255,12 +255,42 @@ class _results extends \IPS\Dispatcher\Controller
         $wishLoginUrl  = (string) \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' );
         $wishCsrfKey   = \IPS\Session::i()->csrfKey;
 
+        $reportLoggedIn = (bool) $member->member_id;
+        $reportUrl      = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=reportProduct', 'front' );
+        $reportLoginUrl = (string) \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' );
+        $reportCsrfKey  = \IPS\Session::i()->csrfKey;
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'report.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
+
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
             $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow,
             $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl,
-            $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey
+            $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey,
+            $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey
         );
+    }
+
+    protected function reportProduct(): void
+    {
+        $member = \IPS\Member::loggedIn();
+        if ( !$member->member_id ) { \IPS\Output::i()->json( [ 'ok'=>false, 'error'=>'login' ] ); }
+        \IPS\Session::i()->csrfCheck();
+        $upc     = (string) \IPS\Request::i()->upc;
+        $reason  = ( \IPS\Request::i()->reason === 'content' ) ? 'content' : 'data';
+        $details = mb_substr( trim( (string) \IPS\Request::i()->details ), 0, 1000 );
+        if ( $upc === '' ) { \IPS\Output::i()->json( [ 'ok'=>false ] ); }
+        try { $dupe = \IPS\Db::i()->select( 'COUNT(*)', 'gd_product_reports', [ 'upc=? AND member_id=? AND status=?', $upc, $member->member_id, 'open' ] )->first(); }
+        catch ( \Throwable ) { $dupe = 0; }
+        if ( !$dupe )
+        {
+            try {
+                \IPS\Db::i()->insert( 'gd_product_reports', [
+                    'upc'=>$upc, 'member_id'=>(int)$member->member_id, 'reason'=>$reason, 'details'=>$details,
+                    'status'=>'open', 'admin_note'=>'', 'created'=>time(), 'handled_by'=>0, 'handled_at'=>0,
+                ] );
+            } catch ( \Throwable ) {}
+        }
+        \IPS\Output::i()->json( [ 'ok'=>true ] );
     }
 
     protected function setAlert(): void

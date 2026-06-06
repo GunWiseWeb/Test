@@ -2,6 +2,9 @@
     "search": {
         "settings": {
             "search_manage": "search_manage"
+        },
+        "reports": {
+            "reports_manage": "reports_manage"
         }
     }
 }

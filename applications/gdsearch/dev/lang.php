@@ -69,4 +69,7 @@ $lang = [
     'gdsearch_wishlist_add'      => "Save to Wishlist",
     'gdsearch_wishlist_saved'    => "Saved to Wishlist",
     'gdsearch_compare_title'     => "Compare Products",
+    'gdsearch_reports_title'          => "Product Reports",
+    'menu__gdsearch_search_reports'   => "Product Reports",
+    'reports_manage'                  => "Can manage product reports?",
 ];

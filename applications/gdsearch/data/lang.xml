@@ -67,4 +67,7 @@
     <word key="gdsearch_wishlist_add" js="0" export="1">Save to Wishlist</word>
     <word key="gdsearch_wishlist_saved" js="0" export="1">Saved to Wishlist</word>
     <word key="gdsearch_compare_title" js="0" export="1">Compare Products</word>
+    <word key="gdsearch_reports_title" js="0" export="1">Product Reports</word>
+    <word key="menu__gdsearch_search_reports" js="0" export="1">Product Reports</word>
+    <word key="reports_manage" js="0" export="1">Can manage product reports?</word>
 </language>

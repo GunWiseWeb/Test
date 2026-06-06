@@ -1,0 +1,65 @@
+<ips:template parameters="$rows, $status, $counts, $base, $csrfKey" />
+<style>
+.grq-tabs { display:flex; gap:8px; margin:0 0 16px }
+.grq-tab { text-decoration:none; padding:8px 16px; border-radius:8px; font-weight:600; font-size:.9em; border:1px solid #d1d9e3; color:#475569; background:#fff }
+.grq-tab.grq-on { background:#1E3A8A; color:#fff; border-color:#1E3A8A }
+.grq-tab .grq-n { opacity:.8; font-weight:700; margin-left:4px }
+.grq-table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden }
+.grq-table th { text-align:left; font-size:.75em; text-transform:uppercase; letter-spacing:.04em; color:#64748b; background:#f8fafc; padding:10px 12px; border-bottom:1px solid #e2e8f0 }
+.grq-table td { padding:12px; border-bottom:1px solid #eef2f7; vertical-align:top; font-size:.9em }
+.grq-prod a { color:#1E40AF; text-decoration:none; font-weight:600 } .grq-prod a:hover { text-decoration:underline }
+.grq-upc { color:#94a3b8; font-size:.85em; font-family:monospace }
+.grq-badge { display:inline-block; padding:3px 9px; border-radius:6px; font-size:.78em; font-weight:700 }
+.grq-badge--data { background:#fef3c7; color:#92400e } .grq-badge--content { background:#fee2e2; color:#991b1b }
+.grq-details { color:#334155; max-width:280px; white-space:pre-wrap }
+.grq-note textarea { width:100%; min-height:42px; font-size:.85em; border:1px solid #d1d9e3; border-radius:6px; padding:6px }
+.grq-actions { white-space:nowrap }
+.grq-empty { text-align:center; padding:48px; color:#94a3b8 }
+.grq-when { color:#64748b; white-space:nowrap }
+</style>
+
+<div class="grq-tabs">
+	<a class="grq-tab {{if $status === 'open'}}grq-on{{endif}}" href="{$base}&status=open">Open<span class="grq-n">{$counts['open']}</span></a>
+	<a class="grq-tab {{if $status === 'resolved'}}grq-on{{endif}}" href="{$base}&status=resolved">Resolved<span class="grq-n">{$counts['resolved']}</span></a>
+	<a class="grq-tab {{if $status === 'dismissed'}}grq-on{{endif}}" href="{$base}&status=dismissed">Dismissed<span class="grq-n">{$counts['dismissed']}</span></a>
+</div>
+
+{{if count($rows) === 0}}
+<div class="grq-empty">No {$status} reports.</div>
+{{else}}
+<table class="grq-table">
+	<thead>
+		<tr>
+			<th>Product</th><th>Reason</th><th>Details</th><th>Reporter</th><th>When</th><th>Staff note</th><th>Actions</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{foreach $rows as $row}}
+		<tr>
+			<td class="grq-prod">
+				<a href="{$row['product_url']}" target="_blank" rel="noopener">{$row['product_title']}</a>
+				<div class="grq-upc">{$row['upc']}</div>
+			</td>
+			<td>
+				{{if $row['reason'] === 'content'}}<span class="grq-badge grq-badge--content">Content</span>{{else}}<span class="grq-badge grq-badge--data">Price / Data</span>{{endif}}
+			</td>
+			<td class="grq-details">{{if $row['details']}}{$row['details']}{{else}}<span style="color:#cbd5e1">&mdash;</span>{{endif}}</td>
+			<td>{$row['reporter_name']}</td>
+			<td class="grq-when">{expression="\IPS\DateTime::ts( (int) $row['created'] )->localeDate()"}</td>
+			<td class="grq-note">
+				<form method="post" action="{$base}&do=note&id={$row['id']}">
+					<input type="hidden" name="csrfKey" value="{$csrfKey}">
+					<textarea name="admin_note" placeholder="Add a note…">{$row['admin_note']}</textarea>
+					<button type="submit" class="ipsButton ipsButton--soft ipsButton--tiny" style="margin-top:4px">Save note</button>
+				</form>
+			</td>
+			<td class="grq-actions">
+				{{if $status !== 'resolved'}}<a class="ipsButton ipsButton--positive ipsButton--tiny" href="{$base}&do=resolve&id={$row['id']}&csrfKey={$csrfKey}">Resolve</a>{{endif}}
+				{{if $status !== 'dismissed'}}<a class="ipsButton ipsButton--negative ipsButton--tiny" href="{$base}&do=dismiss&id={$row['id']}&csrfKey={$csrfKey}" style="margin-top:4px">Dismiss</a>{{endif}}
+				{{if $status !== 'open'}}<a class="ipsButton ipsButton--soft ipsButton--tiny" href="{$base}&do=reopen&id={$row['id']}&csrfKey={$csrfKey}" style="margin-top:4px">Reopen</a>{{endif}}
+			</td>
+		</tr>
+		{{endforeach}}
+	</tbody>
+</table>
+{{endif}}

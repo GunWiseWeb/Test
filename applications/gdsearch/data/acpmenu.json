@@ -5,6 +5,12 @@
             "controller": "settings",
             "do": "",
             "restriction": "search_manage"
+        },
+        "reports": {
+            "tab": "gdsearch",
+            "controller": "reports",
+            "do": "",
+            "restriction": "reports_manage"
         }
     }
 }
