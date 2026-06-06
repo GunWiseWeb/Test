@@ -73,6 +73,17 @@ class _results extends \IPS\Dispatcher\Controller
             'max_price'    => (float) ( \IPS\Request::i()->max_price ?? 0 ),
         ];
 
+        $hiddenCatIds = [];
+        try {
+            if ( \IPS\Db::i()->checkForColumn( 'gd_categories', 'hidden' ) ) {
+                foreach ( \IPS\Db::i()->select( 'id', 'gd_categories', [ 'hidden=1' ] ) as $hid ) { $hiddenCatIds[] = (int) $hid; }
+            }
+        } catch ( \Throwable ) {}
+
+        if ( $categoryId <= 0 && $hiddenCatIds ) {
+            $filters['excludeCategoryIds'] = $hiddenCatIds;
+        }
+
         $results    = [];
         $total      = 0;
         $aggs       = [];
@@ -111,10 +122,11 @@ class _results extends \IPS\Dispatcher\Controller
             );
         }
 
-        // Build category list from gd_categories for filter dropdown
         $categories = [];
         try {
-            foreach ( \IPS\Db::i()->select( 'id, name', 'gd_categories', [ 'parent_id=?', 0 ], 'name ASC' ) as $cat ) {
+            $catWhere = [ [ 'parent_id=?', 0 ] ];
+            try { if ( \IPS\Db::i()->checkForColumn( 'gd_categories', 'hidden' ) ) { $catWhere[] = [ 'hidden=?', 0 ]; } } catch ( \Throwable ) {}
+            foreach ( \IPS\Db::i()->select( 'id, name', 'gd_categories', $catWhere, 'name ASC' ) as $cat ) {
                 $categories[] = [ 'id' => (int) $cat['id'], 'name' => (string) $cat['name'] ];
             }
         } catch ( \Throwable ) {}

@@ -77,6 +77,11 @@ class Searcher
             $filter[] = [ 'term' => [ 'requires_ffl' => true ] ];
         }
 
+        $mustNot = [];
+        if ( !empty( $filters['excludeCategoryIds'] ) && is_array( $filters['excludeCategoryIds'] ) ) {
+            $mustNot[] = [ 'terms' => [ 'category_id' => array_values( $filters['excludeCategoryIds'] ) ] ];
+        }
+
         // Sort
         $sortClause = match( $sort ) {
             'price_asc'  => [ 'msrp' => [ 'order' => 'asc',  'missing' => '_last'  ] ],
@@ -89,10 +94,11 @@ class Searcher
             'from'  => $from,
             'size'  => $perPage,
             'query' => [
-                'bool' => [
-                    'must'   => $must,
-                    'filter' => $filter,
-                ],
+                'bool' => array_filter( [
+                    'must'     => $must,
+                    'filter'   => $filter,
+                    'must_not' => $mustNot ?: null,
+                ] ),
             ],
             'sort' => [ $sortClause ],
             'aggs' => [
