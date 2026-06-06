@@ -225,6 +225,15 @@ class _results extends \IPS\Dispatcher\Controller
             'app=gdsearch&module=search&controller=results',
             'front', 'gdsearch_results'
         );
+        /* Prefer the search/listing the user came from (preserves q + filters). Only honor a
+         * same-site referrer that isn't itself a product page. */
+        try {
+            $ref  = (string) ( $_SERVER['HTTP_REFERER'] ?? '' );
+            $base = (string) \IPS\Settings::i()->base_url;
+            if ( $ref !== '' && $base !== '' && str_starts_with( $ref, $base ) && stripos( $ref, 'do=product' ) === false ) {
+                $backUrl = $ref;
+            }
+        } catch ( \Throwable ) {}
 
         $member = \IPS\Member::loggedIn();
         $alertLoggedIn = (bool) $member->member_id;
