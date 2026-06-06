@@ -1,3 +1,7 @@
 {
-    "Notifications": { "PriceAlerts": "IPS\\gdsearch\\extensions\\core\\Notifications\\PriceAlerts" }
+    "core": {
+        "Notifications": {
+            "PriceAlerts": "IPS\\gdsearch\\extensions\\core\\Notifications\\PriceAlerts"
+        }
+    }
 }
