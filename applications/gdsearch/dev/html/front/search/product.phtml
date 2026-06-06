@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr" />
 <style>
 .gdsp-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box }
 .gdsp-top { display:grid; grid-template-columns:420px 1fr; gap:36px }
@@ -39,6 +39,13 @@
 					{{if $product['nfa_item']}}<span class="ipsBadge ipsBadge--negative">{lang="gdsearch_nfa_item"}</span>{{endif}}
 					{{if $product['is_ammo']}}<span class="ipsBadge ipsBadge--neutral">Ammo</span>{{endif}}
 				</div>
+
+				{{if $restrictedStatesStr}}
+				<div style="display:inline-flex;align-items:center;gap:8px;margin:0 0 16px;padding:8px 12px;border-radius:6px;background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-weight:600;font-size:0.88em">
+					<span aria-hidden="true">&#9888;</span>
+					<span>State Restricted &mdash; cannot ship to: {$restrictedStatesStr}</span>
+				</div>
+				{{endif}}
 
 				<div style="border-top:1px solid #f1f5f9;padding-top:16px">
 					<div style="font-size:0.92em;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin-bottom:14px">Specifications</div>

@@ -172,6 +172,21 @@ class _results extends \IPS\Dispatcher\Controller
             $categoryName = (string) $cat;
         } catch ( \Throwable ) {}
 
+        $restrictedStates = [];
+        try {
+            foreach ( \IPS\Db::i()->select( 'flag_value', 'gd_compliance_flags',
+                [ "upc=? AND flag_type='state_restriction' AND status='active'", $upc ] ) as $val )
+            {
+                foreach ( explode( ',', (string) $val ) as $st ) {
+                    $st = strtoupper( trim( $st ) );
+                    if ( $st !== '' ) { $restrictedStates[ $st ] = TRUE; }
+                }
+            }
+        } catch ( \Throwable ) {}
+        $restrictedStates = array_keys( $restrictedStates );
+        sort( $restrictedStates );
+        $restrictedStatesStr = implode( ', ', $restrictedStates );
+
         $backUrl = (string) \IPS\Http\Url::internal(
             'app=gdsearch&module=search&controller=results',
             'front', 'gdsearch_results'
@@ -179,7 +194,7 @@ class _results extends \IPS\Dispatcher\Controller
 
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
-            $product, $listings, $categoryName, $backUrl
+            $product, $listings, $categoryName, $backUrl, $restrictedStatesStr
         );
     }
 }
