@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceAllTimeLow" />
 <style>
 .gdsp-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box }
 .gdsp-top { display:grid; grid-template-columns:420px 1fr; gap:36px }
@@ -26,6 +26,16 @@
 				</div>
 				{{else}}
 				<div class="gdsp-noimg">&#128230;</div>
+				{{endif}}
+
+				{{if $priceChartSvg !== ''}}
+				<div style="margin:16px 0 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:8px">
+					<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+						<strong>Price History <span style="font-weight:400;color:#6B7280">(past 12 months)</span></strong>
+						{{if $priceAllTimeLow !== null}}<span style="font-size:.85em;color:#6B7280">All-time low: <strong style="color:#1E40AF">{expression="'$' . number_format( (float) $priceAllTimeLow, 2 )"}</strong></span>{{endif}}
+					</div>
+					{$priceChartSvg|raw}
+				</div>
 				{{endif}}
 			</div>
 

@@ -187,6 +187,41 @@ class _results extends \IPS\Dispatcher\Controller
         sort( $restrictedStates );
         $restrictedStatesStr = implode( ', ', $restrictedStates );
 
+        $priceChartSvg   = '';
+        $priceAllTimeLow = null;
+
+        $rawSeries = [];
+        try { $rawSeries = \IPS\gddealer\Listing\PriceHistory::seriesFor( $upc, null, 365 ); } catch ( \Throwable ) {}
+        try { $priceAllTimeLow = \IPS\gddealer\Listing\PriceHistory::allTimeLow( $upc ); } catch ( \Throwable ) {}
+
+        $dayMin = [];
+        foreach ( $rawSeries as $r )
+        {
+            $p = (float) $r['price'];
+            if ( $p <= 0 ) { continue; }
+            $d = substr( (string) $r['recorded_at'], 0, 10 );
+            if ( !isset( $dayMin[ $d ] ) || $p < $dayMin[ $d ] ) { $dayMin[ $d ] = $p; }
+        }
+        ksort( $dayMin );
+
+        $series = [];
+        if ( $dayMin )
+        {
+            try {
+                $start = new \DateTime( array_key_first( $dayMin ) );
+                $end   = new \DateTime( date( 'Y-m-d' ) );
+                $last  = null;
+                for ( $d = clone $start; $d <= $end; $d->modify( '+1 day' ) )
+                {
+                    $k = $d->format( 'Y-m-d' );
+                    if ( isset( $dayMin[ $k ] ) ) { $last = $dayMin[ $k ]; }
+                    if ( $last !== null ) { $series[] = [ 'date' => $k, 'price' => $last ]; }
+                }
+            } catch ( \Throwable ) { $series = []; }
+        }
+
+        $priceChartSvg = \IPS\gdsearch\Price\Chart::svg( $series );
+
         $backUrl = (string) \IPS\Http\Url::internal(
             'app=gdsearch&module=search&controller=results',
             'front', 'gdsearch_results'
@@ -194,7 +229,7 @@ class _results extends \IPS\Dispatcher\Controller
 
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
-            $product, $listings, $categoryName, $backUrl, $restrictedStatesStr
+            $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceAllTimeLow
         );
     }
 }
