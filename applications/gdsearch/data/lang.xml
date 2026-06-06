@@ -63,4 +63,7 @@
     <word key="notifications__gdsearch_price_drop" js="0" export="1">Price drop alerts</word>
     <word key="notification__price_drop" js="0" export="1">Price drop alert</word>
     <word key="notifications__gdsearch_PriceAlerts" js="0" export="1">Price drop alerts</word>
+    <word key="gdsearch_my_wishlist_title" js="0" export="1">My Wishlist</word>
+    <word key="gdsearch_wishlist_add" js="0" export="1">Save to Wishlist</word>
+    <word key="gdsearch_wishlist_saved" js="0" export="1">Saved to Wishlist</word>
 </language>

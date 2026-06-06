@@ -121,5 +121,86 @@
                 "name": "upc_threshold"
             }
         }
+    },
+    "gd_wishlist": {
+        "name": "gd_wishlist",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "member_id": {
+                "name": "member_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "upc": {
+                "name": "upc",
+                "type": "VARCHAR",
+                "length": 64,
+                "decimals": null,
+                "allow_null": false,
+                "default": "",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created": {
+                "name": "created",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "columns": ["id"],
+                "length": [null],
+                "name": "PRIMARY"
+            },
+            "member_upc": {
+                "type": "unique",
+                "columns": ["member_id", "upc"],
+                "length": [null, null],
+                "name": "member_upc"
+            },
+            "member_id": {
+                "type": "key",
+                "columns": ["member_id"],
+                "length": [null],
+                "name": "member_id"
+            }
+        }
     }
 }

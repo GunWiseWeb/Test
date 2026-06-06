@@ -1,0 +1,41 @@
+<ips:template parameters="$rows, $removeUrl, $csrfKey" />
+<style>
+.gda-wrap { max-width:900px; margin:0 auto; padding:20px }
+.gd-wish-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:20px; margin-bottom:16px; display:flex; align-items:center; gap:16px }
+.gd-wish-thumb { width:64px; height:64px; border-radius:8px; object-fit:contain; background:#f8fafc; border:1px solid #e2e8f0 }
+.gd-wish-info { flex:1; min-width:0 }
+.gd-wish-title { font-weight:600; color:#0f172a; font-size:1em; margin:0 0 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.gd-wish-meta { font-size:0.85em; color:#64748b }
+.gd-wish-empty { text-align:center; padding:60px 20px; color:#94a3b8 }
+</style>
+<div class="gda-wrap">
+	<h1 style="font-size:1.3em;color:#0f172a;margin:0 0 20px">{lang="gdsearch_my_wishlist_title"}</h1>
+
+	{{if count($rows) === 0}}
+	<div class="gd-wish-empty">
+		<p style="font-size:1.1em;margin:0 0 8px">You haven't saved any products yet.</p>
+		<p style="margin:0">Browse products and tap the heart to save them here.</p>
+	</div>
+	{{else}}
+	{{foreach $rows as $row}}
+	<div class="gd-wish-card">
+		{{if $row['image']}}
+		<img src="{$row['image']}" alt="" class="gd-wish-thumb">
+		{{else}}
+		<div class="gd-wish-thumb" style="display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:1.5em">&#128230;</div>
+		{{endif}}
+		<div class="gd-wish-info">
+			<div class="gd-wish-title"><a href="{$row['productUrl']}" style="color:inherit;text-decoration:none">{$row['title']}</a></div>
+			<div class="gd-wish-meta">
+				{{if $row['price'] !== null}}
+				Lowest price: <strong>${expression="number_format((float)$row['price'],2)"}</strong>
+				{{else}}
+				No price data
+				{{endif}}
+			</div>
+		</div>
+		<button type="button" class="gd-wish-remove ipsButton ipsButton--soft ipsButton--small" data-upc="{$row['upc']}" data-remove-url="{$removeUrl}" data-csrf="{$csrfKey}">Remove</button>
+	</div>
+	{{endforeach}}
+	{{endif}}
+</div>

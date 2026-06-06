@@ -216,6 +216,7 @@ class _results extends \IPS\Dispatcher\Controller
 
         try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'pricechart.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
         try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'wishlist.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
 
         $backUrl = (string) \IPS\Http\Url::internal(
             'app=gdsearch&module=search&controller=results',
@@ -240,10 +241,22 @@ class _results extends \IPS\Dispatcher\Controller
         $alertCsrfKey   = \IPS\Session::i()->csrfKey;
         $alertLoginUrl  = (string) \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' );
 
+        $wishLoggedIn = (bool) $member->member_id;
+        $wishlisted   = false;
+        if ( $wishLoggedIn )
+        {
+            try { $wishlisted = (bool) \IPS\Db::i()->select( 'COUNT(*)', 'gd_wishlist', [ 'member_id=? AND upc=?', $member->member_id, $product['upc'] ] )->first(); } catch ( \Throwable ) {}
+        }
+        $wishAddUrl    = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=addWishlist', 'front' );
+        $wishRemoveUrl = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=removeWishlist', 'front' );
+        $wishLoginUrl  = (string) \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' );
+        $wishCsrfKey   = \IPS\Session::i()->csrfKey;
+
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
             $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow,
-            $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl
+            $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl,
+            $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey
         );
     }
 
@@ -369,6 +382,89 @@ class _results extends \IPS\Dispatcher\Controller
         \IPS\Output::i()->title = \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_my_alerts_title' );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->myAlerts(
             $alerts, $csrfKey
+        );
+    }
+    protected function addWishlist(): void
+    {
+        $member = \IPS\Member::loggedIn();
+        if ( !$member->member_id )
+        {
+            \IPS\Output::i()->json( [ 'ok' => false, 'error' => 'login' ] );
+            return;
+        }
+
+        \IPS\Session::i()->csrfCheck();
+
+        $upc = (string) \IPS\Request::i()->upc;
+
+        try
+        {
+            \IPS\Db::i()->insert( 'gd_wishlist', [
+                'member_id' => (int) $member->member_id,
+                'upc'       => $upc,
+                'created'   => time(),
+            ] );
+        }
+        catch ( \IPS\Db\Exception $e ) {}
+
+        \IPS\Output::i()->json( [ 'ok' => true ] );
+    }
+
+    protected function removeWishlist(): void
+    {
+        $member = \IPS\Member::loggedIn();
+        if ( !$member->member_id )
+        {
+            \IPS\Output::i()->json( [ 'ok' => false, 'error' => 'login' ] );
+            return;
+        }
+
+        \IPS\Session::i()->csrfCheck();
+
+        \IPS\Db::i()->delete( 'gd_wishlist', [ 'member_id=? AND upc=?', (int) $member->member_id, (string) \IPS\Request::i()->upc ] );
+
+        \IPS\Output::i()->json( [ 'ok' => true ] );
+    }
+
+    protected function myWishlist(): void
+    {
+        $member = \IPS\Member::loggedIn();
+        if ( !$member->member_id )
+        {
+            \IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' ) );
+            return;
+        }
+
+        $rows = [];
+        try
+        {
+            foreach ( \IPS\Db::i()->select( 'upc, created', 'gd_wishlist', [ 'member_id=?', (int) $member->member_id ], 'created DESC' ) as $w )
+            {
+                $cat = null;
+                try { $cat = \IPS\Db::i()->select( 'title, total_min_price, image_url', 'gd_catalog', [ 'upc=?', $w['upc'] ] )->first(); } catch ( \Throwable ) {}
+                $productUrl = (string) \IPS\Http\Url::internal(
+                    'app=gdsearch&module=search&controller=results&do=product&upc=' . $w['upc'],
+                    'front', 'gdsearch_product'
+                );
+                $rows[] = [
+                    'upc'        => $w['upc'],
+                    'title'      => $cat['title'] ?? $w['upc'],
+                    'price'      => $cat['total_min_price'] ?? null,
+                    'image'      => (string) ( $cat['image_url'] ?? '' ),
+                    'productUrl' => $productUrl,
+                ];
+            }
+        }
+        catch ( \Throwable ) {}
+
+        $removeUrl = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=removeWishlist', 'front' );
+        $csrfKey   = \IPS\Session::i()->csrfKey;
+
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'wishlist.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
+
+        \IPS\Output::i()->title = \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_my_wishlist_title' );
+        \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->myWishlist(
+            $rows, $removeUrl, $csrfKey
         );
     }
 }

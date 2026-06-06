@@ -65,4 +65,7 @@ $lang = [
     'notifications__gdsearch_price_drop' => 'Price drop alerts',
     'notification__price_drop'          => 'Price drop alert',
     'notifications__gdsearch_PriceAlerts' => 'Price drop alerts',
+    'gdsearch_my_wishlist_title' => "My Wishlist",
+    'gdsearch_wishlist_add'      => "Save to Wishlist",
+    'gdsearch_wishlist_saved'    => "Saved to Wishlist",
 ];

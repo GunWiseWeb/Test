@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey" />
 <style>
 .gdsp-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box }
 .gdsp-top { display:grid; grid-template-columns:420px 1fr; gap:36px }
@@ -42,6 +42,18 @@
 				{{else}}
 				<a href="{$alertLoginUrl}" class="ipsButton ipsButton--secondary" style="width:100%;margin-top:12px;display:block;text-align:center;box-sizing:border-box;text-decoration:none">&#128276; Log in for price alert</a>
 				{{endif}}
+
+				<button type="button" class="gd-wish-trigger ipsButton {{if $wishlisted}}ipsButton--positive{{else}}ipsButton--secondary{{endif}}" style="width:100%;margin-top:8px;box-sizing:border-box"
+					data-upc="{$product['upc']}"
+					data-add-url="{$wishAddUrl}"
+					data-remove-url="{$wishRemoveUrl}"
+					data-login-url="{$wishLoginUrl}"
+					data-csrf="{$wishCsrfKey}"
+					data-saved="{{if $wishlisted}}1{{endif}}"
+					data-logged-in="{{if $wishLoggedIn}}1{{else}}0{{endif}}">
+					<span class="gd-wish-heart">{{if $wishlisted}}&#9829;{{else}}&#9825;{{endif}}</span>
+					<span class="gd-wish-label">{{if $wishlisted}}Saved to Wishlist{{else}}Save to Wishlist{{endif}}</span>
+				</button>
 
 			</div>
 
