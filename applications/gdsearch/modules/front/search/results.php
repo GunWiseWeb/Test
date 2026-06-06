@@ -214,8 +214,8 @@ class _results extends \IPS\Dispatcher\Controller
         $priceChartSvg  = \IPS\gdsearch\Price\Chart::svg( $series );
         $priceChartJson = \IPS\gdsearch\Price\Chart::pointsJson( $series );
 
-        try { \IPS\Output::i()->js( 'pricechart.js', 'gdsearch', 'interface' ); } catch ( \Throwable ) {}
-        try { \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' ); } catch ( \Throwable ) {}
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'pricechart.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
 
         $backUrl = (string) \IPS\Http\Url::internal(
             'app=gdsearch&module=search&controller=results',
@@ -364,7 +364,7 @@ class _results extends \IPS\Dispatcher\Controller
 
         $csrfKey = \IPS\Session::i()->csrfKey;
 
-        try { \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' ); } catch ( \Throwable ) {}
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
 
         \IPS\Output::i()->title = \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_my_alerts_title' );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->myAlerts(
