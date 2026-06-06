@@ -276,4 +276,98 @@ class SportsSouthClient
 
 		return $errors;
 	}
+
+	public function getText( string $itemNumber ): string
+	{
+		$itemNumber = trim( $itemNumber );
+		if ( $itemNumber === '' ) { return ''; }
+
+		$xml = $this->post( 'GetText', [
+			'UserName'       => $this->userName,
+			'CustomerNumber' => $this->customerNumber,
+			'Password'       => $this->password,
+			'Source'         => $this->source,
+			'ItemNumber'     => $itemNumber,
+		] );
+		if ( trim( $xml ) === '' ) { return ''; }
+
+		$prev = libxml_use_internal_errors( true );
+		try
+		{
+			$doc = new \DOMDocument();
+			if ( !$doc->loadXML( $xml, LIBXML_NONET ) ) { return ''; }
+
+			$strEls = $doc->getElementsByTagNameNS( '*', 'string' );
+			if ( $strEls->length > 0 )
+			{
+				$stringEl = $strEls->item( 0 );
+				$payload  = trim( (string) $stringEl->nodeValue );
+
+				if ( $payload !== '' && $payload[0] === '<' )
+				{
+					$inner = new \DOMDocument();
+					if ( @$inner->loadXML( $payload, LIBXML_NONET ) )
+					{
+						$t = $this->pickDescription( $inner, $itemNumber );
+						if ( $t !== '' ) { return $t; }
+					}
+				}
+
+				if ( $stringEl->getElementsByTagName( '*' )->length > 0 )
+				{
+					$t = $this->pickDescription( $stringEl, $itemNumber );
+					if ( $t !== '' ) { return $t; }
+				}
+
+				if ( $payload !== '' )
+				{
+					if ( str_starts_with( $payload, $itemNumber ) )
+					{
+						$payload = trim( substr( $payload, strlen( $itemNumber ) ) );
+					}
+					return $this->cleanDescription( $payload );
+				}
+			}
+
+			return $this->pickDescription( $doc, $itemNumber );
+		}
+		catch ( \Throwable )
+		{
+			return '';
+		}
+		finally
+		{
+			libxml_use_internal_errors( $prev );
+		}
+	}
+
+	protected function pickDescription( \DOMNode $scope, string $itemNumber ): string
+	{
+		foreach ( [ 'TEXT', 'ITEXT', 'LONGDESC', 'DESCRIPTION', 'DESC' ] as $tag )
+		{
+			$n = $scope->getElementsByTagName( $tag );
+			if ( $n->length > 0 )
+			{
+				$v = trim( (string) $n->item( 0 )->nodeValue );
+				if ( $v !== '' && $v !== $itemNumber ) { return $this->cleanDescription( $v ); }
+			}
+		}
+		$best = '';
+		foreach ( $scope->getElementsByTagName( '*' ) as $el )
+		{
+			$v = trim( (string) $el->nodeValue );
+			if ( $v === $itemNumber ) { continue; }
+			if ( mb_strlen( $v ) > mb_strlen( $best ) ) { $best = $v; }
+		}
+		return $best !== '' ? $this->cleanDescription( $best ) : '';
+	}
+
+	protected function cleanDescription( string $t ): string
+	{
+		$t = html_entity_decode( $t, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$t = strip_tags( $t );
+		$t = preg_replace( '/[ \t]+/', ' ', $t );
+		$t = preg_replace( '/\s*\n\s*\n\s*/', "\n\n", (string) $t );
+		return trim( (string) $t );
+	}
 }

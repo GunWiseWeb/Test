@@ -2709,6 +2709,34 @@
                 "zerofill": false,
                 "values": [],
                 "comment": ""
+            },
+            "description_full": {
+                "name": "description_full",
+                "type": "MEDIUMTEXT",
+                "length": 0,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "desc_fetched": {
+                "name": "desc_fetched",
+                "type": "TINYINT",
+                "length": 1,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             }
         },
         "indexes": {
