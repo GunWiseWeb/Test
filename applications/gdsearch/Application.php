@@ -4,7 +4,7 @@
  * @package     IPS Community Suite
  * @subpackage  GD Search
  * @since       04 Jun 2026
- * @version     1.0.49
+ * @version     1.0.50
  */
 namespace IPS\gdsearch;
 use function defined;
