@@ -28,13 +28,6 @@
 				<div class="gdsp-noimg">&#128230;</div>
 				{{endif}}
 
-				<div style="margin:16px 0 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:8px">
-					<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
-						<strong>Price History <span style="font-weight:400;color:#6B7280">(past 12 months)</span></strong>
-						{{if $priceAllTimeLow !== null}}<span style="font-size:.85em;color:#6B7280">All-time low: <strong style="color:#1E40AF">{expression="'$' . number_format( (float) $priceAllTimeLow, 2 )"}</strong></span>{{endif}}
-					</div>
-					{$priceChartSvg|raw}
-				</div>
 			</div>
 
 			<div>
@@ -82,6 +75,14 @@
 				{{endif}}
 			</div>
 		</div>
+	</div>
+
+	<div style="width:100%;margin:24px 0;padding:16px 18px;border:1px solid var(--i-border-color, #e5e7eb);border-radius:8px;box-sizing:border-box">
+		<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+			<strong style="font-size:1.05em">Price History <span style="font-weight:400;color:#6B7280">(past 12 months)</span></strong>
+			{{if $priceAllTimeLow !== null}}<span style="font-size:.9em;color:#6B7280">All-time low: <strong style="color:#1E40AF">{expression="'$' . number_format( (float) $priceAllTimeLow, 2 )"}</strong></span>{{endif}}
+		</div>
+		<div style="width:100%">{$priceChartSvg|raw}</div>
 	</div>
 
 	<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.06)">
