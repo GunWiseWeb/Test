@@ -119,11 +119,10 @@ class _Chart
 		$cx   = round( $padL + ( $w - $padL - $padR ) / 2, 1 );
 		$grid = '#E5E7EB'; $txt = '#9CA3AF';
 
+		$rw = round( $w - $padR - $padL, 1 );
+		$rh = round( $plotH, 1 );
 		$svg  = '<svg viewBox="0 0 ' . $w . ' ' . $h . '" width="100%" role="img" aria-label="Price history (no data yet)" style="width:100%;height:auto;display:block;font-family:Inter,system-ui,sans-serif">';
-		$svg .= '<line x1="' . $padL . '" y1="' . $padT . '" x2="' . ( $w - $padR ) . '" y2="' . $padT . '" stroke="' . $grid . '" stroke-width="1"/>';
-		$svg .= '<line x1="' . $padL . '" y1="' . $mid . '" x2="' . ( $w - $padR ) . '" y2="' . $mid . '" stroke="' . $grid . '" stroke-width="1"/>';
-		$svg .= '<line x1="' . $padL . '" y1="' . $base . '" x2="' . ( $w - $padR ) . '" y2="' . $base . '" stroke="' . $grid . '" stroke-width="1"/>';
-		$svg .= '<line x1="' . $padL . '" y1="' . $padT . '" x2="' . $padL . '" y2="' . $base . '" stroke="' . $grid . '" stroke-width="1"/>';
+		$svg .= '<rect x="' . $padL . '" y="' . $padT . '" width="' . $rw . '" height="' . $rh . '" rx="8" fill="#F9FAFB" stroke="' . $grid . '" stroke-width="1"/>';
 		$svg .= '<text x="' . $cx . '" y="' . round( $mid + 4, 1 ) . '" text-anchor="middle" font-size="14" fill="' . $txt . '">Tracking prices &#8212; history appears here as prices change</text>';
 		$svg .= '</svg>';
 		return $svg;
