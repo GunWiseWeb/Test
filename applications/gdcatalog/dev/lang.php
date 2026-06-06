@@ -19,6 +19,7 @@ $lang = array(
 	'menu__gdcatalog_catalog_products'         => "Products",
 	'menu__gdcatalog_catalog_feeds'            => "Feed Configuration",
 	'menu__gdcatalog_catalog_conflicts'        => "Conflict Log",
+	'menu__gdcatalog_catalog_categorize'       => "Categorize & Hide",
 	'menu__gdcatalog_catalog_compliance'       => "Compliance Review",
 	'menu__gdcatalog_catalog_locks'            => "Locked Fields",
 	'menu__gdcatalog_catalog_settings'         => "Settings",
