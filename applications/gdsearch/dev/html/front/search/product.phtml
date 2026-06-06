@@ -28,6 +28,21 @@
 				<div class="gdsp-noimg">&#128230;</div>
 				{{endif}}
 
+				{{if $alertLoggedIn}}
+				<button type="button" class="gd-alert-trigger ipsButton ipsButton--secondary" style="width:100%;margin-top:12px;box-sizing:border-box"
+					data-upc="{$product['upc']}"
+					data-set-url="{$alertSetUrl}"
+					data-cancel-url="{$alertCancelUrl}"
+					data-csrf="{$alertCsrfKey}"
+					data-login-url="{$alertLoginUrl}"
+					data-current="{{if $alertCurrent !== null}}{expression="number_format( (float) $alertCurrent, 2, '.', '' )"}{{endif}}"
+					data-threshold="{{if $alertThreshold !== null}}{expression="number_format( (float) $alertThreshold, 2, '.', '' )"}{{endif}}">
+					<span class="gd-alert-trigger-label">{{if $alertThreshold !== null}}&#128276; Alert: {expression="'$' . number_format( (float) $alertThreshold, 2 )"}{{else}}&#128276; Set Price Alert{{endif}}</span>
+				</button>
+				{{else}}
+				<a href="{$alertLoginUrl}" class="ipsButton ipsButton--secondary" style="width:100%;margin-top:12px;display:block;text-align:center;box-sizing:border-box;text-decoration:none">&#128276; Log in for price alert</a>
+				{{endif}}
+
 			</div>
 
 			<div>
@@ -186,4 +201,25 @@
 		</div>
 		{{endif}}
 	</div>
+
+	{{if $alertLoggedIn}}
+	<div class="gd-alert-modal" id="gdAlertModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.5);align-items:center;justify-content:center;padding:16px">
+		<div style="background:#fff;border-radius:12px;max-width:420px;width:100%;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.25);box-sizing:border-box">
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+				<strong style="font-size:1.1em">Price Drop Alert</strong>
+				<button type="button" class="gd-alert-close" style="border:none;background:none;font-size:1.5em;line-height:1;cursor:pointer;color:#94a3b8">&times;</button>
+			</div>
+			<p class="gd-alert-current" style="margin:0 0 14px;color:#64748b;font-size:.9em;line-height:1.45"></p>
+			<div style="display:flex;gap:8px;align-items:center">
+				<span style="color:#64748b">$</span>
+				<input type="number" min="0" step="0.01" class="gd-alert-input ipsInput ipsInput--text" style="flex:1" placeholder="Your price">
+				<button type="button" class="gd-alert-save ipsButton ipsButton--primary">Notify me</button>
+			</div>
+			<div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;min-height:24px">
+				<button type="button" class="gd-alert-remove ipsButton ipsButton--soft ipsButton--small" style="display:none">Remove alert</button>
+				<span class="gd-alert-msg" style="font-size:.85em;color:#1E40AF"></span>
+			</div>
+		</div>
+	</div>
+	{{endif}}
 </div>

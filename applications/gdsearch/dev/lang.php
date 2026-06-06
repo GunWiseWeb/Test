@@ -59,4 +59,5 @@ $lang = [
     'gdsearch_condition'                => 'Condition',
     'gdsearch_free_shipping'            => 'Free',
     'gdsearch_view_dealer'              => 'View Dealer',
+    'gdsearch_my_alerts_title'          => 'My Price Alerts',
 ];

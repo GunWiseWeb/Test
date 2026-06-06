@@ -1,26 +1,43 @@
-<ips:template parameters="$rows, $cancelUrl, $csrfKey" />
-<div class="ipsBox ipsPull" style="max-width:900px;margin:24px auto">
-	<div class="ipsBox_body ipsPad">
-		<h1 class="ipsType_pageTitle" style="margin-bottom:16px">My Price Alerts</h1>
-		{{if !count( $rows )}}
-			<p class="ipsType_light">You don't have any price alerts yet. Open a product and set one from its page.</p>
-		{{else}}
-			<div>
-			{{foreach $rows as $r}}
-				<div class="gd-alert-row" data-upc="{$r['upc']}" data-cancel-url="{$cancelUrl}" data-csrf="{$csrfKey}"
-					style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--i-border-color, #e5e7eb)">
-					{{if $r['image']}}<img src="{$r['image']}" alt="" style="width:48px;height:48px;object-fit:contain;border-radius:4px">{{endif}}
-					<div style="flex:1;min-width:0">
-						<a href="{$r['productUrl']}" style="font-weight:600;color:#111827">{$r['title']}</a>
-						<div style="font-size:.88em;color:#6B7280;margin-top:2px">
-							Alert at <strong>{expression="'$' . number_format( (float) $r['threshold'], 2 )"}</strong>
-							{{if $r['current'] !== null}} &middot; now <strong style="{{if $r['met']}}color:#15803D{{else}}color:#111827{{endif}}">{expression="'$' . number_format( (float) $r['current'], 2 )"}</strong>{{if $r['met']}} &mdash; met!{{endif}}{{endif}}
-						</div>
-					</div>
-					<button type="button" class="gd-alert-cancel ipsButton ipsButton--soft ipsButton--small">Remove</button>
-				</div>
-			{{endforeach}}
-			</div>
-		{{endif}}
+<ips:template parameters="$alerts, $csrfKey" />
+<style>
+.gda-wrap { max-width:900px; margin:0 auto; padding:20px }
+.gda-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:20px; margin-bottom:16px; display:flex; align-items:center; gap:16px }
+.gda-thumb { width:64px; height:64px; border-radius:8px; object-fit:contain; background:#f8fafc; border:1px solid #e2e8f0 }
+.gda-info { flex:1; min-width:0 }
+.gda-title { font-weight:600; color:#0f172a; font-size:1em; margin:0 0 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.gda-meta { font-size:0.85em; color:#64748b }
+.gda-price-hit { color:#16a34a; font-weight:700 }
+.gda-remove { background:none; border:1px solid #e2e8f0; border-radius:6px; padding:6px 14px; cursor:pointer; color:#64748b; font-size:0.85em }
+.gda-remove:hover { border-color:#ef4444; color:#ef4444 }
+.gda-empty { text-align:center; padding:60px 20px; color:#94a3b8 }
+</style>
+<div class="gda-wrap">
+	<h1 style="font-size:1.3em;color:#0f172a;margin:0 0 20px">My Price Alerts</h1>
+
+	{{if count($alerts) === 0}}
+	<div class="gda-empty">
+		<p style="font-size:1.1em;margin:0 0 8px">No price alerts set</p>
+		<p style="margin:0">Browse products and set alerts to get notified when prices drop.</p>
 	</div>
+	{{else}}
+	{{foreach $alerts as $alert}}
+	<div class="gda-card" data-alert-id="{$alert['id']}" data-upc="{$alert['upc']}">
+		{{if $alert['imageUrl']}}
+		<img src="{$alert['imageUrl']}" alt="" class="gda-thumb">
+		{{else}}
+		<div class="gda-thumb" style="display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:1.5em">&#128230;</div>
+		{{endif}}
+		<div class="gda-info">
+			<div class="gda-title"><a href="{$alert['productUrl']}" style="color:inherit;text-decoration:none">{$alert['title']}</a></div>
+			<div class="gda-meta">
+				Alert when &le; <strong>${expression="number_format((float)$alert['threshold'],2)"}</strong>
+				{{if $alert['currentPrice'] !== null}}
+				&nbsp;&middot;&nbsp; Current: <span class="{{if $alert['currentPrice'] <= $alert['threshold']}}gda-price-hit{{endif}}">${expression="number_format((float)$alert['currentPrice'],2)"}</span>
+				{{endif}}
+			</div>
+		</div>
+		<button class="gda-remove" data-cancel-url="{$alert['cancelUrl']}" data-csrf="{$csrfKey}" data-upc="{$alert['upc']}">Remove</button>
+	</div>
+	{{endforeach}}
+	{{endif}}
 </div>

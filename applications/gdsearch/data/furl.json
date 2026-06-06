@@ -8,6 +8,10 @@
         "gdsearch_product": {
             "friendly": "product/{@upc}",
             "real": "app=gdsearch&module=search&controller=results&do=product"
+        },
+        "gdsearch_my_alerts": {
+            "friendly": "my-alerts",
+            "real": "app=gdsearch&module=search&controller=results&do=myAlerts"
         }
     }
 }

@@ -4,76 +4,121 @@
         "columns": {
             "id": {
                 "name": "id",
-                "type": "INT",
-                "length": 10,
-                "unsigned": true,
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
                 "allow_null": false,
-                "auto_increment": true
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             },
             "member_id": {
                 "name": "member_id",
                 "type": "INT",
                 "length": 10,
-                "unsigned": true,
+                "decimals": null,
                 "allow_null": false,
-                "default": 0
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             },
             "upc": {
                 "name": "upc",
                 "type": "VARCHAR",
                 "length": 20,
+                "decimals": null,
                 "allow_null": false,
-                "default": ""
+                "default": "",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             },
             "threshold": {
                 "name": "threshold",
                 "type": "DECIMAL",
-                "length": "10,2",
+                "length": 10,
+                "decimals": 2,
                 "allow_null": false,
-                "default": 0
+                "default": "0.00",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             },
             "created": {
                 "name": "created",
                 "type": "INT",
                 "length": 10,
-                "unsigned": true,
+                "decimals": null,
                 "allow_null": false,
-                "default": 0
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             },
             "last_notified": {
                 "name": "last_notified",
                 "type": "INT",
                 "length": 10,
-                "unsigned": true,
+                "decimals": null,
                 "allow_null": false,
-                "default": 0
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             },
             "last_notified_price": {
                 "name": "last_notified_price",
                 "type": "DECIMAL",
-                "length": "10,2",
+                "length": 10,
+                "decimals": 2,
                 "allow_null": true,
-                "default": null
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             }
         },
         "indexes": {
             "PRIMARY": {
                 "type": "primary",
-                "name": "PRIMARY",
                 "columns": ["id"],
-                "length": [null]
+                "length": [null],
+                "name": "PRIMARY"
             },
             "member_upc": {
                 "type": "unique",
-                "name": "member_upc",
                 "columns": ["member_id", "upc"],
-                "length": [null, null]
+                "length": [null, null],
+                "name": "member_upc"
             },
-            "upc": {
+            "upc_threshold": {
                 "type": "key",
-                "name": "upc",
-                "columns": ["upc"],
-                "length": [null]
+                "columns": ["upc", "threshold"],
+                "length": [null, null],
+                "name": "upc_threshold"
             }
         }
     }

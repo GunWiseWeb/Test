@@ -11,7 +11,6 @@ class _results extends \IPS\Dispatcher\Controller
     {
         $query      = trim( (string) ( \IPS\Request::i()->q ?? '' ) );
 
-        // If the query is a bare UPC that exists in the catalog, go straight to the product page
         if ( $query !== '' && preg_match( '/^[0-9]{8,14}$/', $query ) ) {
             try {
                 \IPS\Db::i()->select( 'upc', 'gd_catalog', [ 'upc=? AND record_status=?', $query, 'active' ] )->first();
@@ -22,12 +21,9 @@ class _results extends \IPS\Dispatcher\Controller
                     )
                 );
             } catch ( \UnderflowException ) {
-                // No product with this UPC — fall through to normal search results
             }
         }
 
-        // If the query exactly matches a single product's MPN, go straight to that product
-        // (exact match only — avoids fuzzy "similar" results for part numbers)
         if ( $query !== '' ) {
             try {
                 $mpnCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'mpn=? AND record_status=?', $query, 'active' ] )->first();
@@ -43,7 +39,6 @@ class _results extends \IPS\Dispatcher\Controller
                     }
                 }
             } catch ( \Throwable ) {
-                // fall through to normal search results
             }
         }
         $page       = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
@@ -53,7 +48,6 @@ class _results extends \IPS\Dispatcher\Controller
         $validSorts = [ 'relevance', 'price_asc', 'price_desc', 'brand' ];
         if ( !in_array( $sort, $validSorts, true ) ) { $sort = 'relevance'; }
 
-        // Category filter is passed as an integer ID (immune to & and spaces in category names)
         $categoryId   = max( 0, (int) ( \IPS\Request::i()->category ?? 0 ) );
         $categoryName = '';
         if ( $categoryId > 0 ) {
@@ -101,7 +95,6 @@ class _results extends \IPS\Dispatcher\Controller
 
         $pagination = '';
         if ( $total > $perPage ) {
-            // Preserve the active query, filters, and sort in pagination links
             $paginationQs = 'app=gdsearch&module=search&controller=results';
             if ( $query !== '' )                  { $paginationQs .= '&q=' . urlencode( $query ); }
             if ( $filters['category_id'] > 0 )   { $paginationQs .= '&category=' . $filters['category_id']; }
@@ -149,7 +142,6 @@ class _results extends \IPS\Dispatcher\Controller
             return;
         }
 
-        // Load product from gd_catalog
         $product = [];
         try {
             $product = \IPS\Db::i()->select( '*', 'gd_catalog', [ 'upc=? AND record_status=?', $upc, 'active' ] )->first();
@@ -158,14 +150,12 @@ class _results extends \IPS\Dispatcher\Controller
             return;
         }
 
-        // Load dealer listings
         $listings = [];
         try {
             $searcher = new \IPS\gdsearch\Search\Searcher();
             $listings = $searcher->getDealerListings( $upc );
         } catch ( \Throwable ) {}
 
-        // Load category name
         $categoryName = '';
         try {
             $cat = \IPS\Db::i()->select( 'name', 'gd_categories', [ 'id=?', (int) $product['category_id'] ] )->first();
@@ -225,21 +215,30 @@ class _results extends \IPS\Dispatcher\Controller
         $priceChartJson = \IPS\gdsearch\Price\Chart::pointsJson( $series );
 
         try { \IPS\Output::i()->js( 'pricechart.js', 'gdsearch', 'interface' ); } catch ( \Throwable ) {}
-
-        $alertThreshold = null;
-        $alertLoggedIn  = (bool) \IPS\Member::loggedIn()->member_id;
-        try { if ( $alertLoggedIn ) { $alertThreshold = \IPS\Db::i()->select( 'threshold', 'gd_price_alerts', [ 'member_id=? AND upc=?', (int) \IPS\Member::loggedIn()->member_id, $upc ] )->first(); } } catch ( \Throwable ) {}
-        $alertSetUrl    = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=setAlert', 'front' );
-        $alertCancelUrl = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=cancelAlert', 'front' );
-        $alertCsrfKey   = \IPS\Session::i()->csrfKey;
-        $alertCurrent   = ( $product['total_min_price'] !== null ) ? (float) $product['total_min_price'] : null;
-        $alertLoginUrl  = (string) \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' );
         try { \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' ); } catch ( \Throwable ) {}
 
         $backUrl = (string) \IPS\Http\Url::internal(
             'app=gdsearch&module=search&controller=results',
             'front', 'gdsearch_results'
         );
+
+        $member = \IPS\Member::loggedIn();
+        $alertLoggedIn = (bool) $member->member_id;
+        $alertThreshold = null;
+        $alertCurrent   = ( $product['total_min_price'] ?? null ) !== null ? (float) $product['total_min_price'] : null;
+
+        if ( $alertLoggedIn )
+        {
+            try {
+                $existing = \IPS\Db::i()->select( 'threshold', 'gd_price_alerts', [ 'member_id=? AND upc=?', (int) $member->member_id, $upc ] )->first();
+                $alertThreshold = (float) $existing;
+            } catch ( \Throwable ) {}
+        }
+
+        $alertSetUrl    = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=setAlert', 'front' );
+        $alertCancelUrl = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=cancelAlert', 'front' );
+        $alertCsrfKey   = \IPS\Session::i()->csrfKey;
+        $alertLoginUrl  = (string) \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' );
 
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
@@ -251,10 +250,11 @@ class _results extends \IPS\Dispatcher\Controller
     protected function setAlert(): void
     {
         \IPS\Session::i()->csrfCheck();
+
         $member = \IPS\Member::loggedIn();
         if ( !$member->member_id )
         {
-            \IPS\Output::i()->json( [ 'ok' => false, 'error' => 'login' ], 403 );
+            \IPS\Output::i()->json( [ 'error' => 'not_logged_in' ], 403 );
             return;
         }
 
@@ -263,31 +263,23 @@ class _results extends \IPS\Dispatcher\Controller
 
         if ( !preg_match( '/^[0-9]{8,14}$/', $upc ) || $threshold <= 0 )
         {
-            \IPS\Output::i()->json( [ 'ok' => false, 'error' => 'invalid' ], 400 );
+            \IPS\Output::i()->json( [ 'error' => 'invalid_input' ], 400 );
             return;
         }
 
-        $existing = null;
-        try { $existing = \IPS\Db::i()->select( 'id', 'gd_price_alerts', [ 'member_id=? AND upc=?', (int) $member->member_id, $upc ] )->first(); }
-        catch ( \Throwable ) {}
-
-        if ( $existing )
+        try
         {
-            \IPS\Db::i()->update( 'gd_price_alerts',
-                [ 'threshold' => $threshold, 'last_notified' => 0, 'last_notified_price' => null ],
-                [ 'id=?', (int) $existing ]
-            );
-        }
-        else
-        {
-            \IPS\Db::i()->insert( 'gd_price_alerts', [
-                'member_id'           => (int) $member->member_id,
-                'upc'                 => $upc,
-                'threshold'           => $threshold,
-                'created'             => time(),
-                'last_notified'       => 0,
-                'last_notified_price' => null,
+            \IPS\Db::i()->replace( 'gd_price_alerts', [
+                'member_id' => (int) $member->member_id,
+                'upc'       => $upc,
+                'threshold' => $threshold,
+                'created'   => time(),
             ] );
+        }
+        catch ( \Throwable $e )
+        {
+            \IPS\Output::i()->json( [ 'error' => 'db_error' ], 500 );
+            return;
         }
 
         \IPS\Output::i()->json( [ 'ok' => true, 'threshold' => number_format( $threshold, 2 ) ] );
@@ -296,15 +288,28 @@ class _results extends \IPS\Dispatcher\Controller
     protected function cancelAlert(): void
     {
         \IPS\Session::i()->csrfCheck();
+
         $member = \IPS\Member::loggedIn();
         if ( !$member->member_id )
         {
-            \IPS\Output::i()->json( [ 'ok' => false, 'error' => 'login' ], 403 );
+            \IPS\Output::i()->json( [ 'error' => 'not_logged_in' ], 403 );
             return;
         }
+
         $upc = trim( (string) ( \IPS\Request::i()->upc ?? '' ) );
-        try { \IPS\Db::i()->delete( 'gd_price_alerts', [ 'member_id=? AND upc=?', (int) $member->member_id, $upc ] ); }
+
+        if ( !preg_match( '/^[0-9]{8,14}$/', $upc ) )
+        {
+            \IPS\Output::i()->json( [ 'error' => 'invalid_input' ], 400 );
+            return;
+        }
+
+        try
+        {
+            \IPS\Db::i()->delete( 'gd_price_alerts', [ 'member_id=? AND upc=?', (int) $member->member_id, $upc ] );
+        }
         catch ( \Throwable ) {}
+
         \IPS\Output::i()->json( [ 'ok' => true ] );
     }
 
@@ -313,38 +318,58 @@ class _results extends \IPS\Dispatcher\Controller
         $member = \IPS\Member::loggedIn();
         if ( !$member->member_id )
         {
-            \IPS\Output::i()->error( 'node_error', '2GDS/3', 403 );
+            \IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' ) );
             return;
         }
 
-        $rows = [];
-        foreach ( \IPS\Db::i()->select( '*', 'gd_price_alerts', [ 'member_id=?', (int) $member->member_id ], 'created DESC' ) as $a )
+        $alerts = [];
+        try
         {
-            $title = $a['upc']; $current = null; $img = '';
-            try {
-                $p = \IPS\Db::i()->select( 'title, total_min_price, image_url', 'gd_catalog', [ 'upc=?', $a['upc'] ] )->first();
-                $title   = (string) ( $p['title'] ?? $a['upc'] );
-                $current = ( $p['total_min_price'] !== null ) ? (float) $p['total_min_price'] : null;
-                $img     = (string) ( $p['image_url'] ?? '' );
-            } catch ( \Throwable ) {}
+            foreach ( \IPS\Db::i()->select( '*', 'gd_price_alerts', [ 'member_id=?', (int) $member->member_id ], 'created DESC' ) as $row )
+            {
+                $title = '';
+                $currentPrice = null;
+                $imageUrl = '';
+                try {
+                    $prod = \IPS\Db::i()->select( 'title, total_min_price, image_url', 'gd_catalog', [ 'upc=?', $row['upc'] ] )->first();
+                    $title = (string) $prod['title'];
+                    $currentPrice = (float) $prod['total_min_price'];
+                    $imageUrl = (string) ( $prod['image_url'] ?? '' );
+                } catch ( \Throwable ) {}
 
-            $rows[] = [
-                'upc'       => (string) $a['upc'],
-                'title'     => $title,
-                'image'     => $img,
-                'threshold' => (float) $a['threshold'],
-                'current'   => $current,
-                'met'       => ( $current !== null && $current > 0 && $current <= (float) $a['threshold'] ),
-                'productUrl'=> (string) \IPS\Http\Url::internal( "app=gdsearch&module=search&controller=results&do=product&upc={$a['upc']}", 'front', 'gdsearch_product' ),
-            ];
+                $productUrl = (string) \IPS\Http\Url::internal(
+                    'app=gdsearch&module=search&controller=results&do=product&upc=' . $row['upc'],
+                    'front', 'gdsearch_product'
+                );
+
+                $cancelUrl = (string) \IPS\Http\Url::internal(
+                    'app=gdsearch&module=search&controller=results&do=cancelAlert',
+                    'front'
+                );
+
+                $alerts[] = [
+                    'id'           => (int) $row['id'],
+                    'upc'          => (string) $row['upc'],
+                    'title'        => $title,
+                    'threshold'    => (float) $row['threshold'],
+                    'currentPrice' => $currentPrice,
+                    'imageUrl'     => $imageUrl,
+                    'productUrl'   => $productUrl,
+                    'cancelUrl'    => $cancelUrl,
+                    'created'      => (int) $row['created'],
+                ];
+            }
         }
+        catch ( \Throwable ) {}
 
-        $cancelUrl = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=cancelAlert', 'front' );
-        $csrfKey   = \IPS\Session::i()->csrfKey;
+        $csrfKey = \IPS\Session::i()->csrfKey;
 
-        \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' );
-        \IPS\Output::i()->title  = 'My Price Alerts';
-        \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->myAlerts( $rows, $cancelUrl, $csrfKey );
+        try { \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' ); } catch ( \Throwable ) {}
+
+        \IPS\Output::i()->title = \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_my_alerts_title' );
+        \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->myAlerts(
+            $alerts, $csrfKey
+        );
     }
 }
 class results extends _results {}

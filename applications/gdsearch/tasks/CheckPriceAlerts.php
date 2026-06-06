@@ -3,19 +3,10 @@ namespace IPS\gdsearch\tasks;
 
 use function defined;
 
-if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
-{
-	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
-	exit;
-}
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) ) { header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' ); exit; }
 
 class _CheckPriceAlerts extends \IPS\Task
 {
-	/**
-	 * Compare each active price alert against the product's current lowest price
-	 * (gd_catalog.total_min_price) and email the member once when it drops to/below
-	 * their threshold. Re-arms when the price rises back above the threshold.
-	 */
 	public function execute(): mixed
 	{
 		$alerts = \IPS\Db::i()->select( '*', 'gd_price_alerts', [ 'threshold > 0' ], 'id ASC', [ 0, 500 ] );
@@ -28,6 +19,7 @@ class _CheckPriceAlerts extends \IPS\Task
 				$threshold = (float) $a['threshold'];
 
 				$current = null;
+				$title   = '';
 				try {
 					$row = \IPS\Db::i()->select( 'total_min_price, title', 'gd_catalog', [ 'upc=? AND record_status=?', $upc, 'active' ] )->first();
 					$current = ( $row['total_min_price'] !== null ) ? (float) $row['total_min_price'] : null;
@@ -83,7 +75,7 @@ class _CheckPriceAlerts extends \IPS\Task
 			$url = (string) \IPS\Http\Url::internal( "app=gdsearch&module=search&controller=results&do=product&upc={$upc}", 'front', 'gdsearch_product' );
 			$manageUrl = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=myAlerts', 'front' );
 
-			$priceStr = '$' . number_format( $price, 2 );
+			$priceStr  = '$' . number_format( $price, 2 );
 			$threshStr = '$' . number_format( $threshold, 2 );
 			$safeTitle = htmlspecialchars( $title, ENT_QUOTES );
 
