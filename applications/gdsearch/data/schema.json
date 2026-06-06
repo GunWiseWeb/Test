@@ -1,1 +1,80 @@
-{}
+{
+    "gd_price_alerts": {
+        "name": "gd_price_alerts",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "unsigned": true,
+                "allow_null": false,
+                "auto_increment": true
+            },
+            "member_id": {
+                "name": "member_id",
+                "type": "INT",
+                "length": 10,
+                "unsigned": true,
+                "allow_null": false,
+                "default": 0
+            },
+            "upc": {
+                "name": "upc",
+                "type": "VARCHAR",
+                "length": 20,
+                "allow_null": false,
+                "default": ""
+            },
+            "threshold": {
+                "name": "threshold",
+                "type": "DECIMAL",
+                "length": "10,2",
+                "allow_null": false,
+                "default": 0
+            },
+            "created": {
+                "name": "created",
+                "type": "INT",
+                "length": 10,
+                "unsigned": true,
+                "allow_null": false,
+                "default": 0
+            },
+            "last_notified": {
+                "name": "last_notified",
+                "type": "INT",
+                "length": 10,
+                "unsigned": true,
+                "allow_null": false,
+                "default": 0
+            },
+            "last_notified_price": {
+                "name": "last_notified_price",
+                "type": "DECIMAL",
+                "length": "10,2",
+                "allow_null": true,
+                "default": null
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "columns": ["id"],
+                "length": [null]
+            },
+            "member_upc": {
+                "type": "unique",
+                "name": "member_upc",
+                "columns": ["member_id", "upc"],
+                "length": [null, null]
+            },
+            "upc": {
+                "type": "key",
+                "name": "upc",
+                "columns": ["upc"],
+                "length": [null]
+            }
+        }
+    }
+}

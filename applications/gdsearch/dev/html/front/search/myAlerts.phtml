@@ -1,0 +1,26 @@
+<ips:template parameters="$rows, $cancelUrl, $csrfKey" />
+<div class="ipsBox ipsPull" style="max-width:900px;margin:24px auto">
+	<div class="ipsBox_body ipsPad">
+		<h1 class="ipsType_pageTitle" style="margin-bottom:16px">My Price Alerts</h1>
+		{{if !count( $rows )}}
+			<p class="ipsType_light">You don't have any price alerts yet. Open a product and set one from its page.</p>
+		{{else}}
+			<div>
+			{{foreach $rows as $r}}
+				<div class="gd-alert-row" data-upc="{$r['upc']}" data-cancel-url="{$cancelUrl}" data-csrf="{$csrfKey}"
+					style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--i-border-color, #e5e7eb)">
+					{{if $r['image']}}<img src="{$r['image']}" alt="" style="width:48px;height:48px;object-fit:contain;border-radius:4px">{{endif}}
+					<div style="flex:1;min-width:0">
+						<a href="{$r['productUrl']}" style="font-weight:600;color:#111827">{$r['title']}</a>
+						<div style="font-size:.88em;color:#6B7280;margin-top:2px">
+							Alert at <strong>{expression="'$' . number_format( (float) $r['threshold'], 2 )"}</strong>
+							{{if $r['current'] !== null}} &middot; now <strong style="{{if $r['met']}}color:#15803D{{else}}color:#111827{{endif}}">{expression="'$' . number_format( (float) $r['current'], 2 )"}</strong>{{if $r['met']}} &mdash; met!{{endif}}{{endif}}
+						</div>
+					</div>
+					<button type="button" class="gd-alert-cancel ipsButton ipsButton--soft ipsButton--small">Remove</button>
+				</div>
+			{{endforeach}}
+			</div>
+		{{endif}}
+	</div>
+</div>

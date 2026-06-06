@@ -226,6 +226,16 @@ class _results extends \IPS\Dispatcher\Controller
 
         try { \IPS\Output::i()->js( 'pricechart.js', 'gdsearch', 'interface' ); } catch ( \Throwable ) {}
 
+        $alertThreshold = null;
+        $alertLoggedIn  = (bool) \IPS\Member::loggedIn()->member_id;
+        try { if ( $alertLoggedIn ) { $alertThreshold = \IPS\Db::i()->select( 'threshold', 'gd_price_alerts', [ 'member_id=? AND upc=?', (int) \IPS\Member::loggedIn()->member_id, $upc ] )->first(); } } catch ( \Throwable ) {}
+        $alertSetUrl    = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=setAlert', 'front' );
+        $alertCancelUrl = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=cancelAlert', 'front' );
+        $alertCsrfKey   = \IPS\Session::i()->csrfKey;
+        $alertCurrent   = ( $product['total_min_price'] !== null ) ? (float) $product['total_min_price'] : null;
+        $alertLoginUrl  = (string) \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' );
+        try { \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' ); } catch ( \Throwable ) {}
+
         $backUrl = (string) \IPS\Http\Url::internal(
             'app=gdsearch&module=search&controller=results',
             'front', 'gdsearch_results'
@@ -233,8 +243,108 @@ class _results extends \IPS\Dispatcher\Controller
 
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
-            $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow
+            $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow,
+            $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl
         );
+    }
+
+    protected function setAlert(): void
+    {
+        \IPS\Session::i()->csrfCheck();
+        $member = \IPS\Member::loggedIn();
+        if ( !$member->member_id )
+        {
+            \IPS\Output::i()->json( [ 'ok' => false, 'error' => 'login' ], 403 );
+            return;
+        }
+
+        $upc       = trim( (string) ( \IPS\Request::i()->upc ?? '' ) );
+        $threshold = (float) ( \IPS\Request::i()->threshold ?? 0 );
+
+        if ( !preg_match( '/^[0-9]{8,14}$/', $upc ) || $threshold <= 0 )
+        {
+            \IPS\Output::i()->json( [ 'ok' => false, 'error' => 'invalid' ], 400 );
+            return;
+        }
+
+        $existing = null;
+        try { $existing = \IPS\Db::i()->select( 'id', 'gd_price_alerts', [ 'member_id=? AND upc=?', (int) $member->member_id, $upc ] )->first(); }
+        catch ( \Throwable ) {}
+
+        if ( $existing )
+        {
+            \IPS\Db::i()->update( 'gd_price_alerts',
+                [ 'threshold' => $threshold, 'last_notified' => 0, 'last_notified_price' => null ],
+                [ 'id=?', (int) $existing ]
+            );
+        }
+        else
+        {
+            \IPS\Db::i()->insert( 'gd_price_alerts', [
+                'member_id'           => (int) $member->member_id,
+                'upc'                 => $upc,
+                'threshold'           => $threshold,
+                'created'             => time(),
+                'last_notified'       => 0,
+                'last_notified_price' => null,
+            ] );
+        }
+
+        \IPS\Output::i()->json( [ 'ok' => true, 'threshold' => number_format( $threshold, 2 ) ] );
+    }
+
+    protected function cancelAlert(): void
+    {
+        \IPS\Session::i()->csrfCheck();
+        $member = \IPS\Member::loggedIn();
+        if ( !$member->member_id )
+        {
+            \IPS\Output::i()->json( [ 'ok' => false, 'error' => 'login' ], 403 );
+            return;
+        }
+        $upc = trim( (string) ( \IPS\Request::i()->upc ?? '' ) );
+        try { \IPS\Db::i()->delete( 'gd_price_alerts', [ 'member_id=? AND upc=?', (int) $member->member_id, $upc ] ); }
+        catch ( \Throwable ) {}
+        \IPS\Output::i()->json( [ 'ok' => true ] );
+    }
+
+    protected function myAlerts(): void
+    {
+        $member = \IPS\Member::loggedIn();
+        if ( !$member->member_id )
+        {
+            \IPS\Output::i()->error( 'node_error', '2GDS/3', 403 );
+            return;
+        }
+
+        $rows = [];
+        foreach ( \IPS\Db::i()->select( '*', 'gd_price_alerts', [ 'member_id=?', (int) $member->member_id ], 'created DESC' ) as $a )
+        {
+            $title = $a['upc']; $current = null; $img = '';
+            try {
+                $p = \IPS\Db::i()->select( 'title, total_min_price, image_url', 'gd_catalog', [ 'upc=?', $a['upc'] ] )->first();
+                $title   = (string) ( $p['title'] ?? $a['upc'] );
+                $current = ( $p['total_min_price'] !== null ) ? (float) $p['total_min_price'] : null;
+                $img     = (string) ( $p['image_url'] ?? '' );
+            } catch ( \Throwable ) {}
+
+            $rows[] = [
+                'upc'       => (string) $a['upc'],
+                'title'     => $title,
+                'image'     => $img,
+                'threshold' => (float) $a['threshold'],
+                'current'   => $current,
+                'met'       => ( $current !== null && $current > 0 && $current <= (float) $a['threshold'] ),
+                'productUrl'=> (string) \IPS\Http\Url::internal( "app=gdsearch&module=search&controller=results&do=product&upc={$a['upc']}", 'front', 'gdsearch_product' ),
+            ];
+        }
+
+        $cancelUrl = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=cancelAlert', 'front' );
+        $csrfKey   = \IPS\Session::i()->csrfKey;
+
+        \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' );
+        \IPS\Output::i()->title  = 'My Price Alerts';
+        \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->myAlerts( $rows, $cancelUrl, $csrfKey );
     }
 }
 class results extends _results {}

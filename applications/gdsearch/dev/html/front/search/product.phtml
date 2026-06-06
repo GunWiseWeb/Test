@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl" />
 <style>
 .gdsp-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box }
 .gdsp-top { display:grid; grid-template-columns:420px 1fr; gap:36px }
@@ -87,6 +87,38 @@
 			<div class="gd-pc-tip" style="position:absolute;display:none;pointer-events:none;background:#111827;color:#fff;font-size:12px;line-height:1.35;padding:6px 9px;border-radius:6px;white-space:nowrap;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.2)"></div>
 		</div>
 	</div>
+
+	{{if $alertLoggedIn}}
+	<div class="gd-alert{{if $alertThreshold !== null}} gd-alert-active{{endif}}"
+		data-upc="{$product['upc']}"
+		data-set-url="{$alertSetUrl}"
+		data-cancel-url="{$alertCancelUrl}"
+		data-login-url="{$alertLoginUrl}"
+		data-csrf="{$alertCsrfKey}"
+		style="width:100%;background:#fff;margin:24px 0;padding:18px 20px;border:1px solid var(--i-border-color, #e5e7eb);border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);box-sizing:border-box">
+		<strong style="font-size:1.05em">Price Drop Alert</strong>
+		<p style="margin:6px 0 12px;color:#6B7280;font-size:.92em">
+			{{if $alertCurrent !== null}}Lowest price right now: <strong style="color:#111827">{expression="'$' . number_format( (float) $alertCurrent, 2 )"}</strong>. {{endif}}
+			We'll email you when any dealer drops to or below your price.
+		</p>
+		<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+			<span style="color:#6B7280">$</span>
+			<input type="number" min="0" step="0.01" class="gd-alert-input ipsInput ipsInput--text" style="max-width:140px"
+				value="{{if $alertThreshold !== null}}{expression="number_format( (float) $alertThreshold, 2, '.', '' )"}{{endif}}"
+				placeholder="Your price">
+			<button type="button" class="gd-alert-set ipsButton ipsButton--primary ipsButton--small">{{if $alertThreshold !== null}}Update alert{{else}}Notify me{{endif}}</button>
+			<button type="button" class="gd-alert-cancel ipsButton ipsButton--soft ipsButton--small" {{if $alertThreshold === null}}style="display:none"{{endif}}>Cancel</button>
+		</div>
+		<p class="gd-alert-state" style="margin:10px 0 0;font-size:.9em;color:#1E40AF">
+			{{if $alertThreshold !== null}}Alert set &mdash; we'll email you when it drops to or below <strong>{expression="'$' . number_format( (float) $alertThreshold, 2 )"}</strong>.{{endif}}
+		</p>
+	</div>
+	{{else}}
+	<div style="width:100%;background:#fff;margin:24px 0;padding:18px 20px;border:1px solid var(--i-border-color, #e5e7eb);border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);box-sizing:border-box">
+		<strong style="font-size:1.05em">Price Drop Alert</strong>
+		<p style="margin:6px 0 0;color:#6B7280;font-size:.92em"><a href="{$alertLoginUrl}" style="color:#1E40AF">Log in</a> to get an email when a dealer drops below your target price.</p>
+	</div>
+	{{endif}}
 
 	<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.06)">
 		<div style="padding:16px 24px;border-bottom:1px solid #f1f5f9;background:#f8fafc">
