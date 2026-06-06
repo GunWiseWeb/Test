@@ -153,7 +153,10 @@ class Searcher
                 'capacities'   => [ 'terms' => [ 'field' => 'capacity',            'size' => 40 ] ],
                 'casings'      => [ 'terms' => [ 'field' => 'case_type.keyword',   'size' => 20 ] ],
                 'bullet_types'   => [ 'terms' => [ 'field' => 'bullet_type.keyword', 'size' => 30 ] ],
-                'barrel_present' => [ 'filter' => [ 'range' => [ 'barrel_length' => [ 'gt' => 0 ] ] ] ],
+                'barrel_present' => [ 'filter' => [ 'bool' => [
+                    'must'     => [ [ 'range' => [ 'barrel_length' => [ 'gt' => 0 ] ] ] ],
+                    'must_not' => [ [ 'term'  => [ 'is_ammo' => true ] ] ],
+                ] ] ],
             ],
         ];
 
