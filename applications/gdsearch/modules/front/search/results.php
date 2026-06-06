@@ -104,6 +104,17 @@ class _results extends \IPS\Dispatcher\Controller
             $error = $e->getMessage();
         }
 
+        foreach ( [ 'categories', 'brands', 'calibers', 'actions', 'capacities', 'casings', 'bullet_types' ] as $aggKey )
+        {
+            if ( isset( $aggs[ $aggKey ]['buckets'] ) && is_array( $aggs[ $aggKey ]['buckets'] ) )
+            {
+                $aggs[ $aggKey ]['buckets'] = array_values( array_filter(
+                    $aggs[ $aggKey ]['buckets'],
+                    static function ( $b ) { return trim( (string) ( $b['key'] ?? '' ) ) !== ''; }
+                ) );
+            }
+        }
+
         $pagination = '';
         if ( $total > $perPage ) {
             $paginationQs = 'app=gdsearch&module=search&controller=results';
