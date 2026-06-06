@@ -188,6 +188,7 @@ class _results extends \IPS\Dispatcher\Controller
         $restrictedStatesStr = implode( ', ', $restrictedStates );
 
         $priceChartSvg   = '';
+        $priceChartJson  = '[]';
         $priceAllTimeLow = null;
 
         $rawSeries = [];
@@ -220,7 +221,10 @@ class _results extends \IPS\Dispatcher\Controller
             } catch ( \Throwable ) { $series = []; }
         }
 
-        $priceChartSvg = \IPS\gdsearch\Price\Chart::svg( $series );
+        $priceChartSvg  = \IPS\gdsearch\Price\Chart::svg( $series );
+        $priceChartJson = \IPS\gdsearch\Price\Chart::pointsJson( $series );
+
+        try { \IPS\Output::i()->js( 'pricechart.js', 'gdsearch', 'interface' ); } catch ( \Throwable ) {}
 
         $backUrl = (string) \IPS\Http\Url::internal(
             'app=gdsearch&module=search&controller=results',
@@ -229,7 +233,7 @@ class _results extends \IPS\Dispatcher\Controller
 
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
-            $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceAllTimeLow
+            $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow
         );
     }
 }

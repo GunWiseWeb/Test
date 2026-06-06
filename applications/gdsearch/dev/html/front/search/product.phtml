@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceAllTimeLow" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow" />
 <style>
 .gdsp-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box }
 .gdsp-top { display:grid; grid-template-columns:420px 1fr; gap:36px }
@@ -82,7 +82,10 @@
 			<strong style="font-size:1.05em">Price History <span style="font-weight:400;color:#6B7280">(past 12 months)</span></strong>
 			{{if $priceAllTimeLow !== null}}<span style="font-size:.9em;color:#6B7280">All-time low: <strong style="color:#1E40AF">{expression="'$' . number_format( (float) $priceAllTimeLow, 2 )"}</strong></span>{{endif}}
 		</div>
-		<div style="width:100%">{$priceChartSvg|raw}</div>
+		<div class="gd-pricechart" data-points='{$priceChartJson|raw}' style="position:relative;width:100%">
+			{$priceChartSvg|raw}
+			<div class="gd-pc-tip" style="position:absolute;display:none;pointer-events:none;background:#111827;color:#fff;font-size:12px;line-height:1.35;padding:6px 9px;border-radius:6px;white-space:nowrap;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.2)"></div>
+		</div>
 	</div>
 
 	<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,0.06)">

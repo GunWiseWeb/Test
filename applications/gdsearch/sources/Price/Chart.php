@@ -10,98 +10,121 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 }
 
 /**
- * Server-side SVG price-history line chart (no JS — safe inside IPS templates).
- * Always returns an SVG: a real chart when there is data, an empty-state frame otherwise.
+ * Server-side SVG price-history chart with client-side hover tooltips.
+ * svg() renders the static chart (line/area/axis + hidden guide+dot elements the JS drives).
+ * pointsJson() emits the data + geometry the interface/pricechart.js reads for hover.
+ * Always returns a frame, even with no data, so the feature is always visible.
  */
 class _Chart
 {
-	/**
-	 * @param array<int, array{date:string, price:float}> $series  ascending, forward-filled
-	 */
-	public static function svg( array $series ): string
+	protected const W = 1000;
+	protected const H = 220;
+	protected const PADL = 64;
+	protected const PADR = 24;
+	protected const PADT = 20;
+	protected const PADB = 32;
+
+	/** @param array<int,array{date:string,price:float}> $series ascending, forward-filled */
+	protected static function geometry( array $series ): ?array
 	{
-		$w = 1000; $h = 220; $padL = 64; $padR = 24; $padT = 20; $padB = 32;
 		$n = count( $series );
+		if ( $n < 2 ) { return null; }
 
-		/* Always render a frame so shoppers see the feature exists, even with no data yet. */
-		if ( $n < 2 )
-		{
-			return self::emptyState( $w, $h, $padL, $padR, $padT, $padB );
-		}
-
-		$plotW = $w - $padL - $padR;
-		$plotH = $h - $padT - $padB;
-
+		$plotW = self::W - self::PADL - self::PADR;
+		$plotH = self::H - self::PADT - self::PADB;
 		$prices = array_column( $series, 'price' );
 		$min = min( $prices );
 		$max = max( $prices );
 		if ( $max <= $min ) { $max = $min + 1; }
 
-		$xAt = static fn( int $i ): float => $padL + ( $n <= 1 ? 0 : ( $i / ( $n - 1 ) ) * $plotW );
-		$yAt = static fn( float $p ): float => $padT + ( 1 - ( ( $p - $min ) / ( $max - $min ) ) ) * $plotH;
+		$points = [];
+		foreach ( $series as $i => $pt )
+		{
+			$x = self::PADL + ( $i / ( $n - 1 ) ) * $plotW;
+			$y = self::PADT + ( 1 - ( ( (float) $pt['price'] - $min ) / ( $max - $min ) ) ) * $plotH;
+			$points[] = [ 'x' => round( $x, 1 ), 'y' => round( $y, 1 ), 'price' => (float) $pt['price'], 'date' => (string) $pt['date'] ];
+		}
 
-		$pts = [];
-		foreach ( $series as $i => $pt ) { $pts[] = round( $xAt( $i ), 1 ) . ',' . round( $yAt( (float) $pt['price'] ), 1 ); }
+		return [
+			'n' => $n, 'min' => $min, 'max' => $max,
+			'plotW' => $plotW, 'plotH' => $plotH,
+			'base' => round( self::PADT + $plotH, 1 ),
+			'points' => $points,
+		];
+	}
 
-		$base   = round( $padT + $plotH, 1 );
-		$firstX = round( $xAt( 0 ), 1 );
-		$lastX  = round( $xAt( $n - 1 ), 1 );
-		$area   = 'M ' . $firstX . ',' . $base . ' L ' . implode( ' L ', $pts ) . ' L ' . $lastX . ',' . $base . ' Z';
-		$line   = 'M ' . implode( ' L ', $pts );
+	public static function svg( array $series ): string
+	{
+		$g = self::geometry( $series );
+		if ( $g === null ) { return self::emptyState(); }
 
-		$cur  = $series[ $n - 1 ];
-		$curX = round( $xAt( $n - 1 ), 1 );
-		$curY = round( $yAt( (float) $cur['price'] ), 1 );
+		$w = self::W; $h = self::H; $padL = self::PADL; $padR = self::PADR; $padT = self::PADT;
+		$base = $g['base']; $midY = round( $padT + $g['plotH'] / 2, 1 );
+		$pts = array_map( static fn( $p ) => $p['x'] . ',' . $p['y'], $g['points'] );
+		$first = $g['points'][0]; $cur = $g['points'][ $g['n'] - 1 ];
 
-		$money = static fn( float $v ): string => '$' . number_format( $v, 2 );
+		$area = 'M ' . $first['x'] . ',' . $base . ' L ' . implode( ' L ', $pts ) . ' L ' . $cur['x'] . ',' . $base . ' Z';
+		$line = 'M ' . implode( ' L ', $pts );
+
+		$money = static fn( float $v ): string => htmlspecialchars( '$' . number_format( $v, 2 ), ENT_QUOTES );
 		$esc   = static fn( string $s ): string => htmlspecialchars( $s, ENT_QUOTES );
 
-		$midY = round( $padT + $plotH / 2, 1 );
-		$maxLabel = $esc( $money( $max ) );
-		$minLabel = $esc( $money( $min ) );
-		$midLabel = $esc( $money( ( $min + $max ) / 2 ) );
-		$startLbl = $esc( $series[0]['date'] );
-		$endLbl   = $esc( $cur['date'] );
-		$curLbl   = $esc( $money( (float) $cur['price'] ) );
-
-		$blue = '#1E40AF';
-		$grid = '#E5E7EB';
-		$txt  = '#6B7280';
+		$blue = '#1E40AF'; $grid = '#E5E7EB'; $txt = '#6B7280';
 
 		$svg  = '<svg viewBox="0 0 ' . $w . ' ' . $h . '" width="100%" role="img" aria-label="Price history" style="width:100%;height:auto;display:block;font-family:Inter,system-ui,sans-serif">';
-		$svg .= '<line x1="' . $padL . '" y1="' . round( $padT, 1 ) . '" x2="' . ( $w - $padR ) . '" y2="' . round( $padT, 1 ) . '" stroke="' . $grid . '" stroke-width="1"/>';
+		/* horizontal gridlines + y labels */
+		$svg .= '<line x1="' . $padL . '" y1="' . $padT . '" x2="' . ( $w - $padR ) . '" y2="' . $padT . '" stroke="' . $grid . '" stroke-width="1"/>';
 		$svg .= '<line x1="' . $padL . '" y1="' . $midY . '" x2="' . ( $w - $padR ) . '" y2="' . $midY . '" stroke="' . $grid . '" stroke-width="1"/>';
 		$svg .= '<line x1="' . $padL . '" y1="' . $base . '" x2="' . ( $w - $padR ) . '" y2="' . $base . '" stroke="' . $grid . '" stroke-width="1"/>';
-		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $padT + 4, 1 ) . '" text-anchor="end" font-size="15" fill="' . $txt . '">' . $maxLabel . '</text>';
-		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $midY + 4, 1 ) . '" text-anchor="end" font-size="15" fill="' . $txt . '">' . $midLabel . '</text>';
-		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $base + 4, 1 ) . '" text-anchor="end" font-size="15" fill="' . $txt . '">' . $minLabel . '</text>';
+		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $padT + 4, 1 ) . '" text-anchor="end" font-size="13" fill="' . $txt . '">' . $money( $g['max'] ) . '</text>';
+		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $midY + 4, 1 ) . '" text-anchor="end" font-size="13" fill="' . $txt . '">' . $money( ( $g['min'] + $g['max'] ) / 2 ) . '</text>';
+		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $base + 4, 1 ) . '" text-anchor="end" font-size="13" fill="' . $txt . '">' . $money( $g['min'] ) . '</text>';
+		/* area + line */
 		$svg .= '<path d="' . $area . '" fill="' . $blue . '" fill-opacity="0.08"/>';
 		$svg .= '<path d="' . $line . '" fill="none" stroke="' . $blue . '" stroke-width="2" stroke-linejoin="round"/>';
-		$svg .= '<circle cx="' . $curX . '" cy="' . $curY . '" r="3.5" fill="' . $blue . '"/>';
-		$svg .= '<text x="' . $curX . '" y="' . round( $curY - 8, 1 ) . '" text-anchor="end" font-size="13" font-weight="700" fill="' . $blue . '">' . $curLbl . '</text>';
-		$svg .= '<text x="' . $padL . '" y="' . ( $h - 8 ) . '" text-anchor="start" font-size="15" fill="' . $txt . '">' . $startLbl . '</text>';
-		$svg .= '<text x="' . ( $w - $padR ) . '" y="' . ( $h - 8 ) . '" text-anchor="end" font-size="15" fill="' . $txt . '">' . $endLbl . '</text>';
+		/* current point label */
+		$svg .= '<circle cx="' . $cur['x'] . '" cy="' . $cur['y'] . '" r="3.5" fill="' . $blue . '"/>';
+		$svg .= '<text x="' . $cur['x'] . '" y="' . round( $cur['y'] - 8, 1 ) . '" text-anchor="end" font-size="13" font-weight="700" fill="' . $blue . '">' . $money( $cur['price'] ) . '</text>';
+		/* x date labels */
+		$svg .= '<text x="' . $padL . '" y="' . ( $h - 8 ) . '" text-anchor="start" font-size="13" fill="' . $txt . '">' . $esc( $first['date'] ) . '</text>';
+		$svg .= '<text x="' . ( $w - $padR ) . '" y="' . ( $h - 8 ) . '" text-anchor="end" font-size="13" fill="' . $txt . '">' . $esc( $cur['date'] ) . '</text>';
+		/* hover elements (JS toggles/positions these) */
+		$svg .= '<line class="gd-pc-guide" x1="0" y1="0" x2="0" y2="0" stroke="' . $blue . '" stroke-width="1" stroke-dasharray="4 3" opacity="0.6" style="display:none"/>';
+		$svg .= '<circle class="gd-pc-dot" cx="0" cy="0" r="4.5" fill="' . $blue . '" stroke="#fff" stroke-width="2" style="display:none"/>';
 		$svg .= '</svg>';
 
 		return $svg;
 	}
 
-	/** Placeholder chart frame shown when there is not yet enough price history. */
-	protected static function emptyState( int $w, int $h, int $padL, int $padR, int $padT, int $padB ): string
+	/** JSON the hover JS reads: geometry + every point's viewBox coords, price, date. */
+	public static function pointsJson( array $series ): string
 	{
-		$plotH = $h - $padT - $padB;
-		$base  = round( $padT + $plotH, 1 );
-		$mid   = round( $padT + $plotH / 2, 1 );
-		$grid  = '#E5E7EB';
-		$txt   = '#9CA3AF';
-		$cx    = round( $padL + ( $w - $padL - $padR ) / 2, 1 );
+		$g = self::geometry( $series );
+		$payload = [
+			'w'    => self::W,
+			'h'    => self::H,
+			'padT' => self::PADT,
+			'base' => $g['base'] ?? ( self::H - self::PADB ),
+			'points' => $g['points'] ?? [],
+		];
+		return json_encode( $payload, JSON_UNESCAPED_SLASHES );
+	}
+
+	protected static function emptyState(): string
+	{
+		$w = self::W; $h = self::H; $padL = self::PADL; $padR = self::PADR; $padT = self::PADT;
+		$plotH = $h - $padT - self::PADB;
+		$base = round( $padT + $plotH, 1 );
+		$mid  = round( $padT + $plotH / 2, 1 );
+		$cx   = round( $padL + ( $w - $padL - $padR ) / 2, 1 );
+		$grid = '#E5E7EB'; $txt = '#9CA3AF';
 
 		$svg  = '<svg viewBox="0 0 ' . $w . ' ' . $h . '" width="100%" role="img" aria-label="Price history (no data yet)" style="width:100%;height:auto;display:block;font-family:Inter,system-ui,sans-serif">';
-		$svg .= '<line x1="' . $padL . '" y1="' . round( $padT, 1 ) . '" x2="' . ( $w - $padR ) . '" y2="' . round( $padT, 1 ) . '" stroke="' . $grid . '" stroke-width="1"/>';
+		$svg .= '<line x1="' . $padL . '" y1="' . $padT . '" x2="' . ( $w - $padR ) . '" y2="' . $padT . '" stroke="' . $grid . '" stroke-width="1"/>';
 		$svg .= '<line x1="' . $padL . '" y1="' . $mid . '" x2="' . ( $w - $padR ) . '" y2="' . $mid . '" stroke="' . $grid . '" stroke-width="1"/>';
 		$svg .= '<line x1="' . $padL . '" y1="' . $base . '" x2="' . ( $w - $padR ) . '" y2="' . $base . '" stroke="' . $grid . '" stroke-width="1"/>';
-		$svg .= '<line x1="' . $padL . '" y1="' . round( $padT, 1 ) . '" x2="' . $padL . '" y2="' . $base . '" stroke="' . $grid . '" stroke-width="1"/>';
-		$svg .= '<text x="' . $cx . '" y="' . round( $mid + 4, 1 ) . '" text-anchor="middle" font-size="15" fill="' . $txt . '">Tracking prices &#8212; history appears here as prices change</text>';
+		$svg .= '<line x1="' . $padL . '" y1="' . $padT . '" x2="' . $padL . '" y2="' . $base . '" stroke="' . $grid . '" stroke-width="1"/>';
+		$svg .= '<text x="' . $cx . '" y="' . round( $mid + 4, 1 ) . '" text-anchor="middle" font-size="14" fill="' . $txt . '">Tracking prices &#8212; history appears here as prices change</text>';
 		$svg .= '</svg>';
 		return $svg;
 	}
