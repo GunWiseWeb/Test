@@ -98,7 +98,7 @@
 						{{if $product['bullet_type']}}<div><span style="color:#94a3b8">Bullet Type:</span> <strong>{$product['bullet_type']}</strong></div>{{endif}}
 						{{if $product['casing_material']}}<div><span style="color:#94a3b8">Casing:</span> <strong>{$product['casing_material']}</strong></div>{{endif}}
 						{{if $product['rounds_per_box']}}<div><span style="color:#94a3b8">Rounds/Box:</span> <strong>{$product['rounds_per_box']}</strong></div>{{endif}}
-						{{if $product['muzzle_velocity']}}<div><span style="color:#94a3b8">Muzzle Velocity:</span> <strong>{$product['muzzle_velocity']} fps</strong></div>{{endif}}
+						{{if $product['muzzle_velocity']}}<div><span style="color:#94a3b8">Muzzle Velocity:</span> <strong>{expression="trim( preg_replace( '/\s*fps\s*/i', '', (string) $product['muzzle_velocity'] ) )"} fps</strong></div>{{endif}}
 						{{if $product['muzzle_energy']}}<div><span style="color:#94a3b8">Muzzle Energy:</span> <strong>{$product['muzzle_energy']} ft·lbs</strong></div>{{endif}}
 						{{if $product['action_type']}}<div><span style="color:#94a3b8">{lang="gdsearch_action_type"}:</span> <strong>{$product['action_type']}</strong></div>{{endif}}
 						{{if $product['capacity']}}<div><span style="color:#94a3b8">{lang="gdsearch_capacity"}:</span> <strong>{$product['capacity']}</strong></div>{{endif}}
