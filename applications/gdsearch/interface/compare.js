@@ -92,7 +92,8 @@
 		document.querySelectorAll( '.gd-compare-trigger' ).forEach( function ( btn ) {
 			var base = btn.getAttribute( 'data-compare-url' );
 			if ( base ) { document.body.setAttribute( 'data-gd-compare-url', base ); }
-			btn.addEventListener( 'click', function () {
+			btn.addEventListener( 'click', function ( e ) {
+				if ( e ) { e.preventDefault(); e.stopPropagation(); }
 				var items = read(), upc = btn.getAttribute( 'data-upc' );
 				if ( has( items, upc ) ) { items = items.filter( function ( i ) { return i.upc !== upc; } ); }
 				else {

@@ -54,7 +54,7 @@
 				post( btn.getAttribute( 'data-remove-url' ), { upc: btn.getAttribute( 'data-upc' ), csrfKey: btn.getAttribute( 'data-csrf' ) } ).then( function ( res ) {
 					btn.disabled = false;
 					if ( res && res.ok ) {
-						var card = btn.closest( '.gd-wish-card' );
+						var card = btn.closest( '.gracct-card' ) || btn.closest( '.gd-wish-card' );
 						if ( card ) { card.remove(); }
 					}
 				} );

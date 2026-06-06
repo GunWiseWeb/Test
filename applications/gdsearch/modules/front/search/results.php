@@ -124,6 +124,8 @@ class _results extends \IPS\Dispatcher\Controller
             }
         } catch ( \Throwable ) {}
 
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'compare.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
+
         \IPS\Output::i()->title = $query
             ? $query . ' — ' . \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_results_title' )
             : \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_results_title' );

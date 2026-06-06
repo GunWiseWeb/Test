@@ -3,7 +3,10 @@
 .gdsr-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box }
 .gdsr-layout { display:grid; grid-template-columns:240px 1fr; gap:24px; align-items:start }
 .gdsr-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:20px }
-.gdsr-card { text-decoration:none; color:inherit; display:block; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; background:#fff; transition:box-shadow 0.15s, transform 0.15s }
+.gdsr-card { position:relative; text-decoration:none; color:inherit; display:block; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; background:#fff; transition:box-shadow 0.15s, transform 0.15s }
+.gdsr-cmp { position:absolute; top:8px; right:8px; z-index:3; background:rgba(255,255,255,.96); border:1px solid #e2e8f0; border-radius:7px; padding:4px 10px; font-size:.72em; font-weight:700; color:#1E40AF; cursor:pointer; line-height:1; user-select:none }
+.gdsr-cmp:hover { background:#eef2ff; border-color:#c7d2fe }
+.gdsr-cmp.ipsButton--positive { background:#dcfce7; color:#15803d; border-color:#bbf7d0 }
 .gdsr-card:hover { box-shadow:0 6px 18px -6px rgba(15,23,42,0.18); transform:translateY(-2px) }
 .gdsr-thumb { height:220px; background:#f8fafc; display:flex; align-items:center; justify-content:center; padding:12px }
 .gdsr-thumb img { max-height:196px; max-width:100%; object-fit:contain }
@@ -115,6 +118,11 @@
 			<div class="gdsr-grid">
 				{{foreach $results as $product}}
 				<a href="{url="app=gdsearch&module=search&controller=results&do=product&upc={$product['upc']}"}" class="gdsr-card">
+					<span class="gd-compare-trigger gdsr-cmp" role="button"
+						data-upc="{$product['upc']}"
+						data-title="{$product['title']}"
+						data-image="{$product['image_url']}"
+						data-compare-url="{url="app=gdsearch&module=search&controller=results&do=compare"}">Compare</span>
 					{{if $product['image_url']}}
 					<div class="gdsr-thumb">
 						<img src="{$product['image_url']}" alt="{$product['title']}">

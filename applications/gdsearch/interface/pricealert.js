@@ -87,7 +87,7 @@
 				post( url, { upc: upc, csrfKey: csrf } ).then( function ( res ) {
 					btn.disabled = false;
 					if ( res && res.ok ) {
-						var card = btn.closest( '.gda-card' );
+						var card = btn.closest( '.gracct-card' ) || btn.closest( '.gda-card' );
 						if ( card ) { card.remove(); }
 					}
 				} );
