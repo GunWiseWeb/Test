@@ -1,41 +1,74 @@
 <ips:template parameters="$rows, $removeUrl, $csrfKey" />
 <style>
-.gda-wrap { max-width:900px; margin:0 auto; padding:20px }
-.gd-wish-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:20px; margin-bottom:16px; display:flex; align-items:center; gap:16px }
-.gd-wish-thumb { width:64px; height:64px; border-radius:8px; object-fit:contain; background:#f8fafc; border:1px solid #e2e8f0 }
-.gd-wish-info { flex:1; min-width:0 }
-.gd-wish-title { font-weight:600; color:#0f172a; font-size:1em; margin:0 0 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-.gd-wish-meta { font-size:0.85em; color:#64748b }
-.gd-wish-empty { text-align:center; padding:60px 20px; color:#94a3b8 }
+.gracct { max-width:980px; margin:0 auto; padding:28px 20px 56px; font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif }
+.gracct-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; padding-bottom:18px; margin-bottom:24px; border-bottom:2px solid #e2e8f0 }
+.gracct-head h1 { font-size:1.9em; font-weight:800; letter-spacing:-.02em; color:#0f172a; margin:0; line-height:1.1 }
+.gracct-head p { margin:6px 0 0; color:#64748b; font-size:.95em }
+.gracct-count { flex:none; background:#1E3A8A; color:#fff; font-weight:700; font-size:.8em; padding:6px 14px; border-radius:999px; letter-spacing:.02em }
+.gracct-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(440px,1fr)); gap:16px }
+.gracct-card { display:flex; align-items:center; gap:18px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:18px; transition:box-shadow .15s ease, border-color .15s ease, transform .15s ease }
+.gracct-card:hover { border-color:#1E40AF; box-shadow:0 8px 24px -10px rgba(30,58,138,.35); transform:translateY(-1px) }
+.gracct-thumb { width:84px; height:84px; flex:none; border-radius:10px; object-fit:contain; background:#f8fafc; border:1px solid #eef2f7 }
+.gracct-thumb-ph { width:84px; height:84px; flex:none; border-radius:10px; background:#f1f5f9; border:1px solid #eef2f7; display:flex; align-items:center; justify-content:center; color:#cbd5e1; font-size:1.8em }
+.gracct-info { flex:1; min-width:0 }
+.gracct-title { font-weight:700; color:#0f172a; font-size:1.02em; margin:0 0 4px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden }
+.gracct-title a { color:inherit; text-decoration:none }
+.gracct-title a:hover { color:#1E40AF }
+.gracct-price { font-size:1.35em; font-weight:800; color:#1E3A8A; letter-spacing:-.01em }
+.gracct-price small { font-size:.6em; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; display:block; margin-bottom:2px }
+.gracct-noprice { color:#94a3b8; font-size:.9em; font-style:italic }
+.gracct-actions { flex:none; display:flex; flex-direction:column; gap:8px; align-items:stretch }
+.gracct-view { text-align:center; font-size:.82em; font-weight:600; color:#1E40AF; text-decoration:none; border:1px solid #c7d2fe; background:#eef2ff; border-radius:8px; padding:7px 16px; transition:background .15s }
+.gracct-view:hover { background:#e0e7ff }
+.gracct-remove { font-size:.82em; font-weight:600; color:#64748b; background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:7px 16px; cursor:pointer; transition:border-color .15s, color .15s }
+.gracct-remove:hover { border-color:#ef4444; color:#ef4444 }
+.gracct-empty { text-align:center; padding:72px 24px; background:#fff; border:1px dashed #cbd5e1; border-radius:16px }
+.gracct-empty-icon { font-size:2.6em; color:#cbd5e1; margin-bottom:10px }
+.gracct-empty h2 { font-size:1.2em; color:#334155; margin:0 0 6px; font-weight:700 }
+.gracct-empty p { color:#94a3b8; margin:0 0 18px }
+.gracct-cta { display:inline-block; background:#1E3A8A; color:#fff; font-weight:700; text-decoration:none; padding:11px 26px; border-radius:10px; font-size:.95em; transition:background .15s }
+.gracct-cta:hover { background:#1E40AF }
+@media (max-width:560px){ .gracct-grid{ grid-template-columns:1fr } .gracct-card{ flex-wrap:wrap } .gracct-actions{ flex-direction:row; width:100% } .gracct-view,.gracct-remove{ flex:1 } }
 </style>
-<div class="gda-wrap">
-	<h1 style="font-size:1.3em;color:#0f172a;margin:0 0 20px">{lang="gdsearch_my_wishlist_title"}</h1>
+<div class="gracct">
+	<div class="gracct-head">
+		<div>
+			<h1>My Wishlist</h1>
+			<p>Products you've saved to keep an eye on.</p>
+		</div>
+		{{if count($rows)}}<span class="gracct-count">{expression="count($rows)"} saved</span>{{endif}}
+	</div>
 
 	{{if count($rows) === 0}}
-	<div class="gd-wish-empty">
-		<p style="font-size:1.1em;margin:0 0 8px">You haven't saved any products yet.</p>
-		<p style="margin:0">Browse products and tap the heart to save them here.</p>
+	<div class="gracct-empty">
+		<div class="gracct-empty-icon">&#9825;</div>
+		<h2>Your wishlist is empty</h2>
+		<p>Browse the catalog and tap the heart on any product to save it here.</p>
+		<a class="gracct-cta" href="{expression="(string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results', 'front' )"}">Browse Catalog</a>
 	</div>
 	{{else}}
-	{{foreach $rows as $row}}
-	<div class="gd-wish-card">
-		{{if $row['image']}}
-		<img src="{$row['image']}" alt="" class="gd-wish-thumb">
-		{{else}}
-		<div class="gd-wish-thumb" style="display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:1.5em">&#128230;</div>
-		{{endif}}
-		<div class="gd-wish-info">
-			<div class="gd-wish-title"><a href="{$row['productUrl']}" style="color:inherit;text-decoration:none">{$row['title']}</a></div>
-			<div class="gd-wish-meta">
+	<div class="gracct-grid">
+		{{foreach $rows as $row}}
+		<div class="gracct-card" data-upc="{$row['upc']}">
+			{{if $row['image']}}
+			<img src="{$row['image']}" alt="" class="gracct-thumb">
+			{{else}}
+			<div class="gracct-thumb-ph">&#128230;</div>
+			{{endif}}
+			<div class="gracct-info">
+				<div class="gracct-title"><a href="{$row['productUrl']}">{$row['title']}</a></div>
 				{{if $row['price'] !== null}}
-				Lowest price: <strong>${expression="number_format((float)$row['price'],2)"}</strong>
+				<div class="gracct-price"><small>Lowest price</small>${expression="number_format((float)$row['price'],2)"}</div>
 				{{else}}
-				No price data
+				<div class="gracct-noprice">No current price</div>
 				{{endif}}
 			</div>
+			<div class="gracct-actions">
+				<a class="gracct-view" href="{$row['productUrl']}">View</a>
+				<button type="button" class="gd-wish-remove gracct-remove" data-upc="{$row['upc']}" data-remove-url="{$removeUrl}" data-csrf="{$csrfKey}">Remove</button>
+			</div>
 		</div>
-		<button type="button" class="gd-wish-remove ipsButton ipsButton--soft ipsButton--small" data-upc="{$row['upc']}" data-remove-url="{$removeUrl}" data-csrf="{$csrfKey}">Remove</button>
+		{{endforeach}}
 	</div>
-	{{endforeach}}
 	{{endif}}
 </div>

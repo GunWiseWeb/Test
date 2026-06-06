@@ -2,6 +2,9 @@
     "core": {
         "Notifications": {
             "PriceAlerts": "IPS\\gdsearch\\extensions\\core\\Notifications\\PriceAlerts"
+        },
+        "UserMenu": {
+            "GdLinks": "IPS\\gdsearch\\extensions\\core\\UserMenu\\GdLinks"
         }
     }
 }
