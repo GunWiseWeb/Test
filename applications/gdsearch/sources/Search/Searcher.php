@@ -120,6 +120,7 @@ class Searcher
         $body = [
             'from'  => $from,
             'size'  => $perPage,
+            'track_total_hits' => true,
             'query' => [
                 'bool' => array_filter( [
                     'must'     => $must,
