@@ -1,0 +1,86 @@
+<ips:template parameters="$products, $rows" />
+<style>
+.grcmp { max-width:1200px; margin:0 auto; padding:28px 20px 96px; font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif }
+.grcmp-head { padding-bottom:18px; margin-bottom:22px; border-bottom:2px solid #e2e8f0 }
+.grcmp-head h1 { font-size:1.9em; font-weight:800; letter-spacing:-.02em; color:#0f172a; margin:0; line-height:1.1 }
+.grcmp-head p { margin:6px 0 0; color:#64748b; font-size:.95em }
+.grcmp-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch }
+.grcmp-table { border-collapse:separate; border-spacing:0; width:100%; min-width:680px }
+.grcmp-table th, .grcmp-table td { vertical-align:top; padding:14px 16px; border-bottom:1px solid #eef2f7 }
+.grcmp-table th.grcmp-rowlabel, .grcmp-table td.grcmp-rowlabel { text-align:left; width:170px; color:#64748b; font-weight:600; font-size:.85em; text-transform:uppercase; letter-spacing:.04em; background:#f8fafc; position:sticky; left:0 }
+.grcmp-prodcol { width:260px; text-align:center; background:#fff }
+.grcmp-prodhead { position:relative; border:1px solid #e2e8f0; border-bottom:none; border-radius:14px 14px 0 0; padding:18px 16px 16px }
+.grcmp-thumb { width:120px; height:120px; object-fit:contain; background:#f8fafc; border:1px solid #eef2f7; border-radius:10px; margin:0 auto 12px; display:block }
+.grcmp-thumb-ph { width:120px; height:120px; background:#f1f5f9; border:1px solid #eef2f7; border-radius:10px; margin:0 auto 12px; display:flex; align-items:center; justify-content:center; color:#cbd5e1; font-size:2em }
+.grcmp-pname { font-weight:700; color:#0f172a; font-size:.98em; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; min-height:3.6em }
+.grcmp-pname a { color:inherit; text-decoration:none } .grcmp-pname a:hover { color:#1E40AF }
+.grcmp-x { position:absolute; top:10px; right:10px; width:24px; height:24px; border-radius:50%; border:1px solid #e2e8f0; background:#fff; color:#94a3b8; cursor:pointer; font-size:14px; line-height:1; padding:0 }
+.grcmp-x:hover { border-color:#ef4444; color:#ef4444 }
+.grcmp-price { font-size:1.5em; font-weight:800; color:#1E3A8A; letter-spacing:-.01em }
+.grcmp-price-best { color:#15803d } .grcmp-best-badge { display:inline-block; margin-top:4px; font-size:.7em; font-weight:700; color:#15803d; background:#dcfce7; border-radius:6px; padding:2px 8px; text-transform:uppercase; letter-spacing:.04em }
+.grcmp-val { color:#334155; font-size:.95em } .grcmp-na { color:#cbd5e1 }
+.grcmp-view { display:inline-block; background:#1E3A8A; color:#fff; font-weight:700; text-decoration:none; padding:10px 22px; border-radius:9px; font-size:.9em; margin-top:6px }
+.grcmp-view:hover { background:#1E40AF }
+.grcmp-foot td { border-bottom:none; padding-top:16px }
+.grcmp-empty { text-align:center; padding:72px 24px; background:#fff; border:1px dashed #cbd5e1; border-radius:16px; color:#94a3b8 }
+.grcmp-empty a { color:#1E40AF; font-weight:600 }
+</style>
+<div class="grcmp">
+	<div class="grcmp-head">
+		<h1>Compare Products</h1>
+		<p>Side-by-side specs and the lowest current price for each.</p>
+	</div>
+
+	{{if count($products) < 2}}
+	<div class="grcmp-empty">
+		<p style="font-size:1.1em;margin:0 0 8px">Pick at least two products to compare.</p>
+		<p style="margin:0">Use the <strong>Add to Compare</strong> button on any product, then open the tray.</p>
+	</div>
+	{{else}}
+	<div class="grcmp-scroll">
+		<table class="grcmp-table">
+			<thead>
+				<tr>
+					<th class="grcmp-rowlabel"></th>
+					{{foreach $products as $p}}
+					<th class="grcmp-prodcol">
+						<div class="grcmp-prodhead">
+							<button type="button" class="gd-compare-col-remove grcmp-x" data-upc="{$p['upc']}" title="Remove">&times;</button>
+							{{if $p['image']}}<img src="{$p['image']}" alt="" class="grcmp-thumb">{{else}}<div class="grcmp-thumb-ph">&#128230;</div>{{endif}}
+							<div class="grcmp-pname"><a href="{$p['url']}">{$p['title']}</a></div>
+						</div>
+					</th>
+					{{endforeach}}
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $rows as $row}}
+				<tr>
+					<td class="grcmp-rowlabel">{$row['label']}</td>
+					{{foreach $products as $p}}
+					<td class="grcmp-prodcol">
+						{{if $row['key'] === 'price'}}
+							{{if $p['price'] !== null}}
+							<div class="grcmp-price {{if $p['isBest']}}grcmp-price-best{{endif}}">${expression="number_format((float)$p['price'],2)"}</div>
+							{{if $p['isBest']}}<div class="grcmp-best-badge">Lowest</div>{{endif}}
+							{{else}}<span class="grcmp-na">&mdash;</span>{{endif}}
+						{{else}}
+							{{if isset($p['specs'][$row['key']]) and $p['specs'][$row['key']] !== '' and $p['specs'][$row['key']] !== null}}
+							<span class="grcmp-val">{$p['specs'][$row['key']]}</span>
+							{{else}}<span class="grcmp-na">&mdash;</span>{{endif}}
+						{{endif}}
+					</td>
+					{{endforeach}}
+				</tr>
+				{{endforeach}}
+				<tr class="grcmp-foot">
+					<td class="grcmp-rowlabel"></td>
+					{{foreach $products as $p}}
+					<td class="grcmp-prodcol"><a class="grcmp-view" href="{$p['url']}">View product</a></td>
+					{{endforeach}}
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	{{endif}}
+</div>

@@ -217,6 +217,7 @@ class _results extends \IPS\Dispatcher\Controller
         try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'pricechart.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
         try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
         try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'wishlist.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'compare.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
 
         $backUrl = (string) \IPS\Http\Url::internal(
             'app=gdsearch&module=search&controller=results',
@@ -384,6 +385,75 @@ class _results extends \IPS\Dispatcher\Controller
             $alerts, $csrfKey
         );
     }
+    protected function compare(): void
+    {
+        $raw  = array_filter( array_map( 'trim', explode( ',', (string) \IPS\Request::i()->upcs ) ) );
+        $raw  = array_slice( array_unique( $raw ), 0, 4 );
+
+        $products = [];
+        $minPrice = null;
+        foreach ( $raw as $upc )
+        {
+            try { $cat = \IPS\Db::i()->select( '*', 'gd_catalog', [ 'upc=?', $upc ] )->first(); }
+            catch ( \Throwable ) { continue; }
+
+            $price = isset( $cat['total_min_price'] ) && $cat['total_min_price'] !== null ? (float) $cat['total_min_price'] : null;
+            if ( $price !== null && ( $minPrice === null || $price < $minPrice ) ) { $minPrice = $price; }
+
+            $products[] = [
+                'upc'    => $upc,
+                'title'  => $cat['title'] ?? $upc,
+                'image'  => $cat['image_url'] ?? '',
+                'url'    => (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=product&upc=' . urlencode( $upc ), 'front' ),
+                'price'  => $price,
+                'isBest' => false,
+                'specs'  => [
+                    'brand'          => $cat['brand'] ?? '',
+                    'caliber'        => $cat['caliber'] ?? '',
+                    'action_type'    => $cat['action_type'] ?? '',
+                    'capacity'       => $cat['capacity'] ?? '',
+                    'barrel_length'  => $cat['barrel_length'] ?? '',
+                    'overall_length' => $cat['overall_length'] ?? '',
+                    'weight'         => $cat['weight_lbs'] ?? '',
+                    'msrp'           => isset( $cat['msrp'] ) && $cat['msrp'] ? '$' . number_format( (float) $cat['msrp'], 2 ) : '',
+                    'mpn'            => $cat['mpn'] ?? '',
+                ],
+            ];
+        }
+
+        if ( $minPrice !== null )
+        {
+            foreach ( $products as &$p )
+            {
+                if ( $p['price'] !== null && (float) $p['price'] === (float) $minPrice ) { $p['isBest'] = true; break; }
+            }
+            unset( $p );
+        }
+
+        $rowDefs = [
+            [ 'label' => 'Lowest Price',    'key' => 'price' ],
+            [ 'label' => 'Brand',           'key' => 'brand' ],
+            [ 'label' => 'MPN',             'key' => 'mpn' ],
+            [ 'label' => 'Caliber',         'key' => 'caliber' ],
+            [ 'label' => 'Action',          'key' => 'action_type' ],
+            [ 'label' => 'Capacity',        'key' => 'capacity' ],
+            [ 'label' => 'Barrel Length',   'key' => 'barrel_length' ],
+            [ 'label' => 'Overall Length',  'key' => 'overall_length' ],
+            [ 'label' => 'Weight',          'key' => 'weight' ],
+            [ 'label' => 'MSRP',            'key' => 'msrp' ],
+        ];
+
+        $rows = array_values( array_filter( $rowDefs, function ( $r ) use ( $products ) {
+            if ( $r['key'] === 'price' ) { return true; }
+            foreach ( $products as $p ) { if ( !empty( $p['specs'][ $r['key'] ] ) ) { return true; } }
+            return false;
+        } ) );
+
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'compare.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
+        \IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_compare_title' );
+        \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->compare( $products, $rows );
+    }
+
     protected function addWishlist(): void
     {
         $member = \IPS\Member::loggedIn();

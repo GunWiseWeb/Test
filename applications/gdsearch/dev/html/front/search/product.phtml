@@ -55,6 +55,14 @@
 					<span class="gd-wish-label">{{if $wishlisted}}Saved to Wishlist{{else}}Save to Wishlist{{endif}}</span>
 				</button>
 
+				<button type="button" class="gd-compare-trigger ipsButton ipsButton--secondary" style="width:100%;margin-top:8px;box-sizing:border-box"
+					data-upc="{$product['upc']}"
+					data-title="{$product['title']}"
+					data-image="{$product['image_url']}"
+					data-compare-url="{expression="(string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=compare', 'front' )"}">
+					<span class="gd-compare-label">Add to Compare</span>
+				</button>
+
 			</div>
 
 			<div>
