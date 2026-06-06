@@ -42,12 +42,25 @@ class Searcher
             $must[] = [
                 'bool' => [
                     'should' => [
+                        /* 1) EXACT (non-fuzzy) — highest priority so true token matches (incl. part numbers
+                              embedded in the description) rank above fuzzy near-misses. */
                         [
                             'multi_match' => [
-                                'query'     => $query,
-                                'fields'    => [ 'title^3', 'mpn^4', 'brand^2', 'model^2', 'caliber^2', 'description', 'category', 'subcategory' ],
-                                'type'      => 'best_fields',
-                                'fuzziness' => 'AUTO',
+                                'query'  => $query,
+                                'fields' => [ 'title^4', 'mpn^8', 'brand^3', 'model^3', 'caliber^3', 'description^3', 'category', 'subcategory' ],
+                                'type'   => 'best_fields',
+                                'boost'  => 12,
+                            ],
+                        ],
+                        /* 2) FUZZY — typo tolerance, lower priority. prefix_length=2 keeps a 1-2 digit
+                              difference from flooding numeric searches. */
+                        [
+                            'multi_match' => [
+                                'query'         => $query,
+                                'fields'        => [ 'title^3', 'mpn^4', 'brand^2', 'model^2', 'caliber^2', 'description', 'category', 'subcategory' ],
+                                'type'          => 'best_fields',
+                                'fuzziness'     => 'AUTO',
+                                'prefix_length' => 2,
                             ],
                         ],
                         [ 'match_phrase_prefix' => [ 'mpn'   => [ 'query' => $query, 'boost' => 5 ] ] ],
