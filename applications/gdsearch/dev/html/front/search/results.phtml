@@ -1,4 +1,4 @@
-<ips:template parameters="$query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error" />
+<ips:template parameters="$query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands" />
 <style>
 .gdsr-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box }
 .gdsr-layout { display:grid; grid-template-columns:240px 1fr; gap:24px; align-items:start }
@@ -146,16 +146,18 @@
 				{{if (isset($aggs['casings']['buckets']) and count($aggs['casings']['buckets'])) or (isset($aggs['bullet_types']['buckets']) and count($aggs['bullet_types']['buckets']))}}
 				<div class="gdsr-side-box">
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_grain"}</h3>
-					<div style="display:flex;gap:6px;align-items:center">
-						<input type="number" name="grain_min" placeholder="Min" class="ipsInput ipsInput--text" style="width:100%" value="{{if !empty($filters['grain_min'])}}{$filters['grain_min']}{{endif}}">
-						<span style="color:#94a3b8">&ndash;</span>
-						<input type="number" name="grain_max" placeholder="Max" class="ipsInput ipsInput--text" style="width:100%" value="{{if !empty($filters['grain_max'])}}{$filters['grain_max']}{{endif}}">
+					<div class="gdsr-facet-list">
+						{{foreach $grainBands as $bandKey => $bandLabel}}
+						<label class="gdsr-facet-opt"><input type="checkbox" name="grain[]" value="{$bandKey}" {{if is_array($filters['grain']) and in_array($bandKey, $filters['grain'])}}checked{{endif}}><span>{$bandLabel}</span></label>
+						{{endforeach}}
 					</div>
-					<h3 class="gdsr-fh" style="margin-top:14px">{lang="gdsearch_facet_velocity"}</h3>
-					<div style="display:flex;gap:6px;align-items:center">
-						<input type="number" name="velocity_min" placeholder="Min" class="ipsInput ipsInput--text" style="width:100%" value="{{if !empty($filters['velocity_min'])}}{$filters['velocity_min']}{{endif}}">
-						<span style="color:#94a3b8">&ndash;</span>
-						<input type="number" name="velocity_max" placeholder="Max" class="ipsInput ipsInput--text" style="width:100%" value="{{if !empty($filters['velocity_max'])}}{$filters['velocity_max']}{{endif}}">
+				</div>
+				<div class="gdsr-side-box">
+					<h3 class="gdsr-fh">{lang="gdsearch_facet_velocity"}</h3>
+					<div class="gdsr-facet-list">
+						{{foreach $velocityBands as $bandKey => $bandLabel}}
+						<label class="gdsr-facet-opt"><input type="checkbox" name="velocity[]" value="{$bandKey}" {{if is_array($filters['velocity']) and in_array($bandKey, $filters['velocity'])}}checked{{endif}}><span>{$bandLabel}</span></label>
+						{{endforeach}}
 					</div>
 				</div>
 				{{endif}}
@@ -195,10 +197,8 @@
 					{{foreach $filters['bullet_type'] as $v}}<input type="hidden" name="bullet_type[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['capacity'] as $v}}<input type="hidden" name="capacity[]" value="{$v}">{{endforeach}}
 					{{if !empty($filters['is_ammo'])}}<input type="hidden" name="is_ammo" value="1">{{endif}}
-					{{if !empty($filters['grain_min'])}}<input type="hidden" name="grain_min" value="{$filters['grain_min']}">{{endif}}
-					{{if !empty($filters['grain_max'])}}<input type="hidden" name="grain_max" value="{$filters['grain_max']}">{{endif}}
-					{{if !empty($filters['velocity_min'])}}<input type="hidden" name="velocity_min" value="{$filters['velocity_min']}">{{endif}}
-					{{if !empty($filters['velocity_max'])}}<input type="hidden" name="velocity_max" value="{$filters['velocity_max']}">{{endif}}
+					{{foreach $filters['grain'] as $v}}<input type="hidden" name="grain[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['velocity'] as $v}}<input type="hidden" name="velocity[]" value="{$v}">{{endforeach}}
 					{{if $filters['in_stock']}}<input type="hidden" name="in_stock" value="1">{{endif}}
 					{{if $filters['requires_ffl']}}<input type="hidden" name="requires_ffl" value="1">{{endif}}
 					<select name="sort" class="ipsInput ipsInput--select" onchange="this.form.submit()">

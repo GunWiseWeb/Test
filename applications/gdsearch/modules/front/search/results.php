@@ -58,24 +58,36 @@ class _results extends \IPS\Dispatcher\Controller
 
         $arr = function ( $v ) { if ( is_array( $v ) ) { return array_values( array_filter( array_map( fn($x)=>trim((string)$x), $v ), fn($x)=>$x!=='' ) ); } $v = trim( (string) $v ); return $v !== '' ? [ $v ] : []; };
 
+        $toBands = function ( $vals ) {
+            $out = [];
+            foreach ( (array) $vals as $v ) {
+                $p = explode( '-', (string) $v );
+                $r = [];
+                if ( isset( $p[0] ) && $p[0] !== '' ) { $r['gte'] = (float) $p[0]; }
+                if ( isset( $p[1] ) && $p[1] !== '' ) { $r['lte'] = (float) $p[1]; }
+                if ( $r ) { $out[] = $r; }
+            }
+            return $out;
+        };
+
         $filters = [
-            'category'     => $categoryName,
-            'category_id'  => $categoryId,
-            'brand'        => $arr( \IPS\Request::i()->brand ?? [] ),
-            'caliber'      => $arr( \IPS\Request::i()->caliber ?? [] ),
-            'action'       => $arr( \IPS\Request::i()->action ?? [] ),
-            'casing'       => $arr( \IPS\Request::i()->casing ?? [] ),
-            'bullet_type'  => $arr( \IPS\Request::i()->bullet_type ?? [] ),
-            'capacity'     => $arr( \IPS\Request::i()->capacity ?? [] ),
-            'is_ammo'      => !empty( \IPS\Request::i()->is_ammo ),
-            'grain_min'    => (string) ( \IPS\Request::i()->grain_min ?? '' ),
-            'grain_max'    => (string) ( \IPS\Request::i()->grain_max ?? '' ),
-            'velocity_min' => (string) ( \IPS\Request::i()->velocity_min ?? '' ),
-            'velocity_max' => (string) ( \IPS\Request::i()->velocity_max ?? '' ),
-            'in_stock'     => !empty( \IPS\Request::i()->in_stock ),
-            'requires_ffl' => !empty( \IPS\Request::i()->requires_ffl ),
-            'min_price'    => (float) ( \IPS\Request::i()->min_price ?? 0 ),
-            'max_price'    => (float) ( \IPS\Request::i()->max_price ?? 0 ),
+            'category'       => $categoryName,
+            'category_id'    => $categoryId,
+            'brand'          => $arr( \IPS\Request::i()->brand ?? [] ),
+            'caliber'        => $arr( \IPS\Request::i()->caliber ?? [] ),
+            'action'         => $arr( \IPS\Request::i()->action ?? [] ),
+            'casing'         => $arr( \IPS\Request::i()->casing ?? [] ),
+            'bullet_type'    => $arr( \IPS\Request::i()->bullet_type ?? [] ),
+            'capacity'       => $arr( \IPS\Request::i()->capacity ?? [] ),
+            'is_ammo'        => !empty( \IPS\Request::i()->is_ammo ),
+            'grain'          => $arr( \IPS\Request::i()->grain ?? [] ),
+            'velocity'       => $arr( \IPS\Request::i()->velocity ?? [] ),
+            'grain_bands'    => $toBands( \IPS\Request::i()->grain ?? [] ),
+            'velocity_bands' => $toBands( \IPS\Request::i()->velocity ?? [] ),
+            'in_stock'       => !empty( \IPS\Request::i()->in_stock ),
+            'requires_ffl'   => !empty( \IPS\Request::i()->requires_ffl ),
+            'min_price'      => (float) ( \IPS\Request::i()->min_price ?? 0 ),
+            'max_price'      => (float) ( \IPS\Request::i()->max_price ?? 0 ),
         ];
 
         $hiddenCatIds = [];
@@ -127,10 +139,8 @@ class _results extends \IPS\Dispatcher\Controller
             foreach ( (array) $filters['bullet_type'] as $v ) { $paginationQs .= '&bullet_type[]=' . urlencode( $v ); }
             foreach ( (array) $filters['capacity'] as $v )    { $paginationQs .= '&capacity[]='    . urlencode( $v ); }
             if ( !empty( $filters['is_ammo'] ) )       { $paginationQs .= '&is_ammo=1'; }
-            if ( $filters['grain_min'] !== '' )        { $paginationQs .= '&grain_min='    . urlencode( $filters['grain_min'] ); }
-            if ( $filters['grain_max'] !== '' )        { $paginationQs .= '&grain_max='    . urlencode( $filters['grain_max'] ); }
-            if ( $filters['velocity_min'] !== '' )     { $paginationQs .= '&velocity_min=' . urlencode( $filters['velocity_min'] ); }
-            if ( $filters['velocity_max'] !== '' )     { $paginationQs .= '&velocity_max=' . urlencode( $filters['velocity_max'] ); }
+            foreach ( (array) $filters['grain'] as $v )    { $paginationQs .= '&grain[]='    . urlencode( $v ); }
+            foreach ( (array) $filters['velocity'] as $v ) { $paginationQs .= '&velocity[]=' . urlencode( $v ); }
             if ( !empty( $filters['in_stock'] ) ) { $paginationQs .= '&in_stock=1'; }
             if ( !empty( $filters['requires_ffl'] ) ) { $paginationQs .= '&requires_ffl=1'; }
             if ( $filters['min_price'] > 0 )      { $paginationQs .= '&min_price=' . urlencode( (string) $filters['min_price'] ); }
@@ -161,8 +171,25 @@ class _results extends \IPS\Dispatcher\Controller
             ? $query . ' — ' . \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_results_title' )
             : \IPS\Member::loggedIn()->language()->addToStack( 'gdsearch_results_title' );
 
+        $grainBands = [
+            '0-59'    => 'Under 60 gr',
+            '60-99'   => '60–99 gr',
+            '100-124' => '100–124 gr',
+            '125-149' => '125–149 gr',
+            '150-199' => '150–199 gr',
+            '200-'    => '200+ gr',
+        ];
+        $velocityBands = [
+            '0-999'     => 'Under 1,000 fps',
+            '1000-1499' => '1,000–1,499 fps',
+            '1500-1999' => '1,500–1,999 fps',
+            '2000-2499' => '2,000–2,499 fps',
+            '2500-2999' => '2,500–2,999 fps',
+            '3000-'     => '3,000+ fps',
+        ];
+
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->results(
-            $query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error
+            $query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands
         );
     }
 

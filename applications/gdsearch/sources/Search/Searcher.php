@@ -90,8 +90,19 @@ class Searcher
             if ( $max !== '' && $max !== null && (float) $max > 0 ) { $r['lte'] = (float) $max; }
             if ( $r ) { $filter[] = [ 'range' => [ $field => $r ] ]; }
         };
-        $range( 'grain',           $filters['grain_min']    ?? '', $filters['grain_max']    ?? '' );
-        $range( 'muzzle_velocity', $filters['velocity_min'] ?? '', $filters['velocity_max'] ?? '' );
+        // Grain / velocity bands: each selected band is a range; multiple => OR.
+        $bandFilter = function ( string $field, $bands ) use ( &$filter ) {
+            if ( !empty( $bands ) && is_array( $bands ) ) {
+                $should = [];
+                foreach ( $bands as $b ) {
+                    if ( is_array( $b ) && $b ) { $should[] = [ 'range' => [ $field => $b ] ]; }
+                }
+                if ( $should ) { $filter[] = [ 'bool' => [ 'should' => $should, 'minimum_should_match' => 1 ] ]; }
+            }
+        };
+        $bandFilter( 'grain',           $filters['grain_bands']    ?? [] );
+        $bandFilter( 'muzzle_velocity', $filters['velocity_bands'] ?? [] );
+
         $range( 'barrel_length',   $filters['barrel_min']   ?? '', $filters['barrel_max']   ?? '' );
 
         $mustNot = [];
