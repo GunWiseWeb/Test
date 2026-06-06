@@ -82,4 +82,7 @@ $lang = [
     'gdsearch_facet_velocity'         => "Velocity (fps)",
     'gdsearch_facet_barrel'           => "Barrel Length",
     'frontnavigation_gdsearch_catalog' => "Catalog",
+    'gdsearch_across'     => "across",
+    'gdsearch_save'       => "save",
+    'gdsearch_view_deals' => "View deals",
 ];
