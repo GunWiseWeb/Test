@@ -113,7 +113,7 @@ class OpenSearchIndexer
 					'muzzle_velocity' => [ 'type' => 'integer' ],
 					'record_status'=> [ 'type' => 'keyword' ],
 					'image_url'    => [ 'type' => 'keyword', 'index' => false ],
-					'description'  => [ 'type' => 'text', 'analyzer' => 'product_analyzer', 'index' => false ],
+					'description'  => [ 'type' => 'text', 'analyzer' => 'product_analyzer' ],
 				],
 			],
 		];
