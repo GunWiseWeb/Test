@@ -39,6 +39,10 @@ class TitleParser
 		'/\b(12\s*Gauge?)\b/i',
 		'/\b(20\s*Gauge?)\b/i',
 		'/\b(28\s*Gauge?)\b/i',
+		'/\b(10\s*Gauge?)\b/i',
+		'/\b(16\s*Gauge?)\b/i',
+		'/\b(24\s*Gauge?)\b/i',
+		'/\b(32\s*Gauge?)\b/i',
 	];
 
 	const ACTION_PATTERNS = [
@@ -124,5 +128,24 @@ class TitleParser
 		}
 
 		return $results;
+	}
+
+	/**
+	 * Detect a shotgun gauge in a title/description. Returns a canonical gauge
+	 * string ("16 Gauge", ".410 Bore") or NULL. Covers all standard gauges and
+	 * compact forms ("16Gauge", "20Ga", "12 GA"). Used to OVERRIDE caliber for
+	 * shotguns/shotshells, since the gauge in the title is authoritative.
+	 */
+	public static function gaugeFromTitle( string $text ): ?string
+	{
+		if ( preg_match( '/\.410\b/i', $text ) || preg_match( '/\b410\s*(?:bore|gauge|ga)\b/i', $text ) )
+		{
+			return '.410 Bore';
+		}
+		if ( preg_match( '/\b(10|12|16|20|24|28|32)\s*(?:gauge|ga)\b/i', $text, $m ) )
+		{
+			return $m[1] . ' Gauge';
+		}
+		return null;
 	}
 }

@@ -851,6 +851,17 @@ class Importer
 			}
 		}
 
+		/* Shotgun gauge in the title is authoritative for caliber — override any attribute-derived
+		 * value (Sports South puts shot size in the Caliber attribute for shotshells). */
+		if ( $sTitle !== '' || $sDesc !== '' )
+		{
+			$forcedGauge = TitleParser::gaugeFromTitle( $sTitle . ' ' . $sDesc );
+			if ( $forcedGauge !== null )
+			{
+				$record['_ATTR_caliber'] = $forcedGauge;
+			}
+		}
+
 		return $record;
 	}
 
