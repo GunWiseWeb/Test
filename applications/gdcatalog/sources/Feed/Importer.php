@@ -46,6 +46,9 @@ class Importer
 	 */
 	public const MAX_RECORDS_PER_RUN = 1000;
 
+	/** Canonical category IDs that ARE ammunition (Ammunition subtree). Excludes Air Gun Ammo (140). */
+	const AMMO_CATEGORY_IDS = [ 23, 24, 25, 26, 27, 28, 29, 30 ];
+
 	/**
 	 * v1.0.11: Lazy-loaded brand lookup for Sports South enrichment.
 	 * Keyed by brdno (string) => brdnam.
@@ -947,6 +950,9 @@ class Importer
 			{
 				$mapped['category_id'] = $this->categoryMapper->resolve( $rawCatId );
 			}
+
+			/* Category-based ammo flag (Sports South sends none). Ammunition subtree => is_ammo. */
+			$mapped['is_ammo'] = in_array( (int) ( $mapped['category_id'] ?? 0 ), self::AMMO_CATEGORY_IDS, true ) ? 1 : 0;
 
 			/* Check if UPC exists */
 			$existing = $this->loadProduct( $upc );
