@@ -1,4 +1,4 @@
-<ips:template parameters="$query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands" />
+<ips:template parameters="$query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands, $barrelBands" />
 <style>
 .gdsr-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box }
 .gdsr-layout { display:grid; grid-template-columns:240px 1fr; gap:24px; align-items:start }
@@ -121,6 +121,17 @@
 				</div>
 				{{endif}}
 
+				{{if isset($aggs['barrel_present']['doc_count']) and $aggs['barrel_present']['doc_count'] > 0}}
+				<div class="gdsr-side-box">
+					<h3 class="gdsr-fh">{lang="gdsearch_facet_barrel"}</h3>
+					<div class="gdsr-facet-list">
+						{{foreach $barrelBands as $bandKey => $bandLabel}}
+						<label class="gdsr-facet-opt"><input type="checkbox" name="barrel[]" value="{$bandKey}" {{if is_array($filters['barrel']) and in_array($bandKey, $filters['barrel'])}}checked{{endif}}><span>{$bandLabel}</span></label>
+						{{endforeach}}
+					</div>
+				</div>
+				{{endif}}
+
 				{{if isset($aggs['casings']['buckets']) and count($aggs['casings']['buckets'])}}
 				<div class="gdsr-side-box">
 					<h3 class="gdsr-fh">{lang="gdsearch_facet_casing"}</h3>
@@ -199,6 +210,7 @@
 					{{if !empty($filters['is_ammo'])}}<input type="hidden" name="is_ammo" value="1">{{endif}}
 					{{foreach $filters['grain'] as $v}}<input type="hidden" name="grain[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['velocity'] as $v}}<input type="hidden" name="velocity[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['barrel'] as $v}}<input type="hidden" name="barrel[]" value="{$v}">{{endforeach}}
 					{{if $filters['in_stock']}}<input type="hidden" name="in_stock" value="1">{{endif}}
 					{{if $filters['requires_ffl']}}<input type="hidden" name="requires_ffl" value="1">{{endif}}
 					<select name="sort" class="ipsInput ipsInput--select" onchange="this.form.submit()">

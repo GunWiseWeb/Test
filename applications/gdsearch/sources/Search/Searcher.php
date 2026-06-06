@@ -102,8 +102,7 @@ class Searcher
         };
         $bandFilter( 'grain',           $filters['grain_bands']    ?? [] );
         $bandFilter( 'muzzle_velocity', $filters['velocity_bands'] ?? [] );
-
-        $range( 'barrel_length',   $filters['barrel_min']   ?? '', $filters['barrel_max']   ?? '' );
+        $bandFilter( 'barrel_length',   $filters['barrel_bands']   ?? [] );
 
         $mustNot = [];
         if ( !empty( $filters['excludeCategoryIds'] ) && is_array( $filters['excludeCategoryIds'] ) ) {
@@ -136,7 +135,8 @@ class Searcher
                 'actions'      => [ 'terms' => [ 'field' => 'action_type.keyword', 'size' => 30 ] ],
                 'capacities'   => [ 'terms' => [ 'field' => 'capacity',            'size' => 40 ] ],
                 'casings'      => [ 'terms' => [ 'field' => 'case_type.keyword',   'size' => 20 ] ],
-                'bullet_types' => [ 'terms' => [ 'field' => 'bullet_type.keyword', 'size' => 30 ] ],
+                'bullet_types'   => [ 'terms' => [ 'field' => 'bullet_type.keyword', 'size' => 30 ] ],
+                'barrel_present' => [ 'filter' => [ 'range' => [ 'barrel_length' => [ 'gt' => 0 ] ] ] ],
             ],
         ];
 

@@ -82,8 +82,10 @@ class _results extends \IPS\Dispatcher\Controller
             'is_ammo'        => !empty( \IPS\Request::i()->is_ammo ),
             'grain'          => $arr( \IPS\Request::i()->grain ?? [] ),
             'velocity'       => $arr( \IPS\Request::i()->velocity ?? [] ),
+            'barrel'         => $arr( \IPS\Request::i()->barrel ?? [] ),
             'grain_bands'    => $toBands( \IPS\Request::i()->grain ?? [] ),
             'velocity_bands' => $toBands( \IPS\Request::i()->velocity ?? [] ),
+            'barrel_bands'   => $toBands( \IPS\Request::i()->barrel ?? [] ),
             'in_stock'       => !empty( \IPS\Request::i()->in_stock ),
             'requires_ffl'   => !empty( \IPS\Request::i()->requires_ffl ),
             'min_price'      => (float) ( \IPS\Request::i()->min_price ?? 0 ),
@@ -141,6 +143,7 @@ class _results extends \IPS\Dispatcher\Controller
             if ( !empty( $filters['is_ammo'] ) )       { $paginationQs .= '&is_ammo=1'; }
             foreach ( (array) $filters['grain'] as $v )    { $paginationQs .= '&grain[]='    . urlencode( $v ); }
             foreach ( (array) $filters['velocity'] as $v ) { $paginationQs .= '&velocity[]=' . urlencode( $v ); }
+            foreach ( (array) $filters['barrel'] as $v )   { $paginationQs .= '&barrel[]='   . urlencode( $v ); }
             if ( !empty( $filters['in_stock'] ) ) { $paginationQs .= '&in_stock=1'; }
             if ( !empty( $filters['requires_ffl'] ) ) { $paginationQs .= '&requires_ffl=1'; }
             if ( $filters['min_price'] > 0 )      { $paginationQs .= '&min_price=' . urlencode( (string) $filters['min_price'] ); }
@@ -187,9 +190,18 @@ class _results extends \IPS\Dispatcher\Controller
             '2500-2999' => '2,500–2,999 fps',
             '3000-'     => '3,000+ fps',
         ];
+        $barrelBands = [
+            '0-3.99'    => 'Under 4"',
+            '4-7.99'    => '4"–7.9"',
+            '8-11.99'   => '8"–11.9"',
+            '12-15.99'  => '12"–15.9"',
+            '16-19.99'  => '16"–19.9"',
+            '20-25.99'  => '20"–25.9"',
+            '26-'       => '26"+',
+        ];
 
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->results(
-            $query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands
+            $query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands, $barrelBands
         );
     }
 
