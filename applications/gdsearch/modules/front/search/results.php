@@ -56,11 +56,22 @@ class _results extends \IPS\Dispatcher\Controller
             } catch ( \Throwable ) { $categoryId = 0; }
         }
 
+        $arr = function ( $v ) { if ( is_array( $v ) ) { return array_values( array_filter( array_map( fn($x)=>trim((string)$x), $v ), fn($x)=>$x!=='' ) ); } $v = trim( (string) $v ); return $v !== '' ? [ $v ] : []; };
+
         $filters = [
             'category'     => $categoryName,
             'category_id'  => $categoryId,
-            'brand'        => trim( (string) ( \IPS\Request::i()->brand ?? '' ) ),
-            'caliber'      => trim( (string) ( \IPS\Request::i()->caliber ?? '' ) ),
+            'brand'        => $arr( \IPS\Request::i()->brand ?? [] ),
+            'caliber'      => $arr( \IPS\Request::i()->caliber ?? [] ),
+            'action'       => $arr( \IPS\Request::i()->action ?? [] ),
+            'casing'       => $arr( \IPS\Request::i()->casing ?? [] ),
+            'bullet_type'  => $arr( \IPS\Request::i()->bullet_type ?? [] ),
+            'capacity'     => $arr( \IPS\Request::i()->capacity ?? [] ),
+            'is_ammo'      => !empty( \IPS\Request::i()->is_ammo ),
+            'grain_min'    => (string) ( \IPS\Request::i()->grain_min ?? '' ),
+            'grain_max'    => (string) ( \IPS\Request::i()->grain_max ?? '' ),
+            'velocity_min' => (string) ( \IPS\Request::i()->velocity_min ?? '' ),
+            'velocity_max' => (string) ( \IPS\Request::i()->velocity_max ?? '' ),
             'in_stock'     => !empty( \IPS\Request::i()->in_stock ),
             'requires_ffl' => !empty( \IPS\Request::i()->requires_ffl ),
             'min_price'    => (float) ( \IPS\Request::i()->min_price ?? 0 ),
@@ -98,8 +109,17 @@ class _results extends \IPS\Dispatcher\Controller
             $paginationQs = 'app=gdsearch&module=search&controller=results';
             if ( $query !== '' )                  { $paginationQs .= '&q=' . urlencode( $query ); }
             if ( $filters['category_id'] > 0 )   { $paginationQs .= '&category=' . $filters['category_id']; }
-            if ( $filters['brand'] !== '' )       { $paginationQs .= '&brand=' . urlencode( $filters['brand'] ); }
-            if ( $filters['caliber'] !== '' )     { $paginationQs .= '&caliber=' . urlencode( $filters['caliber'] ); }
+            foreach ( (array) $filters['brand'] as $v )       { $paginationQs .= '&brand[]='       . urlencode( $v ); }
+            foreach ( (array) $filters['caliber'] as $v )     { $paginationQs .= '&caliber[]='     . urlencode( $v ); }
+            foreach ( (array) $filters['action'] as $v )      { $paginationQs .= '&action[]='      . urlencode( $v ); }
+            foreach ( (array) $filters['casing'] as $v )      { $paginationQs .= '&casing[]='      . urlencode( $v ); }
+            foreach ( (array) $filters['bullet_type'] as $v ) { $paginationQs .= '&bullet_type[]=' . urlencode( $v ); }
+            foreach ( (array) $filters['capacity'] as $v )    { $paginationQs .= '&capacity[]='    . urlencode( $v ); }
+            if ( !empty( $filters['is_ammo'] ) )       { $paginationQs .= '&is_ammo=1'; }
+            if ( $filters['grain_min'] !== '' )        { $paginationQs .= '&grain_min='    . urlencode( $filters['grain_min'] ); }
+            if ( $filters['grain_max'] !== '' )        { $paginationQs .= '&grain_max='    . urlencode( $filters['grain_max'] ); }
+            if ( $filters['velocity_min'] !== '' )     { $paginationQs .= '&velocity_min=' . urlencode( $filters['velocity_min'] ); }
+            if ( $filters['velocity_max'] !== '' )     { $paginationQs .= '&velocity_max=' . urlencode( $filters['velocity_max'] ); }
             if ( !empty( $filters['in_stock'] ) ) { $paginationQs .= '&in_stock=1'; }
             if ( !empty( $filters['requires_ffl'] ) ) { $paginationQs .= '&requires_ffl=1'; }
             if ( $filters['min_price'] > 0 )      { $paginationQs .= '&min_price=' . urlencode( (string) $filters['min_price'] ); }

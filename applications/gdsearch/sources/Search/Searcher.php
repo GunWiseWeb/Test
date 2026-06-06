@@ -63,19 +63,36 @@ class Searcher
         // Always filter to active products
         $filter[] = [ 'term' => [ 'record_status' => 'active' ] ];
 
-        // Optional filters
-        if ( !empty( $filters['category'] ) ) {
-            $filter[] = [ 'term' => [ 'category.keyword' => $filters['category'] ] ];
-        }
-        if ( !empty( $filters['brand'] ) ) {
-            $filter[] = [ 'term' => [ 'brand.keyword' => $filters['brand'] ] ];
-        }
-        if ( !empty( $filters['caliber'] ) ) {
-            $filter[] = [ 'term' => [ 'caliber.keyword' => $filters['caliber'] ] ];
-        }
-        if ( !empty( $filters['requires_ffl'] ) ) {
-            $filter[] = [ 'term' => [ 'requires_ffl' => true ] ];
-        }
+        // Facet filters — accept scalar OR array (multi-select => terms/OR).
+        $facet = function ( string $field, $val ) use ( &$filter ) {
+            if ( is_array( $val ) ) {
+                $val = array_values( array_filter( array_map( 'strval', $val ), fn( $v ) => $v !== '' ) );
+                if ( $val ) { $filter[] = [ 'terms' => [ $field => $val ] ]; }
+            } elseif ( $val !== '' && $val !== null ) {
+                $filter[] = [ 'term' => [ $field => $val ] ];
+            }
+        };
+        $facet( 'category.keyword',    $filters['category']    ?? '' );
+        $facet( 'brand.keyword',       $filters['brand']       ?? '' );
+        $facet( 'caliber.keyword',     $filters['caliber']     ?? '' );
+        $facet( 'action_type.keyword', $filters['action']      ?? '' );
+        $facet( 'case_type.keyword',   $filters['casing']      ?? '' );
+        $facet( 'bullet_type.keyword', $filters['bullet_type'] ?? '' );
+        $facet( 'capacity',            $filters['capacity']    ?? '' );
+
+        if ( !empty( $filters['requires_ffl'] ) ) { $filter[] = [ 'term' => [ 'requires_ffl' => true ] ]; }
+        if ( !empty( $filters['is_ammo'] ) )      { $filter[] = [ 'term' => [ 'is_ammo' => true ] ]; }
+
+        // Numeric range filters
+        $range = function ( string $field, $min, $max ) use ( &$filter ) {
+            $r = [];
+            if ( $min !== '' && $min !== null && (float) $min > 0 ) { $r['gte'] = (float) $min; }
+            if ( $max !== '' && $max !== null && (float) $max > 0 ) { $r['lte'] = (float) $max; }
+            if ( $r ) { $filter[] = [ 'range' => [ $field => $r ] ]; }
+        };
+        $range( 'grain',           $filters['grain_min']    ?? '', $filters['grain_max']    ?? '' );
+        $range( 'muzzle_velocity', $filters['velocity_min'] ?? '', $filters['velocity_max'] ?? '' );
+        $range( 'barrel_length',   $filters['barrel_min']   ?? '', $filters['barrel_max']   ?? '' );
 
         $mustNot = [];
         if ( !empty( $filters['excludeCategoryIds'] ) && is_array( $filters['excludeCategoryIds'] ) ) {
@@ -105,6 +122,10 @@ class Searcher
                 'categories' => [ 'terms' => [ 'field' => 'category.keyword',  'size' => 20 ] ],
                 'brands'     => [ 'terms' => [ 'field' => 'brand.keyword',     'size' => 50 ] ],
                 'calibers'   => [ 'terms' => [ 'field' => 'caliber.keyword',   'size' => 50 ] ],
+                'actions'      => [ 'terms' => [ 'field' => 'action_type.keyword', 'size' => 30 ] ],
+                'capacities'   => [ 'terms' => [ 'field' => 'capacity',            'size' => 40 ] ],
+                'casings'      => [ 'terms' => [ 'field' => 'case_type.keyword',   'size' => 20 ] ],
+                'bullet_types' => [ 'terms' => [ 'field' => 'bullet_type.keyword', 'size' => 30 ] ],
             ],
         ];
 

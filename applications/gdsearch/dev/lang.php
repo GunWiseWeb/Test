@@ -72,4 +72,12 @@ $lang = [
     'gdsearch_reports_title'          => "Product Reports",
     'menu__gdsearch_search_reports'   => "Product Reports",
     'reports_manage'                  => "Can manage product reports?",
+    'gdsearch_facet_brand'            => "Brand",
+    'gdsearch_facet_caliber'          => "Caliber",
+    'gdsearch_facet_action'           => "Action",
+    'gdsearch_facet_capacity'         => "Capacity",
+    'gdsearch_facet_casing'           => "Casing",
+    'gdsearch_facet_bullet'           => "Bullet Type",
+    'gdsearch_facet_grain'            => "Grain",
+    'gdsearch_facet_velocity'         => "Velocity (fps)",
 ];

@@ -12,6 +12,11 @@
 .gdsr-thumb img { max-height:196px; max-width:100%; object-fit:contain }
 .gdsr-noimg { height:160px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#cbd5e1; font-size:2.6em }
 .gdsr-side-box { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin-bottom:12px }
+.gdsr-fh { margin:0 0 12px; font-size:0.9em; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#64748b }
+.gdsr-facet-list { max-height:190px; overflow:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px }
+.gdsr-facet-opt { display:flex; align-items:center; gap:8px; font-size:0.86em; color:#334155; cursor:pointer }
+.gdsr-facet-opt span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.gdsr-facet-opt em { color:#94a3b8; font-style:normal; font-size:0.85em }
 @media (max-width:900px) {
 	.gdsr-layout { grid-template-columns:1fr }
 }
@@ -49,7 +54,7 @@
 				<input type="hidden" name="sort" value="{$sort}">
 
 				<div class="gdsr-side-box">
-					<h3 style="margin:0 0 12px;font-size:0.9em;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b">{lang="gdsearch_filter_category"}</h3>
+					<h3 class="gdsr-fh">{lang="gdsearch_filter_category"}</h3>
 					<select name="category" class="ipsInput ipsInput--select" style="width:100%" onchange="this.form.submit()">
 						<option value="">All Categories</option>
 						{{foreach $categories as $cat}}
@@ -59,7 +64,14 @@
 				</div>
 
 				<div class="gdsr-side-box">
-					<h3 style="margin:0 0 12px;font-size:0.9em;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b">{lang="gdsearch_filter_price"}</h3>
+					<label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+						<input type="checkbox" name="is_ammo" value="1" {{if !empty($filters['is_ammo'])}}checked{{endif}} onchange="this.form.submit()">
+						<span style="font-size:0.9em;font-weight:600">Ammunition only</span>
+					</label>
+				</div>
+
+				<div class="gdsr-side-box">
+					<h3 class="gdsr-fh">{lang="gdsearch_filter_price"}</h3>
 					<div style="display:flex;gap:6px;align-items:center">
 						<input type="number" name="min_price" placeholder="Min" class="ipsInput ipsInput--text" style="width:100%" value="{{if $filters['min_price'] > 0}}{$filters['min_price']}{{endif}}">
 						<span style="color:#94a3b8">&ndash;</span>
@@ -67,19 +79,102 @@
 					</div>
 				</div>
 
+				{{if isset($aggs['brands']['buckets']) and count($aggs['brands']['buckets'])}}
 				<div class="gdsr-side-box">
-					<h3 style="margin:0 0 12px;font-size:0.9em;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b">{lang="gdsearch_filters"}</h3>
+					<h3 class="gdsr-fh">{lang="gdsearch_facet_brand"}</h3>
+					<div class="gdsr-facet-list">
+						{{foreach $aggs['brands']['buckets'] as $b}}
+						<label class="gdsr-facet-opt"><input type="checkbox" name="brand[]" value="{$b['key']}" {{if is_array($filters['brand']) and in_array($b['key'], $filters['brand'])}}checked{{endif}}><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+						{{endforeach}}
+					</div>
+				</div>
+				{{endif}}
+
+				{{if isset($aggs['calibers']['buckets']) and count($aggs['calibers']['buckets'])}}
+				<div class="gdsr-side-box">
+					<h3 class="gdsr-fh">{lang="gdsearch_facet_caliber"}</h3>
+					<div class="gdsr-facet-list">
+						{{foreach $aggs['calibers']['buckets'] as $b}}
+						<label class="gdsr-facet-opt"><input type="checkbox" name="caliber[]" value="{$b['key']}" {{if is_array($filters['caliber']) and in_array($b['key'], $filters['caliber'])}}checked{{endif}}><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+						{{endforeach}}
+					</div>
+				</div>
+				{{endif}}
+
+				{{if isset($aggs['actions']['buckets']) and count($aggs['actions']['buckets'])}}
+				<div class="gdsr-side-box">
+					<h3 class="gdsr-fh">{lang="gdsearch_facet_action"}</h3>
+					<div class="gdsr-facet-list">
+						{{foreach $aggs['actions']['buckets'] as $b}}
+						<label class="gdsr-facet-opt"><input type="checkbox" name="action[]" value="{$b['key']}" {{if is_array($filters['action']) and in_array($b['key'], $filters['action'])}}checked{{endif}}><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+						{{endforeach}}
+					</div>
+				</div>
+				{{endif}}
+
+				{{if isset($aggs['capacities']['buckets']) and count($aggs['capacities']['buckets'])}}
+				<div class="gdsr-side-box">
+					<h3 class="gdsr-fh">{lang="gdsearch_facet_capacity"}</h3>
+					<div class="gdsr-facet-list">
+						{{foreach $aggs['capacities']['buckets'] as $b}}
+						<label class="gdsr-facet-opt"><input type="checkbox" name="capacity[]" value="{$b['key']}" {{if is_array($filters['capacity']) and in_array($b['key'], $filters['capacity'])}}checked{{endif}}><span>{$b['key']} rds</span><em>{$b['doc_count']}</em></label>
+						{{endforeach}}
+					</div>
+				</div>
+				{{endif}}
+
+				{{if isset($aggs['casings']['buckets']) and count($aggs['casings']['buckets'])}}
+				<div class="gdsr-side-box">
+					<h3 class="gdsr-fh">{lang="gdsearch_facet_casing"}</h3>
+					<div class="gdsr-facet-list">
+						{{foreach $aggs['casings']['buckets'] as $b}}
+						<label class="gdsr-facet-opt"><input type="checkbox" name="casing[]" value="{$b['key']}" {{if is_array($filters['casing']) and in_array($b['key'], $filters['casing'])}}checked{{endif}}><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+						{{endforeach}}
+					</div>
+				</div>
+				{{endif}}
+
+				{{if isset($aggs['bullet_types']['buckets']) and count($aggs['bullet_types']['buckets'])}}
+				<div class="gdsr-side-box">
+					<h3 class="gdsr-fh">{lang="gdsearch_facet_bullet"}</h3>
+					<div class="gdsr-facet-list">
+						{{foreach $aggs['bullet_types']['buckets'] as $b}}
+						<label class="gdsr-facet-opt"><input type="checkbox" name="bullet_type[]" value="{$b['key']}" {{if is_array($filters['bullet_type']) and in_array($b['key'], $filters['bullet_type'])}}checked{{endif}}><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+						{{endforeach}}
+					</div>
+				</div>
+				{{endif}}
+
+				{{if (isset($aggs['casings']['buckets']) and count($aggs['casings']['buckets'])) or (isset($aggs['bullet_types']['buckets']) and count($aggs['bullet_types']['buckets']))}}
+				<div class="gdsr-side-box">
+					<h3 class="gdsr-fh">{lang="gdsearch_facet_grain"}</h3>
+					<div style="display:flex;gap:6px;align-items:center">
+						<input type="number" name="grain_min" placeholder="Min" class="ipsInput ipsInput--text" style="width:100%" value="{{if !empty($filters['grain_min'])}}{$filters['grain_min']}{{endif}}">
+						<span style="color:#94a3b8">&ndash;</span>
+						<input type="number" name="grain_max" placeholder="Max" class="ipsInput ipsInput--text" style="width:100%" value="{{if !empty($filters['grain_max'])}}{$filters['grain_max']}{{endif}}">
+					</div>
+					<h3 class="gdsr-fh" style="margin-top:14px">{lang="gdsearch_facet_velocity"}</h3>
+					<div style="display:flex;gap:6px;align-items:center">
+						<input type="number" name="velocity_min" placeholder="Min" class="ipsInput ipsInput--text" style="width:100%" value="{{if !empty($filters['velocity_min'])}}{$filters['velocity_min']}{{endif}}">
+						<span style="color:#94a3b8">&ndash;</span>
+						<input type="number" name="velocity_max" placeholder="Max" class="ipsInput ipsInput--text" style="width:100%" value="{{if !empty($filters['velocity_max'])}}{$filters['velocity_max']}{{endif}}">
+					</div>
+				</div>
+				{{endif}}
+
+				<div class="gdsr-side-box">
+					<h3 class="gdsr-fh">{lang="gdsearch_filters"}</h3>
 					<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer">
-						<input type="checkbox" name="in_stock" value="1" {{if $filters['in_stock']}}checked{{endif}} onchange="this.form.submit()">
+						<input type="checkbox" name="in_stock" value="1" {{if $filters['in_stock']}}checked{{endif}}>
 						<span style="font-size:0.9em">{lang="gdsearch_filter_in_stock"}</span>
 					</label>
 					<label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-						<input type="checkbox" name="requires_ffl" value="1" {{if $filters['requires_ffl']}}checked{{endif}} onchange="this.form.submit()">
+						<input type="checkbox" name="requires_ffl" value="1" {{if $filters['requires_ffl']}}checked{{endif}}>
 						<span style="font-size:0.9em">{lang="gdsearch_filter_requires_ffl"}</span>
 					</label>
 				</div>
 
-				<button type="submit" class="ipsButton ipsButton--secondary ipsButton--small" style="width:100%;margin-bottom:6px">{lang="gdsearch_filter_apply"}</button>
+				<button type="submit" class="ipsButton ipsButton--primary ipsButton--small" style="width:100%;margin-bottom:6px">{lang="gdsearch_filter_apply"}</button>
 				<a href="{url="app=gdsearch&module=search&controller=results"}&q={$query}" class="ipsButton ipsButton--text ipsButton--small" style="width:100%;text-align:center">{lang="gdsearch_filter_clear"}</a>
 			</form>
 		</div>
@@ -95,8 +190,17 @@
 					<input type="hidden" name="controller" value="results">
 					<input type="hidden" name="q" value="{$query}">
 					<input type="hidden" name="category" value="{$filters['category_id']}">
-					<input type="hidden" name="brand" value="{$filters['brand']}">
-					<input type="hidden" name="caliber" value="{$filters['caliber']}">
+					{{foreach $filters['brand'] as $v}}<input type="hidden" name="brand[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['caliber'] as $v}}<input type="hidden" name="caliber[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['action'] as $v}}<input type="hidden" name="action[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['casing'] as $v}}<input type="hidden" name="casing[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['bullet_type'] as $v}}<input type="hidden" name="bullet_type[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['capacity'] as $v}}<input type="hidden" name="capacity[]" value="{$v}">{{endforeach}}
+					{{if !empty($filters['is_ammo'])}}<input type="hidden" name="is_ammo" value="1">{{endif}}
+					{{if !empty($filters['grain_min'])}}<input type="hidden" name="grain_min" value="{$filters['grain_min']}">{{endif}}
+					{{if !empty($filters['grain_max'])}}<input type="hidden" name="grain_max" value="{$filters['grain_max']}">{{endif}}
+					{{if !empty($filters['velocity_min'])}}<input type="hidden" name="velocity_min" value="{$filters['velocity_min']}">{{endif}}
+					{{if !empty($filters['velocity_max'])}}<input type="hidden" name="velocity_max" value="{$filters['velocity_max']}">{{endif}}
 					{{if $filters['in_stock']}}<input type="hidden" name="in_stock" value="1">{{endif}}
 					{{if $filters['requires_ffl']}}<input type="hidden" name="requires_ffl" value="1">{{endif}}
 					<select name="sort" class="ipsInput ipsInput--select" onchange="this.form.submit()">
