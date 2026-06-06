@@ -64,4 +64,5 @@ $lang = [
     'gdsearch_notif_price_drop_desc'    => "Email and on-site alert when a product you're watching drops to or below your target price.",
     'notifications__gdsearch_price_drop' => 'Price drop alerts',
     'notification__price_drop'          => 'Price drop alert',
+    'notifications__gdsearch_PriceAlerts' => 'Price drop alerts',
 ];
