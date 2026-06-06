@@ -39,36 +39,39 @@ class Searcher
         // MPNs are often exact alphanumeric codes, so we OR an analyzed match,
         // a prefix match, and an exact keyword match for the mpn field.
         if ( $query !== '' ) {
-            $must[] = [
-                'bool' => [
-                    'should' => [
-                        /* 1) EXACT (non-fuzzy) — highest priority so true token matches (incl. part numbers
-                              embedded in the description) rank above fuzzy near-misses. */
-                        [
-                            'multi_match' => [
-                                'query'  => $query,
-                                'fields' => [ 'title^4', 'mpn^8', 'brand^3', 'model^3', 'caliber^3', 'description^3', 'category', 'subcategory' ],
-                                'type'   => 'best_fields',
-                                'boost'  => 12,
-                            ],
-                        ],
-                        /* 2) FUZZY — typo tolerance, lower priority. prefix_length=2 keeps a 1-2 digit
-                              difference from flooding numeric searches. */
-                        [
-                            'multi_match' => [
-                                'query'         => $query,
-                                'fields'        => [ 'title^3', 'mpn^4', 'brand^2', 'model^2', 'caliber^2', 'description', 'category', 'subcategory' ],
-                                'type'          => 'best_fields',
-                                'fuzziness'     => 'AUTO',
-                                'prefix_length' => 2,
-                            ],
-                        ],
-                        [ 'match_phrase_prefix' => [ 'mpn'   => [ 'query' => $query, 'boost' => 5 ] ] ],
-                        [ 'term'                => [ 'mpn.keyword'   => [ 'value' => $query, 'boost' => 8 ] ] ],
+            // A bare code/number (single token containing a digit — e.g. "67007", "150602", "9mm",
+            // "AR-15") is an EXACT lookup: no fuzzy matching, so near-miss numbers (67057, 67067...)
+            // are NOT returned. Word / multi-word queries keep fuzzy typo-tolerance.
+            $isCode = (bool) ( preg_match( '/^[A-Za-z0-9][A-Za-z0-9\-\.\/]*$/', $query ) && preg_match( '/[0-9]/', $query ) );
+
+            $should = [
+                /* exact, non-fuzzy — the token must actually be present */
+                [
+                    'multi_match' => [
+                        'query'  => $query,
+                        'fields' => [ 'title^4', 'mpn^8', 'brand^3', 'model^3', 'caliber^3', 'description^3', 'category', 'subcategory' ],
+                        'type'   => 'best_fields',
+                        'boost'  => 12,
                     ],
-                    'minimum_should_match' => 1,
                 ],
+                [ 'match_phrase_prefix' => [ 'mpn' => [ 'query' => $query, 'boost' => 5 ] ] ],
+                [ 'term'                => [ 'mpn.keyword' => [ 'value' => $query, 'boost' => 8 ] ] ],
             ];
+
+            /* fuzzy typo-tolerance ONLY for natural-language queries, never for codes/numbers */
+            if ( !$isCode ) {
+                $should[] = [
+                    'multi_match' => [
+                        'query'         => $query,
+                        'fields'        => [ 'title^3', 'mpn^4', 'brand^2', 'model^2', 'caliber^2', 'description', 'category', 'subcategory' ],
+                        'type'          => 'best_fields',
+                        'fuzziness'     => 'AUTO',
+                        'prefix_length' => 2,
+                    ],
+                ];
+            }
+
+            $must[] = [ 'bool' => [ 'should' => $should, 'minimum_should_match' => 1 ] ];
         } else {
             $must[] = [ 'match_all' => (object) [] ];
         }
