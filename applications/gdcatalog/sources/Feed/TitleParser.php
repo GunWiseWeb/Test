@@ -127,6 +127,37 @@ class TitleParser
 			}
 		}
 
+		$ammoCats = [23, 24, 25, 26, 27, 28, 29, 30];
+		if ( in_array( $categoryId, $ammoCats, true ) )
+		{
+			if ( empty( $existing['grain'] ) )
+			{
+				$grain = self::grainFromTitle( $text );
+				if ( $grain !== null )
+				{
+					$results['grain'] = $grain;
+				}
+			}
+
+			if ( empty( $existing['case_type'] ) )
+			{
+				$casing = self::casingFromTitle( $text );
+				if ( $casing !== null )
+				{
+					$results['case_type'] = $casing;
+				}
+			}
+
+			if ( empty( $existing['bullet_type'] ) )
+			{
+				$bullet = self::bulletTypeFromTitle( $text );
+				if ( $bullet !== null )
+				{
+					$results['bullet_type'] = $bullet;
+				}
+			}
+		}
+
 		return $results;
 	}
 
@@ -136,6 +167,76 @@ class TitleParser
 	 * compact forms ("16Gauge", "20Ga", "12 GA"). Used to OVERRIDE caliber for
 	 * shotguns/shotshells, since the gauge in the title is authoritative.
 	 */
+	public static function grainFromTitle( string $text ): ?int
+	{
+		if ( preg_match( '/\b(\d{2,4})\s*(?:gr(?:ain)?s?|grn)\b/i', $text, $m ) )
+		{
+			$val = (int) $m[1];
+			if ( $val >= 10 && $val <= 800 )
+			{
+				return $val;
+			}
+		}
+		return null;
+	}
+
+	public static function casingFromTitle( string $text ): ?string
+	{
+		$map = [
+			'/\bBrass\b/i'            => 'Brass',
+			'/\bNickel[\s-]?Plated\b/i' => 'Nickel-Plated',
+			'/\bSteel(?:\s*Case)?\b/i' => 'Steel',
+			'/\bAluminum\b/i'         => 'Aluminum',
+			'/\bPolymer(?:\s*(?:Tip|Case))?\b/i' => 'Polymer',
+		];
+		foreach ( $map as $pattern => $label )
+		{
+			if ( preg_match( $pattern, $text ) )
+			{
+				return $label;
+			}
+		}
+		return null;
+	}
+
+	public static function bulletTypeFromTitle( string $text ): ?string
+	{
+		$map = [
+			'/\bFMJ\b/i'                                  => 'FMJ',
+			'/\bFull\s*Metal\s*Jacket\b/i'                => 'FMJ',
+			'/\bJHP\b/i'                                  => 'JHP',
+			'/\bJacket(?:ed)?\s*Hollow\s*Point\b/i'       => 'JHP',
+			'/\bHST\b/i'                                  => 'HST',
+			'/\bV[\s-]?Max\b/i'                           => 'V-Max',
+			'/\bHollow\s*Point\b/i'                       => 'HP',
+			'/\bSoft\s*Point\b/i'                         => 'SP',
+			'/\bJSP\b/i'                                  => 'JSP',
+			'/\bBallistic\s*Tip\b/i'                      => 'Ballistic Tip',
+			'/\bOTM\b/i'                                  => 'OTM',
+			'/\bOpen\s*Tip\s*Match\b/i'                   => 'OTM',
+			'/\bBTHP\b/i'                                 => 'BTHP',
+			'/\bBoat[\s-]?Tail\s*Hollow\s*Point\b/i'      => 'BTHP',
+			'/\bTMJ\b/i'                                  => 'TMJ',
+			'/\bTotal\s*Metal\s*Jacket\b/i'               => 'TMJ',
+			'/\bLRN\b/i'                                  => 'LRN',
+			'/\bLead\s*Round\s*Nose\b/i'                  => 'LRN',
+			'/\bWad[\s-]?Cutter\b/i'                      => 'Wadcutter',
+			'/\bSWC\b/i'                                  => 'SWC',
+			'/\bSemi[\s-]?Wad[\s-]?Cutter\b/i'           => 'SWC',
+			'/\bFlexLock\b/i'                             => 'FlexLock',
+			'/\bXTP\b/i'                                  => 'XTP',
+			'/\bGold\s*Dot\b/i'                           => 'Gold Dot',
+		];
+		foreach ( $map as $pattern => $label )
+		{
+			if ( preg_match( $pattern, $text ) )
+			{
+				return $label;
+			}
+		}
+		return null;
+	}
+
 	public static function gaugeFromTitle( string $text ): ?string
 	{
 		if ( preg_match( '/\.410\b/i', $text ) || preg_match( '/\b410\s*(?:bore|gauge|ga)\b/i', $text ) )

@@ -107,6 +107,10 @@ class OpenSearchIndexer
 					'nfa_item'     => [ 'type' => 'boolean' ],
 					'requires_ffl' => [ 'type' => 'boolean' ],
 					'is_ammo'      => [ 'type' => 'boolean' ],
+					'grain'        => [ 'type' => 'integer' ],
+					'case_type'    => [ 'type' => 'keyword' ],
+					'bullet_type'  => [ 'type' => 'keyword' ],
+					'muzzle_velocity' => [ 'type' => 'integer' ],
 					'record_status'=> [ 'type' => 'keyword' ],
 					'image_url'    => [ 'type' => 'keyword', 'index' => false ],
 					'description'  => [ 'type' => 'text', 'analyzer' => 'product_analyzer', 'index' => false ],
@@ -309,7 +313,7 @@ class OpenSearchIndexer
 	 */
 	public function indexBatch( int $offset, int $batchSize = 250 ): int
 	{
-		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, record_status, image_url, description';
+		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description';
 		$rows = \IPS\Db::i()->select(
 			$indexColumns,
 			'gd_catalog',
@@ -372,7 +376,7 @@ class OpenSearchIndexer
 		$batchMax = 250;
 		$offset   = 0;
 
-		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, record_status, image_url, description';
+		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description';
 
 		while ( TRUE )
 		{
@@ -460,6 +464,10 @@ class OpenSearchIndexer
 			'nfa_item'      => (bool) $product->nfa_item,
 			'requires_ffl'  => (bool) $product->requires_ffl,
 			'is_ammo'       => (bool) $product->is_ammo,
+			'grain'         => $product->grain ? (int) $product->grain : null,
+			'case_type'     => $product->case_type ?? '',
+			'bullet_type'   => $product->bullet_type ?? '',
+			'muzzle_velocity' => $product->muzzle_velocity ? (int) $product->muzzle_velocity : null,
 			'record_status' => $product->record_status ?? 'active',
 			'image_url'     => $product->image_url ?? '',
 			'description'   => $product->description ? mb_substr( $product->description, 0, 5000 ) : '',
