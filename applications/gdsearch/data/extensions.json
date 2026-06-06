@@ -1,1 +1,3 @@
-{}
+{
+    "Notifications": { "PriceAlerts": "IPS\\gdsearch\\extensions\\core\\Notifications\\PriceAlerts" }
+}

@@ -67,32 +67,43 @@ class _CheckPriceAlerts extends \IPS\Task
 		try
 		{
 			$member = \IPS\Member::load( $memberId );
-			if ( !$member->member_id || !$member->email )
-			{
-				return false;
-			}
-
-			$url = (string) \IPS\Http\Url::internal( "app=gdsearch&module=search&controller=results&do=product&upc={$upc}", 'front', 'gdsearch_product' );
-			$manageUrl = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=myAlerts', 'front' );
-
-			$priceStr  = '$' . number_format( $price, 2 );
-			$threshStr = '$' . number_format( $threshold, 2 );
-			$safeTitle = htmlspecialchars( $title, ENT_QUOTES );
-
-			$html  = '<p>Good news — a product you\'re watching just dropped to <strong>' . $priceStr . '</strong>, at or below your alert price of ' . $threshStr . '.</p>';
-			$html .= '<p><strong>' . $safeTitle . '</strong></p>';
-			$html .= '<p><a href="' . $url . '">View current dealer prices &raquo;</a></p>';
-			$html .= '<p style="font-size:12px;color:#6b7280">You set this price alert on gunrack.deals. <a href="' . $manageUrl . '">Manage your alerts</a>.</p>';
-
-			$plain = "A product you're watching dropped to {$priceStr} (your alert: {$threshStr}).\n{$title}\n{$url}\n\nManage alerts: {$manageUrl}";
-
-			\IPS\Email::buildFromContent( 'Price drop: ' . $title, $html, $plain )->send( $member );
-			return true;
 		}
-		catch ( \Throwable )
+		catch ( \Throwable ) { return false; }
+		if ( !$member->member_id ) { return false; }
+
+		$url       = (string) \IPS\Http\Url::internal( "app=gdsearch&module=search&controller=results&do=product&upc={$upc}", 'front', 'gdsearch_product' );
+		$manageUrl = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=myAlerts', 'front' );
+		$priceStr  = '$' . number_format( $price, 2 );
+		$threshStr = '$' . number_format( $threshold, 2 );
+
+		try
 		{
-			return false;
+			\IPS\Email::buildFromTemplate( 'gdsearch', 'priceDropAlert', [
+				'name'       => $member->name,
+				'title'      => $title,
+				'price'      => $priceStr,
+				'threshold'  => $threshStr,
+				'url'        => $url,
+				'manage_url' => $manageUrl,
+			], \IPS\Email::TYPE_TRANSACTIONAL )->send( $member );
 		}
+		catch ( \Throwable ) {}
+
+		try
+		{
+			$notification = new \IPS\Notification(
+				\IPS\Application::load( 'gdsearch' ),
+				'price_drop',
+				$member,
+				[ $member ],
+				[ 'upc' => $upc, 'title' => $title, 'price' => $price, 'threshold' => $threshold ]
+			);
+			$notification->recipients->attach( $member );
+			$notification->send();
+		}
+		catch ( \Throwable ) {}
+
+		return true;
 	}
 }
 

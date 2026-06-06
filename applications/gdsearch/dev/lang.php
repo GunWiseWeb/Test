@@ -60,4 +60,8 @@ $lang = [
     'gdsearch_free_shipping'            => 'Free',
     'gdsearch_view_dealer'              => 'View Dealer',
     'gdsearch_my_alerts_title'          => 'My Price Alerts',
+    'gdsearch_notif_price_drop'         => 'Price drop alerts',
+    'gdsearch_notif_price_drop_desc'    => "Email and on-site alert when a product you're watching drops to or below your target price.",
+    'notifications__gdsearch_price_drop' => 'Price drop alerts',
+    'notification__price_drop'          => 'Price drop alert',
 ];
