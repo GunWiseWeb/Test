@@ -237,6 +237,26 @@ class TitleParser
 		return null;
 	}
 
+	public static function cleanAction( ?string $v ): ?string
+	{
+		$v = trim( (string) $v );
+		if ( $v === '' ) { return null; }
+		$map = [
+			'bolt magnum action'=>'Bolt Action','bolt short action'=>'Bolt Action','bolt long action'=>'Bolt Action','bolt action'=>'Bolt Action','bolt'=>'Bolt Action',
+			'semi-automatic'=>'Semi-Automatic','semi-auto'=>'Semi-Automatic','semi auto'=>'Semi-Automatic',
+			'sao'=>'Single Action (SAO)','single action'=>'Single Action (SAO)',
+			'dao'=>'Double Action (DAO)','double action'=>'Double Action (DAO)',
+			'da/sa'=>'DA/SA','sa/da'=>'DA/SA','sa w/restrike'=>'DA/SA',
+			'striker fire'=>'Striker Fire','strikerfire'=>'Striker Fire','striker-fire'=>'Striker Fire',
+			'lever'=>'Lever Action','lever action'=>'Lever Action',
+			'pump'=>'Pump Action','pump action'=>'Pump Action',
+			'break open'=>'Break Action','break action'=>'Break Action','break-action'=>'Break Action',
+			'single shot'=>'Single Shot','falling block'=>'Single Shot',
+			'revolver'=>'Revolver',
+		];
+		return $map[ strtolower( $v ) ] ?? null;
+	}
+
 	public static function gaugeFromTitle( string $text ): ?string
 	{
 		if ( preg_match( '/\.410\b/i', $text ) || preg_match( '/\b410\s*(?:bore|gauge|ga)\b/i', $text ) )

@@ -954,6 +954,11 @@ class Importer
 			/* Category-based ammo flag (Sports South sends none). Ammunition subtree => is_ammo. */
 			$mapped['is_ammo'] = in_array( (int) ( $mapped['category_id'] ?? 0 ), self::AMMO_CATEGORY_IDS, true ) ? 1 : 0;
 
+			if ( isset( $mapped['action_type'] ) )
+			{
+				$mapped['action_type'] = TitleParser::cleanAction( (string) $mapped['action_type'] );
+			}
+
 			/* Check if UPC exists */
 			$existing = $this->loadProduct( $upc );
 
