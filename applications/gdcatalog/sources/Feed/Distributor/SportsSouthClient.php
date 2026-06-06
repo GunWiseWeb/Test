@@ -303,6 +303,7 @@ class SportsSouthClient
 				$stringEl = $strEls->item( 0 );
 				$payload  = trim( (string) $stringEl->nodeValue );
 
+				/* Case A: <string> holds entity-encoded XML */
 				if ( $payload !== '' && $payload[0] === '<' )
 				{
 					$inner = new \DOMDocument();
@@ -313,19 +314,17 @@ class SportsSouthClient
 					}
 				}
 
+				/* Case B: <string> has real child elements (ITEMNO + a text field, …) */
 				if ( $stringEl->getElementsByTagName( '*' )->length > 0 )
 				{
 					$t = $this->pickDescription( $stringEl, $itemNumber );
 					if ( $t !== '' ) { return $t; }
 				}
 
+				/* Case C: <string> is a leaf "ITEMNO + text" */
 				if ( $payload !== '' )
 				{
-					if ( str_starts_with( $payload, $itemNumber ) )
-					{
-						$payload = trim( substr( $payload, strlen( $itemNumber ) ) );
-					}
-					return $this->cleanDescription( $payload );
+					return $this->cleanDescription( $this->stripLeadingItemNo( $payload, $itemNumber ) );
 				}
 			}
 
@@ -343,23 +342,43 @@ class SportsSouthClient
 
 	protected function pickDescription( \DOMNode $scope, string $itemNumber ): string
 	{
-		foreach ( [ 'TEXT', 'ITEXT', 'LONGDESC', 'DESCRIPTION', 'DESC' ] as $tag )
+		foreach ( [ 'TEXT', 'ITEXT', 'LONGDESC', 'WEBDESC', 'DESCRIPTION', 'DESC' ] as $tag )
 		{
 			$n = $scope->getElementsByTagName( $tag );
 			if ( $n->length > 0 )
 			{
 				$v = trim( (string) $n->item( 0 )->nodeValue );
-				if ( $v !== '' && $v !== $itemNumber ) { return $this->cleanDescription( $v ); }
+				if ( $v !== '' && $v !== $itemNumber ) { return $this->cleanDescription( $this->stripLeadingItemNo( $v, $itemNumber ) ); }
 			}
 		}
+
 		$best = '';
 		foreach ( $scope->getElementsByTagName( '*' ) as $el )
 		{
+			$hasChildEl = false;
+			foreach ( $el->childNodes as $c )
+			{
+				if ( $c->nodeType === XML_ELEMENT_NODE ) { $hasChildEl = true; break; }
+			}
+			if ( $hasChildEl ) { continue; }
+
 			$v = trim( (string) $el->nodeValue );
-			if ( $v === $itemNumber ) { continue; }
+			if ( $v === '' || $v === $itemNumber ) { continue; }
 			if ( mb_strlen( $v ) > mb_strlen( $best ) ) { $best = $v; }
 		}
-		return $best !== '' ? $this->cleanDescription( $best ) : '';
+
+		return $best !== '' ? $this->cleanDescription( $this->stripLeadingItemNo( $best, $itemNumber ) ) : '';
+	}
+
+	protected function stripLeadingItemNo( string $t, string $itemNumber ): string
+	{
+		$t = trim( $t );
+		if ( $itemNumber !== '' && str_starts_with( $t, $itemNumber ) )
+		{
+			$rest = ltrim( substr( $t, strlen( $itemNumber ) ) );
+			if ( $rest !== '' && !ctype_digit( $rest[0] ) ) { $t = $rest; }
+		}
+		return $t;
 	}
 
 	protected function cleanDescription( string $t ): string
