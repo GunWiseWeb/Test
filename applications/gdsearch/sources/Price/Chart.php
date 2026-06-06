@@ -9,18 +9,12 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 	exit;
 }
 
-/**
- * Server-side SVG price-history line chart (no JS — safe inside IPS templates).
- */
 class _Chart
 {
-	/**
-	 * @param array<int, array{date:string, price:float}> $series  ascending, forward-filled
-	 */
 	public static function svg( array $series ): string
 	{
 		$n = count( $series );
-		if ( $n < 2 ) { return ''; }
+		if ( $n < 2 ) { return static::emptyState(); }
 
 		$w = 640; $h = 200; $padL = 56; $padR = 16; $padT = 16; $padB = 30;
 		$plotW = $w - $padL - $padR;
@@ -75,6 +69,25 @@ class _Chart
 		$svg .= '<text x="' . $curX . '" y="' . round( $curY - 8, 1 ) . '" text-anchor="end" font-size="11" font-weight="700" fill="' . $blue . '">' . $curLbl . '</text>';
 		$svg .= '<text x="' . $padL . '" y="' . ( $h - 8 ) . '" text-anchor="start" font-size="11" fill="' . $txt . '">' . $startLbl . '</text>';
 		$svg .= '<text x="' . ( $w - $padR ) . '" y="' . ( $h - 8 ) . '" text-anchor="end" font-size="11" fill="' . $txt . '">' . $endLbl . '</text>';
+		$svg .= '</svg>';
+
+		return $svg;
+	}
+
+	public static function emptyState(): string
+	{
+		$w = 640; $h = 200; $padL = 56; $padR = 16; $padT = 16; $padB = 30;
+		$base = $padT + ( $h - $padT - $padB );
+		$midY = $padT + ( $h - $padT - $padB ) / 2;
+		$grid = '#E5E7EB';
+		$txt  = '#6B7280';
+
+		$svg  = '<svg viewBox="0 0 ' . $w . ' ' . $h . '" width="100%" role="img" aria-label="Price history — tracking" style="max-width:640px;font-family:Inter,system-ui,sans-serif">';
+		$svg .= '<line x1="' . $padL . '" y1="' . $padT . '" x2="' . ( $w - $padR ) . '" y2="' . $padT . '" stroke="' . $grid . '" stroke-width="1"/>';
+		$svg .= '<line x1="' . $padL . '" y1="' . $midY . '" x2="' . ( $w - $padR ) . '" y2="' . $midY . '" stroke="' . $grid . '" stroke-width="1"/>';
+		$svg .= '<line x1="' . $padL . '" y1="' . $base . '" x2="' . ( $w - $padR ) . '" y2="' . $base . '" stroke="' . $grid . '" stroke-width="1"/>';
+		$svg .= '<line x1="' . $padL . '" y1="' . round( $midY + 20, 1 ) . '" x2="' . ( $w - $padR ) . '" y2="' . round( $midY + 20, 1 ) . '" stroke="' . $grid . '" stroke-dasharray="6 4" stroke-width="1" opacity="0.5"/>';
+		$svg .= '<text x="' . round( ( $w ) / 2, 1 ) . '" y="' . round( $midY - 4, 1 ) . '" text-anchor="middle" font-size="13" fill="' . $txt . '">Tracking prices &mdash; chart appears after 2+ data points</text>';
 		$svg .= '</svg>';
 
 		return $svg;
