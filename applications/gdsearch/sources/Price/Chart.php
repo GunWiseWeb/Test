@@ -9,14 +9,26 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 	exit;
 }
 
+/**
+ * Server-side SVG price-history line chart (no JS — safe inside IPS templates).
+ * Always returns an SVG: a real chart when there is data, an empty-state frame otherwise.
+ */
 class _Chart
 {
+	/**
+	 * @param array<int, array{date:string, price:float}> $series  ascending, forward-filled
+	 */
 	public static function svg( array $series ): string
 	{
+		$w = 1000; $h = 220; $padL = 64; $padR = 24; $padT = 20; $padB = 32;
 		$n = count( $series );
-		if ( $n < 2 ) { return static::emptyState(); }
 
-		$w = 640; $h = 200; $padL = 56; $padR = 16; $padT = 16; $padB = 30;
+		/* Always render a frame so shoppers see the feature exists, even with no data yet. */
+		if ( $n < 2 )
+		{
+			return self::emptyState( $w, $h, $padL, $padR, $padT, $padB );
+		}
+
 		$plotW = $w - $padL - $padR;
 		$plotH = $h - $padT - $padB;
 
@@ -56,40 +68,41 @@ class _Chart
 		$grid = '#E5E7EB';
 		$txt  = '#6B7280';
 
-		$svg  = '<svg viewBox="0 0 ' . $w . ' ' . $h . '" width="100%" role="img" aria-label="Price history" style="max-width:640px;font-family:Inter,system-ui,sans-serif">';
+		$svg  = '<svg viewBox="0 0 ' . $w . ' ' . $h . '" width="100%" role="img" aria-label="Price history" style="width:100%;height:auto;display:block;font-family:Inter,system-ui,sans-serif">';
 		$svg .= '<line x1="' . $padL . '" y1="' . round( $padT, 1 ) . '" x2="' . ( $w - $padR ) . '" y2="' . round( $padT, 1 ) . '" stroke="' . $grid . '" stroke-width="1"/>';
 		$svg .= '<line x1="' . $padL . '" y1="' . $midY . '" x2="' . ( $w - $padR ) . '" y2="' . $midY . '" stroke="' . $grid . '" stroke-width="1"/>';
 		$svg .= '<line x1="' . $padL . '" y1="' . $base . '" x2="' . ( $w - $padR ) . '" y2="' . $base . '" stroke="' . $grid . '" stroke-width="1"/>';
-		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $padT + 4, 1 ) . '" text-anchor="end" font-size="11" fill="' . $txt . '">' . $maxLabel . '</text>';
-		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $midY + 4, 1 ) . '" text-anchor="end" font-size="11" fill="' . $txt . '">' . $midLabel . '</text>';
-		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $base + 4, 1 ) . '" text-anchor="end" font-size="11" fill="' . $txt . '">' . $minLabel . '</text>';
+		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $padT + 4, 1 ) . '" text-anchor="end" font-size="15" fill="' . $txt . '">' . $maxLabel . '</text>';
+		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $midY + 4, 1 ) . '" text-anchor="end" font-size="15" fill="' . $txt . '">' . $midLabel . '</text>';
+		$svg .= '<text x="' . ( $padL - 8 ) . '" y="' . round( $base + 4, 1 ) . '" text-anchor="end" font-size="15" fill="' . $txt . '">' . $minLabel . '</text>';
 		$svg .= '<path d="' . $area . '" fill="' . $blue . '" fill-opacity="0.08"/>';
 		$svg .= '<path d="' . $line . '" fill="none" stroke="' . $blue . '" stroke-width="2" stroke-linejoin="round"/>';
 		$svg .= '<circle cx="' . $curX . '" cy="' . $curY . '" r="3.5" fill="' . $blue . '"/>';
-		$svg .= '<text x="' . $curX . '" y="' . round( $curY - 8, 1 ) . '" text-anchor="end" font-size="11" font-weight="700" fill="' . $blue . '">' . $curLbl . '</text>';
-		$svg .= '<text x="' . $padL . '" y="' . ( $h - 8 ) . '" text-anchor="start" font-size="11" fill="' . $txt . '">' . $startLbl . '</text>';
-		$svg .= '<text x="' . ( $w - $padR ) . '" y="' . ( $h - 8 ) . '" text-anchor="end" font-size="11" fill="' . $txt . '">' . $endLbl . '</text>';
+		$svg .= '<text x="' . $curX . '" y="' . round( $curY - 8, 1 ) . '" text-anchor="end" font-size="13" font-weight="700" fill="' . $blue . '">' . $curLbl . '</text>';
+		$svg .= '<text x="' . $padL . '" y="' . ( $h - 8 ) . '" text-anchor="start" font-size="15" fill="' . $txt . '">' . $startLbl . '</text>';
+		$svg .= '<text x="' . ( $w - $padR ) . '" y="' . ( $h - 8 ) . '" text-anchor="end" font-size="15" fill="' . $txt . '">' . $endLbl . '</text>';
 		$svg .= '</svg>';
 
 		return $svg;
 	}
 
-	public static function emptyState(): string
+	/** Placeholder chart frame shown when there is not yet enough price history. */
+	protected static function emptyState( int $w, int $h, int $padL, int $padR, int $padT, int $padB ): string
 	{
-		$w = 640; $h = 200; $padL = 56; $padR = 16; $padT = 16; $padB = 30;
-		$base = $padT + ( $h - $padT - $padB );
-		$midY = $padT + ( $h - $padT - $padB ) / 2;
-		$grid = '#E5E7EB';
-		$txt  = '#6B7280';
+		$plotH = $h - $padT - $padB;
+		$base  = round( $padT + $plotH, 1 );
+		$mid   = round( $padT + $plotH / 2, 1 );
+		$grid  = '#E5E7EB';
+		$txt   = '#9CA3AF';
+		$cx    = round( $padL + ( $w - $padL - $padR ) / 2, 1 );
 
-		$svg  = '<svg viewBox="0 0 ' . $w . ' ' . $h . '" width="100%" role="img" aria-label="Price history — tracking" style="max-width:640px;font-family:Inter,system-ui,sans-serif">';
-		$svg .= '<line x1="' . $padL . '" y1="' . $padT . '" x2="' . ( $w - $padR ) . '" y2="' . $padT . '" stroke="' . $grid . '" stroke-width="1"/>';
-		$svg .= '<line x1="' . $padL . '" y1="' . $midY . '" x2="' . ( $w - $padR ) . '" y2="' . $midY . '" stroke="' . $grid . '" stroke-width="1"/>';
+		$svg  = '<svg viewBox="0 0 ' . $w . ' ' . $h . '" width="100%" role="img" aria-label="Price history (no data yet)" style="width:100%;height:auto;display:block;font-family:Inter,system-ui,sans-serif">';
+		$svg .= '<line x1="' . $padL . '" y1="' . round( $padT, 1 ) . '" x2="' . ( $w - $padR ) . '" y2="' . round( $padT, 1 ) . '" stroke="' . $grid . '" stroke-width="1"/>';
+		$svg .= '<line x1="' . $padL . '" y1="' . $mid . '" x2="' . ( $w - $padR ) . '" y2="' . $mid . '" stroke="' . $grid . '" stroke-width="1"/>';
 		$svg .= '<line x1="' . $padL . '" y1="' . $base . '" x2="' . ( $w - $padR ) . '" y2="' . $base . '" stroke="' . $grid . '" stroke-width="1"/>';
-		$svg .= '<line x1="' . $padL . '" y1="' . round( $midY + 20, 1 ) . '" x2="' . ( $w - $padR ) . '" y2="' . round( $midY + 20, 1 ) . '" stroke="' . $grid . '" stroke-dasharray="6 4" stroke-width="1" opacity="0.5"/>';
-		$svg .= '<text x="' . round( ( $w ) / 2, 1 ) . '" y="' . round( $midY - 4, 1 ) . '" text-anchor="middle" font-size="13" fill="' . $txt . '">Tracking prices &mdash; chart appears after 2+ data points</text>';
+		$svg .= '<line x1="' . $padL . '" y1="' . round( $padT, 1 ) . '" x2="' . $padL . '" y2="' . $base . '" stroke="' . $grid . '" stroke-width="1"/>';
+		$svg .= '<text x="' . $cx . '" y="' . round( $mid + 4, 1 ) . '" text-anchor="middle" font-size="15" fill="' . $txt . '">Tracking prices &#8212; history appears here as prices change</text>';
 		$svg .= '</svg>';
-
 		return $svg;
 	}
 }
