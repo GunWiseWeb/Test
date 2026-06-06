@@ -4,6 +4,7 @@ $lang = [
     '__app_gdsearch'                    => 'GD Search',
     'menutab__gdsearch'                 => 'GD Search',
     'menutab__gdsearch_icon'            => 'magnifying-glass',
+    'menu__gdsearch_search'             => 'Catalog',
     'menu__gdsearch_search_settings'    => 'Settings',
     'module__gdsearch_search'           => 'Search',
     'gdsearch_settings_title'           => 'Search Settings',
