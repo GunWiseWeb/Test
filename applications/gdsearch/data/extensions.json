@@ -1,5 +1,8 @@
 {
     "core": {
+        "FrontNavigation": {
+            "Catalog": "IPS\\gdsearch\\extensions\\core\\FrontNavigation\\Catalog"
+        },
         "Notifications": {
             "PriceAlerts": "IPS\\gdsearch\\extensions\\core\\Notifications\\PriceAlerts"
         },

@@ -81,4 +81,5 @@ $lang = [
     'gdsearch_facet_grain'            => "Grain",
     'gdsearch_facet_velocity'         => "Velocity (fps)",
     'gdsearch_facet_barrel'           => "Barrel Length",
+    'frontnavigation_gdsearch_catalog' => "Catalog",
 ];
