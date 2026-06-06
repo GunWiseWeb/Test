@@ -10,6 +10,12 @@
 .gdsp-grid{display:grid;grid-template-columns:215px 1fr;gap:26px;align-items:start}
 .gdsp-imgbox{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:center;min-height:200px}
 .gdsp-imgbox img{max-width:100%;max-height:280px;object-fit:contain}
+.gdsp-zoom-cb{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.gdsp-imgbox{cursor:zoom-in}
+.gdsp-lightbox{display:none;position:fixed;inset:0;z-index:1200;background:rgba(15,23,42,.85);align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+.gdsp-zoom-cb:checked ~ .gdsp-lightbox{display:flex}
+.gdsp-lightbox img{max-width:92vw;max-height:92vh;object-fit:contain;border-radius:10px;box-shadow:0 12px 48px rgba(0,0,0,.45)}
+.gdsp-lightbox-x{position:absolute;top:16px;right:24px;color:#fff;font-size:2.2em;line-height:1;font-weight:300}
 .gdsp-noimg{background:#f1f5f9;border-radius:12px;height:210px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:3em}
 .gdsp-rail .gdsp-action{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-top:8px;padding:11px;border-radius:10px;font-size:.84em;font-weight:600;cursor:pointer;border:1px solid #e2e8f0;background:#fff;color:#334155;box-sizing:border-box;text-decoration:none;line-height:1.1}
 .gdsp-rail .gdsp-action:hover{border-color:#cbd5e1;background:#f8fafc}
@@ -49,6 +55,7 @@
 }
 </style>
 <div class="gdsp-wrap">
+	<input type="checkbox" id="gdsp-zoom" class="gdsp-zoom-cb" aria-hidden="true">
 
 	<a href="{$backUrl}" class="gdsp-back">&larr; {lang="gdsearch_back_to_results"}</a>
 
@@ -57,9 +64,9 @@
 
 			<div class="gdsp-rail">
 				{{if $product['image_url']}}
-				<div class="gdsp-imgbox">
+				<label for="gdsp-zoom" class="gdsp-imgbox" title="Click to enlarge">
 					<img src="{$product['image_url']}" alt="{$product['title']}">
-				</div>
+				</label>
 				{{else}}
 				<div class="gdsp-noimg">&#128230;</div>
 				{{endif}}
@@ -293,4 +300,11 @@
 			</div>
 		</div>
 	</div>
+
+	{{if $product['image_url']}}
+	<label for="gdsp-zoom" class="gdsp-lightbox">
+		<span class="gdsp-lightbox-x" aria-hidden="true">&times;</span>
+		<img src="{$product['image_url']}" alt="{$product['title']}">
+	</label>
+	{{endif}}
 </div>
