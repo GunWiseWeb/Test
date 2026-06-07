@@ -114,6 +114,24 @@ class OpenSearchIndexer
 					'record_status'=> [ 'type' => 'keyword' ],
 					'image_url'    => [ 'type' => 'keyword', 'index' => false ],
 					'description'  => [ 'type' => 'text', 'analyzer' => 'product_analyzer' ],
+					'holster_type'     => [ 'type' => 'keyword' ],
+					'holster_color'    => [ 'type' => 'keyword' ],
+					'holster_material' => [ 'type' => 'keyword' ],
+					'holster_hand'     => [ 'type' => 'keyword' ],
+					'apparel_pattern'  => [ 'type' => 'keyword' ],
+					'apparel_size'     => [ 'type' => 'keyword' ],
+					'apparel_material' => [ 'type' => 'keyword' ],
+					'optic_type'       => [ 'type' => 'keyword' ],
+					'optic_material'   => [ 'type' => 'keyword' ],
+					'optic_color'      => [ 'type' => 'keyword' ],
+					'optic_platform'   => [ 'type' => 'keyword' ],
+					'hunt_call_type'   => [ 'type' => 'keyword' ],
+					'hunt_game'        => [ 'type' => 'keyword' ],
+					'blade_shape'      => [ 'type' => 'keyword' ],
+					'blade_length'     => [ 'type' => 'keyword' ],
+					'blade_material'   => [ 'type' => 'keyword' ],
+					'blade_edge'       => [ 'type' => 'keyword' ],
+					'knife_handle'     => [ 'type' => 'keyword' ],
 				],
 			],
 		];
@@ -313,7 +331,7 @@ class OpenSearchIndexer
 	 */
 	public function indexBatch( int $offset, int $batchSize = 250 ): int
 	{
-		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description';
+		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description, holster_type, holster_color, holster_material, holster_hand, apparel_pattern, apparel_size, apparel_material, optic_type, optic_material, optic_color, optic_platform, hunt_call_type, hunt_game, blade_shape, blade_length, blade_material, blade_edge, knife_handle';
 		$rows = \IPS\Db::i()->select(
 			$indexColumns,
 			'gd_catalog',
@@ -376,7 +394,7 @@ class OpenSearchIndexer
 		$batchMax = 250;
 		$offset   = 0;
 
-		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description';
+		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description, holster_type, holster_color, holster_material, holster_hand, apparel_pattern, apparel_size, apparel_material, optic_type, optic_material, optic_color, optic_platform, hunt_call_type, hunt_game, blade_shape, blade_length, blade_material, blade_edge, knife_handle';
 
 		while ( TRUE )
 		{
@@ -471,6 +489,24 @@ class OpenSearchIndexer
 			'record_status' => $product->record_status ?? 'active',
 			'image_url'     => $product->image_url ?? '',
 			'description'   => $product->description ? mb_substr( $product->description, 0, 5000 ) : '',
+			'holster_type'     => $product->holster_type ?? '',
+			'holster_color'    => $product->holster_color ?? '',
+			'holster_material' => $product->holster_material ?? '',
+			'holster_hand'     => $product->holster_hand ?? '',
+			'apparel_pattern'  => $product->apparel_pattern ?? '',
+			'apparel_size'     => $product->apparel_size ?? '',
+			'apparel_material' => $product->apparel_material ?? '',
+			'optic_type'       => $product->optic_type ?? '',
+			'optic_material'   => $product->optic_material ?? '',
+			'optic_color'      => $product->optic_color ?? '',
+			'optic_platform'   => $product->optic_platform ?? '',
+			'hunt_call_type'   => $product->hunt_call_type ?? '',
+			'hunt_game'        => $product->hunt_game ?? '',
+			'blade_shape'      => $product->blade_shape ?? '',
+			'blade_length'     => $product->blade_length ?? '',
+			'blade_material'   => $product->blade_material ?? '',
+			'blade_edge'       => $product->blade_edge ?? '',
+			'knife_handle'     => $product->knife_handle ?? '',
 		];
 	}
 

@@ -986,7 +986,25 @@
                 "zerofill": false,
                 "values": [],
                 "comment": ""
-            }
+            },
+            "holster_type": { "name": "holster_type", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "holster_color": { "name": "holster_color", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "holster_material": { "name": "holster_material", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "holster_hand": { "name": "holster_hand", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "apparel_pattern": { "name": "apparel_pattern", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "apparel_size": { "name": "apparel_size", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "apparel_material": { "name": "apparel_material", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "optic_type": { "name": "optic_type", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "optic_material": { "name": "optic_material", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "optic_color": { "name": "optic_color", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "optic_platform": { "name": "optic_platform", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "hunt_call_type": { "name": "hunt_call_type", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "hunt_game": { "name": "hunt_game", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "blade_shape": { "name": "blade_shape", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "blade_length": { "name": "blade_length", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "blade_material": { "name": "blade_material", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "blade_edge": { "name": "blade_edge", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "knife_handle": { "name": "knife_handle", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
         },
         "indexes": {
             "PRIMARY": {

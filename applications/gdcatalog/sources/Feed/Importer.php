@@ -38,6 +38,45 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 
 class Importer
 {
+	/** Accessory attribute extraction — slot meaning is category-specific (SS). */
+	public const ACCESSORY_ATTR_MAP = [
+		'holsters-and-carry' => [ 'holster_type'=>'ITATR1', 'holster_color'=>'ITATR2', 'holster_material'=>'ITATR3', 'holster_hand'=>'ITATR5' ],
+		'apparel'            => [ 'apparel_pattern'=>'ITATR3', 'apparel_size'=>'ITATR4', 'apparel_material'=>'ITATR5' ],
+		'optics'             => [ 'optic_type'=>'ITATR1', 'optic_material'=>'ITATR2', 'optic_color'=>'ITATR3', 'optic_platform'=>'ITATR15' ],
+		'hunting-gear'       => [ 'hunt_call_type'=>'ITATR1', 'hunt_game'=>'ITATR2' ],
+		'knives'             => [ 'blade_shape'=>'ITATR2', 'blade_length'=>'ITATR3', 'blade_material'=>'ITATR5', 'blade_edge'=>'ITATR9', 'knife_handle'=>'ITATR6' ],
+	];
+
+	public static function accessoryAttrsFor( string $topSlug, array $raw ): array
+	{
+		$out = [];
+		if ( isset( self::ACCESSORY_ATTR_MAP[ $topSlug ] ) )
+		{
+			foreach ( self::ACCESSORY_ATTR_MAP[ $topSlug ] as $col => $slot )
+			{
+				$v = trim( (string) ( $raw[ $slot ] ?? '' ) );
+				if ( $v !== '' ) { $out[ $col ] = mb_substr( $v, 0, 80 ); }
+			}
+		}
+		return $out;
+	}
+
+	/** category_id -> top-level slug, cached for the run. */
+	protected ?array $topSlugByCatId = null;
+	public function topSlugForCategoryId( int $catId ): string
+	{
+		if ( $this->topSlugByCatId === null )
+		{
+			$this->topSlugByCatId = [];
+			$parent = []; $slug = [];
+			foreach ( \IPS\Db::i()->select( 'id, parent_id, slug', 'gd_categories' ) as $c )
+			{ $parent[(int)$c['id']] = (int)$c['parent_id']; $slug[(int)$c['id']] = (string)$c['slug']; }
+			foreach ( $parent as $id => $pid )
+			{ $top = $pid > 0 ? $pid : $id; $this->topSlugByCatId[$id] = $slug[$top] ?? ''; }
+		}
+		return $this->topSlugByCatId[ $catId ] ?? '';
+	}
+
 	/**
 	 * v1.0.10: Safety cap on rows processed per import run. Sports South's
 	 * full catalog is 58,000+ products. Until proper paging/background
@@ -953,6 +992,10 @@ class Importer
 
 			/* Category-based ammo flag (Sports South sends none). Ammunition subtree => is_ammo. */
 			$mapped['is_ammo'] = in_array( (int) ( $mapped['category_id'] ?? 0 ), self::AMMO_CATEGORY_IDS, true ) ? 1 : 0;
+
+			/* Per-category accessory attributes from raw SS ITATR slots into their own columns. */
+			$topSlug = $this->topSlugForCategoryId( (int) ( $mapped['category_id'] ?? 0 ) );
+			foreach ( self::accessoryAttrsFor( $topSlug, $rawRecord ) as $col => $val ) { $mapped[ $col ] = $val; }
 
 			if ( isset( $mapped['action_type'] ) )
 			{
