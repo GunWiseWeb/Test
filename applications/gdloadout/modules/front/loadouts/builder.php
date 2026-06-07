@@ -122,7 +122,7 @@ class _builder extends \IPS\Dispatcher\Controller
 			'csrfKey'     => $csrfKey,
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
-		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'front' ) );
+		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
 		Output::i()->jsFiles  = array_merge( Output::i()->jsFiles, Output::i()->js( 'builder.js', 'gdloadout', 'interface' ) );
 		Output::i()->title    = Member::loggedIn()->language()->addToStack( 'gdloadout_builder_title' );
 		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->builder( $initData );

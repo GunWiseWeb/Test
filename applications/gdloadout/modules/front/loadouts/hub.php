@@ -201,7 +201,7 @@ class _hub extends \IPS\Dispatcher\Controller
 		$canCreate  = $member->member_id ? \IPS\gdloadout\Loadout\Limits::canCreateLoadout( $member ) : false;
 		$builderUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder', 'front', 'gdloadout_builder' );
 
-		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'front' ) );
+		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
 		Output::i()->title    = Member::loggedIn()->language()->addToStack( 'gdloadout_hub_title' );
 		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->hub( $sections, $canCreate, $builderUrl, $activeUseCase, $useCases );
 	}
@@ -525,7 +525,7 @@ class _hub extends \IPS\Dispatcher\Controller
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		/* Enqueue CSS + JS */
-		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'front' ) );
+		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
 		Output::i()->jsFiles  = array_merge( Output::i()->jsFiles, Output::i()->js( 'loadout.js', 'gdloadout', 'interface' ) );
 
 		/* Render */
