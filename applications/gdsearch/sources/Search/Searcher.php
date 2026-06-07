@@ -95,20 +95,20 @@ class Searcher
         $facet( 'case_type.keyword',   $filters['casing']      ?? '' );
         $facet( 'bullet_type.keyword', $filters['bullet_type'] ?? '' );
         $facet( 'capacity',            $filters['capacity']    ?? '' );
-        $facet( 'holster_type',        $filters['holster_type']    ?? '' );
-        $facet( 'holster_color',       $filters['holster_color']   ?? '' );
-        $facet( 'holster_material',    $filters['holster_material'] ?? '' );
-        $facet( 'holster_hand',        $filters['holster_hand']    ?? '' );
-        $facet( 'apparel_pattern',     $filters['apparel_pattern'] ?? '' );
-        $facet( 'apparel_size',        $filters['apparel_size']    ?? '' );
-        $facet( 'apparel_material',    $filters['apparel_material'] ?? '' );
-        $facet( 'blade_shape',         $filters['blade_shape']     ?? '' );
-        $facet( 'blade_length',        $filters['blade_length']    ?? '' );
-        $facet( 'blade_material',      $filters['blade_material']  ?? '' );
-        $facet( 'blade_edge',          $filters['blade_edge']      ?? '' );
-        $facet( 'knife_handle',        $filters['knife_handle']    ?? '' );
-        $facet( 'hunt_call_type',      $filters['hunt_call_type']  ?? '' );
-        $facet( 'hunt_game',           $filters['hunt_game']       ?? '' );
+        $facet( 'holster_type.keyword',     $filters['holster_type']    ?? '' );
+        $facet( 'holster_color.keyword',    $filters['holster_color']   ?? '' );
+        $facet( 'holster_material.keyword', $filters['holster_material'] ?? '' );
+        $facet( 'holster_hand.keyword',     $filters['holster_hand']    ?? '' );
+        $facet( 'apparel_pattern.keyword',  $filters['apparel_pattern'] ?? '' );
+        $facet( 'apparel_size.keyword',     $filters['apparel_size']    ?? '' );
+        $facet( 'apparel_material.keyword', $filters['apparel_material'] ?? '' );
+        $facet( 'blade_shape.keyword',      $filters['blade_shape']     ?? '' );
+        $facet( 'blade_length.keyword',     $filters['blade_length']    ?? '' );
+        $facet( 'blade_material.keyword',   $filters['blade_material']  ?? '' );
+        $facet( 'blade_edge.keyword',       $filters['blade_edge']      ?? '' );
+        $facet( 'knife_handle.keyword',     $filters['knife_handle']    ?? '' );
+        $facet( 'hunt_call_type.keyword',   $filters['hunt_call_type']  ?? '' );
+        $facet( 'hunt_game.keyword',        $filters['hunt_game']       ?? '' );
 
         if ( !empty( $filters['requires_ffl'] ) ) { $filter[] = [ 'term' => [ 'requires_ffl' => true ] ]; }
         if ( !empty( $filters['is_ammo'] ) )      { $filter[] = [ 'term' => [ 'is_ammo' => true ] ]; }
@@ -194,59 +194,59 @@ class Searcher
                 ] ] ] ],
                 'holster_types' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Holsters & Carry' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'holster_type', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'holster_type.keyword', 'size' => 30 ] ] ],
                 ],
                 'holster_colors' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Holsters & Carry' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'holster_color', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'holster_color.keyword', 'size' => 30 ] ] ],
                 ],
                 'holster_materials' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Holsters & Carry' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'holster_material', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'holster_material.keyword', 'size' => 30 ] ] ],
                 ],
                 'holster_hands' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Holsters & Carry' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'holster_hand', 'size' => 10 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'holster_hand.keyword', 'size' => 10 ] ] ],
                 ],
                 'apparel_patterns' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Apparel' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'apparel_pattern', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'apparel_pattern.keyword', 'size' => 30 ] ] ],
                 ],
                 'apparel_sizes' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Apparel' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'apparel_size', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'apparel_size.keyword', 'size' => 30 ] ] ],
                 ],
                 'apparel_materials' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Apparel' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'apparel_material', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'apparel_material.keyword', 'size' => 30 ] ] ],
                 ],
                 'blade_shapes' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Knives' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'blade_shape', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'blade_shape.keyword', 'size' => 30 ] ] ],
                 ],
                 'blade_lengths' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Knives' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'blade_length', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'blade_length.keyword', 'size' => 30 ] ] ],
                 ],
                 'blade_materials' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Knives' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'blade_material', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'blade_material.keyword', 'size' => 30 ] ] ],
                 ],
                 'blade_edges' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Knives' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'blade_edge', 'size' => 20 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'blade_edge.keyword', 'size' => 20 ] ] ],
                 ],
                 'knife_handles' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Knives' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'knife_handle', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'knife_handle.keyword', 'size' => 30 ] ] ],
                 ],
                 'hunt_call_types' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Hunting Gear' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'hunt_call_type', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'hunt_call_type.keyword', 'size' => 30 ] ] ],
                 ],
                 'hunt_games' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Hunting Gear' ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'hunt_game', 'size' => 30 ] ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'hunt_game.keyword', 'size' => 30 ] ] ],
                 ],
             ],
         ];
