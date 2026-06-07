@@ -40,11 +40,10 @@ class Importer
 {
 	/** Accessory attribute extraction — slot meaning is category-specific (SS). */
 	public const ACCESSORY_ATTR_MAP = [
-		'holsters-and-carry' => [ 'holster_type'=>'ITATR1', 'holster_color'=>'ITATR2', 'holster_material'=>'ITATR3', 'holster_hand'=>'ITATR5' ],
-		'apparel'            => [ 'apparel_pattern'=>'ITATR3', 'apparel_size'=>'ITATR4', 'apparel_material'=>'ITATR5' ],
-		'optics'             => [ 'optic_type'=>'ITATR1', 'optic_material'=>'ITATR2', 'optic_color'=>'ITATR3', 'optic_platform'=>'ITATR15' ],
-		'hunting-gear'       => [ 'hunt_call_type'=>'ITATR1', 'hunt_game'=>'ITATR2' ],
-		'knives'             => [ 'blade_shape'=>'ITATR2', 'blade_length'=>'ITATR3', 'blade_material'=>'ITATR5', 'blade_edge'=>'ITATR9', 'knife_handle'=>'ITATR6' ],
+		'holsters-carry' => [ 'holster_type'=>'ITATR1', 'holster_color'=>'ITATR2', 'holster_material'=>'ITATR3', 'holster_hand'=>'ITATR5' ],
+		'apparel'        => [ 'apparel_pattern'=>'ITATR3', 'apparel_size'=>'ITATR4', 'apparel_material'=>'ITATR5' ],
+		'hunting-gear'   => [ 'hunt_call_type'=>'ITATR1', 'hunt_game'=>'ITATR2' ],
+		'knives'         => [ 'blade_shape'=>'ITATR2', 'blade_length'=>'ITATR3', 'blade_material'=>'ITATR5', 'blade_edge'=>'ITATR9', 'knife_handle'=>'ITATR6' ],
 	];
 
 	public static function accessoryAttrsFor( string $topSlug, array $raw ): array

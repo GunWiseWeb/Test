@@ -121,10 +121,6 @@ class OpenSearchIndexer
 					'apparel_pattern'  => [ 'type' => 'keyword' ],
 					'apparel_size'     => [ 'type' => 'keyword' ],
 					'apparel_material' => [ 'type' => 'keyword' ],
-					'optic_type'       => [ 'type' => 'keyword' ],
-					'optic_material'   => [ 'type' => 'keyword' ],
-					'optic_color'      => [ 'type' => 'keyword' ],
-					'optic_platform'   => [ 'type' => 'keyword' ],
 					'hunt_call_type'   => [ 'type' => 'keyword' ],
 					'hunt_game'        => [ 'type' => 'keyword' ],
 					'blade_shape'      => [ 'type' => 'keyword' ],
@@ -331,7 +327,7 @@ class OpenSearchIndexer
 	 */
 	public function indexBatch( int $offset, int $batchSize = 250 ): int
 	{
-		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description, holster_type, holster_color, holster_material, holster_hand, apparel_pattern, apparel_size, apparel_material, optic_type, optic_material, optic_color, optic_platform, hunt_call_type, hunt_game, blade_shape, blade_length, blade_material, blade_edge, knife_handle';
+		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description, holster_type, holster_color, holster_material, holster_hand, apparel_pattern, apparel_size, apparel_material, hunt_call_type, hunt_game, blade_shape, blade_length, blade_material, blade_edge, knife_handle';
 		$rows = \IPS\Db::i()->select(
 			$indexColumns,
 			'gd_catalog',
@@ -394,7 +390,7 @@ class OpenSearchIndexer
 		$batchMax = 250;
 		$offset   = 0;
 
-		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description, holster_type, holster_color, holster_material, holster_hand, apparel_pattern, apparel_size, apparel_material, optic_type, optic_material, optic_color, optic_platform, hunt_call_type, hunt_game, blade_shape, blade_length, blade_material, blade_edge, knife_handle';
+		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description, holster_type, holster_color, holster_material, holster_hand, apparel_pattern, apparel_size, apparel_material, hunt_call_type, hunt_game, blade_shape, blade_length, blade_material, blade_edge, knife_handle';
 
 		while ( TRUE )
 		{
@@ -496,10 +492,6 @@ class OpenSearchIndexer
 			'apparel_pattern'  => $product->apparel_pattern ?? '',
 			'apparel_size'     => $product->apparel_size ?? '',
 			'apparel_material' => $product->apparel_material ?? '',
-			'optic_type'       => $product->optic_type ?? '',
-			'optic_material'   => $product->optic_material ?? '',
-			'optic_color'      => $product->optic_color ?? '',
-			'optic_platform'   => $product->optic_platform ?? '',
 			'hunt_call_type'   => $product->hunt_call_type ?? '',
 			'hunt_game'        => $product->hunt_game ?? '',
 			'blade_shape'      => $product->blade_shape ?? '',
