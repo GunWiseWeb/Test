@@ -209,7 +209,7 @@ TEMPLATE_EOT,
 			<div class="gdlo-hero-empty">Select your base firearm</div>
 		</div>
 
-		<div class="gdlo-section-label">Core Slots <span id="gdSlotCount" style="font-weight:400;color:#64748b"></span></div>
+		<div class="gdlo-section-label">Core Slots <span id="gdSlotCount" class="gdlo-slot-count"></span></div>
 		<div id="gdSlotGrid" class="gdlo-slot-grid"></div>
 
 		<div class="gdlo-section-label">Extras</div>

@@ -374,7 +374,7 @@ class _builder extends \IPS\Dispatcher\Controller
 
 	protected function search(): void
 	{
-		$query = trim( Request::i()->q ?? '' );
+		$query = trim( (string) ( Request::i()->q ?? '' ) );
 		$page  = max( 1, (int) ( Request::i()->page ?? 1 ) );
 
 		if ( mb_strlen( $query ) < 2 )
@@ -385,11 +385,74 @@ class _builder extends \IPS\Dispatcher\Controller
 
 		try
 		{
+			$matchedUpcs = [];
+
+			if ( preg_match( '/^[0-9]{8,14}$/', $query ) )
+			{
+				try
+				{
+					$u = (string) Db::i()->select( 'upc', 'gd_catalog', [ 'upc=? AND record_status=?', $query, 'active' ] )->first();
+					if ( $u !== '' )
+					{
+						$matchedUpcs[] = $u;
+					}
+				}
+				catch ( \UnderflowException ) {}
+			}
+
+			if ( !$matchedUpcs )
+			{
+				try
+				{
+					foreach ( Db::i()->select( 'upc', 'gd_catalog', [ 'mpn=? AND record_status=?', $query, 'active' ], 'id ASC', 24 ) as $u )
+					{
+						$matchedUpcs[] = (string) $u;
+					}
+				}
+				catch ( \Throwable ) {}
+			}
+
+			if ( $matchedUpcs )
+			{
+				$out = [];
+				foreach ( $matchedUpcs as $u )
+				{
+					try
+					{
+						$row = Db::i()->select( '*', 'gd_catalog', [ 'upc=?', $u ] )->first();
+						$price = NULL;
+						$dealers = 0;
+						$inStock = false;
+						try
+						{
+							$p = Db::i()->select( 'MIN(dealer_price) AS best_price, COUNT(*) AS dealer_count', 'gd_dealer_listings', [ 'upc=? AND listing_status=? AND in_stock=?', $u, 'active', 1 ] )->first();
+							$price   = ( $p['best_price'] !== NULL && (float) $p['best_price'] > 0 ) ? (float) $p['best_price'] : NULL;
+							$dealers = (int) $p['dealer_count'];
+							$inStock = $dealers > 0;
+						}
+						catch ( \Throwable ) {}
+						$out[] = [
+							'upc'          => $u,
+							'title'        => $row['title'] ?? '',
+							'brand'        => $row['brand'] ?? '',
+							'best_price'   => $price,
+							'dealer_count' => $dealers,
+							'in_stock'     => $inStock,
+							'category'     => $row['category'] ?? '',
+							'caliber'      => $row['caliber'] ?? '',
+						];
+					}
+					catch ( \Throwable ) {}
+				}
+				Output::i()->json( [ 'total' => \count( $out ), 'results' => $out ] );
+				return;
+			}
+
 			$searcher = new \IPS\gdsearch\Search\Searcher();
-			$result   = $searcher->search( $query, [ 'in_stock' => true ], 'relevance', $page, 24 );
+			$result   = $searcher->search( $query, [], 'relevance', $page, 24 );
 
 			$out = [];
-			foreach ( $result['results'] as $r )
+			foreach ( ( $result['results'] ?? [] ) as $r )
 			{
 				$out[] = [
 					'upc'          => $r['upc'] ?? '',
@@ -402,12 +465,11 @@ class _builder extends \IPS\Dispatcher\Controller
 					'caliber'      => $r['caliber'] ?? '',
 				];
 			}
-
 			Output::i()->json( [ 'total' => $result['total'] ?? 0, 'results' => $out ] );
 		}
 		catch ( \Throwable $e )
 		{
-			\IPS\Log::log( $e, 'gdloadout_search' );
+			try { \IPS\Log::log( $e, 'gdloadout_search' ); } catch ( \Throwable ) {}
 			Output::i()->json( [ 'total' => 0, 'results' => [] ] );
 		}
 	}
