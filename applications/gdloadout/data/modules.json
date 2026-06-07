@@ -1,0 +1,8 @@
+{
+    "front": {
+        "loadouts": {
+            "default_controller": "hub",
+            "protected": false
+        }
+    }
+}

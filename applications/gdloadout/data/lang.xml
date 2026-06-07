@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language>
+	<app key="gdloadout">
+		<word key="gdloadout_nav_loadouts"><![CDATA[Loadouts]]></word>
+		<word key="gdloadout_hub_title"><![CDATA[Loadouts]]></word>
+		<word key="gdloadout_hub_empty"><![CDATA[No community builds yet — the loadout builder is coming soon.]]></word>
+		<word key="menutab__gdloadout_icon"><![CDATA[layer-group]]></word>
+		<word key="menu__gdloadout_loadouts_hub"><![CDATA[Loadouts]]></word>
+	</app>
+</language>
