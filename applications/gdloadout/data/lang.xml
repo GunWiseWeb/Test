@@ -6,5 +6,29 @@
 		<word key="gdloadout_hub_empty"><![CDATA[No community builds yet — the loadout builder is coming soon.]]></word>
 		<word key="menutab__gdloadout_icon"><![CDATA[layer-group]]></word>
 		<word key="menu__gdloadout_loadouts_hub"><![CDATA[Loadouts]]></word>
+		<word key="menu__gdloadout_manage_limits"><![CDATA[Limits]]></word>
+		<word key="r__limits_manage"><![CDATA[Manage loadout limits]]></word>
+		<word key="gdloadout_limits_title"><![CDATA[Loadout Limits]]></word>
+		<word key="gdloadout_limits_desc"><![CDATA[Set slot and loadout limits per member group. 0 = unlimited.]]></word>
+		<word key="gdloadout_max_slots"><![CDATA[Max Slots]]></word>
+		<word key="gdloadout_max_loadouts"><![CDATA[Max Loadouts]]></word>
+		<word key="gdloadout_builder_title"><![CDATA[Build a Loadout]]></word>
+		<word key="gdloadout_builder_edit_title"><![CDATA[Edit Loadout]]></word>
+		<word key="gdloadout_builder_limit_reached"><![CDATA[You've reached the maximum number of loadouts for your membership level.]]></word>
+		<word key="gdloadout_slot_base_firearm"><![CDATA[Base Firearm]]></word>
+		<word key="gdloadout_slot_optic"><![CDATA[Optic]]></word>
+		<word key="gdloadout_slot_weapon_light"><![CDATA[Weapon Light]]></word>
+		<word key="gdloadout_slot_laser"><![CDATA[Laser / Sight]]></word>
+		<word key="gdloadout_slot_suppressor"><![CDATA[Suppressor]]></word>
+		<word key="gdloadout_slot_foregrip"><![CDATA[Foregrip / Grip]]></word>
+		<word key="gdloadout_slot_sling"><![CDATA[Sling]]></word>
+		<word key="gdloadout_slot_holster"><![CDATA[Holster]]></word>
+		<word key="gdloadout_slot_ammo"><![CDATA[Ammunition]]></word>
+		<word key="gdloadout_slot_cleaning"><![CDATA[Cleaning Kit]]></word>
+		<word key="gdloadout_slot_extra"><![CDATA[Extra]]></word>
+		<word key="gdloadout_save_success"><![CDATA[Loadout saved!]]></word>
+		<word key="gdloadout_error_name_required"><![CDATA[A name is required.]]></word>
+		<word key="gdloadout_error_over_slot_limit"><![CDATA[You've exceeded the maximum number of slots.]]></word>
+		<word key="gdloadout_error_over_loadout_limit"><![CDATA[You've reached the maximum number of loadouts.]]></word>
 	</app>
 </language>

@@ -3,7 +3,7 @@ namespace IPS\gdloadout;
 use function defined;
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) ) { header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' ); exit; }
 /**
- * @version 1.0.0
+ * @version 1.0.1
  */
 class _Application extends \IPS\Application
 {

@@ -1,0 +1,67 @@
+<ips:template parameters="$initJson" />
+<div id="gdlo-builder" class="ipsColumns ipsColumns_collapsePhone">
+	<div class="ipsColumn ipsColumn_wide">
+		<div class="ipsBox ipsPad">
+			<h2 class="ipsType_sectionTitle">{lang="gdloadout_builder_title"}</h2>
+			<div id="gdlo-meta" class="ipsPad_half">
+				<div class="ipsFieldRow">
+					<label class="ipsFieldRow_label">Name</label>
+					<input type="text" id="gdlo-name" class="ipsField_fullWidth" maxlength="150" placeholder="My Build" />
+				</div>
+				<div class="ipsFieldRow">
+					<label class="ipsFieldRow_label">Description</label>
+					<textarea id="gdlo-desc" class="ipsField_fullWidth" rows="2" maxlength="2000"></textarea>
+				</div>
+				<div class="ipsFieldRow">
+					<label class="ipsFieldRow_label">Use Case</label>
+					<input type="text" id="gdlo-usecase" class="ipsField_fullWidth" maxlength="100" placeholder="Home Defense, Range Day, etc." />
+				</div>
+				<div class="ipsFieldRow">
+					<label class="ipsFieldRow_label">Visibility</label>
+					<select id="gdlo-visibility" class="ipsField_fullWidth">
+						<option value="public">Public</option>
+						<option value="unlisted" selected>Unlisted</option>
+					</select>
+				</div>
+			</div>
+			<h3 class="ipsType_sectionTitle">Slots</h3>
+			<div id="gdlo-slots"></div>
+			<h3 class="ipsType_sectionTitle">Extras</h3>
+			<div id="gdlo-extras"></div>
+			<button id="gdlo-add-extra" class="ipsButton ipsButton_small ipsButton_light">+ Add Extra</button>
+		</div>
+		<div class="ipsBox ipsPad ipsMargin_top">
+			<h3 class="ipsType_sectionTitle">Search Products</h3>
+			<input type="text" id="gdlo-search-input" class="ipsField_fullWidth" placeholder="Search by name, UPC, or brand..." />
+			<div id="gdlo-search-results" class="ipsMargin_top:half"></div>
+		</div>
+	</div>
+	<div class="ipsColumn ipsColumn_narrow">
+		<div class="ipsBox ipsPad" id="gdlo-summary">
+			<h3 class="ipsType_sectionTitle">Build Summary</h3>
+			<div id="gdlo-summary-count" class="ipsPad_half">
+				<strong>Items:</strong> <span id="gdlo-item-count">0</span>
+			</div>
+			<div id="gdlo-summary-cost" class="ipsPad_half">
+				<strong>Est. Total:</strong> <span id="gdlo-total-cost">$0.00</span>
+			</div>
+			<div id="gdlo-slot-limit-notice" class="ipsMessage ipsMessage_info" style="display:none">
+				Slot limit reached.
+			</div>
+			<div id="gdlo-nfa-notice" class="ipsMessage ipsMessage_warning" style="display:none">
+				This build includes NFA items — additional regulations may apply.
+			</div>
+			<table class="ipsTable ipsTable_zebra" id="gdlo-item-table">
+				<thead><tr><th>Item</th><th>Price</th><th></th></tr></thead>
+				<tbody id="gdlo-item-tbody"></tbody>
+			</table>
+			<div class="ipsPad_top">
+				<button id="gdlo-save" class="ipsButton ipsButton_primary ipsButton_fullWidth">Save Loadout</button>
+			</div>
+			<div id="gdlo-delete-wrap" class="ipsPad_top" style="display:none">
+				<button id="gdlo-delete" class="ipsButton ipsButton_negative ipsButton_fullWidth ipsButton_small">Delete Loadout</button>
+			</div>
+		</div>
+	</div>
+</div>
+<script type="application/json" id="gdlo-init">{expression="$initJson"}</script>

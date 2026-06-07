@@ -2,6 +2,7 @@
     "topLevel": "loadouts",
     "pages": {
         "gdloadout_hub":  { "friendly": "", "real": "app=gdloadout&module=loadouts&controller=hub" },
-        "gdloadout_view": { "friendly": "{@username}/{@slug}", "real": "app=gdloadout&module=loadouts&controller=hub&do=view" }
+        "gdloadout_view": { "friendly": "{@username}/{@slug}", "real": "app=gdloadout&module=loadouts&controller=hub&do=view" },
+        "gdloadout_builder": { "friendly": "builder", "real": "app=gdloadout&module=loadouts&controller=builder" }
     }
 }
