@@ -111,3 +111,25 @@
 .gdlo-badge--ffl{background:#dfe6e9;color:#2d3436}
 .gdlo-view-total{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;font-size:1.1em;margin-bottom:20px;color:#0f172a}
 .gdlo-view-desc{padding:14px 16px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;margin-bottom:20px;font-size:.95em;line-height:1.5;color:#334155}
+/* View two-column layout */
+.gdlo-view-subtitle{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.gdlo-view-2col{display:flex;gap:24px;align-items:flex-start}
+.gdlo-view-main{flex:1;min-width:0}
+.gdlo-view-sidebar{width:300px;flex-shrink:0;position:sticky;top:80px}
+.gdlo-view-summary .gdlo-panel{margin-bottom:0}
+.gdlo-view-actions-panel{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.gdlo-action-btn{width:100%;text-align:center;justify-content:center}
+.gdlo-comment{padding:10px 0;border-bottom:1px solid #f1f5f9}
+.gdlo-comment-meta{display:flex;gap:8px;align-items:center;margin-bottom:4px}
+.gdlo-comment-text{font-size:.9em;color:#334155;line-height:1.4}
+.gdlo-comment-form{margin-top:12px}
+/* My Loadouts */
+.gdlo-my-list{display:flex;flex-direction:column;gap:8px;padding:16px 0}
+.gdlo-my-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;gap:12px}
+.gdlo-my-info{flex:1;min-width:0}
+.gdlo-my-name{font-weight:600;font-size:1em;color:#0f172a;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gdlo-my-name a{color:#0f172a;text-decoration:none}
+.gdlo-my-name a:hover{color:#2563eb}
+.gdlo-my-meta{font-size:.8em;color:#64748b;display:flex;gap:10px;margin-top:4px;flex-wrap:wrap}
+.gdlo-my-actions{display:flex;gap:6px;flex-shrink:0}
+@media(max-width:768px){.gdlo-view-2col{flex-direction:column}.gdlo-view-sidebar{width:100%;position:static}.gdlo-my-row{flex-direction:column;align-items:flex-start}.gdlo-my-actions{margin-top:8px}}

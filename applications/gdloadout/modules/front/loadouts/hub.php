@@ -779,6 +779,41 @@ class _hub extends \IPS\Dispatcher\Controller
 		] );
 	}
 	/**
+	 * My Loadouts — lists the logged-in member's own builds
+	 */
+	protected function mine(): void
+	{
+		$member = Member::loggedIn();
+		if ( !$member->member_id )
+		{
+			Output::i()->redirect( Url::internal( 'app=core&module=system&controller=login', 'front', 'login' ) );
+			return;
+		}
+
+		$loadouts = [];
+		try
+		{
+			foreach ( Db::i()->select( '*', 'gd_loadouts', [ 'member_id=?', (int) $member->member_id ], 'COALESCE(updated_at, created_at) DESC' ) as $row )
+			{
+				$row['view_url'] = (string) Url::internal(
+					'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $member->name ) . '&slug=' . urlencode( $row['slug'] ),
+					'front',
+					'gdloadout_view'
+				);
+				$row['edit_url'] = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&id=' . (int) $row['id'], 'front', 'gdloadout_builder_edit' );
+				$loadouts[] = $row;
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$builderUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder', 'front', 'gdloadout_builder' );
+
+		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
+		Output::i()->title    = Member::loggedIn()->language()->addToStack( 'gdloadout_my_loadouts_title' );
+		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->myLoadouts( $loadouts, $builderUrl );
+	}
+
+	/**
 	 * AJAX — add all items from a loadout to the viewer's wishlist
 	 */
 	protected function addAllToWishlist(): void
@@ -819,8 +854,9 @@ class _hub extends \IPS\Dispatcher\Controller
 			return;
 		}
 
-		$added   = 0;
-		$skipped = 0;
+		$added      = 0;
+		$skipped    = 0;
+		$totalItems = 0;
 
 		try
 		{
@@ -830,6 +866,8 @@ class _hub extends \IPS\Dispatcher\Controller
 				{
 					continue;
 				}
+
+				$totalItems++;
 
 				try
 				{
@@ -855,7 +893,7 @@ class _hub extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
-		Output::i()->json( [ 'ok' => true, 'added' => $added, 'skipped' => $skipped ] );
+		Output::i()->json( [ 'ok' => true, 'added' => $added, 'skipped' => $skipped, 'total_items' => $totalItems ] );
 	}
 
 	/**
@@ -899,8 +937,10 @@ class _hub extends \IPS\Dispatcher\Controller
 			return;
 		}
 
-		$prefix = Db::i()->prefix;
-		$set    = 0;
+		$prefix     = Db::i()->prefix;
+		$set        = 0;
+		$totalItems = 0;
+		$noPrice    = 0;
 
 		try
 		{
@@ -910,6 +950,8 @@ class _hub extends \IPS\Dispatcher\Controller
 				{
 					continue;
 				}
+
+				$totalItems++;
 
 				try
 				{
@@ -926,6 +968,7 @@ class _hub extends \IPS\Dispatcher\Controller
 
 					if ( $bestPrice === NULL )
 					{
+						$noPrice++;
 						continue;
 					}
 
@@ -942,7 +985,7 @@ class _hub extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
-		Output::i()->json( [ 'ok' => true, 'set' => $set ] );
+		Output::i()->json( [ 'ok' => true, 'set' => $set, 'total_items' => $totalItems, 'no_price' => $noPrice ] );
 	}
 }
 

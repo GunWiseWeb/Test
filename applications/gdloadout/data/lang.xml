@@ -99,5 +99,6 @@
   <word key="gdloadout_widget_trending" js="0">Trending Loadouts</word>
   <word key="gdloadout_wishlist_added" js="0">items added to wishlist</word>
   <word key="gdloadout_alerts_set" js="0">price alerts set</word>
+  <word key="gdloadout_my_loadouts_title" js="0">My Loadouts</word>
  </app>
 </language>

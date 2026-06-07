@@ -5,6 +5,10 @@
             "friendly": "",
             "real": "app=gdloadout&module=loadouts&controller=hub"
         },
+        "gdloadout_mine": {
+            "friendly": "my-loadouts",
+            "real": "app=gdloadout&module=loadouts&controller=hub&do=mine"
+        },
         "gdloadout_builder": {
             "friendly": "builder",
             "real": "app=gdloadout&module=loadouts&controller=builder"

@@ -1,4 +1,18 @@
-<ips:template parameters="$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData" />
+<?php
+
+namespace IPS\gdloadout\setup\upg_10014;
+
+if ( !\defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$viewContent = <<<'TEMPLATE_EOT'
 <script type="application/json" id="gdlo-view-init">{$initData|raw}</script>
 <div class="gdlo-view">
 
@@ -144,3 +158,118 @@
 	</div>
 
 </div>
+TEMPLATE_EOT;
+
+		$myLoadoutsContent = <<<'TEMPLATE_EOT'
+<div class="gdlo-view" style="max-width:1000px">
+	<div class="gdlo-hub-header">
+		<h1 class="ipsType_pageTitle">{lang="gdloadout_my_loadouts_title"}</h1>
+		<a href="{$builderUrl}" class="ipsButton ipsButton--primary ipsButton--small"><i class="fa-solid fa-plus"></i> New Loadout</a>
+	</div>
+
+	{{if count($loadouts) > 0}}
+	<div class="gdlo-my-list">
+		{{foreach $loadouts as $lo}}
+		<div class="gdlo-my-row">
+			<div class="gdlo-my-info">
+				<div class="gdlo-my-name">
+					<a href="{expression="htmlspecialchars($lo['view_url'])"}">{expression="htmlspecialchars($lo['name'])"}</a>
+					<span class="gdlo-view-badge">{expression="ucfirst($lo['visibility'] ?? 'unlisted')"}</span>
+				</div>
+				<div class="gdlo-my-meta">
+					{{if !empty($lo['use_case'])}}
+					<span>{expression="htmlspecialchars($lo['use_case'])"}</span>
+					{{endif}}
+					<span>{expression="(int)($lo['total_items'] ?? 0)"} items</span>
+					{{if !empty($lo['total_min_price'])}}
+					<span>${expression="number_format((float)$lo['total_min_price'],2)"}</span>
+					{{endif}}
+					<span><i class="fa-solid fa-arrow-up"></i> {expression="(int)($lo['upvotes'] ?? 0)"}</span>
+					<span><i class="fa-solid fa-eye"></i> {expression="(int)($lo['view_count'] ?? 0)"}</span>
+				</div>
+			</div>
+			<div class="gdlo-my-actions">
+				<a href="{expression="htmlspecialchars($lo['edit_url'])"}" class="ipsButton ipsButton--verySmall ipsButton--light"><i class="fa-solid fa-pen"></i> Edit</a>
+				<a href="{expression="htmlspecialchars($lo['view_url'])"}" class="ipsButton ipsButton--verySmall ipsButton--primary"><i class="fa-solid fa-eye"></i> View</a>
+			</div>
+		</div>
+		{{endforeach}}
+	</div>
+	{{else}}
+	<div class="gdlo-hub-empty">
+		<i class="fa-solid fa-layer-group"></i>
+		<p>You haven't created any loadouts yet.</p>
+		<a href="{$builderUrl}" class="ipsButton ipsButton--primary"><i class="fa-solid fa-plus"></i> Create Your First Build</a>
+	</div>
+	{{endif}}
+</div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location' => 'front',
+				'template_group'   => 'loadouts',
+				'template_name'    => 'view',
+				'template_data'    => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData',
+				'template_content' => $viewContent,
+				'template_updated' => time(),
+				'template_version' => '1.0.14',
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location' => 'front',
+				'template_group'   => 'loadouts',
+				'template_name'    => 'myLoadouts',
+				'template_data'    => '$loadouts, $builderUrl',
+				'template_content' => $myLoadoutsContent,
+				'template_updated' => time(),
+				'template_version' => '1.0.14',
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		$newStrings = [
+			'gdloadout_my_loadouts_title' => 'My Loadouts',
+		];
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gdloadout',
+							'word_key'     => $key,
+							'word_default' => $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }             catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

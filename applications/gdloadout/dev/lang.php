@@ -99,4 +99,5 @@ $lang = array(
 	'gdloadout_widget_trending'        => 'Trending Loadouts',
 	'gdloadout_wishlist_added'         => 'items added to wishlist',
 	'gdloadout_alerts_set'             => 'price alerts set',
+	'gdloadout_my_loadouts_title'      => 'My Loadouts',
 );

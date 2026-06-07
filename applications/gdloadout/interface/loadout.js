@@ -192,8 +192,12 @@
 			.then(function (data) {
 				alertBtn.disabled = false;
 				if (data.error) { alertBtn.innerHTML = origText; alert(data.error); return; }
-				alertBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + (data.set || 0) + ' price alerts set';
-				setTimeout(function () { alertBtn.innerHTML = origText; }, 4000);
+				if (data.set === 0 && data.total_items > 0) {
+					alertBtn.innerHTML = '<i class="fa-solid fa-info-circle"></i> No priced items yet — alerts activate once dealers list these products';
+				} else {
+					alertBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + (data.set || 0) + ' price alerts set';
+				}
+				setTimeout(function () { alertBtn.innerHTML = origText; }, 5000);
 			})
 			.catch(function () {
 				alertBtn.disabled = false;
