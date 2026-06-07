@@ -45,6 +45,9 @@
 	var saveBtn     = document.getElementById('gdSaveBtn');
 	var deleteBtn   = document.getElementById('gdDeleteBtn');
 
+	var heroSlotEl = document.getElementById('gdHeroSlot');
+	var slotCountEl = document.getElementById('gdSlotCount');
+
 	var slots = {};
 	var activeSlotKey = null;
 	var extraCounter = 0;
@@ -97,6 +100,14 @@
 				}
 			}
 
+			if (key === 'base_firearm') {
+				renderHeroCard();
+				if (heroSlotEl) {
+					heroSlotEl.addEventListener('click', function () { selectSlot('base_firearm'); });
+				}
+				return;
+			}
+
 			var card = document.createElement('div');
 			card.className = 'gdlo-slot-card';
 			card.dataset.slotKey = key;
@@ -104,9 +115,36 @@
 			slotGrid.appendChild(card);
 			renderSlotCard(key, card);
 		});
+		updateSlotCount();
+	}
+
+	function renderHeroCard() {
+		if (!heroSlotEl) return;
+		var s = slots['base_firearm'];
+		heroSlotEl.className = 'gdlo-hero-card';
+		if (activeSlotKey === 'base_firearm') heroSlotEl.classList.add('gdlo-hero-card--active');
+		if (s && s.upc) {
+			heroSlotEl.classList.add('gdlo-hero-card--filled');
+			heroSlotEl.innerHTML = '<div class="gdlo-hero-label">' + escapeHtml(slotLabels['base_firearm']) + '</div>'
+				+ '<div class="gdlo-hero-title">' + escapeHtml(s.title || s.upc) + '</div>'
+				+ (s.price ? '<div class="gdlo-hero-price">$' + parseFloat(s.price).toFixed(2) + '</div>' : '');
+		} else {
+			heroSlotEl.innerHTML = '<div class="gdlo-hero-label">' + escapeHtml(slotLabels['base_firearm']) + '</div>'
+				+ '<div class="gdlo-hero-empty">Select your base firearm</div>';
+		}
+	}
+
+	function updateSlotCount() {
+		if (!slotCountEl) return;
+		var filled = 0, empty = 0;
+		Object.keys(coreSlots).forEach(function (k) {
+			if (slots[k] && slots[k].upc) filled++; else empty++;
+		});
+		slotCountEl.textContent = filled + ' filled · ' + empty + ' empty';
 	}
 
 	function renderSlotCard(key, card) {
+		if (key === 'base_firearm') { renderHeroCard(); updateSlotCount(); return; }
 		if (!card) card = slotGrid.querySelector('[data-slot-key="' + key + '"]');
 		if (!card) return;
 
@@ -134,6 +172,7 @@
 					delete itemNotes[key];
 					renderSlotCard(key);
 					updateSummary();
+					updateSlotCount();
 					updateNotesPanel();
 				});
 			}
@@ -151,6 +190,8 @@
 
 	function selectSlot(key) {
 		activeSlotKey = key;
+
+		renderHeroCard();
 
 		var cards = slotGrid.querySelectorAll('[data-slot-key]');
 		for (var i = 0; i < cards.length; i++) {
@@ -336,6 +377,7 @@
 		}
 
 		updateSummary();
+		updateSlotCount();
 		updateNotesPanel();
 
 		var nextEmpty = findNextEmptySlot(activeSlotKey);

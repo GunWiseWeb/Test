@@ -175,7 +175,7 @@ TEMPLATE_EOT,
 		'template_name' => 'builder',
 		'template_data' => '$initData',
 		'template_content' => <<<'TEMPLATE_EOT'
-<script type="application/json" id="gdlo-init">{$initData}</script>
+<script type="application/json" id="gdlo-init">{$initData|raw}</script>
 <div id="gdLoadoutBuilder">
 
 <div class="gdlo-canvas">
@@ -204,7 +204,12 @@ TEMPLATE_EOT,
 			</select>
 		</div>
 
-		<div class="gdlo-section-label">Core Slots</div>
+		<div id="gdHeroSlot" class="gdlo-hero-card">
+			<div class="gdlo-hero-label">{lang="gdloadout_slot_base_firearm"}</div>
+			<div class="gdlo-hero-empty">Select your base firearm</div>
+		</div>
+
+		<div class="gdlo-section-label">Core Slots <span id="gdSlotCount" style="font-weight:400;color:#64748b"></span></div>
 		<div id="gdSlotGrid" class="gdlo-slot-grid"></div>
 
 		<div class="gdlo-section-label">Extras</div>
@@ -306,7 +311,7 @@ TEMPLATE_EOT,
 		'template_name' => 'view',
 		'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData',
 		'template_content' => <<<'TEMPLATE_EOT'
-<script type="application/json" id="gdlo-view-init">{$initData}</script>
+<script type="application/json" id="gdlo-view-init">{$initData|raw}</script>
 <div class="gdlo-view">
 
 	<div class="gdlo-view-header">

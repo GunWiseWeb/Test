@@ -405,8 +405,9 @@ class _builder extends \IPS\Dispatcher\Controller
 
 			Output::i()->json( [ 'total' => $result['total'] ?? 0, 'results' => $out ] );
 		}
-		catch ( \Throwable )
+		catch ( \Throwable $e )
 		{
+			\IPS\Log::log( $e, 'gdloadout_search' );
 			Output::i()->json( [ 'total' => 0, 'results' => [] ] );
 		}
 	}
