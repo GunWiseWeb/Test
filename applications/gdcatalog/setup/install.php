@@ -169,6 +169,7 @@ $categories = [
 	'Electronics & Comms' => [
 		'Radio & Communication', 'GPS Devices', 'Rangefinder Apps',
 	],
+	'Gunsmithing Tools' => [],
 ];
 
 /* Only seed categories on a fresh install — never wipe existing category config */
@@ -211,6 +212,18 @@ if ( $existingCategoryCount === 0 )
         }
     }
 }
+
+/* Re-point Sports South CATID 30 to Gunsmithing Tools on fresh install */
+try {
+	$gtId = (int) \IPS\Db::i()->select( 'id', 'gd_categories', [ 'slug=?', 'gunsmithing-tools' ] )->first();
+	if ( $gtId ) {
+		$row = \IPS\Db::i()->select( 'id, category_mapping', 'gd_distributor_feeds', [ 'distributor=?', 'sports_south' ] )->first();
+		$map = json_decode( (string) ( $row['category_mapping'] ?? '{}' ), true );
+		if ( !is_array( $map ) ) { $map = []; }
+		$map['30'] = $gtId;
+		\IPS\Db::i()->update( 'gd_distributor_feeds', [ 'category_mapping' => json_encode( $map ) ], [ 'id=?', (int) $row['id'] ] );
+	}
+} catch ( \Throwable ) {}
 
 /* Seed templates directly into core_theme_templates to bypass IPS XML import
  * bug that corrupts template comments during theme.xml installation. */
