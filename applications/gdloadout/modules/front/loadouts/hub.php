@@ -84,9 +84,10 @@ class _hub extends \IPS\Dispatcher\Controller
 		try
 		{
 			$trendingIds = [];
+			$sevenDaysAgo = time() - ( 7 * 86400 );
 			$stmt = Db::i()->preparedQuery(
-				"SELECT loadout_id, COUNT(*) AS vote_count FROM `{$prefix}gd_loadout_votes` WHERE voted_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) GROUP BY loadout_id ORDER BY vote_count DESC LIMIT 8",
-				[]
+				"SELECT loadout_id, COUNT(*) AS vote_count FROM `{$prefix}gd_loadout_votes` WHERE voted_at >= ? GROUP BY loadout_id ORDER BY vote_count DESC LIMIT 8",
+				[ $sevenDaysAgo ]
 			);
 			while ( $tRow = $stmt->fetch_assoc() )
 			{
@@ -538,7 +539,7 @@ class _hub extends \IPS\Dispatcher\Controller
 				Db::i()->insert( 'gd_loadout_votes', [
 					'loadout_id' => $loadoutId,
 					'member_id'  => (int) $member->member_id,
-					'voted_at'   => date( 'Y-m-d H:i:s' ),
+					'voted_at'   => time(),
 				] );
 				Db::i()->preparedQuery(
 					"UPDATE `{$prefix}gd_loadouts` SET upvotes = upvotes + 1 WHERE id = ?",
@@ -607,7 +608,7 @@ class _hub extends \IPS\Dispatcher\Controller
 				Db::i()->insert( 'gd_loadout_follows', [
 					'loadout_id'  => $loadoutId,
 					'member_id'   => (int) $member->member_id,
-					'followed_at' => date( 'Y-m-d H:i:s' ),
+					'followed_at' => time(),
 				] );
 				Db::i()->preparedQuery(
 					"UPDATE `{$prefix}gd_loadouts` SET follow_count = follow_count + 1 WHERE id = ?",

@@ -207,7 +207,7 @@ class _builder extends \IPS\Dispatcher\Controller
 				'description' => $description ?: NULL,
 				'use_case'    => $useCase ?: NULL,
 				'visibility'  => $visibility,
-				'updated_at'  => date( 'Y-m-d H:i:s' ),
+				'updated_at'  => time(),
 			], [ 'id=?', $editId ] );
 
 			$loadoutId = $editId;
@@ -245,7 +245,7 @@ class _builder extends \IPS\Dispatcher\Controller
 				'description' => $description ?: NULL,
 				'use_case'    => $useCase ?: NULL,
 				'visibility'  => $visibility,
-				'created_at'  => date( 'Y-m-d H:i:s' ),
+				'created_at'  => time(),
 			] );
 		}
 
@@ -280,7 +280,7 @@ class _builder extends \IPS\Dispatcher\Controller
 				'custom_label' => !empty( $slot['custom_label'] ) ? substr( trim( $slot['custom_label'] ), 0, 100 ) : NULL,
 				'sort_order'   => $order,
 				'notes'        => $notes,
-				'added_at'     => date( 'Y-m-d H:i:s' ),
+				'added_at'     => time(),
 			] );
 
 			$totalItems++;
