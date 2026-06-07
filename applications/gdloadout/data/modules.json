@@ -1,4 +1,5 @@
 {
+    "admin": {},
     "front": {
         "loadouts": {
             "default_controller": "hub",
