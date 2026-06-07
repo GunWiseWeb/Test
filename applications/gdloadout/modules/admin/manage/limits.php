@@ -31,9 +31,9 @@ class _limits extends \IPS\Dispatcher\Controller
 		$groups = [];
 		try
 		{
-			foreach ( Db::i()->select( 'g_id, g_name', 'core_groups', NULL, 'g_id ASC' ) as $g )
+			foreach ( \IPS\Member\Group::groups( TRUE, FALSE ) as $g )
 			{
-				$groups[ (int) $g['g_id'] ] = $g['g_name'];
+				$groups[ (int) $g->g_id ] = (string) $g->name;
 			}
 		}
 		catch ( \Throwable ) {}

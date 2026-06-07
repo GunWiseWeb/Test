@@ -37,9 +37,12 @@ class _builder extends \IPS\Dispatcher\Controller
 		try
 		{
 			$vipGroupIds = [];
-			foreach ( Db::i()->select( 'g_id', 'core_groups', [ 'g_name LIKE ?', '%VIP%' ] ) as $gid )
+			foreach ( \IPS\Member\Group::groups( TRUE, FALSE ) as $g )
 			{
-				$vipGroupIds[] = (int) $gid;
+				if ( mb_stripos( (string) $g->name, 'VIP' ) !== FALSE )
+				{
+					$vipGroupIds[] = (int) $g->g_id;
+				}
 			}
 			if ( \in_array( (int) $member->member_group_id, $vipGroupIds, true ) )
 			{
