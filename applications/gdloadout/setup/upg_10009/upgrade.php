@@ -1,4 +1,22 @@
-<ips:template parameters="$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData" />
+<?php
+
+namespace IPS\gdloadout\setup\upg_10009;
+
+if ( !\defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$now = time();
+		$ver = '1.0.9';
+
+		/* Re-seed view template with null-safe item access */
+		$viewContent = <<<'TEMPLATE_EOT'
 <script type="application/json" id="gdlo-view-init">{$initData|raw}</script>
 <div class="gdlo-view">
 
@@ -117,3 +135,58 @@
 	</div>
 
 </div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location'=> 'front',
+				'template_group'   => 'loadouts',
+				'template_name'    => 'view',
+				'template_data'    => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData',
+				'template_content' => $viewContent,
+				'template_updated' => $now,
+				'template_version' => $ver,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* Re-import and compile CSS */
+		try
+		{
+			if ( class_exists( '\\IPS\\Theme\\Dev\\Theme' ) )
+			{
+				\IPS\Theme\Dev\Theme::importDevCss( 'gdloadout', 0 );
+			}
+		}
+		catch ( \Throwable ) {}
+
+		try
+		{
+			foreach ( \IPS\Theme::themes() as $theme )
+			{
+				try
+				{
+					if ( method_exists( $theme, 'compileCss' ) )
+					{
+						$theme->compileCss( 'gdloadout', 'front', '.', 'loadouts.css' );
+					}
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* Clear all caches */
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Store::i()->clearAll(); }             catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }             catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

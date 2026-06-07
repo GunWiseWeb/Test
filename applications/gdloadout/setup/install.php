@@ -316,22 +316,22 @@ TEMPLATE_EOT,
 
 	<div class="gdlo-view-header">
 		<h1 class="gdlo-view-title">{expression="htmlspecialchars($loadout['name'])"}</h1>
-		{{if $loadout['use_case']}}
+		{{if !empty($loadout['use_case'])}}
 		<span class="gdlo-view-badge">{expression="htmlspecialchars($loadout['use_case'])"}</span>
 		{{endif}}
 		<div class="gdlo-view-meta">
 			<span>by {expression="htmlspecialchars($ownerName)"}</span>
-			<span>{expression="(int)$loadout['view_count']"} views</span>
-			<span>{expression="(int)$loadout['total_items']"} items</span>
+			<span>{expression="(int)($loadout['view_count'] ?? 0)"} views</span>
+			<span>{expression="(int)($loadout['total_items'] ?? 0)"} items</span>
 		</div>
 	</div>
 
-	{{if $compliance['has_issues']}}
+	{{if !empty($compliance['has_issues'])}}
 	<div class="gdlo-compliance gdlo-compliance--warn">
-		{{if $compliance['nfa_count'] > 0}}
+		{{if ($compliance['nfa_count'] ?? 0) > 0}}
 		<span class="gdlo-compliance-tag"><i class="fa-solid fa-shield"></i> {expression="(int)$compliance['nfa_count']"} NFA Items</span>
 		{{endif}}
-		{{if $compliance['ffl_count'] > 0}}
+		{{if ($compliance['ffl_count'] ?? 0) > 0}}
 		<span class="gdlo-compliance-tag"><i class="fa-solid fa-id-card"></i> {expression="(int)$compliance['ffl_count']"} FFL Required</span>
 		{{endif}}
 	</div>
@@ -343,7 +343,7 @@ TEMPLATE_EOT,
 
 	<div class="gdlo-view-actions">
 		<button type="button" id="gdUpvoteBtn" class="ipsButton ipsButton--small" data-voted="{expression="$hasVoted ? '1' : '0'}">
-			<i class="fa-solid fa-arrow-up"></i> <span id="gdUpvoteCount">{expression="(int)$loadout['upvotes']"}</span>
+			<i class="fa-solid fa-arrow-up"></i> <span id="gdUpvoteCount">{expression="(int)($loadout['upvotes'] ?? 0)"}</span>
 		</button>
 		<button type="button" id="gdFollowBtn" class="ipsButton ipsButton--small" data-followed="{expression="$hasFollowed ? '1' : '0'}">
 			<i class="fa-solid fa-bell"></i> <span id="gdFollowLabel">{expression="$hasFollowed ? 'Following' : 'Follow'"}</span>
@@ -357,26 +357,26 @@ TEMPLATE_EOT,
 		{{foreach $items as $item}}
 		<div class="gdlo-view-item">
 			<div class="gdlo-view-item-img">
-				{{if $item['image_url']}}
+				{{if !empty($item['image_url'])}}
 				<img src="{expression="htmlspecialchars($item['image_url'])"}" alt="" loading="lazy" />
 				{{else}}
 				<i class="fa-solid fa-box" style="font-size:2em;color:#ccc"></i>
 				{{endif}}
 			</div>
 			<div class="gdlo-view-item-info">
-				<div class="gdlo-view-item-slot">{expression="htmlspecialchars($item['custom_label'] ?? ucwords(str_replace('_',' ',$item['slot_type'])))"}</div>
-				<div class="gdlo-view-item-name">{expression="htmlspecialchars($item['product_title'] ?? $item['upc'])"}</div>
-				{{if $item['brand']}}
+				<div class="gdlo-view-item-slot">{expression="htmlspecialchars(($item['custom_label'] ?? '') !== '' ? $item['custom_label'] : ucwords(str_replace('_',' ',$item['slot_type'] ?? 'extra')))"}</div>
+				<div class="gdlo-view-item-name">{expression="htmlspecialchars(($item['product_title'] ?? '') !== '' ? $item['product_title'] : ($item['upc'] ?? ''))"}</div>
+				{{if !empty($item['brand'])}}
 				<div class="gdlo-view-item-brand">{expression="htmlspecialchars($item['brand'])"}</div>
 				{{endif}}
-				{{if $item['notes']}}
+				{{if !empty($item['notes'])}}
 				<div class="gdlo-view-item-notes"><i class="fa-solid fa-sticky-note"></i> {expression="htmlspecialchars($item['notes'])"}</div>
 				{{endif}}
 			</div>
 			<div class="gdlo-view-item-price">
-				{{if $item['live_price']}}
+				{{if !empty($item['live_price'])}}
 				<div class="gdlo-slot-price">${expression="number_format((float)$item['live_price'],2)"}</div>
-				{{if $item['active_dealer_count']}}
+				{{if !empty($item['active_dealer_count'])}}
 				<div class="gdlo-search-meta">{expression="(int)$item['active_dealer_count']"} dealers</div>
 				{{endif}}
 				{{else}}
@@ -384,10 +384,10 @@ TEMPLATE_EOT,
 				{{endif}}
 			</div>
 			<div class="gdlo-view-item-badges">
-				{{if $item['nfa_item']}}
+				{{if !empty($item['nfa_item'])}}
 				<span class="gdlo-badge gdlo-badge--nfa">NFA</span>
 				{{endif}}
-				{{if $item['requires_ffl']}}
+				{{if !empty($item['requires_ffl'])}}
 				<span class="gdlo-badge gdlo-badge--ffl">FFL</span>
 				{{endif}}
 			</div>
@@ -395,14 +395,14 @@ TEMPLATE_EOT,
 		{{endforeach}}
 	</div>
 
-	{{if $loadout['total_min_price']}}
+	{{if !empty($loadout['total_min_price'])}}
 	<div class="gdlo-view-total">
 		<span>Est. Total:</span>
 		<span class="gdlo-total-cost">${expression="number_format((float)$loadout['total_min_price'],2)"}</span>
 	</div>
 	{{endif}}
 
-	{{if $loadout['description']}}
+	{{if !empty($loadout['description'])}}
 	<div class="gdlo-view-desc">
 		{expression="nl2br(htmlspecialchars($loadout['description']))"}
 	</div>
@@ -414,10 +414,10 @@ TEMPLATE_EOT,
 			{{foreach $comments as $c}}
 			<div class="gdlo-comment">
 				<div class="gdlo-comment-meta">
-					<strong>{expression="htmlspecialchars($c['member_name'])"}</strong>
-					<span class="gdlo-search-meta">{expression="date('M j, Y', (int)$c['created_at'])"}</span>
+					<strong>{expression="htmlspecialchars($c['member_name'] ?? '')"}</strong>
+					<span class="gdlo-search-meta">{expression="date('M j, Y', (int)($c['created_at'] ?? 0))"}</span>
 				</div>
-				<div class="gdlo-comment-text">{expression="nl2br(htmlspecialchars($c['comment']))"}</div>
+				<div class="gdlo-comment-text">{expression="nl2br(htmlspecialchars($c['comment'] ?? ''))"}</div>
 			</div>
 			{{endforeach}}
 		</div>

@@ -255,37 +255,89 @@ class _hub extends \IPS\Dispatcher\Controller
 			return;
 		}
 
-		/* Load items with catalog join (best-effort, fallback to items alone) */
+		/* Load items — separate queries to avoid fatal on missing catalog columns */
 		$items  = [];
 		$prefix = Db::i()->prefix;
+
+		$rawItems = [];
 		try
 		{
-			$stmt = Db::i()->preparedQuery(
-				"SELECT i.*, c.title AS product_title, c.brand, c.image_url, c.category_id, "
-				. "c.total_min_price AS live_price, c.nfa_item, c.requires_ffl, c.is_ammo, "
-				. "c.mpn, c.caliber, c.active_dealer_count "
-				. "FROM `{$prefix}gd_loadout_items` i "
-				. "LEFT JOIN `{$prefix}gd_catalog` c ON i.upc = c.upc "
-				. "WHERE i.loadout_id = ? "
-				. "ORDER BY i.sort_order ASC",
-				[ (int) $loadout['id'] ]
-			);
-			while ( $row = $stmt->fetch_assoc() )
+			foreach ( Db::i()->select( '*', 'gd_loadout_items', [ 'loadout_id=?', (int) $loadout['id'] ], 'sort_order ASC' ) as $row )
 			{
-				$items[] = $row;
+				$rawItems[] = $row;
 			}
 		}
-		catch ( \Throwable )
+		catch ( \Throwable ) {}
+
+		$upcs = [];
+		foreach ( $rawItems as $ri )
 		{
-			/* Fallback — items table only */
+			if ( !empty( $ri['upc'] ) )
+			{
+				$upcs[] = $ri['upc'];
+			}
+		}
+
+		$catalogMap = [];
+		if ( $upcs )
+		{
 			try
 			{
-				foreach ( Db::i()->select( '*', 'gd_loadout_items', [ 'loadout_id=?', (int) $loadout['id'] ], 'sort_order ASC' ) as $row )
+				$ph = implode( ',', array_fill( 0, \count( $upcs ), '?' ) );
+				foreach ( Db::i()->select( '*', 'gd_catalog', array_merge( [ "upc IN({$ph})" ], $upcs ) ) as $cr )
 				{
-					$items[] = $row;
+					$catalogMap[ $cr['upc'] ] = $cr;
 				}
 			}
 			catch ( \Throwable ) {}
+		}
+
+		$priceMap = [];
+		if ( $upcs )
+		{
+			try
+			{
+				$ph = implode( ',', array_fill( 0, \count( $upcs ), '?' ) );
+				$stmt = Db::i()->preparedQuery(
+					"SELECT upc, MIN(dealer_price) AS best_price, COUNT(DISTINCT dealer_id) AS dealer_count "
+					. "FROM `{$prefix}gd_dealer_listings` "
+					. "WHERE upc IN({$ph}) AND listing_status='active' GROUP BY upc",
+					$upcs
+				);
+				while ( $pr = $stmt->fetch_assoc() )
+				{
+					$priceMap[ $pr['upc'] ] = $pr;
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		foreach ( $rawItems as $ri )
+		{
+			$u       = $ri['upc'] ?? '';
+			$cat     = $catalogMap[ $u ] ?? [];
+			$pricing = $priceMap[ $u ] ?? [];
+
+			$items[] = [
+				'id'                  => $ri['id'] ?? 0,
+				'loadout_id'          => $ri['loadout_id'] ?? 0,
+				'upc'                 => $u,
+				'slot_type'           => $ri['slot_type'] ?? 'extra',
+				'custom_label'        => $ri['custom_label'] ?? null,
+				'sort_order'          => $ri['sort_order'] ?? 0,
+				'notes'               => $ri['notes'] ?? null,
+				'product_title'       => $cat['title'] ?? null,
+				'brand'               => $cat['brand'] ?? null,
+				'caliber'             => $cat['caliber'] ?? null,
+				'mpn'                 => $cat['mpn'] ?? null,
+				'image_url'           => $cat['image_url'] ?? null,
+				'nfa_item'            => $cat['nfa_item'] ?? 0,
+				'requires_ffl'        => $cat['requires_ffl'] ?? 0,
+				'is_ammo'             => $cat['is_ammo'] ?? 0,
+				'category_id'         => $cat['category_id'] ?? 0,
+				'live_price'          => ( !empty( $pricing['best_price'] ) && (float) $pricing['best_price'] > 0 ) ? (float) $pricing['best_price'] : null,
+				'active_dealer_count' => (int) ( $pricing['dealer_count'] ?? 0 ),
+			];
 		}
 
 		/* Compliance summary */

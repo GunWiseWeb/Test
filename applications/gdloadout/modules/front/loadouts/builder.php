@@ -425,7 +425,7 @@ class _builder extends \IPS\Dispatcher\Controller
 						$inStock = false;
 						try
 						{
-							$p = Db::i()->select( 'MIN(dealer_price) AS best_price, COUNT(*) AS dealer_count', 'gd_dealer_listings', [ 'upc=? AND listing_status=? AND in_stock=?', $u, 'active', 1 ] )->first();
+							$p = Db::i()->select( 'MIN(dealer_price) AS best_price, COUNT(DISTINCT dealer_id) AS dealer_count', 'gd_dealer_listings', [ 'upc=? AND listing_status=?', $u, 'active' ] )->first();
 							$price   = ( $p['best_price'] !== NULL && (float) $p['best_price'] > 0 ) ? (float) $p['best_price'] : NULL;
 							$dealers = (int) $p['dealer_count'];
 							$inStock = $dealers > 0;
