@@ -148,18 +148,22 @@ class Searcher
             'aggs' => [
                 'categories' => [ 'terms' => [ 'field' => 'category.keyword', 'size' => 20 ] ],
                 'brands'     => [ 'terms' => [ 'field' => 'brand.keyword',    'size' => 50 ] ],
-                /* Type-specific facets scoped to their product type so bled attribute values
-                   (e.g. a holster color landing in caliber) never surface. */
+                /* Type-specific facets scoped to the categories where the attribute is valid, so
+                   Sports South attribute bleed (e.g. a holster color landing in caliber) never
+                   reaches a facet. Firearm top-levels per gd_categories; ammo via is_ammo. */
                 'calibers' => [
-                    'filter' => [ 'bool' => [ 'should' => [ [ 'term' => [ 'requires_ffl' => true ] ], [ 'term' => [ 'is_ammo' => true ] ] ], 'minimum_should_match' => 1 ] ],
-                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'caliber.keyword', 'size' => 50 ] ] ],
+                    'filter' => [ 'bool' => [ 'should' => [
+                        [ 'terms' => [ 'category.keyword' => [ 'Handguns', 'Rifles', 'Shotguns', 'NFA Items', 'Air Guns', 'Muzzleloading' ] ] ],
+                        [ 'term'  => [ 'is_ammo' => true ] ],
+                    ], 'minimum_should_match' => 1 ] ],
+                    'aggs' => [ 'values' => [ 'terms' => [ 'field' => 'caliber.keyword', 'size' => 50 ] ] ],
                 ],
                 'actions' => [
-                    'filter' => [ 'bool' => [ 'must' => [ [ 'term' => [ 'requires_ffl' => true ] ] ], 'must_not' => [ [ 'term' => [ 'is_ammo' => true ] ] ] ] ],
+                    'filter' => [ 'terms' => [ 'category.keyword' => [ 'Handguns', 'Rifles', 'Shotguns', 'NFA Items', 'Air Guns', 'Muzzleloading' ] ] ],
                     'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'action_type.keyword', 'size' => 30 ] ] ],
                 ],
                 'capacities' => [
-                    'filter' => [ 'bool' => [ 'must' => [ [ 'term' => [ 'requires_ffl' => true ] ] ], 'must_not' => [ [ 'term' => [ 'is_ammo' => true ] ] ] ] ],
+                    'filter' => [ 'terms' => [ 'category.keyword' => [ 'Handguns', 'Rifles', 'Shotguns', 'NFA Items', 'Air Guns', 'Muzzleloading', 'Magazines' ] ] ],
                     'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'capacity', 'size' => 40 ] ] ],
                 ],
                 'casings' => [
@@ -170,7 +174,10 @@ class Searcher
                     'filter' => [ 'term' => [ 'is_ammo' => true ] ],
                     'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'bullet_type.keyword', 'size' => 30 ] ] ],
                 ],
-                'barrel_present' => [ 'filter' => [ 'bool' => [ 'must' => [ [ 'range' => [ 'barrel_length' => [ 'gt' => 0 ] ] ], [ 'term' => [ 'requires_ffl' => true ] ] ], 'must_not' => [ [ 'term' => [ 'is_ammo' => true ] ] ] ] ] ],
+                'barrel_present' => [ 'filter' => [ 'bool' => [ 'must' => [
+                    [ 'range' => [ 'barrel_length' => [ 'gt' => 0 ] ] ],
+                    [ 'terms' => [ 'category.keyword' => [ 'Handguns', 'Rifles', 'Shotguns', 'NFA Items', 'Air Guns', 'Muzzleloading' ] ] ],
+                ] ] ] ],
             ],
         ];
 
