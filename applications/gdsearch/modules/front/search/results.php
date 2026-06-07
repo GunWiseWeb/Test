@@ -93,6 +93,8 @@ class _results extends \IPS\Dispatcher\Controller
             'knife_handle'   => $arr( \IPS\Request::i()->knife_handle ?? [] ),
             'hunt_call_type' => $arr( \IPS\Request::i()->hunt_call_type ?? [] ),
             'hunt_game'      => $arr( \IPS\Request::i()->hunt_game ?? [] ),
+            'optic_magnification' => $arr( \IPS\Request::i()->optic_magnification ?? [] ),
+            'optic_objective'     => $arr( \IPS\Request::i()->optic_objective     ?? [] ),
             'is_ammo'        => !empty( \IPS\Request::i()->is_ammo ),
             'grain'          => $arr( \IPS\Request::i()->grain ?? [] ),
             'velocity'       => $arr( \IPS\Request::i()->velocity ?? [] ),
@@ -135,7 +137,8 @@ class _results extends \IPS\Dispatcher\Controller
                 'holster_types', 'holster_colors', 'holster_materials', 'holster_hands',
                 'apparel_patterns', 'apparel_sizes', 'apparel_materials',
                 'blade_shapes', 'blade_lengths', 'blade_materials', 'blade_edges', 'knife_handles',
-                'hunt_call_types', 'hunt_games' ] as $scopedAgg )
+                'hunt_call_types', 'hunt_games',
+                'optics_mags', 'optics_objs' ] as $scopedAgg )
             {
                 if ( isset( $aggs[ $scopedAgg ]['values']['buckets'] ) )
                 {
@@ -150,7 +153,8 @@ class _results extends \IPS\Dispatcher\Controller
             'holster_types', 'holster_colors', 'holster_materials', 'holster_hands',
             'apparel_patterns', 'apparel_sizes', 'apparel_materials',
             'blade_shapes', 'blade_lengths', 'blade_materials', 'blade_edges', 'knife_handles',
-            'hunt_call_types', 'hunt_games' ] as $aggKey )
+            'hunt_call_types', 'hunt_games',
+            'optics_mags', 'optics_objs' ] as $aggKey )
         {
             if ( isset( $aggs[ $aggKey ]['buckets'] ) && is_array( $aggs[ $aggKey ]['buckets'] ) )
             {
@@ -186,6 +190,8 @@ class _results extends \IPS\Dispatcher\Controller
             foreach ( (array) $filters['knife_handle'] as $v )     { $paginationQs .= '&knife_handle[]='     . urlencode( $v ); }
             foreach ( (array) $filters['hunt_call_type'] as $v )   { $paginationQs .= '&hunt_call_type[]='   . urlencode( $v ); }
             foreach ( (array) $filters['hunt_game'] as $v )        { $paginationQs .= '&hunt_game[]='        . urlencode( $v ); }
+            foreach ( (array) $filters['optic_magnification'] as $v ) { $paginationQs .= '&optic_magnification[]=' . urlencode( $v ); }
+            foreach ( (array) $filters['optic_objective'] as $v )     { $paginationQs .= '&optic_objective[]='     . urlencode( $v ); }
             if ( !empty( $filters['is_ammo'] ) )       { $paginationQs .= '&is_ammo=1'; }
             foreach ( (array) $filters['grain'] as $v )    { $paginationQs .= '&grain[]='    . urlencode( $v ); }
             foreach ( (array) $filters['velocity'] as $v ) { $paginationQs .= '&velocity[]=' . urlencode( $v ); }

@@ -395,6 +395,32 @@
 				</details>
 				{{endif}}
 
+				{{if isset($aggs['optics_mags']['buckets']) and count($aggs['optics_mags']['buckets'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['optic_magnification']) and count($filters['optic_magnification'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_optic_magnification"}{{if is_array($filters['optic_magnification']) and count($filters['optic_magnification'])}}<span class="gdsr-facet-cnt">{expression="count($filters['optic_magnification'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['optics_mags']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="optic_magnification[]" value="{$b['key']}" {{if is_array($filters['optic_magnification']) and in_array($b['key'], $filters['optic_magnification'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+
+				{{if isset($aggs['optics_objs']['buckets']) and count($aggs['optics_objs']['buckets'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['optic_objective']) and count($filters['optic_objective'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_optic_objective"}{{if is_array($filters['optic_objective']) and count($filters['optic_objective'])}}<span class="gdsr-facet-cnt">{expression="count($filters['optic_objective'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['optics_objs']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="optic_objective[]" value="{$b['key']}" {{if is_array($filters['optic_objective']) and in_array($b['key'], $filters['optic_objective'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+
 				<div class="gdsr-side-box">
 					<h3 class="gdsr-fh">{lang="gdsearch_filters"}</h3>
 					<label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -442,6 +468,8 @@
 					{{foreach $filters['knife_handle'] as $v}}<input type="hidden" name="knife_handle[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['hunt_call_type'] as $v}}<input type="hidden" name="hunt_call_type[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['hunt_game'] as $v}}<input type="hidden" name="hunt_game[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['optic_magnification'] as $v}}<input type="hidden" name="optic_magnification[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['optic_objective'] as $v}}<input type="hidden" name="optic_objective[]" value="{$v}">{{endforeach}}
 					{{if $filters['in_stock']}}<input type="hidden" name="in_stock" value="1">{{endif}}
 					<select name="sort" class="ipsInput ipsInput--select" onchange="this.form.submit()">
 						<option value="relevance" {{if $sort === 'relevance'}}selected{{endif}}>{lang="gdsearch_sort_relevance"}</option>

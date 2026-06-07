@@ -109,6 +109,8 @@ class Searcher
         $facet( 'knife_handle.keyword',     $filters['knife_handle']    ?? '' );
         $facet( 'hunt_call_type.keyword',   $filters['hunt_call_type']  ?? '' );
         $facet( 'hunt_game.keyword',        $filters['hunt_game']       ?? '' );
+        $facet( 'optic_magnification.keyword', $filters['optic_magnification'] ?? '' );
+        $facet( 'optic_objective.keyword',     $filters['optic_objective']     ?? '' );
 
         if ( !empty( $filters['requires_ffl'] ) ) { $filter[] = [ 'term' => [ 'requires_ffl' => true ] ]; }
         if ( !empty( $filters['is_ammo'] ) )      { $filter[] = [ 'term' => [ 'is_ammo' => true ] ]; }
@@ -247,6 +249,14 @@ class Searcher
                 'hunt_games' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Hunting Gear' ] ],
                     'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'hunt_game.keyword', 'size' => 30 ] ] ],
+                ],
+                'optics_mags' => [
+                    'filter' => [ 'term' => [ 'category.keyword' => 'Optics' ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'optic_magnification.keyword', 'size' => 40 ] ] ],
+                ],
+                'optics_objs' => [
+                    'filter' => [ 'term' => [ 'category.keyword' => 'Optics' ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'optic_objective.keyword', 'size' => 40 ] ] ],
                 ],
             ],
         ];
