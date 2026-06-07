@@ -1,10 +1,5 @@
 {
-    "admin": {
-        "manage": {
-            "default_controller": "limits",
-            "protected": false
-        }
-    },
+    "admin": {},
     "front": {
         "loadouts": {
             "default_controller": "hub",

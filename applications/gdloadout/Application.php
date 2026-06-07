@@ -12,5 +12,14 @@ class _Application extends \IPS\Application
 	{
 		require_once \IPS\ROOT_PATH . '/applications/gdloadout/setup/install.php';
 	}
+	public function defaultFrontNavigation(): array
+	{
+		return array(
+			'rootTabs'      => array( array( 'key' => 'Loadouts' ) ),
+			'browseTabs'    => array(),
+			'browseTabsEnd' => array(),
+			'activityTabs'  => array(),
+		);
+	}
 }
 class Application extends _Application {}
