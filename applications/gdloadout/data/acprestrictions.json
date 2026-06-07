@@ -1,1 +1,5 @@
-[]
+{
+	"manage": {
+		"limits": { "limits_manage": "limits_manage" }
+	}
+}

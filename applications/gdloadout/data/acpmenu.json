@@ -1,1 +1,10 @@
-{}
+{
+	"manage": {
+		"limits": {
+			"tab": "gdloadout",
+			"controller": "limits",
+			"do": "",
+			"restriction": "limits_manage"
+		}
+	}
+}

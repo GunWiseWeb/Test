@@ -1,5 +1,5 @@
 {
-    "FrontNavigation": {
-        "Loadouts": "IPS\\gdloadout\\extensions\\core\\FrontNavigation\\Loadouts"
-    }
+	"FrontNavigation": {
+		"Loadouts": "IPS\\gdloadout\\extensions\\core\\FrontNavigation\\Loadouts"
+	}
 }

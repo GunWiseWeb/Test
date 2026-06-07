@@ -1,7 +1,21 @@
 {
     "topLevel": "loadouts",
     "pages": {
-        "gdloadout_hub":  { "friendly": "", "real": "app=gdloadout&module=loadouts&controller=hub" },
-        "gdloadout_view": { "friendly": "{@username}/{@slug}", "real": "app=gdloadout&module=loadouts&controller=hub&do=view" }
+        "gdloadout_hub": {
+            "friendly": "",
+            "real": "app=gdloadout&module=loadouts&controller=hub"
+        },
+        "gdloadout_builder": {
+            "friendly": "builder",
+            "real": "app=gdloadout&module=loadouts&controller=builder"
+        },
+        "gdloadout_builder_edit": {
+            "friendly": "builder/{#id}",
+            "real": "app=gdloadout&module=loadouts&controller=builder"
+        },
+        "gdloadout_view": {
+            "friendly": "{@username}/{@slug}",
+            "real": "app=gdloadout&module=loadouts&controller=hub&do=view"
+        }
     }
 }

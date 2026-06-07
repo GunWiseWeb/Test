@@ -6,7 +6,58 @@
   <word key="menutab__gdloadout" js="0">Loadouts</word>
   <word key="menutab__gdloadout_icon" js="0">layer-group</word>
   <word key="gdloadout_hub_title" js="0">Loadouts</word>
-  <word key="gdloadout_hub_empty" js="0">No community builds yet — the loadout builder is coming soon.</word>
+  <word key="gdloadout_hub_empty" js="0">No community builds yet — be the first to create a loadout!</word>
   <word key="menu__gdloadout_loadouts_hub" js="0">Loadouts</word>
+  <word key="menu__gdloadout_manage" js="0">Loadout Settings</word>
+  <word key="menu__gdloadout_manage_limits" js="0">Group Limits</word>
+  <word key="gdloadout_builder_title" js="0">Loadout Builder</word>
+  <word key="gdloadout_builder_name" js="0">Build Name</word>
+  <word key="gdloadout_builder_description" js="0">Description (optional)</word>
+  <word key="gdloadout_builder_use_case" js="0">Use Case</word>
+  <word key="gdloadout_builder_visibility" js="0">Visibility</word>
+  <word key="gdloadout_builder_save" js="0">Save Loadout</word>
+  <word key="gdloadout_builder_delete" js="0">Delete Loadout</word>
+  <word key="gdloadout_builder_search" js="0">Search products...</word>
+  <word key="gdloadout_builder_slot_empty" js="0">+ Add</word>
+  <word key="gdloadout_builder_total_cost" js="0">Est. Build Cost</word>
+  <word key="gdloadout_builder_total_items" js="0">Total Items</word>
+  <word key="gdloadout_builder_add_extra" js="0">+ Add Extra Slot</word>
+  <word key="gdloadout_builder_remove" js="0">Remove</word>
+  <word key="gdloadout_slot_base_firearm" js="0">Base Firearm</word>
+  <word key="gdloadout_slot_optic" js="0">Optic</word>
+  <word key="gdloadout_slot_weapon_light" js="0">Weapon Light</word>
+  <word key="gdloadout_slot_laser" js="0">Laser</word>
+  <word key="gdloadout_slot_suppressor" js="0">Suppressor</word>
+  <word key="gdloadout_slot_foregrip" js="0">Foregrip</word>
+  <word key="gdloadout_slot_sling" js="0">Sling</word>
+  <word key="gdloadout_slot_holster" js="0">Holster</word>
+  <word key="gdloadout_slot_ammo" js="0">Ammo</word>
+  <word key="gdloadout_slot_cleaning" js="0">Cleaning</word>
+  <word key="gdloadout_slot_extra" js="0">Extra</word>
+  <word key="gdloadout_use_case_home_defense" js="0">Home Defense</word>
+  <word key="gdloadout_use_case_concealed_carry" js="0">Concealed Carry</word>
+  <word key="gdloadout_use_case_hunting" js="0">Hunting</word>
+  <word key="gdloadout_use_case_competition" js="0">Competition</word>
+  <word key="gdloadout_use_case_range" js="0">Range</word>
+  <word key="gdloadout_use_case_tactical" js="0">Tactical</word>
+  <word key="gdloadout_use_case_collection" js="0">Collection</word>
+  <word key="gdloadout_vis_public" js="0">Public</word>
+  <word key="gdloadout_vis_unlisted" js="0">Unlisted</word>
+  <word key="gdloadout_vis_private" js="0">Private</word>
+  <word key="gdloadout_limits_title" js="0">Loadout Group Limits</word>
+  <word key="gdloadout_limits_group" js="0">Member Group</word>
+  <word key="gdloadout_limits_max_loadouts" js="0">Max Loadouts</word>
+  <word key="gdloadout_limits_max_slots" js="0">Max Slots per Loadout</word>
+  <word key="gdloadout_limits_unlimited" js="0">0 = unlimited</word>
+  <word key="gdloadout_limits_saved" js="0">Group limits saved.</word>
+  <word key="gdloadout_err_limit_loadouts" js="0">You have reached the maximum number of loadouts for your account.</word>
+  <word key="gdloadout_err_limit_slots" js="0">You have reached the maximum number of slots for this loadout.</word>
+  <word key="gdloadout_err_name_required" js="0">Please enter a name for your loadout.</word>
+  <word key="gdloadout_err_not_found" js="0">Loadout not found.</word>
+  <word key="gdloadout_err_no_permission" js="0">You do not have permission to edit this loadout.</word>
+  <word key="gdloadout_saved" js="0">Loadout saved successfully.</word>
+  <word key="gdloadout_deleted" js="0">Loadout deleted.</word>
+  <word key="gdloadout_confirm_delete" js="0">Are you sure you want to delete this loadout? This cannot be undone.</word>
+  <word key="r__limits_manage" js="0">Can manage loadout limits</word>
  </app>
 </language>
