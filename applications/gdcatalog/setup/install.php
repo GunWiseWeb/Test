@@ -213,14 +213,14 @@ if ( $existingCategoryCount === 0 )
     }
 }
 
-/* Re-point Sports South CATID 30 to Gunsmithing Tools on fresh install */
+/* Re-point Sports South CATID 30 to Knives on fresh install */
 try {
-	$gtId = (int) \IPS\Db::i()->select( 'id', 'gd_categories', [ 'slug=?', 'gunsmithing-tools' ] )->first();
-	if ( $gtId ) {
+	$kId = (int) \IPS\Db::i()->select( 'id', 'gd_categories', [ 'slug=?', 'knives' ] )->first();
+	if ( $kId ) {
 		$row = \IPS\Db::i()->select( 'id, category_mapping', 'gd_distributor_feeds', [ 'distributor=?', 'sports_south' ] )->first();
 		$map = json_decode( (string) ( $row['category_mapping'] ?? '{}' ), true );
 		if ( !is_array( $map ) ) { $map = []; }
-		$map['30'] = $gtId;
+		$map['30'] = $kId;
 		\IPS\Db::i()->update( 'gd_distributor_feeds', [ 'category_mapping' => json_encode( $map ) ], [ 'id=?', (int) $row['id'] ] );
 	}
 } catch ( \Throwable ) {}
