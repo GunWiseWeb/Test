@@ -1,69 +1,50 @@
 <?php
 
+namespace IPS\gdloadout\setup\upg_10002;
+
 if ( !\defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
 	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
 	exit;
 }
 
-$gdloadoutTemplates = [
+class _upgrade
+{
+	public function step1(): bool
+	{
+		try
+		{
+			\IPS\Db::i()->query(
+				"ALTER TABLE `" . \IPS\Db::i()->prefix . "gd_loadout_group_limits` CHANGE `max_slots` `max_slots` INT(10) UNSIGNED NOT NULL DEFAULT 15"
+			);
+		}
+		catch ( \Throwable ) {}
 
-	[
-		'set_id'        => 1,
-		'app'           => 'gdloadout',
-		'location'      => 'front',
-		'group'         => 'loadouts',
-		'template_name' => 'hub',
-		'template_data' => '$loadouts, $canCreate, $builderUrl',
-		'template_content' => <<<'TEMPLATE_EOT'
-<div class="ipsBox">
-	<div class="ipsBox_container">
-		<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--i-border-color,#e0e0e0)">
-			<h1 class="ipsType_pageTitle">{lang="gdloadout_hub_title"}</h1>
-			{{if $canCreate}}
-			<a href="{$builderUrl}" class="ipsButton ipsButton--primary ipsButton--small"><i class="fa-solid fa-plus"></i> New Loadout</a>
-			{{endif}}
-		</div>
-		{{if count($loadouts) > 0}}
-		<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:20px">
-			{{foreach $loadouts as $lo}}
-			<div style="border:1px solid var(--i-border-color,#e0e0e0);border-radius:8px;padding:16px;background:var(--i-background,#fff)">
-				<div style="font-weight:700;font-size:1.1em;margin-bottom:6px">{expression="htmlspecialchars($lo['name'])"}</div>
-				{{if $lo['use_case']}}
-				<div style="font-size:0.85em;color:#666;margin-bottom:8px">{expression="htmlspecialchars($lo['use_case'])"}</div>
-				{{endif}}
-				<div style="display:flex;gap:12px;font-size:0.85em;color:#888">
-					<span><i class="fa-solid fa-box"></i> {expression="(int)$lo['total_items']"} items</span>
-					{{if $lo['total_min_price']}}
-					<span><i class="fa-solid fa-dollar-sign"></i> {expression="number_format((float)$lo['total_min_price'],2)"}</span>
-					{{endif}}
-					<span><i class="fa-solid fa-arrow-up"></i> {expression="(int)$lo['upvotes']"}</span>
-				</div>
-			</div>
-			{{endforeach}}
-		</div>
-		{{else}}
-		<div style="text-align:center;padding:60px 20px;color:#888">
-			<i class="fa-solid fa-layer-group" style="font-size:3em;margin-bottom:12px;display:block;opacity:0.4"></i>
-			<p>{lang="gdloadout_hub_empty"}</p>
-			{{if $canCreate}}
-			<a href="{$builderUrl}" class="ipsButton ipsButton--primary" style="margin-top:16px"><i class="fa-solid fa-plus"></i> Create Your First Build</a>
-			{{endif}}
-		</div>
-		{{endif}}
-	</div>
-</div>
-TEMPLATE_EOT,
-	],
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'g_id', 'core_groups' ) as $gid )
+			{
+				try
+				{
+					\IPS\Db::i()->select( 'id', 'gd_loadout_group_limits', [ 'group_id=?', (int) $gid ] )->first();
+				}
+				catch ( \Throwable )
+				{
+					try
+					{
+						\IPS\Db::i()->insert( 'gd_loadout_group_limits', [
+							'group_id'     => (int) $gid,
+							'max_loadouts' => 0,
+							'max_slots'    => 15,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
 
-	[
-		'set_id'        => 1,
-		'app'           => 'gdloadout',
-		'location'      => 'front',
-		'group'         => 'loadouts',
-		'template_name' => 'builder',
-		'template_data' => '$initData',
-		'template_content' => <<<'TEMPLATE_EOT'
+		$builderBody = <<<'TEMPLATE_EOT'
 <script type="application/json" id="gdlo-init">{$initData}</script>
 <div id="gdLoadoutBuilder">
 
@@ -143,17 +124,25 @@ TEMPLATE_EOT,
 
 </div>
 </div>
-TEMPLATE_EOT,
-	],
+TEMPLATE_EOT;
 
-	[
-		'set_id'        => 1,
-		'app'           => 'gdloadout',
-		'location'      => 'admin',
-		'group'         => 'manage',
-		'template_name' => 'limits',
-		'template_data' => '$groups, $limits, $csrfKey, $saveUrl',
-		'template_content' => <<<'TEMPLATE_EOT'
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location' => 'front',
+				'template_group'   => 'loadouts',
+				'template_name'    => 'builder',
+				'template_data'    => '$initData',
+				'template_content' => $builderBody,
+				'template_updated' => time(),
+				'template_version' => '1.0.2',
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		$limitsBody = <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 		<h2 style="margin-bottom:16px">{lang="gdloadout_limits_title"}</h2>
@@ -184,57 +173,30 @@ TEMPLATE_EOT,
 		</form>
 	</div>
 </div>
-TEMPLATE_EOT,
-	],
+TEMPLATE_EOT;
 
-];
-
-foreach ( $gdloadoutTemplates as $tpl )
-{
-	try
-	{
-		\IPS\Db::i()->replace( 'core_theme_templates', [
-			'template_set_id'  => (int) $tpl['set_id'],
-			'template_app'     => $tpl['app'],
-			'template_location' => $tpl['location'],
-			'template_group'   => $tpl['group'],
-			'template_name'    => $tpl['template_name'],
-			'template_data'    => $tpl['template_data'],
-			'template_content' => $tpl['template_content'],
-			'template_updated' => time(),
-			'template_version' => '1.0.2',
-		] );
-	}
-	catch ( \Throwable ) {}
-}
-
-try
-{
-	\IPS\core\FrontNavigation::buildDefaultFrontNavigation();
-}
-catch ( \Throwable ) {}
-
-try
-{
-	$existing = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_loadout_group_limits' )->first();
-	if ( $existing === 0 )
-	{
-		foreach ( \IPS\Db::i()->select( 'g_id', 'core_groups' ) as $gid )
+		try
 		{
-			try
-			{
-				\IPS\Db::i()->replace( 'gd_loadout_group_limits', [
-					'group_id'     => (int) $gid,
-					'max_loadouts' => 0,
-					'max_slots'    => 15,
-				] );
-			}
-			catch ( \Throwable ) {}
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location' => 'admin',
+				'template_group'   => 'manage',
+				'template_name'    => 'limits',
+				'template_data'    => '$groups, $limits, $csrfKey, $saveUrl',
+				'template_content' => $limitsBody,
+				'template_updated' => time(),
+				'template_version' => '1.0.2',
+			] );
 		}
+		catch ( \Throwable ) {}
+
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }             catch ( \Throwable ) {}
+
+		return TRUE;
 	}
 }
-catch ( \Throwable ) {}
 
-try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
-try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
-try { \IPS\Data\Cache::i()->clearAll(); }             catch ( \Throwable ) {}
+class upgrade extends _upgrade {}

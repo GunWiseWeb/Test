@@ -743,7 +743,7 @@
                 "length": 10,
                 "decimals": null,
                 "allow_null": false,
-                "default": 0,
+                "default": 15,
                 "auto_increment": false,
                 "binary": false,
                 "unsigned": true,

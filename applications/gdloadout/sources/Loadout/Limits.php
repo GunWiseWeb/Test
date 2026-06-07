@@ -13,25 +13,86 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 
 class _Limits
 {
+	protected static array $cache = [];
+
 	public static function forMember( ?Member $member = NULL ): array
 	{
 		$member = $member ?: Member::loggedIn();
-		$groupId = (int) $member->member_group_id;
+		$memberId = (int) $member->member_id;
 
-		$defaults = [ 'max_loadouts' => 0, 'max_slots' => 0 ];
+		if ( isset( static::$cache[ $memberId ] ) )
+		{
+			return static::$cache[ $memberId ];
+		}
 
-		try
+		$groupIds = [ (int) $member->member_group_id ];
+		$secondary = $member->mgroup_others ?? '';
+		if ( $secondary )
 		{
-			$row = \IPS\Db::i()->select( '*', 'gd_loadout_group_limits', [ 'group_id=?', $groupId ] )->first();
-			return [
-				'max_loadouts' => (int) $row['max_loadouts'],
-				'max_slots'    => (int) $row['max_slots'],
-			];
+			foreach ( explode( ',', $secondary ) as $gid )
+			{
+				$gid = (int) trim( $gid );
+				if ( $gid > 0 )
+				{
+					$groupIds[] = $gid;
+				}
+			}
 		}
-		catch ( \Throwable )
+		$groupIds = array_unique( $groupIds );
+
+		$bestLoadouts = 0;
+		$bestSlots    = 15;
+		$foundAny     = false;
+
+		foreach ( $groupIds as $gid )
 		{
-			return $defaults;
+			try
+			{
+				$row = \IPS\Db::i()->select( '*', 'gd_loadout_group_limits', [ 'group_id=?', $gid ] )->first();
+				$foundAny = true;
+
+				$ml = (int) $row['max_loadouts'];
+				$ms = (int) $row['max_slots'];
+
+				if ( $ml === 0 )
+				{
+					$bestLoadouts = 0;
+				}
+				elseif ( $bestLoadouts !== 0 && $ml > $bestLoadouts )
+				{
+					$bestLoadouts = $ml;
+				}
+				elseif ( $bestLoadouts !== 0 )
+				{
+					// keep current (higher)
+				}
+				else
+				{
+					// bestLoadouts is already 0 (unlimited)
+				}
+
+				if ( $ms === 0 )
+				{
+					$bestSlots = 0;
+				}
+				elseif ( $bestSlots !== 0 && ( $ms > $bestSlots ) )
+				{
+					$bestSlots = $ms;
+				}
+			}
+			catch ( \Throwable ) {}
 		}
+
+		if ( !$foundAny )
+		{
+			$bestLoadouts = 0;
+			$bestSlots    = 15;
+		}
+
+		$result = [ 'max_loadouts' => $bestLoadouts, 'max_slots' => $bestSlots ];
+		static::$cache[ $memberId ] = $result;
+
+		return $result;
 	}
 
 	public static function canCreateLoadout( ?Member $member = NULL ): bool

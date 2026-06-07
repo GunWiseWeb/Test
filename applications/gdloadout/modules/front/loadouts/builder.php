@@ -32,6 +32,36 @@ class _builder extends \IPS\Dispatcher\Controller
 		parent::execute();
 	}
 
+	protected function isVip( Member $member ): bool
+	{
+		try
+		{
+			$vipGroupIds = [];
+			foreach ( Db::i()->select( 'g_id', 'core_groups', [ 'g_name LIKE ?', '%VIP%' ] ) as $gid )
+			{
+				$vipGroupIds[] = (int) $gid;
+			}
+			if ( \in_array( (int) $member->member_group_id, $vipGroupIds, true ) )
+			{
+				return true;
+			}
+			$secondary = $member->mgroup_others ?? '';
+			if ( $secondary )
+			{
+				foreach ( explode( ',', $secondary ) as $sg )
+				{
+					if ( \in_array( (int) trim( $sg ), $vipGroupIds, true ) )
+					{
+						return true;
+					}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		return false;
+	}
+
 	protected function manage(): void
 	{
 		$member = Member::loggedIn();
@@ -65,7 +95,8 @@ class _builder extends \IPS\Dispatcher\Controller
 			}
 		}
 
-		$limits = \IPS\gdloadout\Loadout\Limits::forMember( $member );
+		$limits  = \IPS\gdloadout\Loadout\Limits::forMember( $member );
+		$isVip   = $this->isVip( $member );
 
 		$saveUrl   = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=save', 'front', 'gdloadout_builder' );
 		$deleteUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=delete', 'front', 'gdloadout_builder' );
@@ -75,19 +106,23 @@ class _builder extends \IPS\Dispatcher\Controller
 		$coreSlots = \IPS\gdloadout\Loadout\Slots::CORE_SLOTS;
 		$extraLib  = \IPS\gdloadout\Loadout\Slots::EXTRA_LIBRARY;
 
+		$initData = json_encode( [
+			'loadout'     => $loadout,
+			'items'       => $items,
+			'coreSlots'   => $coreSlots,
+			'extraLib'    => $extraLib,
+			'limits'      => $limits,
+			'isVip'       => $isVip,
+			'saveUrl'     => $saveUrl,
+			'deleteUrl'   => $deleteUrl,
+			'searchUrl'   => $searchUrl,
+			'csrfKey'     => $csrfKey,
+		], JSON_HEX_TAG | JSON_HEX_AMP );
+
+		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'front' ) );
 		Output::i()->jsFiles  = array_merge( Output::i()->jsFiles, Output::i()->js( 'builder.js', 'gdloadout', 'interface' ) );
 		Output::i()->title    = Member::loggedIn()->language()->addToStack( 'gdloadout_builder_title' );
-		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->builder(
-			$loadout,
-			$items,
-			$coreSlots,
-			$extraLib,
-			$limits,
-			$saveUrl,
-			$deleteUrl,
-			$searchUrl,
-			$csrfKey
-		);
+		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->builder( $initData );
 	}
 
 	protected function save(): void
@@ -114,6 +149,12 @@ class _builder extends \IPS\Dispatcher\Controller
 			$visibility = 'unlisted';
 		}
 
+		$isVip = $this->isVip( $member );
+		if ( $visibility === 'private' && !$isVip )
+		{
+			$visibility = 'unlisted';
+		}
+
 		$slotsJson = Request::i()->loadout_slots ?? '[]';
 		$slots     = json_decode( $slotsJson, true );
 		if ( !\is_array( $slots ) )
@@ -122,6 +163,12 @@ class _builder extends \IPS\Dispatcher\Controller
 		}
 
 		$limits = \IPS\gdloadout\Loadout\Limits::forMember( $member );
+
+		if ( $limits['max_slots'] > 0 && \count( $slots ) > $limits['max_slots'] )
+		{
+			Output::i()->json( [ 'error' => Member::loggedIn()->language()->addToStack( 'gdloadout_err_limit_slots' ) ], 400 );
+			return;
+		}
 
 		if ( $editId )
 		{
@@ -211,15 +258,16 @@ class _builder extends \IPS\Dispatcher\Controller
 				continue;
 			}
 
-			if ( $limits['max_slots'] > 0 && $totalItems >= $limits['max_slots'] )
-			{
-				break;
-			}
-
 			$slotType = $slot['slot_type'] ?? 'extra';
 			if ( !\in_array( $slotType, $validSlotTypes, true ) )
 			{
 				$slotType = 'extra';
+			}
+
+			$notes = NULL;
+			if ( $isVip && !empty( $slot['notes'] ) )
+			{
+				$notes = substr( trim( $slot['notes'] ), 0, 300 );
 			}
 
 			Db::i()->insert( 'gd_loadout_items', [
@@ -228,7 +276,7 @@ class _builder extends \IPS\Dispatcher\Controller
 				'slot_type'    => $slotType,
 				'custom_label' => !empty( $slot['custom_label'] ) ? substr( trim( $slot['custom_label'] ), 0, 100 ) : NULL,
 				'sort_order'   => $order,
-				'notes'        => NULL,
+				'notes'        => $notes,
 				'added_at'     => date( 'Y-m-d H:i:s' ),
 			] );
 
@@ -241,17 +289,57 @@ class _builder extends \IPS\Dispatcher\Controller
 			}
 		}
 
+		$hasNfa = 0;
+		$hasStateRestriction = 0;
+		try
+		{
+			$upcs = [];
+			foreach ( $slots as $s )
+			{
+				if ( !empty( $s['upc'] ) )
+				{
+					$upcs[] = substr( trim( $s['upc'] ), 0, 20 );
+				}
+			}
+			if ( $upcs )
+			{
+				$placeholders = implode( ',', array_fill( 0, \count( $upcs ), '?' ) );
+				try
+				{
+					$nfaCount = (int) Db::i()->select( 'COUNT(*)', 'gd_catalog', array_merge(
+						[ "upc IN($placeholders) AND category LIKE ?" ],
+						$upcs,
+						[ '%NFA%' ]
+					) )->first();
+					if ( $nfaCount > 0 )
+					{
+						$hasNfa = 1;
+					}
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable ) {}
+
 		Db::i()->update( 'gd_loadouts', [
-			'total_items'     => $totalItems,
-			'total_min_price' => $totalCost > 0 ? round( $totalCost, 2 ) : NULL,
+			'total_items'         => $totalItems,
+			'total_min_price'     => $totalCost > 0 ? round( $totalCost, 2 ) : NULL,
+			'has_nfa_item'        => $hasNfa,
+			'has_state_restriction' => $hasStateRestriction,
 		], [ 'id=?', (int) $loadoutId ] );
 
-		$viewUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&id=' . $loadoutId, 'front', 'gdloadout_builder_edit' );
+		$ownerName = $member->name ?? 'user';
+		$loadoutSlug = $uniqueSlug ?? $slug;
+		$viewUrl = (string) Url::internal(
+			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $loadoutSlug ),
+			'front',
+			'gdloadout_view'
+		);
 
 		Output::i()->json( [
 			'ok'         => true,
 			'loadout_id' => (int) $loadoutId,
-			'url'        => $viewUrl,
+			'redirect'   => $viewUrl,
 		] );
 	}
 
@@ -295,7 +383,7 @@ class _builder extends \IPS\Dispatcher\Controller
 		try
 		{
 			$searcher = new \IPS\gdsearch\Search\Searcher();
-			$result   = $searcher->search( $query, [ 'in_stock' => true ], 'relevance', $page, 12 );
+			$result   = $searcher->search( $query, [ 'in_stock' => true ], 'relevance', $page, 24 );
 
 			$out = [];
 			foreach ( $result['results'] as $r )
@@ -308,6 +396,7 @@ class _builder extends \IPS\Dispatcher\Controller
 					'dealer_count' => $r['dealer_count'] ?? 0,
 					'in_stock'     => $r['in_stock'] ?? false,
 					'category'     => $r['category'] ?? '',
+					'caliber'      => $r['caliber'] ?? '',
 				];
 			}
 

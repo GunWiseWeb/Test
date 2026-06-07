@@ -1,30 +1,35 @@
 (function () {
 	'use strict';
 
-	var root = document.getElementById('gdLoadoutBuilder');
-	if (!root) return;
+	var initEl = document.getElementById('gdlo-init');
+	if (!initEl) return;
 
-	var saveUrl   = root.dataset.saveUrl;
-	var deleteUrl = root.dataset.deleteUrl;
-	var searchUrl = root.dataset.searchUrl;
-	var csrfKey   = root.dataset.csrfKey;
-	var loadoutId = parseInt(root.dataset.loadoutId, 10) || 0;
-	var maxSlots  = parseInt(root.dataset.maxSlots, 10) || 0;
+	var init;
+	try { init = JSON.parse(initEl.textContent); } catch (e) { return; }
 
-	var coreSlots = {};
-	var extraLib  = [];
-	var items     = [];
+	var saveUrl   = init.saveUrl;
+	var deleteUrl = init.deleteUrl;
+	var searchUrl = init.searchUrl;
+	var csrfKey   = init.csrfKey;
+	var isVip     = !!init.isVip;
+	var maxSlots  = (init.limits && init.limits.max_slots) ? parseInt(init.limits.max_slots, 10) : 0;
+	var loadoutId = (init.loadout && init.loadout.id) ? parseInt(init.loadout.id, 10) : 0;
+	var coreSlots = init.coreSlots || {};
+	var extraLib  = init.extraLib || [];
+	var items     = init.items || [];
 
-	try { coreSlots = JSON.parse(root.dataset.coreSlots || '{}'); } catch (e) {}
-	try { extraLib  = JSON.parse(root.dataset.extraLib || '[]'); } catch (e) {}
-	try { items     = JSON.parse(root.dataset.items || '[]'); } catch (e) {}
+	var slotLabels = {
+		base_firearm: 'Base Firearm', optic: 'Optic', weapon_light: 'Weapon Light',
+		laser: 'Laser', suppressor: 'Suppressor', foregrip: 'Foregrip',
+		sling: 'Sling', holster: 'Holster', ammo: 'Ammo', cleaning: 'Cleaning'
+	};
 
 	var nameInput   = document.getElementById('gdLoadoutName');
 	var descInput   = document.getElementById('gdLoadoutDesc');
 	var useCaseSel  = document.getElementById('gdLoadoutUseCase');
 	var visSel      = document.getElementById('gdLoadoutVisibility');
 	var slotGrid    = document.getElementById('gdSlotGrid');
-	var extraSlots  = document.getElementById('gdExtraSlots');
+	var extraSlotsEl = document.getElementById('gdExtraSlots');
 	var addExtraBtn = document.getElementById('gdAddExtra');
 	var extraPicker = document.getElementById('gdExtraPicker');
 	var extraChips  = document.getElementById('gdExtraChips');
@@ -35,6 +40,8 @@
 	var totalCostEl = document.getElementById('gdTotalCost');
 	var totalItemsEl = document.getElementById('gdTotalItems');
 	var breakdownEl = document.getElementById('gdItemBreakdown');
+	var vipNotesEl  = document.getElementById('gdVipNotes');
+	var notesBody   = document.getElementById('gdNotesBody');
 	var saveBtn     = document.getElementById('gdSaveBtn');
 	var deleteBtn   = document.getElementById('gdDeleteBtn');
 
@@ -42,24 +49,40 @@
 	var activeSlotKey = null;
 	var extraCounter = 0;
 	var searchTimer = null;
+	var itemNotes = {};
 
-	if (nameInput)   nameInput.value   = root.dataset.loadoutName || '';
-	if (descInput)   descInput.value   = root.dataset.loadoutDescription || '';
-	if (useCaseSel)  useCaseSel.value  = root.dataset.loadoutUseCase || '';
-	if (visSel)      visSel.value      = root.dataset.loadoutVisibility || 'unlisted';
+	if (isVip) {
+		var privOpt = document.createElement('option');
+		privOpt.value = 'private';
+		privOpt.textContent = 'Private';
+		if (visSel) visSel.appendChild(privOpt);
+	}
+
+	if (init.loadout) {
+		if (nameInput)  nameInput.value  = init.loadout.name || '';
+		if (descInput)  descInput.value  = init.loadout.description || '';
+		if (useCaseSel) useCaseSel.value = init.loadout.use_case || '';
+		if (visSel)     visSel.value     = init.loadout.visibility || 'unlisted';
+	}
+
+	if (loadoutId > 0 && deleteBtn) {
+		deleteBtn.style.display = '';
+	}
+
+	for (var i = 0; i < items.length; i++) {
+		if (items[i].notes) {
+			var noteKey = items[i].slot_type === 'extra'
+				? 'extra_pending_' + i
+				: items[i].slot_type;
+			itemNotes[noteKey] = items[i].notes;
+		}
+	}
 
 	function initCoreSlots() {
 		if (!slotGrid) return;
 		slotGrid.innerHTML = '';
 
-		var slotLabels = {
-			base_firearm: 'Base Firearm', optic: 'Optic', weapon_light: 'Weapon Light',
-			laser: 'Laser', suppressor: 'Suppressor', foregrip: 'Foregrip',
-			sling: 'Sling', holster: 'Holster', ammo: 'Ammo', cleaning: 'Cleaning'
-		};
-
 		Object.keys(coreSlots).forEach(function (key) {
-			var info = coreSlots[key];
 			slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null };
 
 			var existingItem = null;
@@ -69,12 +92,14 @@
 			if (existingItem) {
 				slots[key].upc   = existingItem.upc || '';
 				slots[key].title = existingItem.custom_label || slotLabels[key] || key;
+				if (existingItem.notes) {
+					itemNotes[key] = existingItem.notes;
+				}
 			}
 
 			var card = document.createElement('div');
+			card.className = 'gdlo-slot-card';
 			card.dataset.slotKey = key;
-			card.style.cssText = 'border:2px solid var(--i-border-color,#e0e0e0);border-radius:8px;padding:14px;cursor:pointer;text-align:center;position:relative;transition:border-color 0.2s;min-height:80px;display:flex;flex-direction:column;justify-content:center;align-items:center;';
-
 			card.addEventListener('click', function () { selectSlot(key); });
 			slotGrid.appendChild(card);
 			renderSlotCard(key, card);
@@ -87,59 +112,61 @@
 
 		var info = coreSlots[key] || {};
 		var slot = slots[key];
-		var slotLabels = {
-			base_firearm: 'Base Firearm', optic: 'Optic', weapon_light: 'Weapon Light',
-			laser: 'Laser', suppressor: 'Suppressor', foregrip: 'Foregrip',
-			sling: 'Sling', holster: 'Holster', ammo: 'Ammo', cleaning: 'Cleaning'
-		};
+
+		card.className = 'gdlo-slot-card';
 
 		if (slot && slot.upc) {
-			card.innerHTML = '<div style="font-size:0.75em;color:' + (info.color || '#666') + ';text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">' + (slotLabels[key] || key) + '</div>'
-				+ '<div style="font-weight:600;font-size:0.9em;margin-bottom:4px;word-break:break-word">' + escapeHtml(slot.title || slot.upc) + '</div>'
-				+ (slot.price ? '<div style="color:#2a8a2a;font-weight:700">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
-				+ '<button type="button" class="gdSlotRemove" data-slot-key="' + key + '" style="position:absolute;top:4px;right:6px;background:none;border:none;color:#c00;cursor:pointer;font-size:1.1em">&times;</button>';
+			card.classList.add('gdlo-slot-card--filled');
+			card.style.setProperty('--slot-color', info.color || '#2980b9');
 
-			var rmBtn = card.querySelector('.gdSlotRemove');
+			card.innerHTML = '<div class="gdlo-slot-label" style="color:' + escapeAttr(info.color || '#666') + '">' + escapeHtml(slotLabels[key] || key) + '</div>'
+				+ '<div class="gdlo-slot-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
+				+ (slot.price ? '<div class="gdlo-slot-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
+				+ '<button type="button" class="gdlo-slot-remove" data-slot-key="' + key + '">&times;</button>';
+
+			var rmBtn = card.querySelector('.gdlo-slot-remove');
 			if (rmBtn) {
 				rmBtn.addEventListener('click', function (e) {
 					e.stopPropagation();
 					slots[key].upc = '';
 					slots[key].title = '';
 					slots[key].price = null;
+					delete itemNotes[key];
 					renderSlotCard(key);
 					updateSummary();
+					updateNotesPanel();
 				});
 			}
-
-			card.style.borderColor = info.color || '#2980b9';
 		} else {
-			card.innerHTML = '<i class="fa-solid fa-' + (info.icon || 'plus') + '" style="font-size:1.4em;color:' + (info.color || '#bbb') + ';margin-bottom:6px"></i>'
-				+ '<div style="font-size:0.8em;color:#999">' + (slotLabels[key] || key) + '</div>'
-				+ '<div style="font-size:0.75em;color:#bbb;margin-top:4px">+ Add</div>';
-			card.style.borderColor = 'var(--i-border-color,#e0e0e0)';
+			card.innerHTML = '<i class="fa-solid fa-' + escapeAttr(info.icon || 'plus') + ' gdlo-slot-empty-icon" style="color:' + escapeAttr(info.color || '#bbb') + '"></i>'
+				+ '<div class="gdlo-slot-empty-label">' + escapeHtml(slotLabels[key] || key) + '</div>'
+				+ '<div class="gdlo-slot-empty-add">+ Add</div>';
+			card.style.removeProperty('--slot-color');
 		}
 
 		if (activeSlotKey === key) {
-			card.style.borderColor = '#3498db';
-			card.style.boxShadow = '0 0 0 2px rgba(52,152,219,0.3)';
-		} else {
-			card.style.boxShadow = 'none';
+			card.classList.add('gdlo-slot-card--active');
 		}
 	}
 
 	function selectSlot(key) {
 		activeSlotKey = key;
+
 		var cards = slotGrid.querySelectorAll('[data-slot-key]');
 		for (var i = 0; i < cards.length; i++) {
-			var k = cards[i].dataset.slotKey;
-			renderSlotCard(k, cards[i]);
+			renderSlotCard(cards[i].dataset.slotKey, cards[i]);
 		}
-		var extraCards = extraSlots.querySelectorAll('[data-slot-key]');
+
+		var extraCards = extraSlotsEl.querySelectorAll('[data-slot-key]');
 		for (var j = 0; j < extraCards.length; j++) {
 			var ek = extraCards[j].dataset.slotKey;
-			extraCards[j].style.borderColor = (activeSlotKey === ek) ? '#3498db' : 'var(--i-border-color,#e0e0e0)';
-			extraCards[j].style.boxShadow = (activeSlotKey === ek) ? '0 0 0 2px rgba(52,152,219,0.3)' : 'none';
+			if (activeSlotKey === ek) {
+				extraCards[j].classList.add('gdlo-slot-card--active');
+			} else {
+				extraCards[j].classList.remove('gdlo-slot-card--active');
+			}
 		}
+
 		if (searchInput) searchInput.focus();
 	}
 
@@ -149,40 +176,43 @@
 		slots[key] = { type: 'extra', upc: '', title: '', price: null, custom_label: label || 'Extra' };
 
 		var card = document.createElement('div');
+		card.className = 'gdlo-extra-card';
 		card.dataset.slotKey = key;
-		card.style.cssText = 'border:2px dashed var(--i-border-color,#e0e0e0);border-radius:8px;padding:12px;cursor:pointer;text-align:center;position:relative;min-width:120px;min-height:60px;display:flex;flex-direction:column;justify-content:center;align-items:center;';
 		card.addEventListener('click', function () { selectSlot(key); });
-		extraSlots.appendChild(card);
+		extraSlotsEl.appendChild(card);
 		renderExtraCard(key, card);
 		updateSummary();
 	}
 
 	function renderExtraCard(key, card) {
-		if (!card) card = extraSlots.querySelector('[data-slot-key="' + key + '"]');
+		if (!card) card = extraSlotsEl.querySelector('[data-slot-key="' + key + '"]');
 		if (!card) return;
 		var slot = slots[key];
 
 		if (slot && slot.upc) {
-			card.innerHTML = '<div style="font-size:0.7em;color:#888;text-transform:uppercase;margin-bottom:2px">' + escapeHtml(slot.custom_label || 'Extra') + '</div>'
-				+ '<div style="font-weight:600;font-size:0.85em;word-break:break-word">' + escapeHtml(slot.title || slot.upc) + '</div>'
-				+ (slot.price ? '<div style="color:#2a8a2a;font-weight:700;font-size:0.85em">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
-				+ '<button type="button" class="gdExtraRemove" data-slot-key="' + key + '" style="position:absolute;top:2px;right:4px;background:none;border:none;color:#c00;cursor:pointer">&times;</button>';
+			card.innerHTML = '<div class="gdlo-slot-label">' + escapeHtml(slot.custom_label || 'Extra') + '</div>'
+				+ '<div class="gdlo-slot-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
+				+ (slot.price ? '<div class="gdlo-slot-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
+				+ '<button type="button" class="gdlo-slot-remove" data-slot-key="' + key + '">&times;</button>';
 		} else {
-			card.innerHTML = '<div style="font-size:0.7em;color:#888">' + escapeHtml(slot.custom_label || 'Extra') + '</div>'
-				+ '<div style="font-size:0.75em;color:#bbb;margin-top:2px">+ Add</div>'
-				+ '<button type="button" class="gdExtraRemove" data-slot-key="' + key + '" style="position:absolute;top:2px;right:4px;background:none;border:none;color:#c00;cursor:pointer;font-size:0.8em">&times;</button>';
+			card.innerHTML = '<div class="gdlo-slot-empty-label">' + escapeHtml(slot.custom_label || 'Extra') + '</div>'
+				+ '<div class="gdlo-slot-empty-add">+ Add</div>'
+				+ '<button type="button" class="gdlo-slot-remove" data-slot-key="' + key + '">&times;</button>';
 		}
 
-		card.querySelector('.gdExtraRemove').addEventListener('click', function (e) {
+		card.querySelector('.gdlo-slot-remove').addEventListener('click', function (e) {
 			e.stopPropagation();
 			delete slots[key];
+			delete itemNotes[key];
 			card.remove();
 			if (activeSlotKey === key) activeSlotKey = null;
 			updateSummary();
+			updateNotesPanel();
 		});
 	}
 
 	function initExtraSlots() {
+		var extraIdx = 0;
 		for (var i = 0; i < items.length; i++) {
 			if (items[i].slot_type === 'extra') {
 				addExtraSlot(items[i].custom_label || 'Extra');
@@ -190,9 +220,14 @@
 				if (slots[lastKey]) {
 					slots[lastKey].upc   = items[i].upc || '';
 					slots[lastKey].title  = items[i].custom_label || 'Extra';
-					var card = extraSlots.querySelector('[data-slot-key="' + lastKey + '"]');
+					slots[lastKey].price  = items[i].price_snapshot || null;
+					if (items[i].notes) {
+						itemNotes[lastKey] = items[i].notes;
+					}
+					var card = extraSlotsEl.querySelector('[data-slot-key="' + lastKey + '"]');
 					renderExtraCard(lastKey, card);
 				}
+				extraIdx++;
 			}
 		}
 	}
@@ -203,8 +238,8 @@
 		extraLib.forEach(function (name) {
 			var chip = document.createElement('button');
 			chip.type = 'button';
+			chip.className = 'gdlo-chip';
 			chip.textContent = name;
-			chip.style.cssText = 'padding:4px 10px;border:1px solid #ccc;border-radius:16px;background:#f5f5f5;cursor:pointer;font-size:0.8em;';
 			chip.addEventListener('click', function () {
 				addExtraSlot(name);
 				extraPicker.style.display = 'none';
@@ -244,7 +279,7 @@
 	}
 
 	function doSearch(q) {
-		searchRes.innerHTML = '<div style="padding:8px;color:#888;text-align:center"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+		searchRes.innerHTML = '<div class="gdlo-search-row" style="justify-content:center;border:none;cursor:default"><i class="fa-solid fa-spinner fa-spin"></i></div>';
 
 		var url = searchUrl + (searchUrl.indexOf('?') > -1 ? '&' : '?') + 'q=' + encodeURIComponent(q);
 
@@ -253,15 +288,15 @@
 			.then(function (data) {
 				searchRes.innerHTML = '';
 				if (!data.results || data.results.length === 0) {
-					searchRes.innerHTML = '<div style="padding:8px;color:#888;text-align:center;font-size:0.85em">No results</div>';
+					searchRes.innerHTML = '<div class="gdlo-search-row" style="justify-content:center;border:none;cursor:default"><span class="gdlo-search-meta">No results</span></div>';
 					return;
 				}
 				data.results.forEach(function (r) {
 					var row = document.createElement('div');
-					row.style.cssText = 'padding:8px 0;border-bottom:1px solid #eee;cursor:pointer;display:flex;justify-content:space-between;align-items:center;';
-					row.innerHTML = '<div><div style="font-weight:600;font-size:0.9em">' + escapeHtml(r.title || r.upc) + '</div>'
-						+ '<div style="font-size:0.75em;color:#888">' + escapeHtml(r.brand || '') + (r.category ? ' &middot; ' + escapeHtml(r.category) : '') + '</div></div>'
-						+ (r.best_price ? '<div style="font-weight:700;color:#2a8a2a;white-space:nowrap">$' + parseFloat(r.best_price).toFixed(2) + '</div>' : '<div style="color:#999;font-size:0.8em">N/A</div>');
+					row.className = 'gdlo-search-row';
+					row.innerHTML = '<div><div class="gdlo-search-title">' + escapeHtml(r.title || r.upc) + '</div>'
+						+ '<div class="gdlo-search-meta">' + escapeHtml(r.brand || '') + (r.caliber ? ' &middot; ' + escapeHtml(r.caliber) : '') + (r.category ? ' &middot; ' + escapeHtml(r.category) : '') + '</div></div>'
+						+ (r.best_price ? '<div class="gdlo-search-price">$' + parseFloat(r.best_price).toFixed(2) + '</div>' : '<div class="gdlo-search-meta">N/A</div>');
 
 					row.addEventListener('click', function () {
 						assignProduct(r);
@@ -270,7 +305,7 @@
 				});
 			})
 			.catch(function () {
-				searchRes.innerHTML = '<div style="padding:8px;color:#c00;text-align:center;font-size:0.85em">Search error</div>';
+				searchRes.innerHTML = '<div class="gdlo-search-row" style="justify-content:center;border:none;cursor:default"><span style="color:#c00">Search error</span></div>';
 			});
 	}
 
@@ -285,7 +320,7 @@
 			var filled = 0;
 			Object.keys(slots).forEach(function (k) { if (slots[k].upc) filled++; });
 			if (!slots[activeSlotKey].upc && filled >= maxSlots) {
-				alert('Slot limit reached');
+				alert('Slot limit reached (' + maxSlots + ')');
 				return;
 			}
 		}
@@ -301,6 +336,7 @@
 		}
 
 		updateSummary();
+		updateNotesPanel();
 
 		var nextEmpty = findNextEmptySlot(activeSlotKey);
 		if (nextEmpty) selectSlot(nextEmpty);
@@ -337,9 +373,9 @@
 				count++;
 				var p = s.price ? parseFloat(s.price) : 0;
 				total += p;
-				breakdown += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f0f0f0">'
-					+ '<span style="word-break:break-word">' + escapeHtml(s.title || s.upc) + '</span>'
-					+ '<span style="white-space:nowrap;font-weight:600">' + (p > 0 ? '$' + p.toFixed(2) : '—') + '</span></div>';
+				breakdown += '<div class="gdlo-breakdown-row">'
+					+ '<span class="gdlo-breakdown-name">' + escapeHtml(s.title || s.upc) + '</span>'
+					+ '<span class="gdlo-breakdown-price">' + (p > 0 ? '$' + p.toFixed(2) : '—') + '</span></div>';
 			}
 		});
 
@@ -348,21 +384,69 @@
 		if (breakdownEl)  breakdownEl.innerHTML    = breakdown || '<div style="color:#999;text-align:center;padding:4px">No items yet</div>';
 	}
 
+	function updateNotesPanel() {
+		if (!isVip || !vipNotesEl || !notesBody) return;
+
+		var filledKeys = [];
+		Object.keys(slots).forEach(function (key) {
+			if (slots[key].upc) filledKeys.push(key);
+		});
+
+		if (filledKeys.length === 0) {
+			vipNotesEl.style.display = 'none';
+			return;
+		}
+
+		vipNotesEl.style.display = '';
+		notesBody.innerHTML = '';
+
+		filledKeys.forEach(function (key) {
+			var s = slots[key];
+			var label = s.custom_label || slotLabels[key] || s.title || key;
+
+			var row = document.createElement('div');
+			row.style.marginBottom = '8px';
+
+			var lbl = document.createElement('div');
+			lbl.className = 'gdlo-slot-label';
+			lbl.textContent = label;
+			row.appendChild(lbl);
+
+			var inp = document.createElement('input');
+			inp.type = 'text';
+			inp.className = 'gdlo-notes-input';
+			inp.placeholder = 'Note for ' + label + '...';
+			inp.maxLength = 300;
+			inp.value = itemNotes[key] || '';
+			inp.dataset.slotKey = key;
+			inp.addEventListener('input', function () {
+				itemNotes[key] = inp.value;
+			});
+			row.appendChild(inp);
+
+			notesBody.appendChild(row);
+		});
+	}
+
 	if (saveBtn) {
 		saveBtn.addEventListener('click', function () {
 			var name = nameInput ? nameInput.value.trim() : '';
-			if (!name) { nameInput.focus(); alert('Please enter a name.'); return; }
+			if (!name) { if (nameInput) nameInput.focus(); alert('Please enter a name.'); return; }
 
 			var slotArr = [];
 			Object.keys(slots).forEach(function (key) {
 				var s = slots[key];
 				if (s.upc) {
-					slotArr.push({
+					var entry = {
 						upc: s.upc,
 						slot_type: s.type,
 						custom_label: s.custom_label || null,
 						price: s.price || null
-					});
+					};
+					if (isVip && itemNotes[key]) {
+						entry.notes = itemNotes[key];
+					}
+					slotArr.push(entry);
 				}
 			});
 
@@ -388,12 +472,13 @@
 				saveBtn.disabled = false;
 				saveBtn.textContent = 'Save Loadout';
 				if (data.error) { alert(data.error); return; }
-				if (data.ok && data.url) {
-					loadoutId = data.loadout_id;
-					root.dataset.loadoutId = loadoutId;
-					window.history.replaceState(null, '', data.url);
+				if (data.ok && data.redirect) {
+					window.location.href = data.redirect;
+					return;
 				}
-				alert('Loadout saved!');
+				if (data.ok && data.loadout_id) {
+					loadoutId = data.loadout_id;
+				}
 			})
 			.catch(function () {
 				saveBtn.disabled = false;
@@ -419,7 +504,7 @@
 			.then(function (resp) { return resp.json(); })
 			.then(function (data) {
 				if (data.ok) {
-					window.location.href = root.dataset.saveUrl.replace(/&do=save/, '').replace(/\?do=save/, '');
+					window.location.href = saveUrl.replace(/[&?]do=save.*/, '').replace(/\?$/, '');
 				}
 			})
 			.catch(function () { alert('Delete failed.'); });
@@ -432,8 +517,13 @@
 		return d.innerHTML;
 	}
 
+	function escapeAttr(str) {
+		return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	}
+
 	initCoreSlots();
 	initExtraSlots();
 	initExtraPicker();
 	updateSummary();
+	updateNotesPanel();
 })();
