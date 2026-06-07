@@ -1,5 +1,8 @@
 {
 	"FrontNavigation": {
 		"Loadouts": "IPS\\gdloadout\\extensions\\core\\FrontNavigation\\Loadouts"
+	},
+	"Sitemap": {
+		"Loadouts": "IPS\\gdloadout\\extensions\\core\\Sitemap\\Loadouts"
 	}
 }

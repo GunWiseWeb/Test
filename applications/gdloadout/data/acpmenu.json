@@ -5,6 +5,12 @@
 			"controller": "limits",
 			"do": "",
 			"restriction": "limits_manage"
+		},
+		"featured": {
+			"tab": "gdloadout",
+			"controller": "featured",
+			"do": "",
+			"restriction": "featured_manage"
 		}
 	}
 }

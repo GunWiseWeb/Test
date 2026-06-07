@@ -1,5 +1,6 @@
 {
 	"manage": {
-		"limits": { "limits_manage": "limits_manage" }
+		"limits": { "limits_manage": "limits_manage" },
+		"featured": { "featured_manage": "featured_manage" }
 	}
 }

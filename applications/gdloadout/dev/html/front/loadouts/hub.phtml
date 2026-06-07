@@ -1,36 +1,147 @@
-<ips:template parameters="$loadouts, $canCreate, $builderUrl" />
+<ips:template parameters="$sections, $canCreate, $builderUrl, $activeUseCase, $useCases" />
 <div class="ipsBox">
 	<div class="ipsBox_container">
-		<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--i-border-color,#e0e0e0)">
+		<div class="gdlo-hub-header">
 			<h1 class="ipsType_pageTitle">{lang="gdloadout_hub_title"}</h1>
 			{{if $canCreate}}
 			<a href="{$builderUrl}" class="ipsButton ipsButton--primary ipsButton--small"><i class="fa-solid fa-plus"></i> New Loadout</a>
 			{{endif}}
 		</div>
-		{{if count($loadouts) > 0}}
-		<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;padding:20px">
-			{{foreach $loadouts as $lo}}
-			<div style="border:1px solid var(--i-border-color,#e0e0e0);border-radius:8px;padding:16px;background:var(--i-background,#fff)">
-				<div style="font-weight:700;font-size:1.1em;margin-bottom:6px">{expression="htmlspecialchars($lo['name'])"}</div>
-				{{if $lo['use_case']}}
-				<div style="font-size:0.85em;color:#666;margin-bottom:8px">{expression="htmlspecialchars($lo['use_case'])"}</div>
-				{{endif}}
-				<div style="display:flex;gap:12px;font-size:0.85em;color:#888">
-					<span><i class="fa-solid fa-box"></i> {expression="(int)$lo['total_items']"} items</span>
-					{{if $lo['total_min_price']}}
-					<span><i class="fa-solid fa-dollar-sign"></i> {expression="number_format((float)$lo['total_min_price'],2)"}</span>
-					{{endif}}
-					<span><i class="fa-solid fa-arrow-up"></i> {expression="(int)$lo['upvotes']"}</span>
-				</div>
-			</div>
+
+		<div class="gdlo-hub-filters">
+			<span class="gdlo-filter-label">{lang="gdloadout_filter_use_case"}:</span>
+			<a href="?use_case=" class="gdlo-filter-chip {{if $activeUseCase === ''}}gdlo-filter-chip--active{{endif}}">{lang="gdloadout_filter_all"}</a>
+			{{foreach $useCases as $uc}}
+			<a href="?use_case={expression="urlencode($uc)"}" class="gdlo-filter-chip {{if $activeUseCase === $uc}}gdlo-filter-chip--active{{endif}}">{expression="htmlspecialchars($uc)"}</a>
 			{{endforeach}}
 		</div>
-		{{else}}
-		<div style="text-align:center;padding:60px 20px;color:#888">
-			<i class="fa-solid fa-layer-group" style="font-size:3em;margin-bottom:12px;display:block;opacity:0.4"></i>
+
+		{{if count($sections['featured']) > 0}}
+		<div class="gdlo-hub-section">
+			<h2 class="gdlo-section-label"><i class="fa-solid fa-star"></i> {lang="gdloadout_sec_featured"}</h2>
+			<div class="gdlo-hub-grid">
+				{{foreach $sections['featured'] as $lo}}
+				<a href="{expression="htmlspecialchars($lo['view_url'])"}" class="gdlo-hub-card gdlo-hub-card--featured">
+					<div class="gdlo-hub-card-name">{expression="htmlspecialchars($lo['name'])"}</div>
+					{{if $lo['use_case']}}
+					<div class="gdlo-hub-card-uc">{expression="htmlspecialchars($lo['use_case'])"}</div>
+					{{endif}}
+					<div class="gdlo-hub-card-meta">
+						<span>{expression="(int)$lo['total_items']"} {lang="gdloadout_view_items"}</span>
+						{{if $lo['total_min_price']}}
+						<span>${expression="number_format((float)$lo['total_min_price'],2)"}</span>
+						{{endif}}
+						<span><i class="fa-solid fa-arrow-up"></i> {expression="(int)$lo['upvotes']"}</span>
+					</div>
+					<div class="gdlo-hub-card-author">{lang="gdloadout_view_by"} {expression="htmlspecialchars($lo['owner_name'])"}</div>
+				</a>
+				{{endforeach}}
+			</div>
+		</div>
+		{{endif}}
+
+		{{if count($sections['trending']) > 0}}
+		<div class="gdlo-hub-section">
+			<h2 class="gdlo-section-label"><i class="fa-solid fa-fire"></i> {lang="gdloadout_sec_trending"}</h2>
+			<div class="gdlo-hub-grid">
+				{{foreach $sections['trending'] as $lo}}
+				<a href="{expression="htmlspecialchars($lo['view_url'])"}" class="gdlo-hub-card">
+					<div class="gdlo-hub-card-name">{expression="htmlspecialchars($lo['name'])"}</div>
+					{{if $lo['use_case']}}
+					<div class="gdlo-hub-card-uc">{expression="htmlspecialchars($lo['use_case'])"}</div>
+					{{endif}}
+					<div class="gdlo-hub-card-meta">
+						<span>{expression="(int)$lo['total_items']"} {lang="gdloadout_view_items"}</span>
+						{{if $lo['total_min_price']}}
+						<span>${expression="number_format((float)$lo['total_min_price'],2)"}</span>
+						{{endif}}
+						<span><i class="fa-solid fa-arrow-up"></i> {expression="(int)$lo['upvotes']"}</span>
+					</div>
+					<div class="gdlo-hub-card-author">{lang="gdloadout_view_by"} {expression="htmlspecialchars($lo['owner_name'])"}</div>
+				</a>
+				{{endforeach}}
+			</div>
+		</div>
+		{{endif}}
+
+		{{if count($sections['top_rated']) > 0}}
+		<div class="gdlo-hub-section">
+			<h2 class="gdlo-section-label"><i class="fa-solid fa-trophy"></i> {lang="gdloadout_sec_toprated"}</h2>
+			<div class="gdlo-hub-grid">
+				{{foreach $sections['top_rated'] as $lo}}
+				<a href="{expression="htmlspecialchars($lo['view_url'])"}" class="gdlo-hub-card">
+					<div class="gdlo-hub-card-name">{expression="htmlspecialchars($lo['name'])"}</div>
+					{{if $lo['use_case']}}
+					<div class="gdlo-hub-card-uc">{expression="htmlspecialchars($lo['use_case'])"}</div>
+					{{endif}}
+					<div class="gdlo-hub-card-meta">
+						<span>{expression="(int)$lo['total_items']"} {lang="gdloadout_view_items"}</span>
+						{{if $lo['total_min_price']}}
+						<span>${expression="number_format((float)$lo['total_min_price'],2)"}</span>
+						{{endif}}
+						<span><i class="fa-solid fa-arrow-up"></i> {expression="(int)$lo['upvotes']"}</span>
+					</div>
+					<div class="gdlo-hub-card-author">{lang="gdloadout_view_by"} {expression="htmlspecialchars($lo['owner_name'])"}</div>
+				</a>
+				{{endforeach}}
+			</div>
+		</div>
+		{{endif}}
+
+		{{if count($sections['recent']) > 0}}
+		<div class="gdlo-hub-section">
+			<h2 class="gdlo-section-label"><i class="fa-solid fa-clock"></i> {lang="gdloadout_sec_recent"}</h2>
+			<div class="gdlo-hub-grid">
+				{{foreach $sections['recent'] as $lo}}
+				<a href="{expression="htmlspecialchars($lo['view_url'])"}" class="gdlo-hub-card">
+					<div class="gdlo-hub-card-name">{expression="htmlspecialchars($lo['name'])"}</div>
+					{{if $lo['use_case']}}
+					<div class="gdlo-hub-card-uc">{expression="htmlspecialchars($lo['use_case'])"}</div>
+					{{endif}}
+					<div class="gdlo-hub-card-meta">
+						<span>{expression="(int)$lo['total_items']"} {lang="gdloadout_view_items"}</span>
+						{{if $lo['total_min_price']}}
+						<span>${expression="number_format((float)$lo['total_min_price'],2)"}</span>
+						{{endif}}
+						<span><i class="fa-solid fa-arrow-up"></i> {expression="(int)$lo['upvotes']"}</span>
+					</div>
+					<div class="gdlo-hub-card-author">{lang="gdloadout_view_by"} {expression="htmlspecialchars($lo['owner_name'])"}</div>
+				</a>
+				{{endforeach}}
+			</div>
+		</div>
+		{{endif}}
+
+		{{if count($sections['budget']) > 0}}
+		<div class="gdlo-hub-section">
+			<h2 class="gdlo-section-label"><i class="fa-solid fa-piggy-bank"></i> {lang="gdloadout_sec_budget"}</h2>
+			<div class="gdlo-hub-grid">
+				{{foreach $sections['budget'] as $lo}}
+				<a href="{expression="htmlspecialchars($lo['view_url'])"}" class="gdlo-hub-card">
+					<div class="gdlo-hub-card-name">{expression="htmlspecialchars($lo['name'])"}</div>
+					{{if $lo['use_case']}}
+					<div class="gdlo-hub-card-uc">{expression="htmlspecialchars($lo['use_case'])"}</div>
+					{{endif}}
+					<div class="gdlo-hub-card-meta">
+						<span>{expression="(int)$lo['total_items']"} {lang="gdloadout_view_items"}</span>
+						{{if $lo['total_min_price']}}
+						<span>${expression="number_format((float)$lo['total_min_price'],2)"}</span>
+						{{endif}}
+						<span><i class="fa-solid fa-arrow-up"></i> {expression="(int)$lo['upvotes']"}</span>
+					</div>
+					<div class="gdlo-hub-card-author">{lang="gdloadout_view_by"} {expression="htmlspecialchars($lo['owner_name'])"}</div>
+				</a>
+				{{endforeach}}
+			</div>
+		</div>
+		{{endif}}
+
+		{{if count($sections['featured']) === 0 && count($sections['trending']) === 0 && count($sections['top_rated']) === 0 && count($sections['recent']) === 0 && count($sections['budget']) === 0}}
+		<div class="gdlo-hub-empty">
+			<i class="fa-solid fa-layer-group"></i>
 			<p>{lang="gdloadout_hub_empty"}</p>
 			{{if $canCreate}}
-			<a href="{$builderUrl}" class="ipsButton ipsButton--primary" style="margin-top:16px"><i class="fa-solid fa-plus"></i> Create Your First Build</a>
+			<a href="{$builderUrl}" class="ipsButton ipsButton--primary"><i class="fa-solid fa-plus"></i> Create Your First Build</a>
 			{{endif}}
 		</div>
 		{{endif}}

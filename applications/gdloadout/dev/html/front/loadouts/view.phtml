@@ -1,0 +1,119 @@
+<ips:template parameters="$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData" />
+<script type="application/json" id="gdlo-view-init">{$initData}</script>
+<div class="gdlo-view">
+
+	<div class="gdlo-view-header">
+		<h1 class="gdlo-view-title">{expression="htmlspecialchars($loadout['name'])"}</h1>
+		{{if $loadout['use_case']}}
+		<span class="gdlo-view-badge">{expression="htmlspecialchars($loadout['use_case'])"}</span>
+		{{endif}}
+		<div class="gdlo-view-meta">
+			<span>by {expression="htmlspecialchars($ownerName)"}</span>
+			<span>{expression="(int)$loadout['view_count']"} views</span>
+			<span>{expression="(int)$loadout['total_items']"} items</span>
+		</div>
+	</div>
+
+	{{if $compliance['has_issues']}}
+	<div class="gdlo-compliance gdlo-compliance--warn">
+		{{if $compliance['nfa_count'] > 0}}
+		<span class="gdlo-compliance-tag"><i class="fa-solid fa-shield"></i> {expression="(int)$compliance['nfa_count']"} NFA Items</span>
+		{{endif}}
+		{{if $compliance['ffl_count'] > 0}}
+		<span class="gdlo-compliance-tag"><i class="fa-solid fa-id-card"></i> {expression="(int)$compliance['ffl_count']"} FFL Required</span>
+		{{endif}}
+	</div>
+	{{else}}
+	<div class="gdlo-compliance gdlo-compliance--ok">
+		<i class="fa-solid fa-check-circle"></i> {lang="gdloadout_compliance_none"}
+	</div>
+	{{endif}}
+
+	<div class="gdlo-view-actions">
+		<button type="button" id="gdUpvoteBtn" class="ipsButton ipsButton--small" data-voted="{expression="$hasVoted ? '1' : '0'}">
+			<i class="fa-solid fa-arrow-up"></i> <span id="gdUpvoteCount">{expression="(int)$loadout['upvotes']"}</span>
+		</button>
+		<button type="button" id="gdFollowBtn" class="ipsButton ipsButton--small" data-followed="{expression="$hasFollowed ? '1' : '0'}">
+			<i class="fa-solid fa-bell"></i> <span id="gdFollowLabel">{expression="$hasFollowed ? 'Following' : 'Follow'"}</span>
+		</button>
+		{{if $isOwner}}
+		<a href="{$editUrl}" class="ipsButton ipsButton--small ipsButton--light"><i class="fa-solid fa-pen"></i> Edit</a>
+		{{endif}}
+	</div>
+
+	<div class="gdlo-view-items">
+		{{foreach $items as $item}}
+		<div class="gdlo-view-item">
+			<div class="gdlo-view-item-img">
+				{{if $item['image_url']}}
+				<img src="{expression="htmlspecialchars($item['image_url'])"}" alt="" loading="lazy" />
+				{{else}}
+				<i class="fa-solid fa-box" style="font-size:2em;color:#ccc"></i>
+				{{endif}}
+			</div>
+			<div class="gdlo-view-item-info">
+				<div class="gdlo-view-item-slot">{expression="htmlspecialchars($item['custom_label'] ?? ucwords(str_replace('_',' ',$item['slot_type'])))"}</div>
+				<div class="gdlo-view-item-name">{expression="htmlspecialchars($item['product_title'] ?? $item['upc'])"}</div>
+				{{if $item['brand']}}
+				<div class="gdlo-view-item-brand">{expression="htmlspecialchars($item['brand'])"}</div>
+				{{endif}}
+				{{if $item['notes']}}
+				<div class="gdlo-view-item-notes"><i class="fa-solid fa-sticky-note"></i> {expression="htmlspecialchars($item['notes'])"}</div>
+				{{endif}}
+			</div>
+			<div class="gdlo-view-item-price">
+				{{if $item['live_price']}}
+				<div class="gdlo-slot-price">${expression="number_format((float)$item['live_price'],2)"}</div>
+				{{if $item['active_dealer_count']}}
+				<div class="gdlo-search-meta">{expression="(int)$item['active_dealer_count']"} dealers</div>
+				{{endif}}
+				{{else}}
+				<div class="gdlo-search-meta">&mdash;</div>
+				{{endif}}
+			</div>
+			<div class="gdlo-view-item-badges">
+				{{if $item['nfa_item']}}
+				<span class="gdlo-badge gdlo-badge--nfa">NFA</span>
+				{{endif}}
+				{{if $item['requires_ffl']}}
+				<span class="gdlo-badge gdlo-badge--ffl">FFL</span>
+				{{endif}}
+			</div>
+		</div>
+		{{endforeach}}
+	</div>
+
+	{{if $loadout['total_min_price']}}
+	<div class="gdlo-view-total">
+		<span>Est. Total:</span>
+		<span class="gdlo-total-cost">${expression="number_format((float)$loadout['total_min_price'],2)"}</span>
+	</div>
+	{{endif}}
+
+	{{if $loadout['description']}}
+	<div class="gdlo-view-desc">
+		{expression="nl2br(htmlspecialchars($loadout['description']))"}
+	</div>
+	{{endif}}
+
+	<div class="gdlo-view-comments">
+		<h3 class="gdlo-section-label">Comments ({expression="count($comments)"})</h3>
+		<div id="gdCommentsList">
+			{{foreach $comments as $c}}
+			<div class="gdlo-comment">
+				<div class="gdlo-comment-meta">
+					<strong>{expression="htmlspecialchars($c['member_name'])"}</strong>
+					<span class="gdlo-search-meta">{expression="date('M j, Y', (int)$c['created_at'])"}</span>
+				</div>
+				<div class="gdlo-comment-text">{expression="nl2br(htmlspecialchars($c['comment']))"}</div>
+			</div>
+			{{endforeach}}
+		</div>
+
+		<div id="gdCommentForm" class="gdlo-comment-form">
+			<textarea id="gdCommentInput" class="gdlo-input" rows="2" placeholder="Add a comment..."></textarea>
+			<button type="button" id="gdCommentBtn" class="ipsButton ipsButton--primary ipsButton--small" style="margin-top:8px">Post Comment</button>
+		</div>
+	</div>
+
+</div>

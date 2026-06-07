@@ -1,21 +1,23 @@
 <?php
+/**
+ * gdloadout v1.0.3 upgrade — re-seed templates, add new lang strings, self-heal extensions.json
+ */
 
-if ( !\defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+namespace IPS\gdloadout\setup\upg_10003;
+
+class _upgrade
 {
-	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
-	exit;
-}
+	public function step1(): bool
+	{
+		/* ============================================================
+		 * A. Re-seed all 5 templates
+		 * ============================================================ */
 
-$gdloadoutTemplates = [
+		$templateVersion = '1.0.3';
+		$now = time();
 
-	[
-		'set_id'        => 1,
-		'app'           => 'gdloadout',
-		'location'      => 'front',
-		'group'         => 'loadouts',
-		'template_name' => 'hub',
-		'template_data' => '$sections, $canCreate, $builderUrl, $activeUseCase, $useCases',
-		'template_content' => <<<'TEMPLATE_EOT'
+		/* --- 1. hub (front/loadouts) --- */
+		$hubContent = <<<'TEMPLATE_EOT'
 <div class="ipsBox">
 	<div class="ipsBox_container">
 		<div class="gdlo-hub-header">
@@ -164,17 +166,26 @@ $gdloadoutTemplates = [
 		{{endif}}
 	</div>
 </div>
-TEMPLATE_EOT,
-	],
+TEMPLATE_EOT;
 
-	[
-		'set_id'        => 1,
-		'app'           => 'gdloadout',
-		'location'      => 'front',
-		'group'         => 'loadouts',
-		'template_name' => 'builder',
-		'template_data' => '$initData',
-		'template_content' => <<<'TEMPLATE_EOT'
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location'=> 'front',
+				'template_group'   => 'loadouts',
+				'template_name'    => 'hub',
+				'template_data'    => '$sections, $canCreate, $builderUrl, $activeUseCase, $useCases',
+				'template_content' => $hubContent,
+				'template_updated' => $now,
+				'template_version' => $templateVersion,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* --- 2. builder (front/loadouts) — unchanged from v1.0.2 --- */
+		$builderContent = <<<'TEMPLATE_EOT'
 <script type="application/json" id="gdlo-init">{$initData}</script>
 <div id="gdLoadoutBuilder">
 
@@ -254,17 +265,26 @@ TEMPLATE_EOT,
 
 </div>
 </div>
-TEMPLATE_EOT,
-	],
+TEMPLATE_EOT;
 
-	[
-		'set_id'        => 1,
-		'app'           => 'gdloadout',
-		'location'      => 'admin',
-		'group'         => 'manage',
-		'template_name' => 'limits',
-		'template_data' => '$groups, $limits, $csrfKey, $saveUrl',
-		'template_content' => <<<'TEMPLATE_EOT'
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location'=> 'front',
+				'template_group'   => 'loadouts',
+				'template_name'    => 'builder',
+				'template_data'    => '$initData',
+				'template_content' => $builderContent,
+				'template_updated' => $now,
+				'template_version' => $templateVersion,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* --- 3. limits (admin/manage) — unchanged from v1.0.2 --- */
+		$limitsContent = <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 		<h2 style="margin-bottom:16px">{lang="gdloadout_limits_title"}</h2>
@@ -295,17 +315,26 @@ TEMPLATE_EOT,
 		</form>
 	</div>
 </div>
-TEMPLATE_EOT,
-	],
+TEMPLATE_EOT;
 
-	[
-		'set_id'        => 1,
-		'app'           => 'gdloadout',
-		'location'      => 'front',
-		'group'         => 'loadouts',
-		'template_name' => 'view',
-		'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData',
-		'template_content' => <<<'TEMPLATE_EOT'
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location'=> 'admin',
+				'template_group'   => 'manage',
+				'template_name'    => 'limits',
+				'template_data'    => '$groups, $limits, $csrfKey, $saveUrl',
+				'template_content' => $limitsContent,
+				'template_updated' => $now,
+				'template_version' => $templateVersion,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* --- 4. view (front/loadouts) — NEW in v1.0.3 --- */
+		$viewContent = <<<'TEMPLATE_EOT'
 <script type="application/json" id="gdlo-view-init">{$initData}</script>
 <div class="gdlo-view">
 
@@ -424,17 +453,26 @@ TEMPLATE_EOT,
 	</div>
 
 </div>
-TEMPLATE_EOT,
-	],
+TEMPLATE_EOT;
 
-	[
-		'set_id'        => 1,
-		'app'           => 'gdloadout',
-		'location'      => 'admin',
-		'group'         => 'manage',
-		'template_name' => 'featured',
-		'template_data' => '$loadouts, $csrfKey',
-		'template_content' => <<<'TEMPLATE_EOT'
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location'=> 'front',
+				'template_group'   => 'loadouts',
+				'template_name'    => 'view',
+				'template_data'    => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData',
+				'template_content' => $viewContent,
+				'template_updated' => $now,
+				'template_version' => $templateVersion,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* --- 5. featured (admin/manage) — NEW in v1.0.3 --- */
+		$featuredContent = <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 		<h2 style="margin-bottom:16px">{lang="gdloadout_featured_title"}</h2>
@@ -475,57 +513,162 @@ TEMPLATE_EOT,
 		{{endif}}
 	</div>
 </div>
-TEMPLATE_EOT,
-	],
+TEMPLATE_EOT;
 
-];
-
-foreach ( $gdloadoutTemplates as $tpl )
-{
-	try
-	{
-		\IPS\Db::i()->replace( 'core_theme_templates', [
-			'template_set_id'  => (int) $tpl['set_id'],
-			'template_app'     => $tpl['app'],
-			'template_location' => $tpl['location'],
-			'template_group'   => $tpl['group'],
-			'template_name'    => $tpl['template_name'],
-			'template_data'    => $tpl['template_data'],
-			'template_content' => $tpl['template_content'],
-			'template_updated' => time(),
-			'template_version' => '1.0.2',
-		] );
-	}
-	catch ( \Throwable ) {}
-}
-
-try
-{
-	\IPS\core\FrontNavigation::buildDefaultFrontNavigation();
-}
-catch ( \Throwable ) {}
-
-try
-{
-	$existing = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_loadout_group_limits' )->first();
-	if ( $existing === 0 )
-	{
-		foreach ( \IPS\Db::i()->select( 'g_id', 'core_groups' ) as $gid )
+		try
 		{
-			try
-			{
-				\IPS\Db::i()->replace( 'gd_loadout_group_limits', [
-					'group_id'     => (int) $gid,
-					'max_loadouts' => 0,
-					'max_slots'    => 15,
-				] );
-			}
-			catch ( \Throwable ) {}
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location'=> 'admin',
+				'template_group'   => 'manage',
+				'template_name'    => 'featured',
+				'template_data'    => '$loadouts, $csrfKey',
+				'template_content' => $featuredContent,
+				'template_updated' => $now,
+				'template_version' => $templateVersion,
+			] );
 		}
+		catch ( \Throwable ) {}
+
+		/* ============================================================
+		 * B. Seed 30 new lang strings
+		 * ============================================================ */
+
+		$newStrings = [
+			'gdloadout_sec_featured'           => 'Featured Builds',
+			'gdloadout_sec_trending'           => 'Trending',
+			'gdloadout_sec_toprated'           => 'Top Rated',
+			'gdloadout_sec_recent'             => 'Recently Updated',
+			'gdloadout_sec_budget'             => 'Budget Builds',
+			'gdloadout_upvote'                 => 'Upvote',
+			'gdloadout_follow'                 => 'Follow',
+			'gdloadout_following'              => 'Following',
+			'gdloadout_share'                  => 'Share',
+			'gdloadout_compliance_none'        => 'No compliance issues detected for your state',
+			'gdloadout_nfa'                    => 'NFA Item',
+			'gdloadout_ffl'                    => 'FFL Required',
+			'gdloadout_state_restricted'       => 'State Restricted',
+			'gdloadout_comments'               => 'Comments',
+			'gdloadout_comment_placeholder'    => 'Add a comment...',
+			'gdloadout_comment_post'           => 'Post Comment',
+			'gdloadout_login_required'         => 'Please log in to perform this action.',
+			'gdloadout_view_by'                => 'by',
+			'gdloadout_view_views'             => 'views',
+			'gdloadout_view_items'             => 'items',
+			'gdloadout_view_dealers'           => 'dealers',
+			'gdloadout_view_est_total'         => 'Est. Total',
+			'gdloadout_filter_use_case'        => 'Use Case',
+			'gdloadout_filter_all'             => 'All',
+			'menu__gdloadout_manage_featured'  => 'Featured Builds',
+			'r__featured_manage'               => 'Manage featured builds',
+			'gdloadout_featured_title'         => 'Featured Builds',
+			'gdloadout_featured_none'          => 'No loadouts to display.',
+			'gdloadout_featured_feature'       => 'Feature',
+			'gdloadout_featured_unfeature'     => 'Unfeature',
+		];
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gdloadout',
+							'word_key'     => $key,
+							'word_default' => $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* ============================================================
+		 * D. Self-heal extensions.json (#16)
+		 * ============================================================ */
+
+		try
+		{
+			$extensionsPath = \IPS\ROOT_PATH . '/applications/gdloadout/data/extensions.json';
+			$expected = [
+				'FrontNavigation' => [
+					'Loadouts' => 'IPS\\gdloadout\\extensions\\core\\FrontNavigation\\Loadouts',
+				],
+				'Sitemap' => [
+					'Loadouts' => 'IPS\\gdloadout\\extensions\\core\\Sitemap\\Loadouts',
+				],
+			];
+
+			$needsRewrite = false;
+
+			if ( file_exists( $extensionsPath ) )
+			{
+				$current = json_decode( file_get_contents( $extensionsPath ), true );
+				if ( !is_array( $current ) )
+				{
+					$needsRewrite = true;
+				}
+				else
+				{
+					foreach ( $expected as $type => $entries )
+					{
+						foreach ( $entries as $className => $fqn )
+						{
+							if ( !isset( $current[ $type ][ $className ] ) || $current[ $type ][ $className ] !== $fqn )
+							{
+								$needsRewrite = true;
+								break 2;
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				$needsRewrite = true;
+			}
+
+			if ( $needsRewrite )
+			{
+				/* Merge expected into current (preserving any additional extensions) */
+				$merged = is_array( $current ?? null ) ? $current : [];
+				foreach ( $expected as $type => $entries )
+				{
+					if ( !isset( $merged[ $type ] ) )
+					{
+						$merged[ $type ] = [];
+					}
+					foreach ( $entries as $className => $fqn )
+					{
+						$merged[ $type ][ $className ] = $fqn;
+					}
+				}
+
+				file_put_contents( $extensionsPath, json_encode( $merged, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES ) );
+
+				try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* ============================================================
+		 * C. Clear caches
+		 * ============================================================ */
+
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }             catch ( \Throwable ) {}
+
+		return TRUE;
 	}
 }
-catch ( \Throwable ) {}
 
-try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
-try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
-try { \IPS\Data\Cache::i()->clearAll(); }             catch ( \Throwable ) {}
+class upgrade extends _upgrade {}

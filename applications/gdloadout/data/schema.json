@@ -243,6 +243,34 @@
                 "zerofill": false,
                 "values": [],
                 "comment": ""
+            },
+            "featured": {
+                "name": "featured",
+                "type": "TINYINT",
+                "length": 1,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "featured_position": {
+                "name": "featured_position",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
             }
         },
         "indexes": {
@@ -275,6 +303,12 @@
                 "name": "idx_upvotes",
                 "length": [null],
                 "columns": ["upvotes"]
+            },
+            "idx_featured": {
+                "type": "key",
+                "name": "idx_featured",
+                "length": [null],
+                "columns": ["featured"]
             }
         }
     },
@@ -689,6 +723,101 @@
                 "name": "idx_posted_at",
                 "length": [null],
                 "columns": ["posted_at"]
+            }
+        }
+    },
+    "gd_loadout_comments": {
+        "name": "gd_loadout_comments",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "loadout_id": {
+                "name": "loadout_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "member_id": {
+                "name": "member_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "comment": {
+                "name": "comment",
+                "type": "TEXT",
+                "length": null,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created_at": {
+                "name": "created_at",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [null],
+                "columns": ["id"]
+            },
+            "idx_loadout": {
+                "type": "key",
+                "name": "idx_loadout",
+                "length": [null],
+                "columns": ["loadout_id"]
+            },
+            "idx_member": {
+                "type": "key",
+                "name": "idx_member",
+                "length": [null],
+                "columns": ["member_id"]
             }
         }
     },
