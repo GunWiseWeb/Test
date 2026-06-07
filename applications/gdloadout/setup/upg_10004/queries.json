@@ -1,5 +1,65 @@
 [
 	{
+		"method": "createTable",
+		"params": [
+			{
+				"name": "gd_loadout_group_limits",
+				"columns": [
+					{
+						"name": "id",
+						"type": "INT",
+						"length": 10,
+						"unsigned": true,
+						"allow_null": false,
+						"auto_increment": true,
+						"comment": ""
+					},
+					{
+						"name": "group_id",
+						"type": "INT",
+						"length": 10,
+						"unsigned": true,
+						"allow_null": false,
+						"default": "0",
+						"comment": ""
+					},
+					{
+						"name": "max_loadouts",
+						"type": "INT",
+						"length": 10,
+						"unsigned": true,
+						"allow_null": false,
+						"default": "0",
+						"comment": ""
+					},
+					{
+						"name": "max_slots",
+						"type": "INT",
+						"length": 10,
+						"unsigned": true,
+						"allow_null": false,
+						"default": "15",
+						"comment": ""
+					}
+				],
+				"indexes": [
+					{
+						"type": "primary",
+						"name": "PRIMARY",
+						"columns": [ "id" ],
+						"length": [ null ]
+					},
+					{
+						"type": "unique",
+						"name": "uq_group",
+						"columns": [ "group_id" ],
+						"length": [ null ]
+					}
+				]
+			}
+		]
+	},
+	{
 		"method": "addColumn",
 		"params": [
 			"gd_loadouts",

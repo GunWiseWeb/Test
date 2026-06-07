@@ -1,23 +1,85 @@
 <?php
 /**
- * gdloadout v1.0.3 upgrade — re-seed templates, add new lang strings, self-heal extensions.json
+ * Consolidated upgrade v1.0.4 — replaces upg_10001/10002/10003.
+ * Fixes partially-upgraded installs where only upg_10001 ran.
+ * Fully idempotent — safe to re-run.
  */
 
-namespace IPS\gdloadout\setup\upg_10003;
+namespace IPS\gdloadout\setup\upg_10004;
 
 class _upgrade
 {
 	public function step1(): bool
 	{
-		/* ============================================================
-		 * A. Re-seed all 5 templates
-		 * ============================================================ */
+		/* ----------------------------------------------------------------
+		 * 1. Belt-and-suspenders: ensure gd_loadout_group_limits table exists
+		 * ---------------------------------------------------------------- */
+		try
+		{
+			if ( !\IPS\Db::i()->checkForTable( 'gd_loadout_group_limits' ) )
+			{
+				\IPS\Db::i()->createTable( [
+					'name'    => 'gd_loadout_group_limits',
+					'columns' => [
+						[ 'name' => 'id', 'type' => 'INT', 'length' => 10, 'unsigned' => TRUE, 'auto_increment' => TRUE ],
+						[ 'name' => 'group_id', 'type' => 'INT', 'length' => 10, 'unsigned' => TRUE, 'default' => 0 ],
+						[ 'name' => 'max_loadouts', 'type' => 'INT', 'length' => 10, 'unsigned' => TRUE, 'default' => 0 ],
+						[ 'name' => 'max_slots', 'type' => 'INT', 'length' => 10, 'unsigned' => TRUE, 'default' => 15 ],
+					],
+					'indexes' => [
+						[ 'type' => 'primary', 'columns' => [ 'id' ] ],
+						[ 'type' => 'unique', 'name' => 'uq_group', 'columns' => [ 'group_id' ] ],
+					],
+				] );
+			}
+		}
+		catch ( \Throwable ) {}
 
-		$templateVersion = '1.0.3';
+		/* ----------------------------------------------------------------
+		 * 2. Fix max_slots default (from upg_10002)
+		 * ---------------------------------------------------------------- */
+		try
+		{
+			\IPS\Db::i()->query(
+				"ALTER TABLE `" . \IPS\Db::i()->prefix . "gd_loadout_group_limits` CHANGE `max_slots` `max_slots` INT(10) UNSIGNED NOT NULL DEFAULT 15"
+			);
+		}
+		catch ( \Throwable ) {}
+
+		/* ----------------------------------------------------------------
+		 * 3. Seed per-group limit rows (critical piece that never ran)
+		 * ---------------------------------------------------------------- */
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'g_id', 'core_groups' ) as $gid )
+			{
+				try
+				{
+					$has = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_loadout_group_limits', [ 'group_id=?', (int) $gid ] )->first();
+					if ( !$has )
+					{
+						\IPS\Db::i()->insert( 'gd_loadout_group_limits', [
+							'group_id'     => (int) $gid,
+							'max_loadouts' => 0,
+							'max_slots'    => 15,
+						] );
+					}
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* ----------------------------------------------------------------
+		 * 4. Re-seed ALL 5 templates
+		 * ---------------------------------------------------------------- */
+		$templateVersion = '1.0.4';
 		$now = time();
 
-		/* --- 1. hub (front/loadouts) --- */
-		$hubContent = <<<'TEMPLATE_EOT'
+		/* -- Template 1: hub (front/loadouts) -- */
+		try
+		{
+			$hubContent = <<<'TEMPLATE_EOT'
 <div class="ipsBox">
 	<div class="ipsBox_container">
 		<div class="gdlo-hub-header">
@@ -168,8 +230,6 @@ class _upgrade
 </div>
 TEMPLATE_EOT;
 
-		try
-		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
 				'template_set_id'  => 1,
 				'template_app'     => 'gdloadout',
@@ -184,8 +244,10 @@ TEMPLATE_EOT;
 		}
 		catch ( \Throwable ) {}
 
-		/* --- 2. builder (front/loadouts) — unchanged from v1.0.2 --- */
-		$builderContent = <<<'TEMPLATE_EOT'
+		/* -- Template 2: builder (front/loadouts) -- */
+		try
+		{
+			$builderContent = <<<'TEMPLATE_EOT'
 <script type="application/json" id="gdlo-init">{$initData}</script>
 <div id="gdLoadoutBuilder">
 
@@ -267,8 +329,6 @@ TEMPLATE_EOT;
 </div>
 TEMPLATE_EOT;
 
-		try
-		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
 				'template_set_id'  => 1,
 				'template_app'     => 'gdloadout',
@@ -283,8 +343,10 @@ TEMPLATE_EOT;
 		}
 		catch ( \Throwable ) {}
 
-		/* --- 3. limits (admin/manage) — unchanged from v1.0.2 --- */
-		$limitsContent = <<<'TEMPLATE_EOT'
+		/* -- Template 3: limits (admin/manage) -- */
+		try
+		{
+			$limitsContent = <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 		<h2 style="margin-bottom:16px">{lang="gdloadout_limits_title"}</h2>
@@ -317,8 +379,6 @@ TEMPLATE_EOT;
 </div>
 TEMPLATE_EOT;
 
-		try
-		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
 				'template_set_id'  => 1,
 				'template_app'     => 'gdloadout',
@@ -333,8 +393,10 @@ TEMPLATE_EOT;
 		}
 		catch ( \Throwable ) {}
 
-		/* --- 4. view (front/loadouts) — NEW in v1.0.3 --- */
-		$viewContent = <<<'TEMPLATE_EOT'
+		/* -- Template 4: view (front/loadouts) -- */
+		try
+		{
+			$viewContent = <<<'TEMPLATE_EOT'
 <script type="application/json" id="gdlo-view-init">{$initData}</script>
 <div class="gdlo-view">
 
@@ -455,8 +517,6 @@ TEMPLATE_EOT;
 </div>
 TEMPLATE_EOT;
 
-		try
-		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
 				'template_set_id'  => 1,
 				'template_app'     => 'gdloadout',
@@ -471,8 +531,10 @@ TEMPLATE_EOT;
 		}
 		catch ( \Throwable ) {}
 
-		/* --- 5. featured (admin/manage) — NEW in v1.0.3 --- */
-		$featuredContent = <<<'TEMPLATE_EOT'
+		/* -- Template 5: featured (admin/manage) -- */
+		try
+		{
+			$featuredContent = <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 		<h2 style="margin-bottom:16px">{lang="gdloadout_featured_title"}</h2>
@@ -515,8 +577,6 @@ TEMPLATE_EOT;
 </div>
 TEMPLATE_EOT;
 
-		try
-		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
 				'template_set_id'  => 1,
 				'template_app'     => 'gdloadout',
@@ -531,48 +591,107 @@ TEMPLATE_EOT;
 		}
 		catch ( \Throwable ) {}
 
-		/* ============================================================
-		 * B. Seed 30 new lang strings
-		 * ============================================================ */
-
-		$newStrings = [
-			'gdloadout_sec_featured'           => 'Featured Builds',
-			'gdloadout_sec_trending'           => 'Trending',
-			'gdloadout_sec_toprated'           => 'Top Rated',
-			'gdloadout_sec_recent'             => 'Recently Updated',
-			'gdloadout_sec_budget'             => 'Budget Builds',
-			'gdloadout_upvote'                 => 'Upvote',
-			'gdloadout_follow'                 => 'Follow',
-			'gdloadout_following'              => 'Following',
-			'gdloadout_share'                  => 'Share',
-			'gdloadout_compliance_none'        => 'No compliance issues detected for your state',
-			'gdloadout_nfa'                    => 'NFA Item',
-			'gdloadout_ffl'                    => 'FFL Required',
-			'gdloadout_state_restricted'       => 'State Restricted',
-			'gdloadout_comments'               => 'Comments',
-			'gdloadout_comment_placeholder'    => 'Add a comment...',
-			'gdloadout_comment_post'           => 'Post Comment',
-			'gdloadout_login_required'         => 'Please log in to perform this action.',
-			'gdloadout_view_by'                => 'by',
-			'gdloadout_view_views'             => 'views',
-			'gdloadout_view_items'             => 'items',
-			'gdloadout_view_dealers'           => 'dealers',
-			'gdloadout_view_est_total'         => 'Est. Total',
-			'gdloadout_filter_use_case'        => 'Use Case',
-			'gdloadout_filter_all'             => 'All',
-			'menu__gdloadout_manage_featured'  => 'Featured Builds',
-			'r__featured_manage'               => 'Manage featured builds',
-			'gdloadout_featured_title'         => 'Featured Builds',
-			'gdloadout_featured_none'          => 'No loadouts to display.',
-			'gdloadout_featured_feature'       => 'Feature',
-			'gdloadout_featured_unfeature'     => 'Unfeature',
+		/* ----------------------------------------------------------------
+		 * 5. Seed ALL lang strings (combined from all phases)
+		 * ---------------------------------------------------------------- */
+		$allStrings = [
+			/* Original app/nav strings (from upg_10001) */
+			'__app_gdloadout'                    => 'Loadouts',
+			'frontnavigation_loadouts'           => 'Loadouts',
+			'menutab__gdloadout'                 => 'Loadouts',
+			'menutab__gdloadout_icon'            => 'layer-group',
+			'gdloadout_hub_title'                => 'Loadouts',
+			'gdloadout_hub_empty'                => 'No community builds yet — be the first to create a loadout!',
+			'menu__gdloadout_loadouts_hub'       => 'Loadouts',
+			'menu__gdloadout_manage'             => 'Loadout Settings',
+			'menu__gdloadout_manage_limits'      => 'Group Limits',
+			'gdloadout_builder_title'            => 'Loadout Builder',
+			'gdloadout_builder_name'             => 'Build Name',
+			'gdloadout_builder_description'      => 'Description (optional)',
+			'gdloadout_builder_use_case'         => 'Use Case',
+			'gdloadout_builder_visibility'       => 'Visibility',
+			'gdloadout_builder_save'             => 'Save Loadout',
+			'gdloadout_builder_delete'           => 'Delete Loadout',
+			'gdloadout_builder_search'           => 'Search products...',
+			'gdloadout_builder_slot_empty'       => '+ Add',
+			'gdloadout_builder_total_cost'       => 'Est. Build Cost',
+			'gdloadout_builder_total_items'      => 'Total Items',
+			'gdloadout_builder_add_extra'        => '+ Add Extra Slot',
+			'gdloadout_builder_remove'           => 'Remove',
+			'gdloadout_slot_base_firearm'        => 'Base Firearm',
+			'gdloadout_slot_optic'               => 'Optic',
+			'gdloadout_slot_weapon_light'        => 'Weapon Light',
+			'gdloadout_slot_laser'               => 'Laser',
+			'gdloadout_slot_suppressor'          => 'Suppressor',
+			'gdloadout_slot_foregrip'            => 'Foregrip',
+			'gdloadout_slot_sling'               => 'Sling',
+			'gdloadout_slot_holster'             => 'Holster',
+			'gdloadout_slot_ammo'                => 'Ammo',
+			'gdloadout_slot_cleaning'            => 'Cleaning',
+			'gdloadout_slot_extra'               => 'Extra',
+			'gdloadout_use_case_home_defense'    => 'Home Defense',
+			'gdloadout_use_case_concealed_carry' => 'Concealed Carry',
+			'gdloadout_use_case_hunting'         => 'Hunting',
+			'gdloadout_use_case_competition'     => 'Competition',
+			'gdloadout_use_case_range'           => 'Range',
+			'gdloadout_use_case_tactical'        => 'Tactical',
+			'gdloadout_use_case_collection'      => 'Collection',
+			'gdloadout_vis_public'               => 'Public',
+			'gdloadout_vis_unlisted'             => 'Unlisted',
+			'gdloadout_vis_private'              => 'Private',
+			'gdloadout_limits_title'             => 'Loadout Group Limits',
+			'gdloadout_limits_group'             => 'Member Group',
+			'gdloadout_limits_max_loadouts'      => 'Max Loadouts',
+			'gdloadout_limits_max_slots'         => 'Max Slots per Loadout',
+			'gdloadout_limits_unlimited'         => '0 = unlimited',
+			'gdloadout_limits_saved'             => 'Group limits saved.',
+			'gdloadout_err_limit_loadouts'       => 'You have reached the maximum number of loadouts for your account.',
+			'gdloadout_err_limit_slots'          => 'You have reached the maximum number of slots for this loadout.',
+			'gdloadout_err_name_required'        => 'Please enter a name for your loadout.',
+			'gdloadout_err_not_found'            => 'Loadout not found.',
+			'gdloadout_err_no_permission'        => 'You do not have permission to edit this loadout.',
+			'gdloadout_saved'                    => 'Loadout saved successfully.',
+			'gdloadout_deleted'                  => 'Loadout deleted.',
+			'gdloadout_confirm_delete'           => 'Are you sure you want to delete this loadout? This cannot be undone.',
+			'r__limits_manage'                   => 'Can manage loadout limits',
+			/* Phase 3 strings (from upg_10003) */
+			'gdloadout_sec_featured'             => 'Featured Builds',
+			'gdloadout_sec_trending'             => 'Trending',
+			'gdloadout_sec_toprated'             => 'Top Rated',
+			'gdloadout_sec_recent'               => 'Recently Updated',
+			'gdloadout_sec_budget'               => 'Budget Builds',
+			'gdloadout_upvote'                   => 'Upvote',
+			'gdloadout_follow'                   => 'Follow',
+			'gdloadout_following'                => 'Following',
+			'gdloadout_share'                    => 'Share',
+			'gdloadout_compliance_none'          => 'No compliance issues detected for your state',
+			'gdloadout_nfa'                      => 'NFA Item',
+			'gdloadout_ffl'                      => 'FFL Required',
+			'gdloadout_state_restricted'         => 'State Restricted',
+			'gdloadout_comments'                 => 'Comments',
+			'gdloadout_comment_placeholder'      => 'Add a comment...',
+			'gdloadout_comment_post'             => 'Post Comment',
+			'gdloadout_login_required'           => 'Please log in to perform this action.',
+			'gdloadout_view_by'                  => 'by',
+			'gdloadout_view_views'               => 'views',
+			'gdloadout_view_items'               => 'items',
+			'gdloadout_view_dealers'             => 'dealers',
+			'gdloadout_view_est_total'           => 'Est. Total',
+			'gdloadout_filter_use_case'          => 'Use Case',
+			'gdloadout_filter_all'               => 'All',
+			'menu__gdloadout_manage_featured'    => 'Featured Builds',
+			'r__featured_manage'                 => 'Manage featured builds',
+			'gdloadout_featured_title'           => 'Featured Builds',
+			'gdloadout_featured_none'            => 'No loadouts to display.',
+			'gdloadout_featured_feature'         => 'Feature',
+			'gdloadout_featured_unfeature'       => 'Unfeature',
 		];
 
 		try
 		{
 			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
 			{
-				foreach ( $newStrings as $key => $val )
+				foreach ( $allStrings as $key => $val )
 				{
 					try
 					{
@@ -591,82 +710,55 @@ TEMPLATE_EOT;
 		}
 		catch ( \Throwable ) {}
 
-		/* ============================================================
-		 * D. Self-heal extensions.json (#16)
-		 * ============================================================ */
+		/* ----------------------------------------------------------------
+		 * 6. Rebuild front nav
+		 * ---------------------------------------------------------------- */
+		try { \IPS\core\FrontNavigation::buildDefaultFrontNavigation(); } catch ( \Throwable ) {}
 
+		/* ----------------------------------------------------------------
+		 * 7. Self-heal extensions.json
+		 * ---------------------------------------------------------------- */
 		try
 		{
-			$extensionsPath = \IPS\ROOT_PATH . '/applications/gdloadout/data/extensions.json';
-			$expected = [
-				'FrontNavigation' => [
-					'Loadouts' => 'IPS\\gdloadout\\extensions\\core\\FrontNavigation\\Loadouts',
-				],
-				'Sitemap' => [
-					'Loadouts' => 'IPS\\gdloadout\\extensions\\core\\Sitemap\\Loadouts',
-				],
-			];
-
-			$needsRewrite = false;
-
-			if ( file_exists( $extensionsPath ) )
+			$extPath = \IPS\ROOT_PATH . '/applications/gdloadout/data/extensions.json';
+			$extData = [];
+			if ( file_exists( $extPath ) )
 			{
-				$current = json_decode( file_get_contents( $extensionsPath ), true );
-				if ( !is_array( $current ) )
-				{
-					$needsRewrite = true;
-				}
-				else
-				{
-					foreach ( $expected as $type => $entries )
-					{
-						foreach ( $entries as $className => $fqn )
-						{
-							if ( !isset( $current[ $type ][ $className ] ) || $current[ $type ][ $className ] !== $fqn )
-							{
-								$needsRewrite = true;
-								break 2;
-							}
-						}
-					}
-				}
-			}
-			else
-			{
-				$needsRewrite = true;
+				$extData = json_decode( file_get_contents( $extPath ), TRUE ) ?: [];
 			}
 
-			if ( $needsRewrite )
+			$dirty = FALSE;
+
+			if ( !isset( $extData['FrontNavigation']['Loadouts'] ) || $extData['FrontNavigation']['Loadouts'] !== 'IPS\\gdloadout\\extensions\\core\\FrontNavigation\\Loadouts' )
 			{
-				/* Merge expected into current (preserving any additional extensions) */
-				$merged = is_array( $current ?? null ) ? $current : [];
-				foreach ( $expected as $type => $entries )
-				{
-					if ( !isset( $merged[ $type ] ) )
-					{
-						$merged[ $type ] = [];
-					}
-					foreach ( $entries as $className => $fqn )
-					{
-						$merged[ $type ][ $className ] = $fqn;
-					}
-				}
+				$extData['FrontNavigation']['Loadouts'] = 'IPS\\gdloadout\\extensions\\core\\FrontNavigation\\Loadouts';
+				$dirty = TRUE;
+			}
 
-				file_put_contents( $extensionsPath, json_encode( $merged, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES ) );
+			if ( !isset( $extData['Sitemap']['Loadouts'] ) || $extData['Sitemap']['Loadouts'] !== 'IPS\\gdloadout\\extensions\\core\\Sitemap\\Loadouts' )
+			{
+				$extData['Sitemap']['Loadouts'] = 'IPS\\gdloadout\\extensions\\core\\Sitemap\\Loadouts';
+				$dirty = TRUE;
+			}
 
-				try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
+			if ( $dirty )
+			{
+				file_put_contents( $extPath, json_encode( $extData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
 			}
 		}
 		catch ( \Throwable ) {}
 
-		/* ============================================================
-		 * C. Clear caches
-		 * ============================================================ */
+		/* ----------------------------------------------------------------
+		 * 8. Cache busting
+		 * ---------------------------------------------------------------- */
+		try { unset( \IPS\Data\Store::i()->extensions ); }      catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); }    catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->frontNavigation ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }                catch ( \Throwable ) {}
 
-		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
-		try { \IPS\Data\Cache::i()->clearAll(); }             catch ( \Throwable ) {}
-
+		/* ----------------------------------------------------------------
+		 * 9. Done
+		 * ---------------------------------------------------------------- */
 		return TRUE;
 	}
 }
