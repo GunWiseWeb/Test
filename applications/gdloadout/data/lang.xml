@@ -89,5 +89,15 @@
   <word key="gdloadout_featured_none" js="0">No loadouts to display.</word>
   <word key="gdloadout_featured_feature" js="0">Feature</word>
   <word key="gdloadout_featured_unfeature" js="0">Unfeature</word>
+  <word key="notifications__gdloadout_Loadouts" js="0">Loadout Notifications</word>
+  <word key="notifications__gdloadout_Loadouts_desc" js="0">Receive notifications when someone upvotes or follows your loadout, or when a loadout you follow is updated.</word>
+  <word key="gdloadout_notify_loadout_updated" js="0">Loadout Updated</word>
+  <word key="gdloadout_notify_loadout_upvoted" js="0">Loadout Upvoted</word>
+  <word key="gdloadout_notify_loadout_followed" js="0">Loadout Followed</word>
+  <word key="gdloadout_add_all_wishlist" js="0">Add all to wishlist</word>
+  <word key="gdloadout_set_all_alerts" js="0">Set price alerts for all items</word>
+  <word key="gdloadout_widget_trending" js="0">Trending Loadouts</word>
+  <word key="gdloadout_wishlist_added" js="0">items added to wishlist</word>
+  <word key="gdloadout_alerts_set" js="0">price alerts set</word>
  </app>
 </language>

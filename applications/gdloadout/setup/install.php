@@ -348,6 +348,12 @@ TEMPLATE_EOT,
 		<button type="button" id="gdFollowBtn" class="ipsButton ipsButton--small" data-followed="{expression="$hasFollowed ? '1' : '0'}">
 			<i class="fa-solid fa-bell"></i> <span id="gdFollowLabel">{expression="$hasFollowed ? 'Following' : 'Follow'"}</span>
 		</button>
+		<button type="button" id="gdWishlistBtn" class="ipsButton ipsButton--small ipsButton--light">
+			<i class="fa-solid fa-heart"></i> {lang="gdloadout_add_all_wishlist"}
+		</button>
+		<button type="button" id="gdAlertBtn" class="ipsButton ipsButton--small ipsButton--light">
+			<i class="fa-solid fa-bell-exclamation"></i> {lang="gdloadout_set_all_alerts"}
+		</button>
 		{{if $isOwner}}
 		<a href="{$editUrl}" class="ipsButton ipsButton--small ipsButton--light"><i class="fa-solid fa-pen"></i> Edit</a>
 		{{endif}}
@@ -483,6 +489,42 @@ TEMPLATE_EOT,
 TEMPLATE_EOT,
 	],
 
+	[
+		'set_id'        => 1,
+		'app'           => 'gdloadout',
+		'location'      => 'front',
+		'group'         => 'widgets',
+		'template_name' => 'trendingLoadouts',
+		'template_data' => '$loadouts',
+		'template_content' => <<<'TEMPLATE_EOT'
+<div class="ipsWidget">
+	<h3 class="ipsWidget_title">{lang="gdloadout_widget_trending"}</h3>
+	<div class="ipsWidget_inner ipsPad_half">
+		{{if count($loadouts) > 0}}
+		{{foreach $loadouts as $lo}}
+		<a href="{expression="htmlspecialchars($lo['view_url'])"}" class="gdlo-hub-card" style="display:block;margin-bottom:8px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;text-decoration:none;color:#1e293b">
+			<div style="font-weight:700;font-size:.95em;color:#0f172a">{expression="htmlspecialchars($lo['name'])"}</div>
+			{{if !empty($lo['use_case'])}}
+			<div style="font-size:.75em;color:#64748b">{expression="htmlspecialchars($lo['use_case'])"}</div>
+			{{endif}}
+			<div style="font-size:.8em;color:#64748b;margin-top:4px">
+				<span><i class="fa-solid fa-arrow-up"></i> {expression="(int)($lo['upvotes'] ?? 0)"}</span>
+				<span style="margin-left:8px">{expression="(int)($lo['total_items'] ?? 0)"} items</span>
+				{{if !empty($lo['total_min_price'])}}
+				<span style="margin-left:8px;color:#16a34a">${expression="number_format((float)$lo['total_min_price'],2)"}</span>
+				{{endif}}
+			</div>
+			<div style="font-size:.7em;color:#94a3b8;margin-top:2px">by {expression="htmlspecialchars($lo['owner_name'] ?? 'Unknown')"}</div>
+		</a>
+		{{endforeach}}
+		{{else}}
+		<p style="color:#94a3b8;text-align:center;padding:12px">{lang="gdloadout_hub_empty"}</p>
+		{{endif}}
+	</div>
+</div>
+TEMPLATE_EOT,
+	],
+
 ];
 
 foreach ( $gdloadoutTemplates as $tpl )
@@ -498,7 +540,7 @@ foreach ( $gdloadoutTemplates as $tpl )
 			'template_data'    => $tpl['template_data'],
 			'template_content' => $tpl['template_content'],
 			'template_updated' => time(),
-			'template_version' => '1.0.2',
+			'template_version' => '1.0.13',
 		] );
 	}
 	catch ( \Throwable ) {}

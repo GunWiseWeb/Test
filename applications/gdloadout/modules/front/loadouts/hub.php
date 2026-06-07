@@ -416,11 +416,13 @@ class _hub extends \IPS\Dispatcher\Controller
 		catch ( \Throwable ) {}
 
 		/* Build URLs — no ->csrf() on these since they're for AJAX POST (#48, #62) */
-		$editUrl    = $isOwner ? (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&id=' . (int) $loadout['id'], 'front', 'gdloadout_builder_edit' ) : '';
-		$upvoteUrl  = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=upvote', 'front' );
-		$followUrl  = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=follow', 'front' );
-		$commentUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=comment', 'front' );
-		$csrfKey    = Session::i()->csrfKey;
+		$editUrl      = $isOwner ? (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&id=' . (int) $loadout['id'], 'front', 'gdloadout_builder_edit' ) : '';
+		$upvoteUrl    = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=upvote', 'front' );
+		$followUrl    = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=follow', 'front' );
+		$commentUrl   = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=comment', 'front' );
+		$wishlistUrl  = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=addAllToWishlist', 'front' );
+		$alertUrl     = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=alertAllItems', 'front' );
+		$csrfKey      = Session::i()->csrfKey;
 
 		/* SEO */
 		$jsonLd = null;
@@ -518,6 +520,8 @@ class _hub extends \IPS\Dispatcher\Controller
 			'upvoteUrl'   => $upvoteUrl,
 			'followUrl'   => $followUrl,
 			'commentUrl'  => $commentUrl,
+			'wishlistUrl' => $wishlistUrl,
+			'alertUrl'    => $alertUrl,
 			'csrfKey'     => $csrfKey,
 			'hasVoted'    => $hasVoted,
 			'hasFollowed' => $hasFollowed,
@@ -599,6 +603,27 @@ class _hub extends \IPS\Dispatcher\Controller
 				);
 			}
 			catch ( \Throwable ) {}
+
+			try
+			{
+				$loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first();
+				$ownerId = (int) ( $loadout['member_id'] ?? 0 );
+				if ( $ownerId && $ownerId !== (int) $member->member_id )
+				{
+					$owner    = Member::load( $ownerId );
+					$ownerName = $owner->name ?? 'Unknown';
+					$notification = new \IPS\Notification(
+						\IPS\Application::load( 'gdloadout' ),
+						'loadout_upvoted',
+						$owner,
+						[ $owner ],
+						[ 'loadout_name' => $loadout['name'] ?? '', 'voter_name' => $member->name, 'username' => $ownerName, 'slug' => $loadout['slug'] ?? '' ]
+					);
+					$notification->recipients->attach( $owner );
+					$notification->send();
+				}
+			}
+			catch ( \Throwable ) {}
 		}
 
 		$newCount = 0;
@@ -668,6 +693,27 @@ class _hub extends \IPS\Dispatcher\Controller
 				);
 			}
 			catch ( \Throwable ) {}
+
+			try
+			{
+				$loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first();
+				$ownerId = (int) ( $loadout['member_id'] ?? 0 );
+				if ( $ownerId && $ownerId !== (int) $member->member_id )
+				{
+					$owner     = Member::load( $ownerId );
+					$ownerName = $owner->name ?? 'Unknown';
+					$notification = new \IPS\Notification(
+						\IPS\Application::load( 'gdloadout' ),
+						'loadout_followed',
+						$owner,
+						[ $owner ],
+						[ 'loadout_name' => $loadout['name'] ?? '', 'follower_name' => $member->name, 'username' => $ownerName, 'slug' => $loadout['slug'] ?? '' ]
+					);
+					$notification->recipients->attach( $owner );
+					$notification->send();
+				}
+			}
+			catch ( \Throwable ) {}
 		}
 
 		$newCount = 0;
@@ -731,6 +777,172 @@ class _hub extends \IPS\Dispatcher\Controller
 				'created_at'  => time(),
 			],
 		] );
+	}
+	/**
+	 * AJAX — add all items from a loadout to the viewer's wishlist
+	 */
+	protected function addAllToWishlist(): void
+	{
+		Session::i()->csrfCheck();
+
+		$member = Member::loggedIn();
+		if ( !$member->member_id )
+		{
+			Output::i()->json( [ 'error' => 'Login required' ], 403 );
+			return;
+		}
+
+		$loadoutId = (int) ( Request::i()->loadout_id ?? 0 );
+		if ( !$loadoutId )
+		{
+			Output::i()->json( [ 'error' => 'Invalid' ], 400 );
+			return;
+		}
+
+		$loadout = NULL;
+		try
+		{
+			$loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first();
+		}
+		catch ( \Throwable ) {}
+
+		if ( !$loadout )
+		{
+			Output::i()->json( [ 'error' => 'Not found' ], 404 );
+			return;
+		}
+
+		$isOwner = (int) $member->member_id === (int) $loadout['member_id'];
+		if ( $loadout['visibility'] === 'private' && !$isOwner )
+		{
+			Output::i()->json( [ 'error' => 'Forbidden' ], 403 );
+			return;
+		}
+
+		$added   = 0;
+		$skipped = 0;
+
+		try
+		{
+			foreach ( Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=?', $loadoutId ] ) as $upc )
+			{
+				if ( empty( $upc ) )
+				{
+					continue;
+				}
+
+				try
+				{
+					$exists = (int) Db::i()->select( 'COUNT(*)', 'gd_wishlist', [ 'member_id=? AND upc=?', (int) $member->member_id, $upc ] )->first();
+					if ( $exists > 0 )
+					{
+						$skipped++;
+						continue;
+					}
+
+					Db::i()->insert( 'gd_wishlist', [
+						'member_id' => (int) $member->member_id,
+						'upc'       => $upc,
+						'created'   => time(),
+					] );
+					$added++;
+				}
+				catch ( \Throwable )
+				{
+					$skipped++;
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		Output::i()->json( [ 'ok' => true, 'added' => $added, 'skipped' => $skipped ] );
+	}
+
+	/**
+	 * AJAX — set price alerts on all items in a loadout
+	 */
+	protected function alertAllItems(): void
+	{
+		Session::i()->csrfCheck();
+
+		$member = Member::loggedIn();
+		if ( !$member->member_id )
+		{
+			Output::i()->json( [ 'error' => 'Login required' ], 403 );
+			return;
+		}
+
+		$loadoutId = (int) ( Request::i()->loadout_id ?? 0 );
+		if ( !$loadoutId )
+		{
+			Output::i()->json( [ 'error' => 'Invalid' ], 400 );
+			return;
+		}
+
+		$loadout = NULL;
+		try
+		{
+			$loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first();
+		}
+		catch ( \Throwable ) {}
+
+		if ( !$loadout )
+		{
+			Output::i()->json( [ 'error' => 'Not found' ], 404 );
+			return;
+		}
+
+		$isOwner = (int) $member->member_id === (int) $loadout['member_id'];
+		if ( $loadout['visibility'] === 'private' && !$isOwner )
+		{
+			Output::i()->json( [ 'error' => 'Forbidden' ], 403 );
+			return;
+		}
+
+		$prefix = Db::i()->prefix;
+		$set    = 0;
+
+		try
+		{
+			foreach ( Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=?', $loadoutId ] ) as $upc )
+			{
+				if ( empty( $upc ) )
+				{
+					continue;
+				}
+
+				try
+				{
+					$bestPrice = NULL;
+					try
+					{
+						$p = Db::i()->select( 'MIN(dealer_price) AS best_price', 'gd_dealer_listings', [ 'upc=? AND listing_status=?', $upc, 'active' ] )->first();
+						if ( $p['best_price'] !== NULL && (float) $p['best_price'] > 0 )
+						{
+							$bestPrice = (float) $p['best_price'];
+						}
+					}
+					catch ( \Throwable ) {}
+
+					if ( $bestPrice === NULL )
+					{
+						continue;
+					}
+
+					Db::i()->replace( 'gd_price_alerts', [
+						'member_id' => (int) $member->member_id,
+						'upc'       => $upc,
+						'threshold' => $bestPrice,
+						'created'   => time(),
+					] );
+					$set++;
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		Output::i()->json( [ 'ok' => true, 'set' => $set ] );
 	}
 }
 

@@ -4,5 +4,8 @@
 	},
 	"Sitemap": {
 		"Loadouts": "IPS\\gdloadout\\extensions\\core\\Sitemap\\Loadouts"
+	},
+	"Notifications": {
+		"Loadouts": "IPS\\gdloadout\\extensions\\core\\Notifications\\Loadouts"
 	}
 }

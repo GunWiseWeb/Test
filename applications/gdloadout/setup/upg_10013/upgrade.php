@@ -1,4 +1,56 @@
-<ips:template parameters="$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData" />
+<?php
+
+namespace IPS\gdloadout\setup\upg_10013;
+
+if ( !\defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		/* --- Seed new lang strings (#39/#43/#44 — 6-col schema, per-row try/catch) --- */
+		$newStrings = [
+			'notifications__gdloadout_Loadouts'      => 'Loadout Notifications',
+			'notifications__gdloadout_Loadouts_desc'  => 'Receive notifications when someone upvotes or follows your loadout, or when a loadout you follow is updated.',
+			'gdloadout_notify_loadout_updated'        => 'Loadout Updated',
+			'gdloadout_notify_loadout_upvoted'        => 'Loadout Upvoted',
+			'gdloadout_notify_loadout_followed'       => 'Loadout Followed',
+			'gdloadout_add_all_wishlist'               => 'Add all to wishlist',
+			'gdloadout_set_all_alerts'                 => 'Set price alerts for all items',
+			'gdloadout_widget_trending'                => 'Trending Loadouts',
+			'gdloadout_wishlist_added'                 => 'items added to wishlist',
+			'gdloadout_alerts_set'                     => 'price alerts set',
+		];
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gdloadout',
+							'word_key'     => $key,
+							'word_default' => $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* --- Re-seed view template with wishlist/alert buttons (#52 — upgrade parity) --- */
+		$viewContent = <<<'TEMPLATE_EOT'
 <script type="application/json" id="gdlo-view-init">{$initData|raw}</script>
 <div class="gdlo-view">
 
@@ -123,3 +175,98 @@
 	</div>
 
 </div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location' => 'front',
+				'template_group'   => 'loadouts',
+				'template_name'    => 'view',
+				'template_data'    => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData',
+				'template_content' => $viewContent,
+				'template_updated' => time(),
+				'template_version' => '1.0.13',
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* --- Seed widget template (#52 — upgrade parity) --- */
+		$widgetContent = <<<'TEMPLATE_EOT'
+<div class="ipsWidget">
+	<h3 class="ipsWidget_title">{lang="gdloadout_widget_trending"}</h3>
+	<div class="ipsWidget_inner ipsPad_half">
+		{{if count($loadouts) > 0}}
+		{{foreach $loadouts as $lo}}
+		<a href="{expression="htmlspecialchars($lo['view_url'])"}" class="gdlo-hub-card" style="display:block;margin-bottom:8px;padding:10px;border:1px solid #e2e8f0;border-radius:6px;text-decoration:none;color:#1e293b">
+			<div style="font-weight:700;font-size:.95em;color:#0f172a">{expression="htmlspecialchars($lo['name'])"}</div>
+			{{if !empty($lo['use_case'])}}
+			<div style="font-size:.75em;color:#64748b">{expression="htmlspecialchars($lo['use_case'])"}</div>
+			{{endif}}
+			<div style="font-size:.8em;color:#64748b;margin-top:4px">
+				<span><i class="fa-solid fa-arrow-up"></i> {expression="(int)($lo['upvotes'] ?? 0)"}</span>
+				<span style="margin-left:8px">{expression="(int)($lo['total_items'] ?? 0)"} items</span>
+				{{if !empty($lo['total_min_price'])}}
+				<span style="margin-left:8px;color:#16a34a">${expression="number_format((float)$lo['total_min_price'],2)"}</span>
+				{{endif}}
+			</div>
+			<div style="font-size:.7em;color:#94a3b8;margin-top:2px">by {expression="htmlspecialchars($lo['owner_name'] ?? 'Unknown')"}</div>
+		</a>
+		{{endforeach}}
+		{{else}}
+		<p style="color:#94a3b8;text-align:center;padding:12px">{lang="gdloadout_hub_empty"}</p>
+		{{endif}}
+	</div>
+</div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location' => 'front',
+				'template_group'   => 'widgets',
+				'template_name'    => 'trendingLoadouts',
+				'template_data'    => '$loadouts',
+				'template_content' => $widgetContent,
+				'template_updated' => time(),
+				'template_version' => '1.0.13',
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* --- Self-heal extensions.json (#16) --- */
+		try
+		{
+			$extFile = \IPS\ROOT_PATH . '/applications/gdloadout/data/extensions.json';
+			if ( file_exists( $extFile ) )
+			{
+				$ext = json_decode( file_get_contents( $extFile ), true ) ?: [];
+				$changed = false;
+				if ( !isset( $ext['Notifications']['Loadouts'] ) )
+				{
+					$ext['Notifications'] = $ext['Notifications'] ?? [];
+					$ext['Notifications']['Loadouts'] = 'IPS\\gdloadout\\extensions\\core\\Notifications\\Loadouts';
+					$changed = true;
+				}
+				if ( $changed )
+				{
+					file_put_contents( $extFile, json_encode( $ext, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* --- Clear caches (#40) --- */
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }             catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

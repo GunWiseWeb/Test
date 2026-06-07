@@ -212,6 +212,42 @@ class _builder extends \IPS\Dispatcher\Controller
 
 			$loadoutId = $editId;
 
+			if ( \in_array( $visibility, [ 'public', 'unlisted' ], true ) )
+			{
+				try
+				{
+					$ownerName = $member->name ?? 'Unknown';
+					$followers = [];
+					foreach ( Db::i()->select( 'member_id', 'gd_loadout_follows', [ 'loadout_id=?', $editId ] ) as $fid )
+					{
+						if ( (int) $fid !== (int) $member->member_id )
+						{
+							$followers[] = (int) $fid;
+						}
+					}
+					if ( $followers )
+					{
+						$notification = new \IPS\Notification(
+							\IPS\Application::load( 'gdloadout' ),
+							'loadout_updated',
+							$member,
+							[],
+							[ 'loadout_name' => $name, 'author_name' => $ownerName, 'username' => $ownerName, 'slug' => $uniqueSlug ]
+						);
+						foreach ( $followers as $fMemberId )
+						{
+							try
+							{
+								$notification->recipients->attach( Member::load( $fMemberId ) );
+							}
+							catch ( \Throwable ) {}
+						}
+						$notification->send();
+					}
+				}
+				catch ( \Throwable ) {}
+			}
+
 			Db::i()->delete( 'gd_loadout_items', [ 'loadout_id=?', $loadoutId ] );
 		}
 		else

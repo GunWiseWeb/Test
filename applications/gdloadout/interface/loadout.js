@@ -8,10 +8,12 @@
 	try { init = JSON.parse(initEl.textContent); } catch (e) { return; }
 
 	var loadoutId  = init.loadoutId ? parseInt(init.loadoutId, 10) : 0;
-	var upvoteUrl  = init.upvoteUrl || '';
-	var followUrl  = init.followUrl || '';
-	var commentUrl = init.commentUrl || '';
-	var csrfKey    = init.csrfKey || '';
+	var upvoteUrl   = init.upvoteUrl || '';
+	var followUrl   = init.followUrl || '';
+	var commentUrl  = init.commentUrl || '';
+	var wishlistUrl = init.wishlistUrl || '';
+	var alertUrl    = init.alertUrl || '';
+	var csrfKey     = init.csrfKey || '';
 	var hasVoted   = !!init.hasVoted;
 	var hasFollowed = !!init.hasFollowed;
 	var isLoggedIn = !!init.isLoggedIn;
@@ -121,6 +123,82 @@
 			.catch(function () {
 				followBtn.disabled = false;
 				alert('Follow failed. Please try again.');
+			});
+		});
+	}
+
+	/* ------- Add all to wishlist ------- */
+	var wishlistBtn = document.getElementById('gdWishlistBtn');
+	if (wishlistBtn) {
+		wishlistBtn.addEventListener('click', function () {
+			if (!isLoggedIn) {
+				alert('Please log in to add items to your wishlist.');
+				return;
+			}
+			if (!wishlistUrl) return;
+
+			wishlistBtn.disabled = true;
+			var origText = wishlistBtn.innerHTML;
+			wishlistBtn.textContent = 'Adding...';
+
+			var body = new FormData();
+			body.append('csrfKey', csrfKey);
+			body.append('loadout_id', loadoutId);
+
+			fetch(wishlistUrl, {
+				method: 'POST',
+				body: body,
+				headers: { 'X-Requested-With': 'XMLHttpRequest' }
+			})
+			.then(function (resp) { return resp.json(); })
+			.then(function (data) {
+				wishlistBtn.disabled = false;
+				if (data.error) { wishlistBtn.innerHTML = origText; alert(data.error); return; }
+				wishlistBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + (data.added || 0) + ' added, ' + (data.skipped || 0) + ' already saved';
+				setTimeout(function () { wishlistBtn.innerHTML = origText; }, 4000);
+			})
+			.catch(function () {
+				wishlistBtn.disabled = false;
+				wishlistBtn.innerHTML = origText;
+				alert('Failed to add to wishlist. Please try again.');
+			});
+		});
+	}
+
+	/* ------- Set price alerts ------- */
+	var alertBtn = document.getElementById('gdAlertBtn');
+	if (alertBtn) {
+		alertBtn.addEventListener('click', function () {
+			if (!isLoggedIn) {
+				alert('Please log in to set price alerts.');
+				return;
+			}
+			if (!alertUrl) return;
+
+			alertBtn.disabled = true;
+			var origText = alertBtn.innerHTML;
+			alertBtn.textContent = 'Setting alerts...';
+
+			var body = new FormData();
+			body.append('csrfKey', csrfKey);
+			body.append('loadout_id', loadoutId);
+
+			fetch(alertUrl, {
+				method: 'POST',
+				body: body,
+				headers: { 'X-Requested-With': 'XMLHttpRequest' }
+			})
+			.then(function (resp) { return resp.json(); })
+			.then(function (data) {
+				alertBtn.disabled = false;
+				if (data.error) { alertBtn.innerHTML = origText; alert(data.error); return; }
+				alertBtn.innerHTML = '<i class="fa-solid fa-check"></i> ' + (data.set || 0) + ' price alerts set';
+				setTimeout(function () { alertBtn.innerHTML = origText; }, 4000);
+			})
+			.catch(function () {
+				alertBtn.disabled = false;
+				alertBtn.innerHTML = origText;
+				alert('Failed to set alerts. Please try again.');
 			});
 		});
 	}
