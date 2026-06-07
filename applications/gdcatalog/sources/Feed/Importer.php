@@ -48,6 +48,16 @@ class Importer
 
 	public static function accessoryAttrsFor( string $topSlug, array $raw ): array
 	{
+		if ( $topSlug === 'optics' )
+		{
+			$out = [];
+			$mag = trim( (string) ( $raw['ITATR1'] ?? '' ) );
+			if ( $mag !== '' && preg_match( '/^[0-9][0-9.\-]*x$/i', $mag ) ) { $out['optic_magnification'] = mb_substr( $mag, 0, 80 ); }
+			$obj = trim( (string) ( $raw['ITATR2'] ?? '' ) );
+			if ( $obj !== '' && preg_match( '/^[0-9][0-9.]*mm$/i', $obj ) ) { $out['optic_objective'] = mb_substr( $obj, 0, 80 ); }
+			return $out;
+		}
+
 		$out = [];
 		if ( isset( self::ACCESSORY_ATTR_MAP[ $topSlug ] ) )
 		{

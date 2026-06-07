@@ -1000,7 +1000,9 @@
             "blade_length": { "name": "blade_length", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
             "blade_material": { "name": "blade_material", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
             "blade_edge": { "name": "blade_edge", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
-            "knife_handle": { "name": "knife_handle", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+            "knife_handle": { "name": "knife_handle", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "optic_magnification": { "name": "optic_magnification", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "optic_objective": { "name": "optic_objective", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
         },
         "indexes": {
             "PRIMARY": {
