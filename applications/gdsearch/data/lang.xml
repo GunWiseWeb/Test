@@ -70,4 +70,32 @@
     <word key="gdsearch_reports_title" js="0" export="1">Product Reports</word>
     <word key="menu__gdsearch_search_reports" js="0" export="1">Product Reports</word>
     <word key="reports_manage" js="0" export="1">Can manage product reports?</word>
+    <word key="gdsearch_facet_brand" js="0" export="1">Brand</word>
+    <word key="gdsearch_facet_caliber" js="0" export="1">Caliber</word>
+    <word key="gdsearch_facet_action" js="0" export="1">Action</word>
+    <word key="gdsearch_facet_capacity" js="0" export="1">Capacity</word>
+    <word key="gdsearch_facet_casing" js="0" export="1">Casing</word>
+    <word key="gdsearch_facet_bullet" js="0" export="1">Bullet Type</word>
+    <word key="gdsearch_facet_grain" js="0" export="1">Grain</word>
+    <word key="gdsearch_facet_velocity" js="0" export="1">Velocity (fps)</word>
+    <word key="gdsearch_facet_barrel" js="0" export="1">Barrel Length</word>
+    <word key="gdsearch_facet_holster_type" js="0" export="1">Holster Type</word>
+    <word key="gdsearch_facet_holster_color" js="0" export="1">Holster Color</word>
+    <word key="gdsearch_facet_holster_material" js="0" export="1">Holster Material</word>
+    <word key="gdsearch_facet_holster_hand" js="0" export="1">Hand</word>
+    <word key="gdsearch_facet_apparel_pattern" js="0" export="1">Pattern / Camo</word>
+    <word key="gdsearch_facet_apparel_size" js="0" export="1">Size</word>
+    <word key="gdsearch_facet_apparel_material" js="0" export="1">Material</word>
+    <word key="gdsearch_facet_blade_shape" js="0" export="1">Blade Shape</word>
+    <word key="gdsearch_facet_blade_length" js="0" export="1">Blade Length</word>
+    <word key="gdsearch_facet_blade_material" js="0" export="1">Blade Material</word>
+    <word key="gdsearch_facet_blade_edge" js="0" export="1">Edge Type</word>
+    <word key="gdsearch_facet_knife_handle" js="0" export="1">Handle Material</word>
+    <word key="gdsearch_facet_hunt_call_type" js="0" export="1">Call Type</word>
+    <word key="gdsearch_facet_hunt_game" js="0" export="1">Game Type</word>
+    <word key="frontnavigation_gdsearch_catalog" js="0" export="1">Catalog</word>
+    <word key="gdsearch_across" js="0" export="1">across</word>
+    <word key="gdsearch_save" js="0" export="1">save</word>
+    <word key="gdsearch_view_deals" js="0" export="1">View deals</word>
+    <word key="menu__gdsearch_search" js="0" export="1">Catalog</word>
 </language>
