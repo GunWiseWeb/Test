@@ -11,6 +11,12 @@
             "controller": "reports",
             "do": "",
             "restriction": "reports_manage"
+        },
+        "facets": {
+            "tab": "gdsearch",
+            "controller": "facets",
+            "do": "",
+            "restriction": "facets_manage"
         }
     }
 }

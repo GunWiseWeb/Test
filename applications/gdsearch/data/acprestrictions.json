@@ -5,6 +5,9 @@
         },
         "reports": {
             "reports_manage": "reports_manage"
+        },
+        "facets": {
+            "facets_manage": "facets_manage"
         }
     }
 }

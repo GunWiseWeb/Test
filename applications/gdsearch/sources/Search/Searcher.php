@@ -12,6 +12,17 @@ class Searcher
     protected string $host;
     protected string $index;
 
+    protected static ?array $hiddenFacets = null;
+    protected static function hiddenFacets(): array
+    {
+        if ( static::$hiddenFacets === null )
+        {
+            static::$hiddenFacets = [];
+            try { foreach ( \IPS\Db::i()->select( 'facet_key', 'gd_facet_settings', [ 'hidden=?', 1 ] ) as $k ) { static::$hiddenFacets[ $k ] = TRUE; } } catch ( \Throwable ) {}
+        }
+        return static::$hiddenFacets;
+    }
+
     public function __construct()
     {
         $this->host  = \IPS\Settings::i()->gdcatalog_opensearch_host  ?: 'http://localhost:9200';
@@ -260,6 +271,15 @@ class Searcher
                 ],
             ],
         ];
+
+        $hiddenF = static::hiddenFacets();
+        if ( $hiddenF )
+        {
+            foreach ( array_keys( $hiddenF ) as $hk )
+            {
+                unset( $body['aggs'][ $hk ] );
+            }
+        }
 
         try {
             $response = \IPS\Http\Url::external( $this->host . '/' . $this->index . '/_search' )

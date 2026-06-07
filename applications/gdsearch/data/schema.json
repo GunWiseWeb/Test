@@ -203,6 +203,18 @@
             }
         }
     },
+    "gd_facet_settings": {
+        "name": "gd_facet_settings",
+        "columns": {
+            "facet_key": { "name": "facet_key", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "hidden": { "name": "hidden", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "category_id": { "name": "category_id", "type": "INT", "length": 11, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "position": { "name": "position", "type": "INT", "length": 11, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY": { "type": "primary", "columns": ["facet_key"], "length": [null], "name": "PRIMARY" }
+        }
+    },
     "gd_product_reports": {
         "name": "gd_product_reports",
         "columns": {

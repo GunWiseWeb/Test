@@ -95,6 +95,9 @@
     <word key="gdsearch_facet_hunt_game" js="0" export="1">Game Type</word>
     <word key="gdsearch_facet_optic_magnification" js="0" export="1">Magnification</word>
     <word key="gdsearch_facet_optic_objective" js="0" export="1">Objective Size</word>
+    <word key="gdsearch_facets_title" js="0" export="1">Search Facets</word>
+    <word key="menu__gdsearch_search_facets" js="0" export="1">Facets</word>
+    <word key="r__facets_manage" js="0" export="1">Manage facets</word>
     <word key="frontnavigation_gdsearch_catalog" js="0" export="1">Catalog</word>
     <word key="gdsearch_across" js="0" export="1">across</word>
     <word key="gdsearch_save" js="0" export="1">save</word>

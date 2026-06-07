@@ -252,8 +252,11 @@ class _results extends \IPS\Dispatcher\Controller
             '26-'       => '26"+',
         ];
 
+        $hiddenFacets = [];
+        try { foreach ( \IPS\Db::i()->select( 'facet_key', 'gd_facet_settings', [ 'hidden=?', 1 ] ) as $k ) { $hiddenFacets[ (string) $k ] = TRUE; } } catch ( \Throwable ) {}
+
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->results(
-            $query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands, $barrelBands
+            $query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands, $barrelBands, $hiddenFacets
         );
     }
 

@@ -1,4 +1,4 @@
-<ips:template parameters="$query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands, $barrelBands" />
+<ips:template parameters="$query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands, $barrelBands, $hiddenFacets" />
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 .gdsr-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box; font-family:'Inter',system-ui,-apple-system,sans-serif }
@@ -191,6 +191,7 @@
 				{{endif}}
 
 				{{if (isset($aggs['casings']['buckets']) and count($aggs['casings']['buckets'])) or (isset($aggs['bullet_types']['buckets']) and count($aggs['bullet_types']['buckets']))}}
+				{{if !isset($hiddenFacets['grain'])}}
 				<details class="gdsr-facet-box" {{if is_array($filters['grain']) and count($filters['grain'])}}open{{endif}}>
 					<summary>{lang="gdsearch_facet_grain"}{{if is_array($filters['grain']) and count($filters['grain'])}}<span class="gdsr-facet-cnt">{expression="count($filters['grain'])"}</span>{{endif}}</summary>
 					<div class="gdsr-facet-body">
@@ -201,6 +202,8 @@
 						</div>
 					</div>
 				</details>
+				{{endif}}
+				{{if !isset($hiddenFacets['velocity'])}}
 				<details class="gdsr-facet-box" {{if is_array($filters['velocity']) and count($filters['velocity'])}}open{{endif}}>
 					<summary>{lang="gdsearch_facet_velocity"}{{if is_array($filters['velocity']) and count($filters['velocity'])}}<span class="gdsr-facet-cnt">{expression="count($filters['velocity'])"}</span>{{endif}}</summary>
 					<div class="gdsr-facet-body">
@@ -211,6 +214,7 @@
 						</div>
 					</div>
 				</details>
+				{{endif}}
 				{{endif}}
 
 				{{if isset($aggs['holster_types']['buckets']) and count($aggs['holster_types']['buckets'])}}

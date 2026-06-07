@@ -4,6 +4,32 @@
 
 require_once __DIR__ . '/templates_10046.php';
 
+$gdsearchSeedFacetSettings = function (): void
+{
+	$db = \IPS\Db::i();
+	if ( !$db->checkForTable( 'gd_facet_settings' ) )
+	{
+		$db->createTable( [
+			'name' => 'gd_facet_settings',
+			'columns' => [
+				[ 'name' => 'facet_key',   'type' => 'VARCHAR', 'length' => 40, 'allow_null' => false, 'default' => '' ],
+				[ 'name' => 'hidden',      'type' => 'TINYINT', 'length' => 1,  'allow_null' => false, 'default' => 0 ],
+				[ 'name' => 'category_id', 'type' => 'INT',     'length' => 11, 'allow_null' => false, 'default' => 0 ],
+				[ 'name' => 'position',    'type' => 'INT',     'length' => 11, 'allow_null' => false, 'default' => 0 ],
+			],
+			'indexes' => [ [ 'type' => 'primary', 'name' => 'PRIMARY', 'columns' => [ 'facet_key' ] ] ],
+		] );
+	}
+	$keys = [ 'brands','calibers','actions','capacities','barrel_present','casings','bullet_types','grain','velocity',
+		'holster_types','holster_colors','holster_materials','holster_hands','apparel_patterns','apparel_sizes','apparel_materials',
+		'blade_shapes','blade_lengths','blade_materials','blade_edges','knife_handles','hunt_call_types','hunt_games','optics_mags','optics_objs' ];
+	foreach ( $keys as $k )
+	{
+		try { $db->insert( 'gd_facet_settings', [ 'facet_key' => $k, 'hidden' => 0, 'category_id' => 0, 'position' => 0 ], TRUE ); } catch ( \Throwable ) {}
+	}
+};
+$gdsearchSeedFacetSettings();
+
 $gdsearchSeedResultsTemplate = function (): void
 {
 	$file = \IPS\ROOT_PATH . '/applications/gdsearch/dev/html/front/search/results.phtml';
