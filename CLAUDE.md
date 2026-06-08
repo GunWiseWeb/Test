@@ -586,6 +586,20 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
 
     For `core_theme_templates` seeding specifically, use `\IPS\Db::i()->replace()` (INSERT ... ON DUPLICATE KEY UPDATE) which preserves user edits when keys don't collide, rather than DELETE-all-then-INSERT which destroys any admin template customizations. The only acceptable use of bare `delete()` in install.php is for truly disposable/regenerable data (cache tables, queue tables) where loss has zero user impact.
 
+79. **Rule #77 enforcement: gdloadout (and all future plugins) must have EXACTLY ONE `setup/upg_*` dir at all times** — the current version's. When starting a NEW version: create the new `upg_<long>` dir AND delete the previous one in the SAME step. Each upg dir must be self-contained (re-seed all templates + lang + idempotent schema/column adds) so it never depends on a prior upg dir that no longer exists. The build MUST abort if >1 upg dir is present. Pre-build guard:
+    ```bash
+    N=$(ls -d applications/<app>/setup/upg_* 2>/dev/null | wc -l)
+    if [ "$N" -ne 1 ]; then
+      echo "ABORT: $N upg dirs present in <app>/setup — must be exactly 1 (CLAUDE.md #77). Remove all but the latest before building."
+      exit 1
+    fi
+    ```
+    Post-build verification (belt and suspenders):
+    ```bash
+    INTAR=$(tar -tf <app>-v*.tar | grep "setup/upg_" | grep -c upgrade.php)
+    if [ "$INTAR" -ne 1 ]; then echo "ABORT: built tar has $INTAR upg dirs, must be 1"; exit 1; fi
+    ```
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38
