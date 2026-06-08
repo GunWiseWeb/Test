@@ -69,6 +69,10 @@ class _builder extends \IPS\Dispatcher\Controller
 	{
 		$member = Member::loggedIn();
 		$editId = (int) ( Request::i()->id ?? 0 );
+		if ( !$editId )
+		{
+			$editId = (int) ( Request::i()->loadout_id ?? 0 );
+		}
 		$loadout = NULL;
 		$items   = [];
 
@@ -182,6 +186,20 @@ class _builder extends \IPS\Dispatcher\Controller
 			catch ( \Throwable )
 			{
 				Output::i()->json( [ 'error' => Member::loggedIn()->language()->addToStack( 'gdloadout_err_not_found' ) ], 404 );
+				return;
+			}
+
+			$slotsWithUpc = 0;
+			foreach ( $slots as $s )
+			{
+				if ( !empty( $s['upc'] ) )
+				{
+					$slotsWithUpc++;
+				}
+			}
+			if ( $slotsWithUpc === 0 )
+			{
+				Output::i()->json( [ 'error' => 'No items to save — cannot overwrite existing build with empty loadout.' ], 400 );
 				return;
 			}
 

@@ -416,7 +416,7 @@ class _hub extends \IPS\Dispatcher\Controller
 		catch ( \Throwable ) {}
 
 		/* Build URLs — no ->csrf() on these since they're for AJAX POST (#48, #62) */
-		$editUrl      = $isOwner ? (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&id=' . (int) $loadout['id'], 'front', 'gdloadout_builder_edit' ) : '';
+		$editUrl      = $isOwner ? (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&id=' . (int) $loadout['id'], 'front' ) : '';
 		$upvoteUrl    = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=upvote', 'front' );
 		$followUrl    = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=follow', 'front' );
 		$commentUrl   = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=comment', 'front' );
@@ -800,7 +800,7 @@ class _hub extends \IPS\Dispatcher\Controller
 					'front',
 					'gdloadout_view'
 				);
-				$row['edit_url'] = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&id=' . (int) $row['id'], 'front', 'gdloadout_builder_edit' );
+				$row['edit_url'] = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&id=' . (int) $row['id'], 'front' );
 				$loadouts[] = $row;
 			}
 		}

@@ -614,7 +614,7 @@ foreach ( $gdloadoutTemplates as $tpl )
 			'template_data'    => $tpl['template_data'],
 			'template_content' => $tpl['template_content'],
 			'template_updated' => time(),
-			'template_version' => '1.0.14',
+			'template_version' => '1.0.15',
 		] );
 	}
 	catch ( \Throwable ) {}

@@ -89,7 +89,7 @@
 .gdlo-hub-empty{text-align:center;padding:60px 20px;color:#64748b}
 .gdlo-hub-empty i{font-size:3em;margin-bottom:12px;display:block;opacity:.4}
 /* View */
-.gdlo-view{max-width:900px;margin:0 auto;padding:20px;color:#1e293b}
+.gdlo-view{width:100%;max-width:1280px;margin:0 auto;padding:20px;color:#1e293b;box-sizing:border-box}
 .gdlo-view-header{margin-bottom:16px}
 .gdlo-view-title{margin:0 0 6px;color:#0f172a}
 .gdlo-view-badge{display:inline-block;padding:3px 10px;background:#f1f5f9;border-radius:12px;font-size:.8em;color:#475569;margin-bottom:8px}
@@ -114,8 +114,8 @@
 /* View two-column layout */
 .gdlo-view-subtitle{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
 .gdlo-view-2col{display:flex;gap:24px;align-items:flex-start}
-.gdlo-view-main{flex:1;min-width:0}
-.gdlo-view-sidebar{width:300px;flex-shrink:0;position:sticky;top:80px}
+.gdlo-view-main{flex:1 1 auto;min-width:0}
+.gdlo-view-sidebar{flex:0 0 340px;position:sticky;top:80px}
 .gdlo-view-summary .gdlo-panel{margin-bottom:0}
 .gdlo-view-actions-panel{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .gdlo-action-btn{width:100%;text-align:center;justify-content:center}
@@ -132,4 +132,4 @@
 .gdlo-my-name a:hover{color:#2563eb}
 .gdlo-my-meta{font-size:.8em;color:#64748b;display:flex;gap:10px;margin-top:4px;flex-wrap:wrap}
 .gdlo-my-actions{display:flex;gap:6px;flex-shrink:0}
-@media(max-width:768px){.gdlo-view-2col{flex-direction:column}.gdlo-view-sidebar{width:100%;position:static}.gdlo-my-row{flex-direction:column;align-items:flex-start}.gdlo-my-actions{margin-top:8px}}
+@media(max-width:768px){.gdlo-view-2col{flex-direction:column}.gdlo-view-sidebar{flex:none;width:100%;position:static}.gdlo-my-row{flex-direction:column;align-items:flex-start}.gdlo-my-actions{margin-top:8px}}
