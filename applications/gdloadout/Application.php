@@ -2,7 +2,7 @@
 /**
  * @brief		Loadouts Application
  * @author		GunRack
- * @version		1.0.13
+ * @version		1.0.14
  */
 
 namespace IPS\gdloadout;

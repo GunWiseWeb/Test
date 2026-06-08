@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10013;
+namespace IPS\gdloadout\setup\upg_10014;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -28,8 +28,9 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Seed all lang strings (v1.0.10 forum + v1.0.12 ACP + v1.0.13 module menu + limits editor)
+		// Seed all lang strings accumulated through v1.0.14
 		$newStrings = [
+			'menutab__gdloadout'               => 'Loadouts',
 			'gdloadout_share_forum'            => 'Loadout Share Forum',
 			'gdloadout_share_forum_desc'       => 'Select the forum where loadout shares will be posted. If no forum is selected, the Share to Forum button will be hidden.',
 			'gdloadout_share_to_forum'         => 'Share to Forum',
@@ -81,7 +82,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Reseed view template with forum share params
+		// Reseed view template
 		try
 		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
@@ -178,7 +179,7 @@ class _upgrade
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.13',
+				'template_version' => '1.0.14',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );
@@ -218,14 +219,14 @@ TEMPLATE_EOT,
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.13',
+				'template_version' => '1.0.14',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );
 		}
 		catch ( \Throwable ) {}
 
-		// Reseed limits template (editable form — must match install.php)
+		// Reseed limits template (editable form)
 		try
 		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
@@ -264,7 +265,7 @@ TEMPLATE_EOT,
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.13',
+				'template_version' => '1.0.14',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );

@@ -2,6 +2,7 @@
 
 $lang = array(
     '__app_gdloadout' => 'Loadouts',
+    'menutab__gdloadout' => 'Loadouts',
     'menutab__gdloadout_icon' => 'layer-group',
     'module__gdloadout_loadouts' => 'Loadouts',
     'module__gdloadout_manage' => 'Manage',

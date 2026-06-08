@@ -2,6 +2,7 @@
 <language>
 <app key="gdloadout">
 <word key="__app_gdloadout" js="0"><![CDATA[Loadouts]]></word>
+<word key="menutab__gdloadout" js="0"><![CDATA[Loadouts]]></word>
 <word key="menutab__gdloadout_icon" js="0"><![CDATA[layer-group]]></word>
 <word key="module__gdloadout_loadouts" js="0"><![CDATA[Loadouts]]></word>
 <word key="module__gdloadout_manage" js="0"><![CDATA[Manage]]></word>
