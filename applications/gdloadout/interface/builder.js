@@ -5,7 +5,7 @@
     if (!container) return;
 
     var initData;
-    try { initData = JSON.parse(container.getAttribute('data-init')); } catch(e) { return; }
+    try { initData = JSON.parse(container.getAttribute('data-init')); } catch(e) { console.error('gdloadout: failed to parse init data', e); return; }
 
     var loadout = initData.loadout || null;
     var existingItems = initData.items || [];

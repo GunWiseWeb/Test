@@ -1,4 +1,25 @@
-<ips:template parameters="$initData" />
+<?php
+
+namespace IPS\gdloadout\setup\upg_10003;
+
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$tpl = [
+			'template_set_id' => 1,
+			'template_app' => 'gdloadout',
+			'template_location' => 'front',
+			'template_group' => 'loadouts',
+			'template_name' => 'builder',
+			'template_data' => '$initData',
+			'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-builder" id="gdloBuilder" data-init='{$initData|raw}'>
     <div class="gdlo-builder-header">
         <h1 class="gdlo-builder-title">{lang="gdloadout_builder_title"}</h1>
@@ -60,3 +81,23 @@
         <button type="button" id="gdloDeleteBtn" class="gdlo-btn gdlo-btn--danger" style="display:none"><i class="fa-solid fa-trash"></i> {lang="gdloadout_delete"}</button>
     </div>
 </div>
+TEMPLATE_EOT,
+			'template_updated' => time(),
+			'template_version' => '1.0.3',
+		];
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', $tpl );
+		}
+		catch ( \Throwable ) {}
+
+		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

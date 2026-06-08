@@ -258,7 +258,7 @@ $templates[] = [
 	'template_name' => 'builder',
 	'template_data' => '$initData',
 	'template_content' => <<<'TEMPLATE_EOT'
-<div class="gdlo-builder" id="gdloBuilder" data-init='{$initData}'>
+<div class="gdlo-builder" id="gdloBuilder" data-init='{$initData|raw}'>
     <div class="gdlo-builder-header"><h1 class="gdlo-builder-title">{lang="gdloadout_builder_title"}</h1></div>
     <div class="gdlo-builder-body">
         <div class="gdlo-builder-meta">
