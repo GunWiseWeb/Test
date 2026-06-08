@@ -23,6 +23,26 @@ class _Slots
 		'sling'         => [ 'label' => 'Sling', 'icon' => 'fa-solid fa-link', 'color' => '#854d0e' ],
 	];
 
+	public const SLOT_CATEGORY = [
+		'base_firearm' => [ 'types' => [
+			'Handgun'  => [ 'Handguns', 'Pistols', 'Revolvers', 'Derringers', 'Single-Shot Pistols' ],
+			'Rifle'    => [ 'Rifles', 'Bolt-Action Rifles', 'Semi-Automatic Rifles', 'Lever-Action Rifles', 'Pump-Action Rifles', 'Single-Shot Rifles', 'Break-Action Rifles', 'Rimfire Rifles' ],
+			'Shotgun'  => [ 'Shotguns', 'Semi-Automatic Shotguns', 'Pump-Action Shotguns', 'Over/Under Shotguns', 'Side-by-Side Shotguns', 'Single-Shot Shotguns', 'Break-Action Shotguns' ],
+		] ],
+		'optic'        => [ 'category' => 'Optics', 'subtypes' => [
+			'Red Dot' => 'Red Dot Sights', 'LPVO' => 'LPVOs (1-6x and similar)', 'Scope' => 'Rifle Scopes',
+			'Holographic' => 'Holographic Sights', 'Prism' => 'Prism Scopes', 'Magnifier' => 'Magnifiers',
+		] ],
+		'weapon_light' => [ 'category' => 'Weapon Lights' ],
+		'laser'        => [ 'category' => 'Laser Sights' ],
+		'suppressor'   => [ 'category' => 'Suppressors' ],
+		'foregrip'     => [ 'category' => 'Foregrips & Vertical Grips' ],
+		'rail_mount'   => [ 'category' => 'Rails & Mounts' ],
+		'trigger'      => [ 'category' => 'Triggers & Trigger Groups' ],
+		'stock'        => [ 'category' => 'Stocks & Chassis' ],
+		'sling'        => [ 'category' => 'Slings & Swivels' ],
+	];
+
 	public const EXTRA_LIBRARY = [
 		'magazine'      => 'Magazine',
 		'bipod'         => 'Bipod',

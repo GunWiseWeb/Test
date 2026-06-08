@@ -119,17 +119,20 @@ class _builder extends \IPS\Dispatcher\Controller
 		$coreSlots = \IPS\gdloadout\Loadout\Slots::CORE_SLOTS;
 		$extraLib  = array_values( \IPS\gdloadout\Loadout\Slots::EXTRA_LIBRARY );
 
+		$slotCategory = \IPS\gdloadout\Loadout\Slots::SLOT_CATEGORY;
+
 		$initData = json_encode( [
-			'loadout'     => $loadout,
-			'items'       => $items,
-			'coreSlots'   => $coreSlots,
-			'extraLib'    => $extraLib,
-			'limits'      => $limits,
-			'isVip'       => $isVip,
-			'saveUrl'     => $saveUrl,
-			'deleteUrl'   => $deleteUrl,
-			'searchUrl'   => $searchUrl,
-			'csrfKey'     => $csrfKey,
+			'loadout'      => $loadout,
+			'items'        => $items,
+			'coreSlots'    => $coreSlots,
+			'extraLib'     => $extraLib,
+			'limits'       => $limits,
+			'isVip'        => $isVip,
+			'saveUrl'      => $saveUrl,
+			'deleteUrl'    => $deleteUrl,
+			'searchUrl'    => $searchUrl,
+			'csrfKey'      => $csrfKey,
+			'slotCategory' => $slotCategory,
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
@@ -336,7 +339,25 @@ class _builder extends \IPS\Dispatcher\Controller
 		$query = trim( (string) ( Request::i()->q ?? '' ) );
 		$page  = max( 1, (int) ( Request::i()->page ?? 1 ) );
 
-		if ( mb_strlen( $query ) < 2 )
+		$categoryParam = Request::i()->category ?? '';
+		$cats = [];
+		if ( \is_array( $categoryParam ) )
+		{
+			$cats = array_values( array_filter( array_map( 'trim', $categoryParam ) ) );
+		}
+		elseif ( (string) $categoryParam !== '' )
+		{
+			if ( strpos( (string) $categoryParam, ',' ) !== false )
+			{
+				$cats = array_values( array_filter( array_map( 'trim', explode( ',', (string) $categoryParam ) ) ) );
+			}
+			else
+			{
+				$cats = [ trim( (string) $categoryParam ) ];
+			}
+		}
+
+		if ( mb_strlen( $query ) < 2 && empty( $cats ) )
 		{
 			Output::i()->json( [ 'total' => 0, 'results' => [] ] );
 			return;
@@ -346,7 +367,7 @@ class _builder extends \IPS\Dispatcher\Controller
 		{
 			$matchedUpcs = [];
 
-			if ( preg_match( '/^[0-9]{8,14}$/', $query ) )
+			if ( $query !== '' && preg_match( '/^[0-9]{8,14}$/', $query ) )
 			{
 				try
 				{
@@ -356,7 +377,7 @@ class _builder extends \IPS\Dispatcher\Controller
 				catch ( \UnderflowException ) {}
 			}
 
-			if ( !$matchedUpcs )
+			if ( !$matchedUpcs && $query !== '' )
 			{
 				try
 				{
@@ -396,8 +417,14 @@ class _builder extends \IPS\Dispatcher\Controller
 				return;
 			}
 
+			$filters = [];
+			if ( $cats )
+			{
+				$filters['category'] = \count( $cats ) === 1 ? $cats[0] : $cats;
+			}
+
 			$searcher = new \IPS\gdsearch\Search\Searcher();
-			$result   = $searcher->search( $query, [], 'relevance', $page, 24 );
+			$result   = $searcher->search( $query, $filters, 'relevance', $page, 24 );
 
 			$out = [];
 			foreach ( ( $result['results'] ?? [] ) as $r )

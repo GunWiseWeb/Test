@@ -184,3 +184,29 @@
 .gdlo-breakdown-price{white-space:nowrap;font-weight:600;color:#0f172a}
 .gdlo-actions{display:flex;gap:10px;margin-top:16px}
 .gdlo-save-btn{flex:1}
+
+/* ===== Slot Picker Modal ===== */
+.gdlo-modal{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center}
+.gdlo-modal-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.5)}
+.gdlo-modal-panel{position:relative;background:#fff;border-radius:14px;width:560px;max-width:calc(100vw - 32px);max-height:calc(100vh - 64px);display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+.gdlo-modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2e8f0}
+.gdlo-modal-title{margin:0;font-size:1.1em;font-weight:700;color:#0f172a}
+.gdlo-modal-close{background:none;border:none;font-size:1.8em;line-height:1;color:#64748b;cursor:pointer;padding:0 4px}
+.gdlo-modal-types{display:flex;gap:8px;padding:14px 20px 0;flex-wrap:wrap}
+.gdlo-modal-subtypes{display:flex;gap:6px;padding:12px 20px 0;flex-wrap:wrap}
+.gdlo-modal-type-btn,.gdlo-modal-subchip{padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;cursor:pointer;font-size:.9em;font-weight:600}
+.gdlo-modal-type-btn:hover,.gdlo-modal-subchip:hover{background:#f1f5f9;border-color:#94a3b8}
+.gdlo-modal-type-btn.active,.gdlo-modal-subchip.active{background:#2563eb;border-color:#2563eb;color:#fff}
+.gdlo-modal-search{padding:14px 20px}
+.gdlo-modal-results{flex:1;overflow-y:auto;padding:0 20px 16px;display:flex;flex-direction:column;gap:8px}
+.gdlo-modal-row{display:flex;justify-content:space-between;gap:12px;padding:12px;border:1px solid #f1f5f9;border-radius:8px;cursor:pointer;transition:background .12s,border-color .12s}
+.gdlo-modal-row:hover{background:#f8fafc;border-color:#2563eb}
+.gdlo-modal-row-info{flex:1;min-width:0}
+.gdlo-modal-row-title{font-weight:600;font-size:.92em;color:#0f172a;word-break:break-word}
+.gdlo-modal-row-meta{font-size:.8em;color:#64748b;margin-top:2px}
+.gdlo-modal-row-price{font-weight:700;color:#16a34a;font-size:.92em;white-space:nowrap;flex-shrink:0}
+.gdlo-modal-row-na{color:#94a3b8;font-size:.85em;flex-shrink:0}
+.gdlo-modal-empty{padding:30px 20px;text-align:center;color:#64748b}
+@media(max-width:640px){
+  .gdlo-modal-panel{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}
+}

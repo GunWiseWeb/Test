@@ -108,5 +108,8 @@
 <word key="gdloadout_limits_max_loadouts" js="0"><![CDATA[Max Loadouts]]></word>
 <word key="gdloadout_limits_max_slots" js="0"><![CDATA[Max Slots]]></word>
 <word key="gdloadout_limits_saved" js="0"><![CDATA[Group limits saved.]]></word>
+<word key="gdloadout_modal_search" js="0"><![CDATA[Search by name, UPC, or MPN...]]></word>
+<word key="gdloadout_modal_no_products" js="0"><![CDATA[No products in this category yet — try searching by name or UPC/MPN.]]></word>
+<word key="gdloadout_modal_all" js="0"><![CDATA[All]]></word>
 </app>
 </language>

@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10014;
+namespace IPS\gdloadout\setup\upg_10015;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -28,7 +28,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Seed all lang strings accumulated through v1.0.14
+		// Seed all lang strings accumulated through v1.0.15
 		$newStrings = [
 			'menutab__gdloadout'               => 'Loadouts',
 			'gdloadout_share_forum'            => 'Loadout Share Forum',
@@ -57,6 +57,10 @@ class _upgrade
 			'gdloadout_limits_max_loadouts'    => 'Max Loadouts',
 			'gdloadout_limits_max_slots'       => 'Max Slots',
 			'gdloadout_limits_saved'           => 'Group limits saved.',
+			// v1.0.15 — slot picker modal
+			'gdloadout_modal_search'           => 'Search by name, UPC, or MPN...',
+			'gdloadout_modal_no_products'      => 'No products in this category yet — try searching by name or UPC/MPN.',
+			'gdloadout_modal_all'              => 'All',
 		];
 
 		try
@@ -79,6 +83,124 @@ class _upgrade
 					catch ( \Throwable ) {}
 				}
 			}
+		}
+		catch ( \Throwable ) {}
+
+		// Reseed builder template (now includes slot picker modal)
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id' => 1,
+				'template_app' => 'gdloadout',
+				'template_location' => 'front',
+				'template_group' => 'loadouts',
+				'template_name' => 'builder',
+				'template_data' => '$initData',
+				'template_content' => <<<'TEMPLATE_EOT'
+<script type="application/json" id="gdlo-init">{$initData|raw}</script>
+<div id="gdLoadoutBuilder">
+
+<div class="gdlo-canvas">
+
+	<div class="gdlo-left">
+		<div class="gdlo-field">
+			<input type="text" id="gdLoadoutName" placeholder="{lang="gdloadout_builder_name"}" class="gdlo-input gdlo-input--title" />
+		</div>
+		<div class="gdlo-field">
+			<textarea id="gdLoadoutDesc" placeholder="{lang="gdloadout_builder_description"}" rows="2" class="gdlo-input"></textarea>
+		</div>
+		<div class="gdlo-meta-row">
+			<select id="gdLoadoutUseCase" class="gdlo-select">
+				<option value="">-- {lang="gdloadout_builder_use_case"} --</option>
+				<option value="Home Defense">{lang="gdloadout_use_case_home_defense"}</option>
+				<option value="Concealed Carry">{lang="gdloadout_use_case_concealed_carry"}</option>
+				<option value="Hunting">{lang="gdloadout_use_case_hunting"}</option>
+				<option value="Competition">{lang="gdloadout_use_case_competition"}</option>
+				<option value="Range">{lang="gdloadout_use_case_range"}</option>
+				<option value="Tactical">{lang="gdloadout_use_case_tactical"}</option>
+				<option value="Collection">{lang="gdloadout_use_case_collection"}</option>
+			</select>
+			<select id="gdLoadoutVisibility" class="gdlo-select">
+				<option value="public">{lang="gdloadout_vis_public"}</option>
+				<option value="unlisted" selected>{lang="gdloadout_vis_unlisted"}</option>
+			</select>
+		</div>
+
+		<div id="gdHeroSlot" class="gdlo-hero-card">
+			<div class="gdlo-hero-label">{lang="gdloadout_slot_base_firearm"}</div>
+			<div class="gdlo-hero-empty">Select your base firearm</div>
+		</div>
+
+		<div class="gdlo-section-label">Core Slots <span id="gdSlotCount" style="font-weight:400;color:#64748b"></span></div>
+		<div id="gdSlotGrid" class="gdlo-slot-grid"></div>
+
+		<div class="gdlo-section-label">Extras</div>
+		<div id="gdExtraSlots" class="gdlo-slot-grid"></div>
+		<div id="gdExtraPicker" class="gdlo-picker">
+			<div id="gdExtraChips" class="gdlo-chips"></div>
+			<div class="gdlo-picker-custom" id="gdCustomWrap" style="display:none">
+				<input type="text" id="gdCustomSlotName" placeholder="Custom slot name..." class="gdlo-input gdlo-input--sm" />
+				<button type="button" id="gdAddCustomSlot" class="ipsButton ipsButton--small ipsButton--primary">Add</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="gdlo-right">
+		<div class="gdlo-sticky">
+			<div class="gdlo-panel">
+				<div class="gdlo-panel-head">Product Search</div>
+				<div class="gdlo-panel-body">
+					<input type="text" id="gdSearchInput" placeholder="{lang="gdloadout_builder_search"}" class="gdlo-input" />
+				</div>
+				<div id="gdSearchResults" class="gdlo-search-results"></div>
+			</div>
+
+			<div class="gdlo-panel">
+				<div class="gdlo-panel-head">{lang="gdloadout_builder_total_cost"}</div>
+				<div class="gdlo-summary-body">
+					<div id="gdTotalCost" class="gdlo-total-cost">$0.00</div>
+					<div id="gdTotalItems" class="gdlo-total-items">0 items</div>
+				</div>
+				<div id="gdItemBreakdown" class="gdlo-breakdown"></div>
+			</div>
+
+			<div id="gdVipNotes" class="gdlo-panel" style="display:none">
+				<div class="gdlo-panel-head">Item Notes (VIP)</div>
+				<div id="gdNotesBody" class="gdlo-panel-body"></div>
+			</div>
+
+			<div class="gdlo-actions">
+				<button type="button" id="gdSaveBtn" class="ipsButton ipsButton--primary gdlo-save-btn">{lang="gdloadout_builder_save"}</button>
+				<button type="button" id="gdDeleteBtn" class="ipsButton ipsButton--negative" style="display:none">{lang="gdloadout_builder_delete"}</button>
+			</div>
+		</div>
+	</div>
+
+</div>
+</div>
+
+<div id="gdSlotModal" class="gdlo-modal" style="display:none" role="dialog" aria-modal="true">
+  <div class="gdlo-modal-backdrop" data-close="1"></div>
+  <div class="gdlo-modal-panel">
+    <div class="gdlo-modal-head">
+      <h3 id="gdModalTitle" class="gdlo-modal-title"></h3>
+      <button type="button" class="gdlo-modal-close" data-close="1" aria-label="Close">&times;</button>
+    </div>
+    <div id="gdModalTypes" class="gdlo-modal-types"></div>
+    <div id="gdModalSubtypes" class="gdlo-modal-subtypes"></div>
+    <div class="gdlo-modal-search">
+      <input type="text" id="gdModalSearch" class="gdlo-input" placeholder="{lang="gdloadout_modal_search"}" />
+    </div>
+    <div id="gdModalResults" class="gdlo-modal-results"></div>
+    <div id="gdModalEmpty" class="gdlo-modal-empty" style="display:none">{lang="gdloadout_modal_no_products"}</div>
+  </div>
+</div>
+TEMPLATE_EOT,
+				'template_updated' => time(),
+				'template_version' => '1.0.15',
+				'template_master_key' => '',
+				'template_has_hookpoints' => 0,
+			] );
 		}
 		catch ( \Throwable ) {}
 
@@ -179,7 +301,7 @@ class _upgrade
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.14',
+				'template_version' => '1.0.15',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );
@@ -219,7 +341,7 @@ TEMPLATE_EOT,
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.14',
+				'template_version' => '1.0.15',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );
@@ -265,7 +387,7 @@ TEMPLATE_EOT,
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.14',
+				'template_version' => '1.0.15',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );

@@ -346,9 +346,26 @@ $templates[] = [
 
 </div>
 </div>
+
+<div id="gdSlotModal" class="gdlo-modal" style="display:none" role="dialog" aria-modal="true">
+  <div class="gdlo-modal-backdrop" data-close="1"></div>
+  <div class="gdlo-modal-panel">
+    <div class="gdlo-modal-head">
+      <h3 id="gdModalTitle" class="gdlo-modal-title"></h3>
+      <button type="button" class="gdlo-modal-close" data-close="1" aria-label="Close">&times;</button>
+    </div>
+    <div id="gdModalTypes" class="gdlo-modal-types"></div>
+    <div id="gdModalSubtypes" class="gdlo-modal-subtypes"></div>
+    <div class="gdlo-modal-search">
+      <input type="text" id="gdModalSearch" class="gdlo-input" placeholder="{lang="gdloadout_modal_search"}" />
+    </div>
+    <div id="gdModalResults" class="gdlo-modal-results"></div>
+    <div id="gdModalEmpty" class="gdlo-modal-empty" style="display:none">{lang="gdloadout_modal_no_products"}</div>
+  </div>
+</div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.16',
+	'template_version' => '1.0.15',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];

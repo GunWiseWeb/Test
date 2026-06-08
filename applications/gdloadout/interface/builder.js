@@ -18,6 +18,8 @@
 	var extraLib  = init.extraLib || [];
 	var items     = init.items || [];
 
+	var slotCategory = init.slotCategory || {};
+
 	var slotLabels = {
 		base_firearm: 'Base Firearm', optic: 'Optic', weapon_light: 'Weapon Light',
 		laser: 'Laser', suppressor: 'Suppressor', foregrip: 'Foregrip',
@@ -209,7 +211,7 @@
 			}
 		}
 
-		if (searchInput) searchInput.focus();
+		openSlotModal(key);
 	}
 
 	function addExtraSlot(label) {
@@ -573,6 +575,175 @@
 	function escapeAttr(str) {
 		return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 	}
+
+	// ===== Slot Picker Modal =====
+	var modalEl      = document.getElementById('gdSlotModal');
+	var modalTitle   = document.getElementById('gdModalTitle');
+	var modalTypes   = document.getElementById('gdModalTypes');
+	var modalSubs    = document.getElementById('gdModalSubtypes');
+	var modalSearch  = document.getElementById('gdModalSearch');
+	var modalResults = document.getElementById('gdModalResults');
+	var modalEmpty   = document.getElementById('gdModalEmpty');
+	var modalTimer   = null;
+	var modalCategory = [];
+
+	function openSlotModal(key) {
+		if (!modalEl) { if (searchInput) searchInput.focus(); return; }
+
+		activeSlotKey = key;
+		var label = slotLabels[key] || (slots[key] && slots[key].custom_label) || key;
+		if (modalTitle) modalTitle.textContent = label;
+		if (modalSearch) modalSearch.value = '';
+		if (modalResults) modalResults.innerHTML = '';
+		if (modalEmpty) modalEmpty.style.display = 'none';
+		if (modalTypes) modalTypes.innerHTML = '';
+		if (modalSubs) modalSubs.innerHTML = '';
+		modalCategory = [];
+
+		var catInfo = slotCategory[key];
+
+		if (catInfo && catInfo.types) {
+			var typeKeys = Object.keys(catInfo.types);
+			typeKeys.forEach(function (typeName) {
+				var btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'gdlo-modal-type-btn';
+				btn.textContent = typeName;
+				btn.addEventListener('click', function () {
+					var btns = modalTypes.querySelectorAll('.gdlo-modal-type-btn');
+					for (var b = 0; b < btns.length; b++) btns[b].classList.remove('active');
+					btn.classList.add('active');
+					modalCategory = catInfo.types[typeName];
+					loadModalResults();
+				});
+				modalTypes.appendChild(btn);
+			});
+			var firstBtn = modalTypes.querySelector('.gdlo-modal-type-btn');
+			if (firstBtn) {
+				firstBtn.classList.add('active');
+				modalCategory = catInfo.types[typeKeys[0]];
+			}
+			modalTypes.style.display = '';
+			if (modalSubs) modalSubs.style.display = 'none';
+		} else if (catInfo && catInfo.subtypes) {
+			if (modalTypes) modalTypes.style.display = 'none';
+			var allChip = document.createElement('button');
+			allChip.type = 'button';
+			allChip.className = 'gdlo-modal-subchip active';
+			allChip.textContent = 'All';
+			allChip.addEventListener('click', function () {
+				var chips = modalSubs.querySelectorAll('.gdlo-modal-subchip');
+				for (var c = 0; c < chips.length; c++) chips[c].classList.remove('active');
+				allChip.classList.add('active');
+				modalCategory = [catInfo.category];
+				loadModalResults();
+			});
+			modalSubs.appendChild(allChip);
+
+			Object.keys(catInfo.subtypes).forEach(function (subLabel) {
+				var chip = document.createElement('button');
+				chip.type = 'button';
+				chip.className = 'gdlo-modal-subchip';
+				chip.textContent = subLabel;
+				chip.addEventListener('click', function () {
+					var chips = modalSubs.querySelectorAll('.gdlo-modal-subchip');
+					for (var c = 0; c < chips.length; c++) chips[c].classList.remove('active');
+					chip.classList.add('active');
+					modalCategory = [catInfo.subtypes[subLabel]];
+					loadModalResults();
+				});
+				modalSubs.appendChild(chip);
+			});
+
+			modalCategory = [catInfo.category];
+			modalSubs.style.display = '';
+		} else if (catInfo && catInfo.category) {
+			if (modalTypes) modalTypes.style.display = 'none';
+			if (modalSubs) modalSubs.style.display = 'none';
+			modalCategory = [catInfo.category];
+		} else {
+			if (modalTypes) modalTypes.style.display = 'none';
+			if (modalSubs) modalSubs.style.display = 'none';
+			modalCategory = [];
+		}
+
+		modalEl.style.display = '';
+		document.body.style.overflow = 'hidden';
+		loadModalResults();
+		if (modalSearch) setTimeout(function () { modalSearch.focus(); }, 100);
+	}
+
+	function closeSlotModal() {
+		if (!modalEl) return;
+		modalEl.style.display = 'none';
+		document.body.style.overflow = '';
+	}
+
+	function loadModalResults() {
+		if (!modalResults) return;
+		var q = modalSearch ? modalSearch.value.trim() : '';
+
+		modalResults.innerHTML = '<div class="gdlo-modal-row" style="justify-content:center;border:none;cursor:default"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+		if (modalEmpty) modalEmpty.style.display = 'none';
+
+		var catStr = '';
+		if (modalCategory.length === 1) catStr = modalCategory[0];
+		else if (modalCategory.length > 1) catStr = modalCategory.join(',');
+
+		var url = searchUrl + (searchUrl.indexOf('?') > -1 ? '&' : '?') + 'q=' + encodeURIComponent(q);
+		if (catStr) url += '&category=' + encodeURIComponent(catStr);
+
+		fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+			.then(function (resp) { return resp.json(); })
+			.then(function (data) {
+				modalResults.innerHTML = '';
+				if (!data.results || data.results.length === 0) {
+					if (modalEmpty) modalEmpty.style.display = '';
+					return;
+				}
+				if (modalEmpty) modalEmpty.style.display = 'none';
+
+				data.results.forEach(function (r) {
+					var row = document.createElement('div');
+					row.className = 'gdlo-modal-row';
+					row.innerHTML = '<div class="gdlo-modal-row-info">'
+						+ '<div class="gdlo-modal-row-title">' + escapeHtml(r.title || r.upc) + '</div>'
+						+ '<div class="gdlo-modal-row-meta">' + escapeHtml(r.brand || '') + (r.caliber ? ' &middot; ' + escapeHtml(r.caliber) : '') + (r.dealer_count > 0 ? ' &middot; ' + r.dealer_count + ' dealer' + (r.dealer_count !== 1 ? 's' : '') : '') + '</div>'
+						+ '</div>'
+						+ (r.best_price ? '<div class="gdlo-modal-row-price">$' + parseFloat(r.best_price).toFixed(2) + '</div>' : '<div class="gdlo-modal-row-na">N/A</div>');
+
+					row.addEventListener('click', function () {
+						assignProduct(r);
+						closeSlotModal();
+					});
+					modalResults.appendChild(row);
+				});
+			})
+			.catch(function () {
+				modalResults.innerHTML = '<div class="gdlo-modal-empty" style="color:#dc2626">Search error — please try again.</div>';
+			});
+	}
+
+	if (modalSearch) {
+		modalSearch.addEventListener('input', function () {
+			clearTimeout(modalTimer);
+			modalTimer = setTimeout(function () { loadModalResults(); }, 300);
+		});
+	}
+
+	if (modalEl) {
+		modalEl.addEventListener('click', function (e) {
+			if (e.target.dataset.close === '1' || e.target.closest('[data-close="1"]')) {
+				closeSlotModal();
+			}
+		});
+	}
+
+	document.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape' && modalEl && modalEl.style.display !== 'none') {
+			closeSlotModal();
+		}
+	});
 
 	initCoreSlots();
 	initExtraSlots();

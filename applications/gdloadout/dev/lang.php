@@ -108,4 +108,7 @@ $lang = array(
     'gdloadout_limits_max_loadouts' => 'Max Loadouts',
     'gdloadout_limits_max_slots' => 'Max Slots',
     'gdloadout_limits_saved' => 'Group limits saved.',
+    'gdloadout_modal_search' => 'Search by name, UPC, or MPN...',
+    'gdloadout_modal_no_products' => 'No products in this category yet — try searching by name or UPC/MPN.',
+    'gdloadout_modal_all' => 'All',
 );
