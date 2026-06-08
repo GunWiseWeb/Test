@@ -1,4 +1,25 @@
-<ips:template parameters="$initData" />
+<?php
+
+namespace IPS\gdloadout\setup\upg_10004;
+
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$tpl = [
+			'template_set_id' => 1,
+			'template_app' => 'gdloadout',
+			'template_location' => 'front',
+			'template_group' => 'loadouts',
+			'template_name' => 'builder',
+			'template_data' => '$initData',
+			'template_content' => <<<'TEMPLATE_EOT'
 <script type="application/json" id="gdlo-init">{$initData|raw}</script>
 <div id="gdLoadoutBuilder">
 
@@ -83,3 +104,23 @@
 
 </div>
 </div>
+TEMPLATE_EOT,
+			'template_updated' => time(),
+			'template_version' => '1.0.4',
+		];
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', $tpl );
+		}
+		catch ( \Throwable ) {}
+
+		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

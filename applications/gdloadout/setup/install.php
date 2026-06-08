@@ -258,24 +258,89 @@ $templates[] = [
 	'template_name' => 'builder',
 	'template_data' => '$initData',
 	'template_content' => <<<'TEMPLATE_EOT'
-<div class="gdlo-builder" id="gdloBuilder" data-init='{$initData|raw}'>
-    <div class="gdlo-builder-header"><h1 class="gdlo-builder-title">{lang="gdloadout_builder_title"}</h1></div>
-    <div class="gdlo-builder-body">
-        <div class="gdlo-builder-meta">
-            <div class="gdlo-builder-field"><label for="gdloName">{lang="gdloadout_name"}</label><input type="text" id="gdloName" class="gdlo-input" maxlength="100" placeholder="{lang="gdloadout_name_placeholder"}" /></div>
-            <div class="gdlo-builder-field"><label for="gdloDesc">{lang="gdloadout_description"}</label><textarea id="gdloDesc" class="gdlo-input" rows="2" maxlength="500" placeholder="{lang="gdloadout_desc_placeholder"}"></textarea></div>
-            <div class="gdlo-builder-row">
-                <div class="gdlo-builder-field"><label for="gdloUseCase">{lang="gdloadout_use_case"}</label><select id="gdloUseCase" class="gdlo-input"><option value="">{lang="gdloadout_select_use_case"}</option><option value="Home Defense">Home Defense</option><option value="Concealed Carry">Concealed Carry</option><option value="Competition">Competition</option><option value="Hunting">Hunting</option><option value="Long Range">Long Range</option><option value="Plinking">Plinking</option><option value="Duty">Duty</option><option value="Bug Out">Bug Out</option><option value="Custom">Custom</option></select></div>
-                <div class="gdlo-builder-field"><label for="gdloVisibility">{lang="gdloadout_visibility"}</label><select id="gdloVisibility" class="gdlo-input"><option value="public">{lang="gdloadout_public"}</option><option value="unlisted">{lang="gdloadout_unlisted"}</option><option value="private">{lang="gdloadout_private"}</option></select></div>
-            </div>
-        </div>
-        <div class="gdlo-builder-search"><label>{lang="gdloadout_search_products"}</label><div class="gdlo-builder-search-box"><input type="text" id="gdloSearch" class="gdlo-input" placeholder="{lang="gdloadout_search_placeholder"}" /><button type="button" id="gdloSearchBtn" class="gdlo-btn gdlo-btn--primary gdlo-btn--sm"><i class="fa-solid fa-search"></i></button></div><div id="gdloSearchResults" class="gdlo-builder-results"></div></div>
-        <div class="gdlo-builder-slots" id="gdloSlots"><h3>{lang="gdloadout_your_items"}</h3><div id="gdloSlotList" class="gdlo-builder-slot-list"></div></div>
-    </div>
-    <div class="gdlo-builder-footer">
-        <button type="button" id="gdloSaveBtn" class="gdlo-btn gdlo-btn--primary"><i class="fa-solid fa-floppy-disk"></i> {lang="gdloadout_save"}</button>
-        <button type="button" id="gdloDeleteBtn" class="gdlo-btn gdlo-btn--danger" style="display:none"><i class="fa-solid fa-trash"></i> {lang="gdloadout_delete"}</button>
-    </div>
+<script type="application/json" id="gdlo-init">{$initData|raw}</script>
+<div id="gdLoadoutBuilder">
+
+<div class="gdlo-canvas">
+
+	<div class="gdlo-left">
+		<div class="gdlo-field">
+			<input type="text" id="gdLoadoutName" placeholder="{lang="gdloadout_builder_name"}" class="gdlo-input gdlo-input--title" />
+		</div>
+		<div class="gdlo-field">
+			<textarea id="gdLoadoutDesc" placeholder="{lang="gdloadout_builder_description"}" rows="2" class="gdlo-input"></textarea>
+		</div>
+		<div class="gdlo-meta-row">
+			<select id="gdLoadoutUseCase" class="gdlo-select">
+				<option value="">-- {lang="gdloadout_builder_use_case"} --</option>
+				<option value="Home Defense">{lang="gdloadout_use_case_home_defense"}</option>
+				<option value="Concealed Carry">{lang="gdloadout_use_case_concealed_carry"}</option>
+				<option value="Hunting">{lang="gdloadout_use_case_hunting"}</option>
+				<option value="Competition">{lang="gdloadout_use_case_competition"}</option>
+				<option value="Range">{lang="gdloadout_use_case_range"}</option>
+				<option value="Tactical">{lang="gdloadout_use_case_tactical"}</option>
+				<option value="Collection">{lang="gdloadout_use_case_collection"}</option>
+			</select>
+			<select id="gdLoadoutVisibility" class="gdlo-select">
+				<option value="public">{lang="gdloadout_vis_public"}</option>
+				<option value="unlisted" selected>{lang="gdloadout_vis_unlisted"}</option>
+			</select>
+		</div>
+
+		<div id="gdHeroSlot" class="gdlo-hero-card">
+			<div class="gdlo-hero-label">{lang="gdloadout_slot_base_firearm"}</div>
+			<div class="gdlo-hero-empty">Select your base firearm</div>
+		</div>
+
+		<div class="gdlo-section-label">Core Slots <span id="gdSlotCount" style="font-weight:400;color:#64748b"></span></div>
+		<div id="gdSlotGrid" class="gdlo-slot-grid"></div>
+
+		<div class="gdlo-section-label">Extras</div>
+		<div id="gdExtraSlots" class="gdlo-extra-slots"></div>
+		<button type="button" id="gdAddExtra" class="ipsButton ipsButton--small ipsButton--light gdlo-add-extra">{lang="gdloadout_builder_add_extra"}</button>
+
+		<div id="gdExtraPicker" class="gdlo-picker" style="display:none">
+			<div class="gdlo-picker-title">Add Slot</div>
+			<div id="gdExtraChips" class="gdlo-chips"></div>
+			<div class="gdlo-picker-custom">
+				<input type="text" id="gdCustomSlotName" placeholder="Custom slot name..." class="gdlo-input gdlo-input--sm" />
+				<button type="button" id="gdAddCustomSlot" class="ipsButton ipsButton--small ipsButton--primary">Add</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="gdlo-right">
+		<div class="gdlo-sticky">
+			<div class="gdlo-panel">
+				<div class="gdlo-panel-head">Product Search</div>
+				<div class="gdlo-panel-body">
+					<input type="text" id="gdSearchInput" placeholder="{lang="gdloadout_builder_search"}" class="gdlo-input" />
+				</div>
+				<div id="gdSearchResults" class="gdlo-search-results"></div>
+			</div>
+
+			<div class="gdlo-panel">
+				<div class="gdlo-panel-head">{lang="gdloadout_builder_total_cost"}</div>
+				<div class="gdlo-summary-body">
+					<div id="gdTotalCost" class="gdlo-total-cost">$0.00</div>
+					<div id="gdTotalItems" class="gdlo-total-items">0 items</div>
+				</div>
+				<div id="gdItemBreakdown" class="gdlo-breakdown"></div>
+			</div>
+
+			<div id="gdVipNotes" class="gdlo-panel" style="display:none">
+				<div class="gdlo-panel-head">Item Notes (VIP)</div>
+				<div id="gdNotesBody" class="gdlo-panel-body"></div>
+			</div>
+
+			<div class="gdlo-actions">
+				<button type="button" id="gdSaveBtn" class="ipsButton ipsButton--primary gdlo-save-btn">{lang="gdloadout_builder_save"}</button>
+				<button type="button" id="gdDeleteBtn" class="ipsButton ipsButton--negative" style="display:none">{lang="gdloadout_builder_delete"}</button>
+			</div>
+		</div>
+	</div>
+
+</div>
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),

@@ -120,3 +120,62 @@
 .gdlo-builder-row{display:flex;justify-content:space-between;gap:10px;padding:10px;border-radius:8px;cursor:pointer;border:1px solid #f1f5f9;transition:background .12s}
 .gdlo-builder-row:hover{background:#f8fafc}
 .gdlo-builder-footer{margin-top:20px;display:flex;gap:10px;justify-content:flex-end}
+
+/* ===== Slot-grid builder (restored) ===== */
+.gdlo-canvas{display:flex;gap:24px;flex-wrap:wrap;padding:16px;color:#1e293b}
+.gdlo-left{flex:2;min-width:320px}
+.gdlo-right{flex:1;min-width:280px}
+.gdlo-sticky{position:sticky;top:80px}
+.gdlo-field{margin-bottom:16px}
+.gdlo-input--title{font-size:1.25em;font-weight:600}
+.gdlo-input--sm{flex:1;padding:6px 10px;border-radius:4px}
+.gdlo-meta-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.gdlo-select{padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;flex:1;min-width:120px;background:#fff;color:#1e293b}
+.gdlo-select:focus{outline:none;border-color:#2563eb}
+.gdlo-section-label{font-weight:700;font-size:.85em;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin-bottom:10px}
+.gdlo-slot-count{color:#64748b;font-weight:600;margin-left:6px}
+.gdlo-hero-card{border:2px solid #e2e8f0;border-radius:10px;padding:18px;margin-bottom:20px;background:#fff;cursor:pointer;transition:border-color .2s}
+.gdlo-hero-card:hover{border-color:#2563eb}
+.gdlo-hero-card--active{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.gdlo-hero-card--filled{border-color:#dc2626}
+.gdlo-hero-label{font-size:.75em;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:6px}
+.gdlo-hero-empty{color:#94a3b8;font-size:.95em}
+.gdlo-hero-title{font-weight:700;color:#0f172a;font-size:1.1em}
+.gdlo-hero-price{font-weight:600;color:#16a34a;font-size:.95em;margin-top:4px}
+.gdlo-slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px}
+.gdlo-slot-card{border:1px solid #e2e8f0;border-radius:8px;padding:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s;background:#fff;position:relative;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.gdlo-slot-card:hover{border-color:#2563eb}
+.gdlo-slot-card--active{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.gdlo-slot-card--filled{border-color:#16a34a}
+.gdlo-slot-label{font-size:.7em;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;font-weight:700}
+.gdlo-slot-title{font-weight:600;font-size:.85em;color:#0f172a;word-break:break-word}
+.gdlo-slot-price{font-size:.8em;color:#16a34a;font-weight:600;margin-top:3px}
+.gdlo-slot-remove{position:absolute;top:4px;right:6px;border:none;background:none;color:#dc2626;font-size:1.2em;cursor:pointer;padding:2px 5px;line-height:1}
+.gdlo-slot-empty-icon{font-size:1.4em;margin-bottom:6px;opacity:.5}
+.gdlo-slot-empty-label{font-size:.75em;color:#64748b;margin-bottom:4px}
+.gdlo-slot-empty-add{font-size:.72em;color:#2563eb;font-weight:600}
+.gdlo-extra-slots{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.gdlo-add-extra{margin-bottom:20px}
+.gdlo-picker{border:1px dashed #cbd5e1;border-radius:8px;padding:16px;margin-bottom:20px;background:#f8fafc}
+.gdlo-picker-title{font-weight:600;margin-bottom:8px;color:#0f172a}
+.gdlo-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.gdlo-chip{padding:5px 12px;border:1px solid #e2e8f0;border-radius:999px;font-size:.82em;cursor:pointer;background:#fff;color:#334155;transition:all .12s}
+.gdlo-chip:hover{background:#2563eb;color:#fff;border-color:#2563eb}
+.gdlo-picker-custom{display:flex;gap:8px}
+.gdlo-panel{border:1px solid #e2e8f0;border-radius:8px;background:#fff;overflow:hidden;margin-bottom:16px}
+.gdlo-panel-head{padding:14px 16px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:.04em;font-size:.85em;background:#f8fafc}
+.gdlo-panel-body{padding:12px 16px}
+.gdlo-search-results{max-height:300px;overflow-y:auto;padding:0 16px 12px}
+.gdlo-search-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .1s}
+.gdlo-search-row:hover{background:#f8fafc}
+.gdlo-search-name{font-weight:500;color:#0f172a;font-size:.9em}
+.gdlo-search-price{font-weight:600;color:#16a34a;font-size:.85em}
+.gdlo-summary-body{padding:16px;text-align:center}
+.gdlo-total-cost{font-size:2em;font-weight:700;color:#16a34a}
+.gdlo-total-items{font-size:.85em;color:#64748b;margin-top:4px}
+.gdlo-breakdown{border-top:1px solid #e2e8f0;padding:12px 16px;font-size:.85em}
+.gdlo-breakdown-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f1f5f9;color:#334155}
+.gdlo-breakdown-name{word-break:break-word}
+.gdlo-breakdown-price{white-space:nowrap;font-weight:600;color:#0f172a}
+.gdlo-actions{display:flex;gap:10px;margin-top:16px}
+.gdlo-save-btn{flex:1}
