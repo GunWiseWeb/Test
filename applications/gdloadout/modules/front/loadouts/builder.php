@@ -75,6 +75,21 @@ class _builder extends \IPS\Dispatcher\Controller
 				$loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=? AND member_id=?', $editId, (int) $member->member_id ] )->first();
 				foreach ( Db::i()->select( '*', 'gd_loadout_items', [ 'loadout_id=?', $editId ], 'sort_order ASC' ) as $item )
 				{
+					if ( !empty( $item['upc'] ) )
+					{
+						try
+						{
+							$cat = Db::i()->select( 'title, brand', 'gd_catalog', [ 'upc=?', $item['upc'] ] )->first();
+							$item['title'] = $cat['title'] ?? '';
+							$item['brand'] = $cat['brand'] ?? '';
+						}
+						catch ( \UnderflowException ) { $item['title'] = ''; }
+						try
+						{
+							$item['price_snapshot'] = (float) Db::i()->select( 'MIN(dealer_price)', 'gd_dealer_listings', [ 'upc=? AND listing_status=?', $item['upc'], 'active' ] )->first();
+						}
+						catch ( \Throwable ) { $item['price_snapshot'] = null; }
+					}
 					$items[] = $item;
 				}
 			}

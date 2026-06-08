@@ -94,7 +94,8 @@
 			}
 			if (existingItem) {
 				slots[key].upc   = existingItem.upc || '';
-				slots[key].title = existingItem.custom_label || slotLabels[key] || key;
+				slots[key].title = existingItem.title || existingItem.custom_label || slotLabels[key] || key;
+				slots[key].price = (existingItem.price_snapshot !== undefined && existingItem.price_snapshot !== null) ? existingItem.price_snapshot : null;
 				if (existingItem.notes) {
 					itemNotes[key] = existingItem.notes;
 				}
@@ -260,8 +261,8 @@
 				var lastKey = 'extra_' + extraCounter;
 				if (slots[lastKey]) {
 					slots[lastKey].upc   = items[i].upc || '';
-					slots[lastKey].title  = items[i].custom_label || 'Extra';
-					slots[lastKey].price  = items[i].price_snapshot || null;
+					slots[lastKey].title = items[i].title || items[i].custom_label || 'Extra';
+					slots[lastKey].price = (items[i].price_snapshot !== undefined && items[i].price_snapshot !== null) ? items[i].price_snapshot : null;
 					if (items[i].notes) {
 						itemNotes[lastKey] = items[i].notes;
 					}
@@ -283,10 +284,18 @@
 			chip.textContent = name;
 			chip.addEventListener('click', function () {
 				addExtraSlot(name);
-				extraPicker.style.display = 'none';
 			});
 			extraChips.appendChild(chip);
 		});
+		var customChip = document.createElement('button');
+		customChip.type = 'button';
+		customChip.className = 'gdlo-chip gdlo-chip--custom';
+		customChip.textContent = 'Custom…';
+		customChip.addEventListener('click', function () {
+			var wrap = document.getElementById('gdCustomWrap');
+			if (wrap) wrap.style.display = wrap.style.display === 'none' ? 'flex' : 'none';
+		});
+		extraChips.appendChild(customChip);
 	}
 
 	if (addExtraBtn) {
@@ -301,7 +310,8 @@
 			if (val) {
 				addExtraSlot(val);
 				customInput.value = '';
-				extraPicker.style.display = 'none';
+				var wrap = document.getElementById('gdCustomWrap');
+				if (wrap) wrap.style.display = 'none';
 			}
 		});
 	}

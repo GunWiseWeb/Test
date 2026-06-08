@@ -155,12 +155,17 @@
 .gdlo-slot-empty-label{font-size:.75em;color:#64748b;margin-bottom:4px}
 .gdlo-slot-empty-add{font-size:.72em;color:#2563eb;font-weight:600}
 .gdlo-extra-slots{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.gdlo-extra-card{border:1px solid #e2e8f0;border-radius:8px;padding:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s;background:#fff;position:relative;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.gdlo-extra-card:hover{border-color:#2563eb}
+.gdlo-extra-card.gdlo-slot-card--active{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.gdlo-extra-card.gdlo-slot-card--filled{border-left:4px solid #2980b9}
 .gdlo-add-extra{margin-bottom:20px}
 .gdlo-picker{border:1px dashed #cbd5e1;border-radius:8px;padding:16px;margin-bottom:20px;background:#f8fafc}
 .gdlo-picker-title{font-weight:600;margin-bottom:8px;color:#0f172a}
 .gdlo-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.gdlo-chip{padding:5px 12px;border:1px solid #e2e8f0;border-radius:999px;font-size:.82em;cursor:pointer;background:#fff;color:#334155;transition:all .12s}
-.gdlo-chip:hover{background:#2563eb;color:#fff;border-color:#2563eb}
+.gdlo-chip{padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;cursor:pointer;font-size:.9em;font-weight:600;transition:all .12s}
+.gdlo-chip:hover{background:#f1f5f9;border-color:#2563eb}
+.gdlo-chip--custom{border-style:dashed;color:#64748b}
 .gdlo-picker-custom{display:flex;gap:8px}
 .gdlo-panel{border:1px solid #e2e8f0;border-radius:8px;background:#fff;overflow:hidden;margin-bottom:16px}
 .gdlo-panel-head{padding:14px 16px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:.04em;font-size:.85em;background:#f8fafc}

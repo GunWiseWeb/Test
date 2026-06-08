@@ -296,13 +296,10 @@ $templates[] = [
 		<div id="gdSlotGrid" class="gdlo-slot-grid"></div>
 
 		<div class="gdlo-section-label">Extras</div>
-		<div id="gdExtraSlots" class="gdlo-extra-slots"></div>
-		<button type="button" id="gdAddExtra" class="ipsButton ipsButton--small ipsButton--light gdlo-add-extra">{lang="gdloadout_builder_add_extra"}</button>
-
-		<div id="gdExtraPicker" class="gdlo-picker" style="display:none">
-			<div class="gdlo-picker-title">Add Slot</div>
+		<div id="gdExtraSlots" class="gdlo-slot-grid"></div>
+		<div id="gdExtraPicker" class="gdlo-picker">
 			<div id="gdExtraChips" class="gdlo-chips"></div>
-			<div class="gdlo-picker-custom">
+			<div class="gdlo-picker-custom" id="gdCustomWrap" style="display:none">
 				<input type="text" id="gdCustomSlotName" placeholder="Custom slot name..." class="gdlo-input gdlo-input--sm" />
 				<button type="button" id="gdAddCustomSlot" class="ipsButton ipsButton--small ipsButton--primary">Add</button>
 			</div>
