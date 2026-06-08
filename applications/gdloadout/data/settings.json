@@ -1,1 +1,7 @@
-{"gdloadout_share_forum": "0"}
+[
+    {
+        "key": "gdloadout_share_forum",
+        "default": "0",
+        "report": "none"
+    }
+]

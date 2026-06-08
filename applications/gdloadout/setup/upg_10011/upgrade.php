@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10010;
+namespace IPS\gdloadout\setup\upg_10011;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -12,7 +12,7 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		// Seed gdloadout_share_forum setting
+		// Seed gdloadout_share_forum setting (idempotent)
 		try
 		{
 			$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_sys_conf_settings', [ 'conf_key=?', 'gdloadout_share_forum' ] )->first();
@@ -28,7 +28,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Seed new lang strings (rule #43: 6 columns only)
+		// Seed lang strings (rule #43: 6 columns only, rule #44: per-row try/catch)
 		$newStrings = [
 			'gdloadout_share_forum'            => 'Loadout Share Forum',
 			'gdloadout_share_forum_desc'       => 'Select the forum where loadout shares will be posted. If no forum is selected, the Share to Forum button will be hidden.',
@@ -66,7 +66,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Reseed view template with new parameters (rule #52: upgrade must match install)
+		// Reseed view template (rule #52: upgrade must match install)
 		try
 		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
@@ -163,7 +163,7 @@ class _upgrade
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.10',
+				'template_version' => '1.0.11',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );
@@ -203,7 +203,7 @@ TEMPLATE_EOT,
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.10',
+				'template_version' => '1.0.11',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );
