@@ -69,6 +69,9 @@
 <word key="gdloadout_builder_add_extra" js="0"><![CDATA[+ Add Extra Slot]]></word>
 <word key="gdloadout_builder_total_cost" js="0"><![CDATA[Est. Build Cost]]></word>
 <word key="gdloadout_slot_base_firearm" js="0"><![CDATA[Base Firearm]]></word>
+<word key="gdloadout_slot_rail_mount" js="0"><![CDATA[Rail / Mount]]></word>
+<word key="gdloadout_slot_trigger" js="0"><![CDATA[Trigger]]></word>
+<word key="gdloadout_slot_stock" js="0"><![CDATA[Stock]]></word>
 <word key="gdloadout_use_case_home_defense" js="0"><![CDATA[Home Defense]]></word>
 <word key="gdloadout_use_case_concealed_carry" js="0"><![CDATA[Concealed Carry]]></word>
 <word key="gdloadout_use_case_hunting" js="0"><![CDATA[Hunting]]></word>

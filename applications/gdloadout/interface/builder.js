@@ -21,7 +21,7 @@
 	var slotLabels = {
 		base_firearm: 'Base Firearm', optic: 'Optic', weapon_light: 'Weapon Light',
 		laser: 'Laser', suppressor: 'Suppressor', foregrip: 'Foregrip',
-		sling: 'Sling', holster: 'Holster', ammo: 'Ammo', cleaning: 'Cleaning'
+		rail_mount: 'Rail / Mount', trigger: 'Trigger', stock: 'Stock', sling: 'Sling'
 	};
 
 	var nameInput   = document.getElementById('gdLoadoutName');

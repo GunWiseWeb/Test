@@ -278,7 +278,7 @@ class _builder extends \IPS\Dispatcher\Controller
 			] );
 		}
 
-		$validSlotTypes = [ 'base_firearm', 'optic', 'weapon_light', 'laser', 'suppressor', 'foregrip', 'sling', 'holster', 'ammo', 'cleaning', 'extra' ];
+		$validSlotTypes = [ 'base_firearm', 'optic', 'weapon_light', 'laser', 'suppressor', 'foregrip', 'rail_mount', 'trigger', 'stock', 'sling', 'holster', 'ammo', 'cleaning', 'extra' ];
 		$totalCost = 0; $totalItems = 0; $order = 0;
 
 		foreach ( $slots as $slot )

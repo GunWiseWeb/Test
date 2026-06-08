@@ -17,24 +17,24 @@ class _Slots
 		'laser'         => [ 'label' => 'Laser', 'icon' => 'fa-solid fa-bolt', 'color' => '#dc2626' ],
 		'suppressor'    => [ 'label' => 'Suppressor', 'icon' => 'fa-solid fa-volume-xmark', 'color' => '#6b7280' ],
 		'foregrip'      => [ 'label' => 'Foregrip', 'icon' => 'fa-solid fa-hand-fist', 'color' => '#78716c' ],
+		'rail_mount'    => [ 'label' => 'Rail / Mount', 'icon' => 'fa-solid fa-grip-lines', 'color' => '#0891b2' ],
+		'trigger'       => [ 'label' => 'Trigger', 'icon' => 'fa-solid fa-hand-pointer', 'color' => '#be123c' ],
+		'stock'         => [ 'label' => 'Stock', 'icon' => 'fa-solid fa-grip', 'color' => '#7c3aed' ],
 		'sling'         => [ 'label' => 'Sling', 'icon' => 'fa-solid fa-link', 'color' => '#854d0e' ],
-		'holster'       => [ 'label' => 'Holster', 'icon' => 'fa-solid fa-briefcase', 'color' => '#7c3aed' ],
-		'ammo'          => [ 'label' => 'Ammo', 'icon' => 'fa-solid fa-cubes', 'color' => '#b45309' ],
-		'cleaning'      => [ 'label' => 'Cleaning', 'icon' => 'fa-solid fa-spray-can-sparkles', 'color' => '#0d9488' ],
 	];
 
 	public const EXTRA_LIBRARY = [
-		'magazine'         => 'Magazine',
-		'bipod'            => 'Bipod',
-		'muzzle_brake'     => 'Muzzle Brake',
-		'stock'            => 'Stock',
-		'trigger'          => 'Trigger',
-		'rail_mount'       => 'Rail / Mount',
-		'case'             => 'Case',
-		'ear_pro'          => 'Ear Protection',
-		'eye_pro'          => 'Eye Protection',
-		'targets'          => 'Targets',
-		'range_bag'        => 'Range Bag',
+		'magazine'      => 'Magazine',
+		'bipod'         => 'Bipod',
+		'muzzle_brake'  => 'Muzzle Brake',
+		'holster'       => 'Holster',
+		'ammo'          => 'Ammo',
+		'cleaning'      => 'Cleaning',
+		'case'          => 'Case',
+		'ear_pro'       => 'Ear Protection',
+		'eye_pro'       => 'Eye Protection',
+		'targets'       => 'Targets',
+		'range_bag'     => 'Range Bag',
 	];
 }
 
