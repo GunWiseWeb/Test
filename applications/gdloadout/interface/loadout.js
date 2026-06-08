@@ -18,12 +18,15 @@
     var hasFollowed = initData.hasFollowed || false;
     var isLoggedIn = initData.isLoggedIn || false;
 
+    var shareUrl = initData.shareUrl || '';
+
     var upvoteBtn = document.getElementById('gdloUpvoteBtn');
     var upvoteCount = document.getElementById('gdloUpvoteCount');
     var followBtn = document.getElementById('gdloFollowBtn');
     var followCount = document.getElementById('gdloFollowCount');
     var wishlistBtn = document.getElementById('gdloWishlistBtn');
     var alertBtn = document.getElementById('gdloAlertBtn');
+    var shareForumBtn = document.getElementById('gdloShareForumBtn');
     var commentText = document.getElementById('gdloCommentText');
     var commentSubmit = document.getElementById('gdloCommentSubmit');
     var commentList = document.getElementById('gdloCommentList');
@@ -83,6 +86,28 @@
                 if (data.ok) {
                     alertBtn.textContent = 'Alerts set for ' + data.set + ' items';
                     alertBtn.disabled = true;
+                }
+            });
+        });
+    }
+
+    if (shareForumBtn && shareUrl) {
+        shareForumBtn.addEventListener('click', function() {
+            if (shareForumBtn.disabled) return;
+            shareForumBtn.disabled = true;
+            shareForumBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sharing...';
+            postAction(shareUrl, null, function(data) {
+                if (data.ok && data.topic_url) {
+                    var link = document.createElement('a');
+                    link.href = data.topic_url;
+                    link.className = 'gdlo-btn gdlo-btn--secondary gdlo-btn--full';
+                    link.target = '_blank';
+                    link.innerHTML = '<i class="fa-solid fa-comments"></i> View Discussion';
+                    shareForumBtn.parentNode.replaceChild(link, shareForumBtn);
+                } else {
+                    shareForumBtn.disabled = false;
+                    shareForumBtn.innerHTML = '<i class="fa-solid fa-share"></i> Share to Forum';
+                    alert(data.error || 'Failed to share');
                 }
             });
         });

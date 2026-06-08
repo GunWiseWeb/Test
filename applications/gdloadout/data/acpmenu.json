@@ -11,6 +11,12 @@
 			"controller": "featured",
 			"do": "",
 			"restriction": "featured_manage"
+		},
+		"settings": {
+			"tab": "gdloadout",
+			"controller": "settings",
+			"do": "",
+			"restriction": "settings_manage"
 		}
 	}
 }

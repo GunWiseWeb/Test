@@ -81,5 +81,16 @@
 <word key="gdloadout_use_case_collection" js="0"><![CDATA[Collection]]></word>
 <word key="gdloadout_vis_public" js="0"><![CDATA[Public]]></word>
 <word key="gdloadout_vis_unlisted" js="0"><![CDATA[Unlisted]]></word>
+<word key="gdloadout_share_forum" js="0"><![CDATA[Loadout Share Forum]]></word>
+<word key="gdloadout_share_forum_desc" js="0"><![CDATA[Select the forum where loadout shares will be posted. If no forum is selected, the Share to Forum button will be hidden.]]></word>
+<word key="gdloadout_share_to_forum" js="0"><![CDATA[Share to Forum]]></word>
+<word key="gdloadout_view_discussion" js="0"><![CDATA[View Discussion]]></word>
+<word key="gdloadout_already_shared" js="0"><![CDATA[This loadout has already been shared to the forum]]></word>
+<word key="gdloadout_forums_not_configured" js="0"><![CDATA[Forum sharing is not available]]></word>
+<word key="gdloadout_share_rate_limited" js="0"><![CDATA[Please wait before sharing another loadout]]></word>
+<word key="gdloadout_settings" js="0"><![CDATA[Settings]]></word>
+<word key="menu__gdloadout_manage_settings" js="0"><![CDATA[Settings]]></word>
+<word key="gdloadout_share_forum_none" js="0"><![CDATA[No forum selected — sharing disabled]]></word>
+<word key="gdloadout_shared_success" js="0"><![CDATA[Loadout shared to forum]]></word>
 </app>
 </language>

@@ -376,6 +376,34 @@ class _hub extends \IPS\Dispatcher\Controller
 
 		Output::i()->title = htmlspecialchars( $loadout['name'] ) . ' — Loadout | GunRack';
 
+		$canShareForum = false;
+		$forumTopicUrl = '';
+		$shareUrl      = '';
+
+		$forumId = 0;
+		try { $forumId = (int) \IPS\Settings::i()->gdloadout_share_forum; } catch ( \Throwable ) {}
+
+		$forumsEnabled = false;
+		try { $forumsEnabled = \IPS\Application::appIsEnabled( 'forums' ); } catch ( \Throwable ) {}
+
+		if ( $forumId > 0 && $forumsEnabled && $member->member_id && $loadout['visibility'] === 'public' )
+		{
+			if ( !empty( $loadout['forum_topic_id'] ) && (int) $loadout['forum_topic_id'] > 0 )
+			{
+				try
+				{
+					$topic = \IPS\forums\Topic::load( (int) $loadout['forum_topic_id'] );
+					$forumTopicUrl = (string) $topic->url();
+				}
+				catch ( \Throwable ) {}
+			}
+			else
+			{
+				$canShareForum = true;
+				$shareUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=shareToForum', 'front' );
+			}
+		}
+
 		$initData = json_encode( [
 			'loadoutId'   => (int) $loadout['id'],
 			'upvoteUrl'   => $upvoteUrl,
@@ -383,6 +411,7 @@ class _hub extends \IPS\Dispatcher\Controller
 			'commentUrl'  => $commentUrl,
 			'wishlistUrl' => $wishlistUrl,
 			'alertUrl'    => $alertUrl,
+			'shareUrl'    => $shareUrl,
 			'csrfKey'     => $csrfKey,
 			'hasVoted'    => $hasVoted,
 			'hasFollowed' => $hasFollowed,
@@ -393,7 +422,7 @@ class _hub extends \IPS\Dispatcher\Controller
 		Output::i()->jsFiles  = array_merge( Output::i()->jsFiles, Output::i()->js( 'loadout.js', 'gdloadout', 'interface' ) );
 		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->view(
 			$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance,
-			$hasVoted, $hasFollowed, $comments, $initData
+			$hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl
 		);
 	}
 
@@ -616,6 +645,141 @@ class _hub extends \IPS\Dispatcher\Controller
 		catch ( \Throwable ) {}
 
 		Output::i()->json( [ 'ok' => true, 'set' => $set, 'total_items' => $totalItems, 'no_price' => $noPrice ] );
+	}
+
+	protected function shareToForum(): void
+	{
+		Session::i()->csrfCheck();
+		$member = Member::loggedIn();
+		if ( !$member->member_id ) { Output::i()->json( [ 'error' => 'Login required' ], 403 ); return; }
+
+		$loadoutId = (int) ( Request::i()->loadout_id ?? 0 );
+		if ( !$loadoutId ) { Output::i()->json( [ 'error' => 'Invalid' ], 400 ); return; }
+
+		$forumsEnabled = false;
+		try { $forumsEnabled = \IPS\Application::appIsEnabled( 'forums' ); } catch ( \Throwable ) {}
+		if ( !$forumsEnabled ) { Output::i()->json( [ 'error' => 'Forums not available' ], 400 ); return; }
+
+		$forumId = 0;
+		try { $forumId = (int) \IPS\Settings::i()->gdloadout_share_forum; } catch ( \Throwable ) {}
+		if ( !$forumId ) { Output::i()->json( [ 'error' => 'No forum configured' ], 400 ); return; }
+
+		$loadout = NULL;
+		try { $loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first(); } catch ( \Throwable ) {}
+		if ( !$loadout ) { Output::i()->json( [ 'error' => 'Not found' ], 404 ); return; }
+
+		if ( $loadout['visibility'] !== 'public' ) { Output::i()->json( [ 'error' => 'Only public loadouts can be shared' ], 400 ); return; }
+
+		if ( !empty( $loadout['forum_topic_id'] ) && (int) $loadout['forum_topic_id'] > 0 )
+		{
+			Output::i()->json( [ 'error' => 'Already shared' ], 400 );
+			return;
+		}
+
+		$fiveMinAgo = time() - 300;
+		$recentCount = 0;
+		try { $recentCount = (int) Db::i()->select( 'COUNT(*)', 'gd_loadout_forum_posts', [ 'member_id=? AND posted_at > ?', (int) $member->member_id, $fiveMinAgo ] )->first(); } catch ( \Throwable ) {}
+		if ( $recentCount >= 3 ) { Output::i()->json( [ 'error' => 'Rate limited — wait a few minutes' ], 429 ); return; }
+
+		try
+		{
+			$forum = \IPS\forums\Forum::load( $forumId );
+		}
+		catch ( \Throwable )
+		{
+			Output::i()->json( [ 'error' => 'Target forum not found' ], 400 );
+			return;
+		}
+
+		$ownerName = 'Unknown';
+		try { $ownerName = Member::load( (int) $loadout['member_id'] )->name; } catch ( \Throwable ) {}
+
+		$viewUrl = (string) Url::internal(
+			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $loadout['slug'] ),
+			'front', 'gdloadout_view'
+		);
+
+		$totalPrice = '';
+		if ( (float) ( $loadout['total_min_price'] ?? 0 ) > 0 )
+		{
+			$totalPrice = ' | Est. $' . number_format( (float) $loadout['total_min_price'], 0 );
+		}
+
+		$topicTitle = $loadout['name'] . ' — Loadout by ' . $ownerName;
+
+		$postBody = '<p><strong><a href="' . htmlspecialchars( $viewUrl, ENT_QUOTES, 'UTF-8' ) . '">'
+			. htmlspecialchars( $loadout['name'], ENT_QUOTES, 'UTF-8' ) . '</a></strong></p>'
+			. '<p>' . htmlspecialchars( $loadout['description'] ?? '', ENT_QUOTES, 'UTF-8' ) . '</p>'
+			. '<p><strong>Items:</strong> ' . (int) $loadout['total_items']
+			. $totalPrice
+			. ( $loadout['use_case'] ? ' | ' . htmlspecialchars( $loadout['use_case'], ENT_QUOTES, 'UTF-8' ) : '' )
+			. '</p>'
+			. '<p><a href="' . htmlspecialchars( $viewUrl, ENT_QUOTES, 'UTF-8' ) . '">View full loadout on GunRack</a></p>';
+
+		try
+		{
+			$topic = \IPS\forums\Topic::createItem( $member, $member->ip_address, \IPS\DateTime::create(), $forum, FALSE );
+			$topic->title = $topicTitle;
+			$topic->save();
+
+			$post = \IPS\forums\Topic\Post::create( $topic, $postBody, TRUE, NULL, NULL, $member );
+			$topic->topic_firstpost = $post->pid;
+			$topic->save();
+
+			$topicId = (int) $topic->tid;
+			$topicUrl = (string) $topic->url();
+
+			Db::i()->update( 'gd_loadouts', [ 'forum_topic_id' => $topicId ], [ 'id=?', $loadoutId ] );
+
+			try
+			{
+				Db::i()->insert( 'gd_loadout_forum_posts', [
+					'loadout_id' => $loadoutId,
+					'member_id'  => (int) $member->member_id,
+					'topic_id'   => $topicId,
+					'posted_at'  => time(),
+				] );
+			}
+			catch ( \Throwable ) {}
+
+			Output::i()->json( [ 'ok' => true, 'topic_url' => $topicUrl ] );
+		}
+		catch ( \Throwable $e )
+		{
+			Output::i()->json( [ 'error' => 'Failed to create forum topic' ], 500 );
+		}
+	}
+
+	protected function embed(): void
+	{
+		$loadoutId = (int) ( Request::i()->id ?? 0 );
+		if ( !$loadoutId )
+		{
+			Output::i()->json( [ 'error' => 'Not found' ], 404 );
+			return;
+		}
+
+		$loadout = NULL;
+		try { $loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=? AND visibility=?', $loadoutId, 'public' ] )->first(); } catch ( \Throwable ) {}
+		if ( !$loadout )
+		{
+			Output::i()->json( [ 'error' => 'Not found' ], 404 );
+			return;
+		}
+
+		$ownerName = 'Unknown';
+		try { $ownerName = Member::load( (int) $loadout['member_id'] )->name; } catch ( \Throwable ) {}
+
+		$viewUrl = (string) Url::internal(
+			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $loadout['slug'] ),
+			'front', 'gdloadout_view'
+		);
+
+		Output::i()->sendOutput(
+			Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->loadoutEmbed( $loadout, $ownerName, $viewUrl ),
+			200,
+			'text/html'
+		);
 	}
 }
 

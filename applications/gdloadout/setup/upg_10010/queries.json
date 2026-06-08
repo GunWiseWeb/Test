@@ -1,0 +1,16 @@
+[
+    {
+        "method": "addColumn",
+        "params": [
+            "gd_loadouts",
+            {
+                "name": "forum_topic_id",
+                "type": "BIGINT",
+                "length": 20,
+                "unsigned": true,
+                "allow_null": true,
+                "default": null
+            }
+        ]
+    }
+]

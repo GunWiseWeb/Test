@@ -1,0 +1,223 @@
+<?php
+
+namespace IPS\gdloadout\setup\upg_10010;
+
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		// Seed gdloadout_share_forum setting
+		try
+		{
+			$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_sys_conf_settings', [ 'conf_key=?', 'gdloadout_share_forum' ] )->first();
+			if ( $exists === 0 )
+			{
+				\IPS\Db::i()->insert( 'core_sys_conf_settings', [
+					'conf_key'     => 'gdloadout_share_forum',
+					'conf_value'   => '0',
+					'conf_default' => '0',
+					'conf_app'     => 'gdloadout',
+				] );
+			}
+		}
+		catch ( \Throwable ) {}
+
+		// Seed new lang strings (rule #43: 6 columns only)
+		$newStrings = [
+			'gdloadout_share_forum'            => 'Loadout Share Forum',
+			'gdloadout_share_forum_desc'       => 'Select the forum where loadout shares will be posted. If no forum is selected, the Share to Forum button will be hidden.',
+			'gdloadout_share_to_forum'         => 'Share to Forum',
+			'gdloadout_view_discussion'        => 'View Discussion',
+			'gdloadout_already_shared'         => 'This loadout has already been shared to the forum',
+			'gdloadout_forums_not_configured'  => 'Forum sharing is not available',
+			'gdloadout_share_rate_limited'     => 'Please wait before sharing another loadout',
+			'gdloadout_settings'               => 'Settings',
+			'menu__gdloadout_manage_settings'  => 'Settings',
+			'gdloadout_share_forum_none'       => 'No forum selected — sharing disabled',
+			'gdloadout_shared_success'         => 'Loadout shared to forum',
+		];
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gdloadout',
+							'word_key'     => $key,
+							'word_default' => $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		// Reseed view template with new parameters (rule #52: upgrade must match install)
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id' => 1,
+				'template_app' => 'gdloadout',
+				'template_location' => 'front',
+				'template_group' => 'loadouts',
+				'template_name' => 'view',
+				'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl',
+				'template_content' => <<<'TEMPLATE_EOT'
+<div class="gdlo-view" id="gdloView" data-init='{$initData}'>
+    <div class="gdlo-view-header">
+        <div class="gdlo-view-header-info">
+            <h1 class="gdlo-view-title">{$loadout['name']}</h1>
+            <div class="gdlo-view-meta">
+                <span class="gdlo-view-author"><i class="fa-solid fa-user"></i> {$ownerName}</span>
+                {{if $loadout['use_case']}}<span class="gdlo-view-uc">{$loadout['use_case']}</span>{{endif}}
+                {{if $loadout['visibility'] === 'private'}}<span class="gdlo-view-badge gdlo-view-badge--private"><i class="fa-solid fa-lock"></i> Private</span>{{endif}}
+                {{if $loadout['visibility'] === 'unlisted'}}<span class="gdlo-view-badge gdlo-view-badge--unlisted"><i class="fa-solid fa-eye-slash"></i> Unlisted</span>{{endif}}
+            </div>
+            {{if $loadout['description']}}<p class="gdlo-view-desc">{$loadout['description']}</p>{{endif}}
+        </div>
+        <div class="gdlo-view-header-actions">
+            {{if $isOwner}}<a href="{$editUrl}" class="gdlo-btn gdlo-btn--secondary"><i class="fa-solid fa-pen"></i> Edit</a>{{endif}}
+        </div>
+    </div>
+    <div class="gdlo-view-2col">
+        <div class="gdlo-view-main">
+            <div class="gdlo-view-items">
+                {{if count($items) === 0}}
+                <div class="gdlo-view-empty"><i class="fa-solid fa-box-open"></i><p>{lang="gdloadout_no_items"}</p></div>
+                {{endif}}
+                {{foreach $items as $item}}
+                <div class="gdlo-view-item">
+                    <div class="gdlo-view-item-icon">{{if $item['image_url']}}<img src="{$item['image_url']}" alt="" class="gdlo-view-item-img" loading="lazy" />{{else}}<i class="fa-solid fa-cube"></i>{{endif}}</div>
+                    <div class="gdlo-view-item-info">
+                        <div class="gdlo-view-item-title">{{if $item['product_title']}}{$item['product_title']}{{else}}{$item['upc']}{{endif}}</div>
+                        <div class="gdlo-view-item-sub"><span class="gdlo-view-item-slot">{$item['slot_type']}</span>{{if $item['brand']}}<span class="gdlo-view-item-brand">{$item['brand']}</span>{{endif}}{{if $item['caliber']}}<span class="gdlo-view-item-caliber">{$item['caliber']}</span>{{endif}}</div>
+                        {{if $item['custom_label']}}<div class="gdlo-view-item-label">{$item['custom_label']}</div>{{endif}}
+                        {{if $item['notes']}}<div class="gdlo-view-item-notes">{$item['notes']}</div>{{endif}}
+                    </div>
+                    <div class="gdlo-view-item-price">
+                        {{if $item['live_price']}}<span class="gdlo-view-item-price-val">{expression="'$' . number_format((float)$item['live_price'], 2)"}</span><span class="gdlo-view-item-dealers">{expression="(int)$item['active_dealer_count']"} {lang="gdloadout_dealers"}</span>{{else}}<span class="gdlo-view-item-price-na">{lang="gdloadout_no_price"}</span>{{endif}}
+                    </div>
+                </div>
+                {{endforeach}}
+            </div>
+            <div class="gdlo-view-comments" id="gdloComments">
+                <h3 class="gdlo-view-comments-title"><i class="fa-solid fa-comments"></i> {lang="gdloadout_comments"} ({$loadout['comment_count']})</h3>
+                <div class="gdlo-view-comments-list" id="gdloCommentList">
+                    {{foreach $comments as $c}}
+                    <div class="gdlo-view-comment"><strong class="gdlo-view-comment-author">{$c['member_name']}</strong><p class="gdlo-view-comment-body">{$c['comment']}</p></div>
+                    {{endforeach}}
+                </div>
+                <div class="gdlo-view-comment-form" id="gdloCommentForm">
+                    <textarea id="gdloCommentText" class="gdlo-input" placeholder="{lang="gdloadout_add_comment"}" rows="2"></textarea>
+                    <button type="button" class="gdlo-btn gdlo-btn--primary gdlo-btn--sm" id="gdloCommentSubmit">{lang="gdloadout_post_comment"}</button>
+                </div>
+            </div>
+        </div>
+        <div class="gdlo-view-sidebar">
+            <div class="gdlo-view-summary">
+                <h3 class="gdlo-view-summary-title">{lang="gdloadout_build_summary"}</h3>
+                <div class="gdlo-view-summary-stats">
+                    <div class="gdlo-view-summary-stat"><span class="gdlo-view-summary-stat-val">{$loadout['total_items']}</span><span class="gdlo-view-summary-stat-lbl">{lang="gdloadout_items"}</span></div>
+                    {{if $loadout['total_min_price'] > 0}}<div class="gdlo-view-summary-stat"><span class="gdlo-view-summary-stat-val">{expression="'$' . number_format((float)$loadout['total_min_price'], 2)"}</span><span class="gdlo-view-summary-stat-lbl">{lang="gdloadout_est_cost"}</span></div>{{endif}}
+                </div>
+                <div class="gdlo-view-summary-actions">
+                    <button type="button" class="gdlo-btn gdlo-btn--vote{{if $hasVoted}} gdlo-btn--voted{{endif}}" id="gdloUpvoteBtn"><i class="fa-solid fa-heart"></i> <span id="gdloUpvoteCount">{$loadout['upvotes']}</span></button>
+                    <button type="button" class="gdlo-btn gdlo-btn--follow{{if $hasFollowed}} gdlo-btn--followed{{endif}}" id="gdloFollowBtn"><i class="fa-solid fa-bell"></i> <span id="gdloFollowCount">{$loadout['follow_count']}</span></button>
+                </div>
+                <div class="gdlo-view-summary-extras">
+                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloWishlistBtn"><i class="fa-solid fa-bookmark"></i> {lang="gdloadout_add_all_wishlist"}</button>
+                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloAlertBtn"><i class="fa-solid fa-bell"></i> {lang="gdloadout_alert_all"}</button>
+                    {{if $forumTopicUrl}}
+                    <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" target="_blank"><i class="fa-solid fa-comments"></i> {lang="gdloadout_view_discussion"}</a>
+                    {{else}}
+                        {{if $canShareForum}}
+                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloShareForumBtn"><i class="fa-solid fa-share"></i> {lang="gdloadout_share_to_forum"}</button>
+                        {{endif}}
+                    {{endif}}
+                </div>
+                {{if $compliance['has_issues']}}
+                <div class="gdlo-view-compliance">
+                    <h4><i class="fa-solid fa-triangle-exclamation"></i> {lang="gdloadout_compliance"}</h4>
+                    {{if $compliance['nfa_count'] > 0}}<p>{expression="(int)$compliance['nfa_count']"} NFA item(s) — requires tax stamp</p>{{endif}}
+                    {{if $compliance['ffl_count'] > 0}}<p>{expression="(int)$compliance['ffl_count']"} item(s) require FFL transfer</p>{{endif}}
+                </div>
+                {{endif}}
+                <div class="gdlo-view-summary-share"><span class="gdlo-view-views"><i class="fa-solid fa-eye"></i> {$loadout['view_count']} views</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+TEMPLATE_EOT,
+				'template_updated' => time(),
+				'template_version' => '1.0.10',
+				'template_master_key' => '',
+				'template_has_hookpoints' => 0,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		// Seed loadoutEmbed template
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id' => 1,
+				'template_app' => 'gdloadout',
+				'template_location' => 'front',
+				'template_group' => 'loadouts',
+				'template_name' => 'loadoutEmbed',
+				'template_data' => '$loadout, $ownerName, $viewUrl',
+				'template_content' => <<<'TEMPLATE_EOT'
+<div class="gdlo-embed" style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;max-width:480px;font-family:system-ui,sans-serif;background:#fff;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <i class="fa-solid fa-layer-group" style="color:#2563eb;font-size:18px;"></i>
+        <a href="{$viewUrl}" style="font-weight:700;font-size:16px;color:#1e293b;text-decoration:none;">{$loadout['name']}</a>
+    </div>
+    {{if $loadout['description']}}
+    <p style="color:#64748b;font-size:13px;margin:0 0 8px 0;">{$loadout['description']}</p>
+    {{endif}}
+    <div style="display:flex;gap:12px;font-size:13px;color:#475569;">
+        <span><i class="fa-solid fa-user"></i> {$ownerName}</span>
+        <span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']} items</span>
+        {{if $loadout['total_min_price'] > 0}}
+        <span><i class="fa-solid fa-tag"></i> {expression="'$' . number_format((float)$loadout['total_min_price'], 0)"}</span>
+        {{endif}}
+        <span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span>
+    </div>
+    {{if $loadout['use_case']}}
+    <div style="margin-top:8px;"><span style="background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">{$loadout['use_case']}</span></div>
+    {{endif}}
+</div>
+TEMPLATE_EOT,
+				'template_updated' => time(),
+				'template_version' => '1.0.10',
+				'template_master_key' => '',
+				'template_has_hookpoints' => 0,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		// Clear caches
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->settings ); }     catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }            catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

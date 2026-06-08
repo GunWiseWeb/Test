@@ -1,4 +1,4 @@
-<ips:template parameters="$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData" />
+<ips:template parameters="$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl" />
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
     <div class="gdlo-view-header">
         <div class="gdlo-view-header-info">
@@ -125,6 +125,13 @@
                 <div class="gdlo-view-summary-extras">
                     <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloWishlistBtn"><i class="fa-solid fa-bookmark"></i> {lang="gdloadout_add_all_wishlist"}</button>
                     <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloAlertBtn"><i class="fa-solid fa-bell"></i> {lang="gdloadout_alert_all"}</button>
+                    {{if $forumTopicUrl}}
+                    <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" target="_blank"><i class="fa-solid fa-comments"></i> {lang="gdloadout_view_discussion"}</a>
+                    {{else}}
+                        {{if $canShareForum}}
+                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloShareForumBtn"><i class="fa-solid fa-share"></i> {lang="gdloadout_share_to_forum"}</button>
+                        {{endif}}
+                    {{endif}}
                 </div>
 
                 {{if $compliance['has_issues']}}

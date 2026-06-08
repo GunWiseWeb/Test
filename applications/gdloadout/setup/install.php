@@ -122,7 +122,7 @@ $templates[] = [
 	'template_location' => 'front',
 	'template_group' => 'loadouts',
 	'template_name' => 'view',
-	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData',
+	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl',
 	'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
     <div class="gdlo-view-header">
@@ -188,6 +188,13 @@ $templates[] = [
                 <div class="gdlo-view-summary-extras">
                     <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloWishlistBtn"><i class="fa-solid fa-bookmark"></i> {lang="gdloadout_add_all_wishlist"}</button>
                     <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloAlertBtn"><i class="fa-solid fa-bell"></i> {lang="gdloadout_alert_all"}</button>
+                    {{if $forumTopicUrl}}
+                    <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" target="_blank"><i class="fa-solid fa-comments"></i> {lang="gdloadout_view_discussion"}</a>
+                    {{else}}
+                        {{if $canShareForum}}
+                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloShareForumBtn"><i class="fa-solid fa-share"></i> {lang="gdloadout_share_to_forum"}</button>
+                        {{endif}}
+                    {{endif}}
                 </div>
                 {{if $compliance['has_issues']}}
                 <div class="gdlo-view-compliance">
@@ -203,7 +210,7 @@ $templates[] = [
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.16',
+	'template_version' => '1.0.10',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];
@@ -394,6 +401,42 @@ TEMPLATE_EOT,
 	'template_has_hookpoints' => 0,
 ];
 
+// Template: loadoutEmbed
+$templates[] = [
+	'template_set_id' => 1,
+	'template_app' => 'gdloadout',
+	'template_location' => 'front',
+	'template_group' => 'loadouts',
+	'template_name' => 'loadoutEmbed',
+	'template_data' => '$loadout, $ownerName, $viewUrl',
+	'template_content' => <<<'TEMPLATE_EOT'
+<div class="gdlo-embed" style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;max-width:480px;font-family:system-ui,sans-serif;background:#fff;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <i class="fa-solid fa-layer-group" style="color:#2563eb;font-size:18px;"></i>
+        <a href="{$viewUrl}" style="font-weight:700;font-size:16px;color:#1e293b;text-decoration:none;">{$loadout['name']}</a>
+    </div>
+    {{if $loadout['description']}}
+    <p style="color:#64748b;font-size:13px;margin:0 0 8px 0;">{$loadout['description']}</p>
+    {{endif}}
+    <div style="display:flex;gap:12px;font-size:13px;color:#475569;">
+        <span><i class="fa-solid fa-user"></i> {$ownerName}</span>
+        <span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']} items</span>
+        {{if $loadout['total_min_price'] > 0}}
+        <span><i class="fa-solid fa-tag"></i> {expression="'$' . number_format((float)$loadout['total_min_price'], 0)"}</span>
+        {{endif}}
+        <span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span>
+    </div>
+    {{if $loadout['use_case']}}
+    <div style="margin-top:8px;"><span style="background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">{$loadout['use_case']}</span></div>
+    {{endif}}
+</div>
+TEMPLATE_EOT,
+	'template_updated' => time(),
+	'template_version' => '1.0.10',
+	'template_master_key' => '',
+	'template_has_hookpoints' => 0,
+];
+
 // Template: featured (admin)
 $templates[] = [
 	'template_set_id' => 1,
@@ -494,6 +537,22 @@ if ( $langStrings )
 	}
 	catch ( \Throwable ) {}
 }
+
+// Seed gdloadout_share_forum setting
+try
+{
+	$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_sys_conf_settings', [ 'conf_key=?', 'gdloadout_share_forum' ] )->first();
+	if ( $exists === 0 )
+	{
+		\IPS\Db::i()->insert( 'core_sys_conf_settings', [
+			'conf_key'     => 'gdloadout_share_forum',
+			'conf_value'   => '0',
+			'conf_default' => '0',
+			'conf_app'     => 'gdloadout',
+		] );
+	}
+}
+catch ( \Throwable ) {}
 
 // Seed default group limits for every group that doesn't already have one
 try
