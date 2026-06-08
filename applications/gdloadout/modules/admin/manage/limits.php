@@ -20,45 +20,47 @@ class _limits extends \IPS\Dispatcher\Controller
 
 	public function execute(): void
 	{
-		\IPS\Dispatcher::i()->checkAcpPermission( 'gdloadout_manage' );
+		\IPS\Dispatcher::i()->checkAcpPermission( 'limits_manage' );
 		parent::execute();
 	}
 
 	protected function manage(): void
 	{
-		$limits = [];
-		try
-		{
-			foreach ( Db::i()->select( '*', 'gd_loadout_group_limits' ) as $row )
-			{
-				$groupName = 'Group #' . $row['group_id'];
-				try { $groupName = \IPS\Member\Group::load( (int) $row['group_id'] )->name; } catch ( \Throwable ) {}
-				$row['group_name'] = $groupName;
-				$limits[] = $row;
-			}
-		}
-		catch ( \Throwable ) {}
+		$groups = [];
+		try { foreach ( \IPS\Member\Group::groups( TRUE, FALSE ) as $g ) { $groups[ (int) $g->g_id ] = (string) $g->name; } } catch ( \Throwable ) {}
 
-		Output::i()->title  = 'Loadout Group Limits';
-		Output::i()->output = Theme::i()->getTemplate( 'manage', 'gdloadout', 'admin' )->limits( $limits );
+		$limits = [];
+		try { foreach ( Db::i()->select( '*', 'gd_loadout_group_limits' ) as $row ) { $limits[ (int) $row['group_id'] ] = $row; } } catch ( \Throwable ) {}
+
+		$csrfKey = \IPS\Session::i()->csrfKey;
+		$saveUrl = (string) \IPS\Http\Url::internal( 'app=gdloadout&module=manage&controller=limits&do=save' );
+
+		Output::i()->title  = Member::loggedIn()->language()->addToStack( 'gdloadout_limits_title' );
+		Output::i()->output = Theme::i()->getTemplate( 'manage', 'gdloadout', 'admin' )->limits( $groups, $limits, $csrfKey, $saveUrl );
 	}
 
-	protected function featured(): void
+	protected function save(): void
 	{
-		$featured = [];
-		try
+		\IPS\Session::i()->csrfCheck();
+
+		$groupLimits = \IPS\Request::i()->group_limits ?? [];
+		if ( \is_array( $groupLimits ) )
 		{
-			foreach ( Db::i()->select( '*', 'gd_loadouts', [ 'featured=?', 1 ], 'featured_position ASC' ) as $row )
+			foreach ( $groupLimits as $groupId => $vals )
 			{
-				$row['owner_name'] = 'Unknown';
-				try { $row['owner_name'] = Member::load( (int) $row['member_id'] )->name; } catch ( \Throwable ) {}
-				$featured[] = $row;
+				try
+				{
+					Db::i()->replace( 'gd_loadout_group_limits', [
+						'group_id'     => (int) $groupId,
+						'max_loadouts' => max( 0, (int) ( $vals['max_loadouts'] ?? 0 ) ),
+						'max_slots'    => max( 0, (int) ( $vals['max_slots'] ?? 0 ) ),
+					] );
+				}
+				catch ( \Throwable ) {}
 			}
 		}
-		catch ( \Throwable ) {}
 
-		Output::i()->title  = 'Featured Loadouts';
-		Output::i()->output = Theme::i()->getTemplate( 'manage', 'gdloadout', 'admin' )->featured( $featured );
+		Output::i()->redirect( \IPS\Http\Url::internal( 'app=gdloadout&module=manage&controller=limits' ), 'gdloadout_limits_saved' );
 	}
 }
 

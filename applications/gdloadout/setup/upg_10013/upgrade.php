@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10012;
+namespace IPS\gdloadout\setup\upg_10013;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -28,7 +28,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Seed lang strings (v1.0.10 forum strings + v1.0.12 ACP keys)
+		// Seed all lang strings (v1.0.10 forum + v1.0.12 ACP + v1.0.13 module menu + limits editor)
 		$newStrings = [
 			'gdloadout_share_forum'            => 'Loadout Share Forum',
 			'gdloadout_share_forum_desc'       => 'Select the forum where loadout shares will be posted. If no forum is selected, the Share to Forum button will be hidden.',
@@ -49,6 +49,13 @@ class _upgrade
 			'r__settings_manage'               => 'Manage settings',
 			'gdloadout_featured_title'         => 'Featured Loadouts',
 			'gdloadout_manage'                 => 'Loadouts',
+			'menu__gdloadout_manage'           => 'Loadouts',
+			'gdloadout_limits_title'           => 'Loadout Group Limits',
+			'gdloadout_limits_unlimited'       => 'Set to 0 for unlimited.',
+			'gdloadout_limits_group'           => 'Group',
+			'gdloadout_limits_max_loadouts'    => 'Max Loadouts',
+			'gdloadout_limits_max_slots'       => 'Max Slots',
+			'gdloadout_limits_saved'           => 'Group limits saved.',
 		];
 
 		try
@@ -74,7 +81,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Reseed view template with forum share params (rule #52: must match install.php)
+		// Reseed view template with forum share params
 		try
 		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
@@ -171,7 +178,7 @@ class _upgrade
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.12',
+				'template_version' => '1.0.13',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );
@@ -211,7 +218,53 @@ TEMPLATE_EOT,
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.12',
+				'template_version' => '1.0.13',
+				'template_master_key' => '',
+				'template_has_hookpoints' => 0,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		// Reseed limits template (editable form — must match install.php)
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id' => 1,
+				'template_app' => 'gdloadout',
+				'template_location' => 'admin',
+				'template_group' => 'manage',
+				'template_name' => 'limits',
+				'template_data' => '$groups, $limits, $csrfKey, $saveUrl',
+				'template_content' => <<<'TEMPLATE_EOT'
+<div class="ipsBox ipsPull">
+	<div class="ipsBox_body ipsPad">
+		<h2 style="margin-bottom:16px">{lang="gdloadout_limits_title"}</h2>
+		<p style="color:#666;margin-bottom:20px">{lang="gdloadout_limits_unlimited"}</p>
+		<form method="post" action="{$saveUrl}">
+			<input type="hidden" name="csrfKey" value="{$csrfKey}" />
+			<table class="ipsTable ipsTable_zebra" style="width:100%">
+				<thead><tr>
+					<th>{lang="gdloadout_limits_group"}</th>
+					<th style="width:160px">{lang="gdloadout_limits_max_loadouts"}</th>
+					<th style="width:160px">{lang="gdloadout_limits_max_slots"}</th>
+				</tr></thead>
+				<tbody>
+					{{foreach $groups as $gid => $gname}}
+					<tr>
+						<td>{expression="htmlspecialchars($gname)"}</td>
+						<td><input type="number" name="group_limits[{expression="(int)$gid"}][max_loadouts]" value="{expression="isset($limits[$gid]) ? (int)$limits[$gid]['max_loadouts'] : 0"}" min="0" style="width:100%;padding:6px 10px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box" /></td>
+						<td><input type="number" name="group_limits[{expression="(int)$gid"}][max_slots]" value="{expression="isset($limits[$gid]) ? (int)$limits[$gid]['max_slots'] : 15"}" min="0" style="width:100%;padding:6px 10px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box" /></td>
+					</tr>
+					{{endforeach}}
+				</tbody>
+			</table>
+			<div style="margin-top:16px"><button type="submit" class="ipsButton ipsButton--primary">{lang="gdloadout_builder_save"}</button></div>
+		</form>
+	</div>
+</div>
+TEMPLATE_EOT,
+				'template_updated' => time(),
+				'template_version' => '1.0.13',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );

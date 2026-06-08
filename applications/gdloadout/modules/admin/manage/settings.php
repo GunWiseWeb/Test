@@ -20,7 +20,7 @@ class _settings extends \IPS\Dispatcher\Controller
 
 	public function execute(): void
 	{
-		\IPS\Dispatcher::i()->checkAcpPermission( 'gdloadout_manage' );
+		\IPS\Dispatcher::i()->checkAcpPermission( 'settings_manage' );
 		parent::execute();
 	}
 

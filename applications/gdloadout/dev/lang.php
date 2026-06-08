@@ -100,4 +100,11 @@ $lang = array(
     'r__settings_manage' => 'Manage settings',
     'gdloadout_featured_title' => 'Featured Loadouts',
     'gdloadout_manage' => 'Loadouts',
+    'menu__gdloadout_manage' => 'Loadouts',
+    'gdloadout_limits_title' => 'Loadout Group Limits',
+    'gdloadout_limits_unlimited' => 'Set to 0 for unlimited.',
+    'gdloadout_limits_group' => 'Group',
+    'gdloadout_limits_max_loadouts' => 'Max Loadouts',
+    'gdloadout_limits_max_slots' => 'Max Slots',
+    'gdloadout_limits_saved' => 'Group limits saved.',
 );

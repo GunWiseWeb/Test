@@ -100,5 +100,12 @@
 <word key="r__settings_manage" js="0"><![CDATA[Manage settings]]></word>
 <word key="gdloadout_featured_title" js="0"><![CDATA[Featured Loadouts]]></word>
 <word key="gdloadout_manage" js="0"><![CDATA[Loadouts]]></word>
+<word key="menu__gdloadout_manage" js="0"><![CDATA[Loadouts]]></word>
+<word key="gdloadout_limits_title" js="0"><![CDATA[Loadout Group Limits]]></word>
+<word key="gdloadout_limits_unlimited" js="0"><![CDATA[Set to 0 for unlimited.]]></word>
+<word key="gdloadout_limits_group" js="0"><![CDATA[Group]]></word>
+<word key="gdloadout_limits_max_loadouts" js="0"><![CDATA[Max Loadouts]]></word>
+<word key="gdloadout_limits_max_slots" js="0"><![CDATA[Max Slots]]></word>
+<word key="gdloadout_limits_saved" js="0"><![CDATA[Group limits saved.]]></word>
 </app>
 </language>

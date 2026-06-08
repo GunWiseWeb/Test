@@ -1,22 +1,27 @@
-<ips:template parameters="$limits" />
-<div class="ipsBox">
-    <h2 class="ipsBox_title">Loadout Group Limits</h2>
-    <table class="ipsTable ipsTable_zebra">
-        <thead>
-            <tr>
-                <th>Group</th>
-                <th>Max Loadouts</th>
-                <th>Max Slots</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{foreach $limits as $limit}}
-            <tr>
-                <td>{$limit['group_name']}</td>
-                <td>{$limit['max_loadouts']}</td>
-                <td>{$limit['max_slots']}</td>
-            </tr>
-            {{endforeach}}
-        </tbody>
-    </table>
+<ips:template parameters="$groups, $limits, $csrfKey, $saveUrl" />
+<div class="ipsBox ipsPull">
+	<div class="ipsBox_body ipsPad">
+		<h2 style="margin-bottom:16px">{lang="gdloadout_limits_title"}</h2>
+		<p style="color:#666;margin-bottom:20px">{lang="gdloadout_limits_unlimited"}</p>
+		<form method="post" action="{$saveUrl}">
+			<input type="hidden" name="csrfKey" value="{$csrfKey}" />
+			<table class="ipsTable ipsTable_zebra" style="width:100%">
+				<thead><tr>
+					<th>{lang="gdloadout_limits_group"}</th>
+					<th style="width:160px">{lang="gdloadout_limits_max_loadouts"}</th>
+					<th style="width:160px">{lang="gdloadout_limits_max_slots"}</th>
+				</tr></thead>
+				<tbody>
+					{{foreach $groups as $gid => $gname}}
+					<tr>
+						<td>{expression="htmlspecialchars($gname)"}</td>
+						<td><input type="number" name="group_limits[{expression="(int)$gid"}][max_loadouts]" value="{expression="isset($limits[$gid]) ? (int)$limits[$gid]['max_loadouts'] : 0"}" min="0" style="width:100%;padding:6px 10px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box" /></td>
+						<td><input type="number" name="group_limits[{expression="(int)$gid"}][max_slots]" value="{expression="isset($limits[$gid]) ? (int)$limits[$gid]['max_slots'] : 15"}" min="0" style="width:100%;padding:6px 10px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box" /></td>
+					</tr>
+					{{endforeach}}
+				</tbody>
+			</table>
+			<div style="margin-top:16px"><button type="submit" class="ipsButton ipsButton--primary">{lang="gdloadout_builder_save"}</button></div>
+		</form>
+	</div>
 </div>
