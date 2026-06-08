@@ -135,18 +135,31 @@
         "indexes": {
             "PRIMARY": {
                 "type": "primary",
+                "name": "PRIMARY",
+                "length": [
+                    null
+                ],
                 "columns": [
                     "id"
                 ]
             },
             "member_id": {
                 "type": "key",
+                "name": "member_id",
+                "length": [
+                    null
+                ],
                 "columns": [
                     "member_id"
                 ]
             },
             "slug": {
                 "type": "key",
+                "name": "slug",
+                "length": [
+                    null,
+                    null
+                ],
                 "columns": [
                     "member_id",
                     "slug"
@@ -154,6 +167,11 @@
             },
             "visibility": {
                 "type": "key",
+                "name": "visibility",
+                "length": [
+                    null,
+                    null
+                ],
                 "columns": [
                     "visibility",
                     "featured"
@@ -227,12 +245,21 @@
         "indexes": {
             "PRIMARY": {
                 "type": "primary",
+                "name": "PRIMARY",
+                "length": [
+                    null
+                ],
                 "columns": [
                     "id"
                 ]
             },
             "loadout_id": {
                 "type": "key",
+                "name": "loadout_id",
+                "length": [
+                    null,
+                    null
+                ],
                 "columns": [
                     "loadout_id",
                     "sort_order"
@@ -277,12 +304,21 @@
         "indexes": {
             "PRIMARY": {
                 "type": "primary",
+                "name": "PRIMARY",
+                "length": [
+                    null
+                ],
                 "columns": [
                     "id"
                 ]
             },
             "unique_vote": {
                 "type": "unique",
+                "name": "unique_vote",
+                "length": [
+                    null,
+                    null
+                ],
                 "columns": [
                     "loadout_id",
                     "member_id"
@@ -327,12 +363,21 @@
         "indexes": {
             "PRIMARY": {
                 "type": "primary",
+                "name": "PRIMARY",
+                "length": [
+                    null
+                ],
                 "columns": [
                     "id"
                 ]
             },
             "unique_follow": {
                 "type": "unique",
+                "name": "unique_follow",
+                "length": [
+                    null,
+                    null
+                ],
                 "columns": [
                     "loadout_id",
                     "member_id"
@@ -383,12 +428,21 @@
         "indexes": {
             "PRIMARY": {
                 "type": "primary",
+                "name": "PRIMARY",
+                "length": [
+                    null
+                ],
                 "columns": [
                     "id"
                 ]
             },
             "loadout_id": {
                 "type": "key",
+                "name": "loadout_id",
+                "length": [
+                    null,
+                    null
+                ],
                 "columns": [
                     "loadout_id",
                     "created_at"
@@ -440,12 +494,21 @@
         "indexes": {
             "PRIMARY": {
                 "type": "primary",
+                "name": "PRIMARY",
+                "length": [
+                    null
+                ],
                 "columns": [
                     "id"
                 ]
             },
             "loadout_member": {
                 "type": "key",
+                "name": "loadout_member",
+                "length": [
+                    null,
+                    null
+                ],
                 "columns": [
                     "loadout_id",
                     "member_id"
@@ -491,12 +554,20 @@
         "indexes": {
             "PRIMARY": {
                 "type": "primary",
+                "name": "PRIMARY",
+                "length": [
+                    null
+                ],
                 "columns": [
                     "id"
                 ]
             },
             "group_id": {
                 "type": "unique",
+                "name": "group_id",
+                "length": [
+                    null
+                ],
                 "columns": [
                     "group_id"
                 ]
