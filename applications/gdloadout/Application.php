@@ -1,4 +1,9 @@
 <?php
+/**
+ * @brief		Loadouts Application
+ * @author		GunRack
+ * @version		1.0.0
+ */
 
 namespace IPS\gdloadout;
 

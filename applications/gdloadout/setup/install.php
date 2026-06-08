@@ -379,3 +379,86 @@ foreach ( $notifDefaults as $nd )
 	}
 	catch ( \Throwable ) {}
 }
+
+// Seed lang strings from data/lang.xml into core_sys_lang_words (6-col schema #43)
+$langStrings = [];
+try
+{
+	$langXmlPath = \IPS\ROOT_PATH . '/applications/gdloadout/data/lang.xml';
+	if ( file_exists( $langXmlPath ) )
+	{
+		$xml = new \XMLReader();
+		$xml->open( $langXmlPath );
+		while ( $xml->read() )
+		{
+			if ( $xml->nodeType === \XMLReader::ELEMENT && $xml->name === 'word' )
+			{
+				$key = $xml->getAttribute( 'key' );
+				$xml->read();
+				$val = $xml->value;
+				if ( $key !== null && $key !== '' )
+				{
+					$langStrings[ $key ] = $val;
+				}
+			}
+		}
+		$xml->close();
+	}
+}
+catch ( \Throwable ) {}
+
+if ( $langStrings )
+{
+	try
+	{
+		foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+		{
+			foreach ( $langStrings as $wKey => $wVal )
+			{
+				try
+				{
+					\IPS\Db::i()->replace( 'core_sys_lang_words', [
+						'lang_id'      => (int) $langId,
+						'word_app'     => 'gdloadout',
+						'word_key'     => $wKey,
+						'word_default' => $wVal,
+						'word_js'      => 0,
+						'word_export'  => 1,
+					] );
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+	}
+	catch ( \Throwable ) {}
+}
+
+// Seed default group limits for every group that doesn't already have one
+try
+{
+	foreach ( \IPS\Member\Group::groups( TRUE, FALSE ) as $group )
+	{
+		$gid = (int) $group->g_id;
+		try
+		{
+			$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_loadout_group_limits', [ 'group_id=?', $gid ] )->first();
+			if ( $exists === 0 )
+			{
+				\IPS\Db::i()->insert( 'gd_loadout_group_limits', [
+					'group_id'     => $gid,
+					'max_loadouts' => 0,
+					'max_slots'    => 15,
+				] );
+			}
+		}
+		catch ( \Throwable ) {}
+	}
+}
+catch ( \Throwable ) {}
+
+// Build front navigation
+try
+{
+	\IPS\core\FrontNavigation::i()->buildDefaultFrontNavigation();
+}
+catch ( \Throwable ) {}
