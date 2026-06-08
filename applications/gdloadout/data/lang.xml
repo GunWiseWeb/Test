@@ -59,5 +59,24 @@
 <word key="gdloadout_notif_loadout_upvoted_desc" js="0"><![CDATA[Get notified when someone upvotes your loadout]]></word>
 <word key="gdloadout_notif_loadout_followed" js="0"><![CDATA[Loadout followed]]></word>
 <word key="gdloadout_notif_loadout_followed_desc" js="0"><![CDATA[Get notified when someone follows your loadout]]></word>
+<word key="gdloadout_builder_name" js="0"><![CDATA[Build Name]]></word>
+<word key="gdloadout_builder_name_placeholder" js="0"><![CDATA[My Competition Setup]]></word>
+<word key="gdloadout_builder_description" js="0"><![CDATA[Description (optional)]]></word>
+<word key="gdloadout_builder_use_case" js="0"><![CDATA[Use Case]]></word>
+<word key="gdloadout_builder_search" js="0"><![CDATA[Search by name, UPC, or MPN...]]></word>
+<word key="gdloadout_builder_save" js="0"><![CDATA[Save Loadout]]></word>
+<word key="gdloadout_builder_delete" js="0"><![CDATA[Delete Loadout]]></word>
+<word key="gdloadout_builder_add_extra" js="0"><![CDATA[+ Add Extra Slot]]></word>
+<word key="gdloadout_builder_total_cost" js="0"><![CDATA[Est. Build Cost]]></word>
+<word key="gdloadout_slot_base_firearm" js="0"><![CDATA[Base Firearm]]></word>
+<word key="gdloadout_use_case_home_defense" js="0"><![CDATA[Home Defense]]></word>
+<word key="gdloadout_use_case_concealed_carry" js="0"><![CDATA[Concealed Carry]]></word>
+<word key="gdloadout_use_case_hunting" js="0"><![CDATA[Hunting]]></word>
+<word key="gdloadout_use_case_competition" js="0"><![CDATA[Competition]]></word>
+<word key="gdloadout_use_case_range" js="0"><![CDATA[Range]]></word>
+<word key="gdloadout_use_case_tactical" js="0"><![CDATA[Tactical]]></word>
+<word key="gdloadout_use_case_collection" js="0"><![CDATA[Collection]]></word>
+<word key="gdloadout_vis_public" js="0"><![CDATA[Public]]></word>
+<word key="gdloadout_vis_unlisted" js="0"><![CDATA[Unlisted]]></word>
 </app>
 </language>
