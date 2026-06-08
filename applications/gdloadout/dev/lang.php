@@ -92,4 +92,12 @@ $lang = array(
     'menu__gdloadout_manage_settings' => 'Settings',
     'gdloadout_share_forum_none' => 'No forum selected — sharing disabled',
     'gdloadout_shared_success' => 'Loadout shared to forum',
+    'menu__gdloadout' => 'Loadouts',
+    'menu__gdloadout_manage_limits' => 'Group Limits',
+    'menu__gdloadout_manage_featured' => 'Featured Loadouts',
+    'r__limits_manage' => 'Manage group limits',
+    'r__featured_manage' => 'Manage featured loadouts',
+    'r__settings_manage' => 'Manage settings',
+    'gdloadout_featured_title' => 'Featured Loadouts',
+    'gdloadout_manage' => 'Loadouts',
 );

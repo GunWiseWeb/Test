@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10011;
+namespace IPS\gdloadout\setup\upg_10012;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -28,7 +28,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Seed lang strings (rule #43: 6 columns only, rule #44: per-row try/catch)
+		// Seed lang strings (v1.0.10 forum strings + v1.0.12 ACP keys)
 		$newStrings = [
 			'gdloadout_share_forum'            => 'Loadout Share Forum',
 			'gdloadout_share_forum_desc'       => 'Select the forum where loadout shares will be posted. If no forum is selected, the Share to Forum button will be hidden.',
@@ -41,6 +41,14 @@ class _upgrade
 			'menu__gdloadout_manage_settings'  => 'Settings',
 			'gdloadout_share_forum_none'       => 'No forum selected — sharing disabled',
 			'gdloadout_shared_success'         => 'Loadout shared to forum',
+			'menu__gdloadout'                  => 'Loadouts',
+			'menu__gdloadout_manage_limits'    => 'Group Limits',
+			'menu__gdloadout_manage_featured'  => 'Featured Loadouts',
+			'r__limits_manage'                 => 'Manage group limits',
+			'r__featured_manage'               => 'Manage featured loadouts',
+			'r__settings_manage'               => 'Manage settings',
+			'gdloadout_featured_title'         => 'Featured Loadouts',
+			'gdloadout_manage'                 => 'Loadouts',
 		];
 
 		try
@@ -66,7 +74,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Reseed view template (rule #52: upgrade must match install)
+		// Reseed view template with forum share params (rule #52: must match install.php)
 		try
 		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
@@ -163,7 +171,7 @@ class _upgrade
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.11',
+				'template_version' => '1.0.12',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );
@@ -203,7 +211,7 @@ TEMPLATE_EOT,
 </div>
 TEMPLATE_EOT,
 				'template_updated' => time(),
-				'template_version' => '1.0.11',
+				'template_version' => '1.0.12',
 				'template_master_key' => '',
 				'template_has_hookpoints' => 0,
 			] );

@@ -92,5 +92,13 @@
 <word key="menu__gdloadout_manage_settings" js="0"><![CDATA[Settings]]></word>
 <word key="gdloadout_share_forum_none" js="0"><![CDATA[No forum selected — sharing disabled]]></word>
 <word key="gdloadout_shared_success" js="0"><![CDATA[Loadout shared to forum]]></word>
+<word key="menu__gdloadout" js="0"><![CDATA[Loadouts]]></word>
+<word key="menu__gdloadout_manage_limits" js="0"><![CDATA[Group Limits]]></word>
+<word key="menu__gdloadout_manage_featured" js="0"><![CDATA[Featured Loadouts]]></word>
+<word key="r__limits_manage" js="0"><![CDATA[Manage group limits]]></word>
+<word key="r__featured_manage" js="0"><![CDATA[Manage featured loadouts]]></word>
+<word key="r__settings_manage" js="0"><![CDATA[Manage settings]]></word>
+<word key="gdloadout_featured_title" js="0"><![CDATA[Featured Loadouts]]></word>
+<word key="gdloadout_manage" js="0"><![CDATA[Loadouts]]></word>
 </app>
 </language>
