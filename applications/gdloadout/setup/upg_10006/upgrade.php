@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10005;
+namespace IPS\gdloadout\setup\upg_10006;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -132,7 +132,7 @@ class _upgrade
 </div>
 TEMPLATE_EOT,
 			'template_updated' => time(),
-			'template_version' => '1.0.5',
+			'template_version' => '1.0.6',
 		];
 
 		try
