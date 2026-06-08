@@ -2,15 +2,19 @@
 
 namespace IPS\gdloadout\widgets;
 
-use function defined;
+use IPS\Db;
+use IPS\Http\Url;
+use IPS\Member;
+use IPS\Theme;
+use IPS\Widget;
 
-if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+if ( !\defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
 	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
 	exit;
 }
 
-class trendingLoadouts extends \IPS\Widget
+class _trendingLoadouts extends Widget
 {
 	public string $key = 'trendingLoadouts';
 	public string $app = 'gdloadout';
@@ -20,12 +24,12 @@ class trendingLoadouts extends \IPS\Widget
 		$loadouts = [];
 		try
 		{
-			foreach ( \IPS\Db::i()->select( '*', 'gd_loadouts', [ 'visibility=?', 'public' ], 'upvotes DESC, view_count DESC', 4 ) as $row )
+			foreach ( Db::i()->select( '*', 'gd_loadouts', [ 'visibility=?', 'public' ], 'upvotes DESC, view_count DESC', [ 0, 4 ] ) as $row )
 			{
 				$ownerName = 'Unknown';
-				try { $ownerName = \IPS\Member::load( (int) $row['member_id'] )->name; } catch ( \Throwable ) {}
+				try { $ownerName = Member::load( (int) $row['member_id'] )->name; } catch ( \Throwable ) {}
 				$row['owner_name'] = $ownerName;
-				$row['view_url']   = (string) \IPS\Http\Url::internal(
+				$row['view_url'] = (string) Url::internal(
 					'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $row['slug'] ),
 					'front',
 					'gdloadout_view'
@@ -35,6 +39,8 @@ class trendingLoadouts extends \IPS\Widget
 		}
 		catch ( \Throwable ) {}
 
-		return \IPS\Theme::i()->getTemplate( 'widgets', 'gdloadout', 'front' )->trendingLoadouts( $loadouts );
+		return Theme::i()->getTemplate( 'widgets', 'gdloadout', 'front' )->trendingLoadouts( $loadouts );
 	}
 }
+
+class trendingLoadouts extends _trendingLoadouts {}

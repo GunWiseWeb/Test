@@ -5,8 +5,6 @@ namespace IPS\gdloadout\modules\admin\manage;
 use IPS\Db;
 use IPS\Member;
 use IPS\Output;
-use IPS\Request;
-use IPS\Session;
 use IPS\Theme;
 use function defined;
 
@@ -22,69 +20,45 @@ class _limits extends \IPS\Dispatcher\Controller
 
 	public function execute(): void
 	{
-		\IPS\Dispatcher::i()->checkAcpPermission( 'limits_manage' );
+		\IPS\Dispatcher::i()->checkAcpPermission( 'gdloadout_manage' );
 		parent::execute();
 	}
 
 	protected function manage(): void
 	{
-		$groups = [];
-		try
-		{
-			foreach ( \IPS\Member\Group::groups( TRUE, FALSE ) as $g )
-			{
-				$groups[ (int) $g->g_id ] = (string) $g->name;
-			}
-		}
-		catch ( \Throwable ) {}
-
 		$limits = [];
 		try
 		{
 			foreach ( Db::i()->select( '*', 'gd_loadout_group_limits' ) as $row )
 			{
-				$limits[ (int) $row['group_id'] ] = $row;
+				$groupName = 'Group #' . $row['group_id'];
+				try { $groupName = \IPS\Member\Group::load( (int) $row['group_id'] )->name; } catch ( \Throwable ) {}
+				$row['group_name'] = $groupName;
+				$limits[] = $row;
 			}
 		}
 		catch ( \Throwable ) {}
 
-		$csrfKey = Session::i()->csrfKey;
-		$saveUrl = (string) \IPS\Http\Url::internal( 'app=gdloadout&module=manage&controller=limits&do=save' );
-
-		Output::i()->title  = Member::loggedIn()->language()->addToStack( 'gdloadout_limits_title' );
-		Output::i()->output = Theme::i()->getTemplate( 'manage', 'gdloadout', 'admin' )->limits( $groups, $limits, $csrfKey, $saveUrl );
+		Output::i()->title  = 'Loadout Group Limits';
+		Output::i()->output = Theme::i()->getTemplate( 'manage', 'gdloadout', 'admin' )->limits( $limits );
 	}
 
-	protected function save(): void
+	protected function featured(): void
 	{
-		Session::i()->csrfCheck();
-
-		$groupLimits = Request::i()->group_limits ?? [];
-
-		if ( \is_array( $groupLimits ) )
+		$featured = [];
+		try
 		{
-			foreach ( $groupLimits as $groupId => $vals )
+			foreach ( Db::i()->select( '*', 'gd_loadouts', [ 'featured=?', 1 ], 'featured_position ASC' ) as $row )
 			{
-				$groupId     = (int) $groupId;
-				$maxLoadouts = max( 0, (int) ( $vals['max_loadouts'] ?? 0 ) );
-				$maxSlots    = max( 0, (int) ( $vals['max_slots'] ?? 0 ) );
-
-				try
-				{
-					Db::i()->replace( 'gd_loadout_group_limits', [
-						'group_id'     => $groupId,
-						'max_loadouts' => $maxLoadouts,
-						'max_slots'    => $maxSlots,
-					] );
-				}
-				catch ( \Throwable ) {}
+				$row['owner_name'] = 'Unknown';
+				try { $row['owner_name'] = Member::load( (int) $row['member_id'] )->name; } catch ( \Throwable ) {}
+				$featured[] = $row;
 			}
 		}
+		catch ( \Throwable ) {}
 
-		Output::i()->redirect(
-			\IPS\Http\Url::internal( 'app=gdloadout&module=manage&controller=limits' ),
-			'gdloadout_limits_saved'
-		);
+		Output::i()->title  = 'Featured Loadouts';
+		Output::i()->output = Theme::i()->getTemplate( 'manage', 'gdloadout', 'admin' )->featured( $featured );
 	}
 }
 

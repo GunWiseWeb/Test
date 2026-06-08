@@ -1,22 +1,31 @@
 <?php
 
+namespace IPS\gdloadout\setup\upg_10016;
+
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
 	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
 	exit;
 }
 
-$templates = [];
+class _upgrade
+{
+	public function step1(): bool
+	{
+		/* ---------------------------------------------------------------
+		 * Re-seed all 7 templates (byte-for-byte identical to install.php)
+		 * --------------------------------------------------------------- */
+		$templates = [];
 
-// Template: hub
-$templates[] = [
-	'template_set_id' => 1,
-	'template_app' => 'gdloadout',
-	'template_location' => 'front',
-	'template_group' => 'loadouts',
-	'template_name' => 'hub',
-	'template_data' => '$sections, $canCreate, $builderUrl, $activeUseCase, $useCases, $myLoadoutsUrl',
-	'template_content' => <<<'TEMPLATE_EOT'
+		// Template: hub
+		$templates[] = [
+			'template_set_id' => 1,
+			'template_app' => 'gdloadout',
+			'template_location' => 'front',
+			'template_group' => 'loadouts',
+			'template_name' => 'hub',
+			'template_data' => '$sections, $canCreate, $builderUrl, $activeUseCase, $useCases, $myLoadoutsUrl',
+			'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-hub">
     <div class="gdlo-hub-hero">
         <div class="gdlo-hub-hero-text">
@@ -109,21 +118,21 @@ $templates[] = [
     {{endif}}
 </div>
 TEMPLATE_EOT,
-	'template_updated' => time(),
-	'template_version' => '1.0.16',
-	'template_master_key' => '',
-	'template_has_hookpoints' => 0,
-];
+			'template_updated' => time(),
+			'template_version' => '1.0.16',
+			'template_master_key' => '',
+			'template_has_hookpoints' => 0,
+		];
 
-// Template: view
-$templates[] = [
-	'template_set_id' => 1,
-	'template_app' => 'gdloadout',
-	'template_location' => 'front',
-	'template_group' => 'loadouts',
-	'template_name' => 'view',
-	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData',
-	'template_content' => <<<'TEMPLATE_EOT'
+		// Template: view
+		$templates[] = [
+			'template_set_id' => 1,
+			'template_app' => 'gdloadout',
+			'template_location' => 'front',
+			'template_group' => 'loadouts',
+			'template_name' => 'view',
+			'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData',
+			'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
     <div class="gdlo-view-header">
         <div class="gdlo-view-header-info">
@@ -202,21 +211,21 @@ $templates[] = [
     </div>
 </div>
 TEMPLATE_EOT,
-	'template_updated' => time(),
-	'template_version' => '1.0.16',
-	'template_master_key' => '',
-	'template_has_hookpoints' => 0,
-];
+			'template_updated' => time(),
+			'template_version' => '1.0.16',
+			'template_master_key' => '',
+			'template_has_hookpoints' => 0,
+		];
 
-// Template: myLoadouts
-$templates[] = [
-	'template_set_id' => 1,
-	'template_app' => 'gdloadout',
-	'template_location' => 'front',
-	'template_group' => 'loadouts',
-	'template_name' => 'myLoadouts',
-	'template_data' => '$loadouts, $builderUrl',
-	'template_content' => <<<'TEMPLATE_EOT'
+		// Template: myLoadouts
+		$templates[] = [
+			'template_set_id' => 1,
+			'template_app' => 'gdloadout',
+			'template_location' => 'front',
+			'template_group' => 'loadouts',
+			'template_name' => 'myLoadouts',
+			'template_data' => '$loadouts, $builderUrl',
+			'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-hub">
     <div class="gdlo-hub-hero">
         <div class="gdlo-hub-hero-text">
@@ -243,21 +252,21 @@ $templates[] = [
     {{endif}}
 </div>
 TEMPLATE_EOT,
-	'template_updated' => time(),
-	'template_version' => '1.0.16',
-	'template_master_key' => '',
-	'template_has_hookpoints' => 0,
-];
+			'template_updated' => time(),
+			'template_version' => '1.0.16',
+			'template_master_key' => '',
+			'template_has_hookpoints' => 0,
+		];
 
-// Template: builder
-$templates[] = [
-	'template_set_id' => 1,
-	'template_app' => 'gdloadout',
-	'template_location' => 'front',
-	'template_group' => 'loadouts',
-	'template_name' => 'builder',
-	'template_data' => '$initData',
-	'template_content' => <<<'TEMPLATE_EOT'
+		// Template: builder
+		$templates[] = [
+			'template_set_id' => 1,
+			'template_app' => 'gdloadout',
+			'template_location' => 'front',
+			'template_group' => 'loadouts',
+			'template_name' => 'builder',
+			'template_data' => '$initData',
+			'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-builder" id="gdloBuilder" data-init='{$initData}'>
     <div class="gdlo-builder-header"><h1 class="gdlo-builder-title">{lang="gdloadout_builder_title"}</h1></div>
     <div class="gdlo-builder-body">
@@ -278,21 +287,21 @@ $templates[] = [
     </div>
 </div>
 TEMPLATE_EOT,
-	'template_updated' => time(),
-	'template_version' => '1.0.16',
-	'template_master_key' => '',
-	'template_has_hookpoints' => 0,
-];
+			'template_updated' => time(),
+			'template_version' => '1.0.16',
+			'template_master_key' => '',
+			'template_has_hookpoints' => 0,
+		];
 
-// Template: trendingLoadouts (widget)
-$templates[] = [
-	'template_set_id' => 1,
-	'template_app' => 'gdloadout',
-	'template_location' => 'front',
-	'template_group' => 'widgets',
-	'template_name' => 'trendingLoadouts',
-	'template_data' => '$loadouts',
-	'template_content' => <<<'TEMPLATE_EOT'
+		// Template: trendingLoadouts (widget)
+		$templates[] = [
+			'template_set_id' => 1,
+			'template_app' => 'gdloadout',
+			'template_location' => 'front',
+			'template_group' => 'widgets',
+			'template_name' => 'trendingLoadouts',
+			'template_data' => '$loadouts',
+			'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-widget">
     <h3 class="gdlo-widget-title"><i class="fa-solid fa-fire"></i> {lang="gdloadout_trending"}</h3>
     {{if count($loadouts) > 0}}
@@ -306,41 +315,41 @@ $templates[] = [
     {{endif}}
 </div>
 TEMPLATE_EOT,
-	'template_updated' => time(),
-	'template_version' => '1.0.16',
-	'template_master_key' => '',
-	'template_has_hookpoints' => 0,
-];
+			'template_updated' => time(),
+			'template_version' => '1.0.16',
+			'template_master_key' => '',
+			'template_has_hookpoints' => 0,
+		];
 
-// Template: limits (admin)
-$templates[] = [
-	'template_set_id' => 1,
-	'template_app' => 'gdloadout',
-	'template_location' => 'admin',
-	'template_group' => 'manage',
-	'template_name' => 'limits',
-	'template_data' => '$limits',
-	'template_content' => <<<'TEMPLATE_EOT'
+		// Template: limits (admin)
+		$templates[] = [
+			'template_set_id' => 1,
+			'template_app' => 'gdloadout',
+			'template_location' => 'admin',
+			'template_group' => 'manage',
+			'template_name' => 'limits',
+			'template_data' => '$limits',
+			'template_content' => <<<'TEMPLATE_EOT'
 <div class="ipsBox">
     <h2 class="ipsBox_title">Loadout Group Limits</h2>
     <table class="ipsTable ipsTable_zebra"><thead><tr><th>Group</th><th>Max Loadouts</th><th>Max Slots</th></tr></thead><tbody>{{foreach $limits as $limit}}<tr><td>{$limit['group_name']}</td><td>{$limit['max_loadouts']}</td><td>{$limit['max_slots']}</td></tr>{{endforeach}}</tbody></table>
 </div>
 TEMPLATE_EOT,
-	'template_updated' => time(),
-	'template_version' => '1.0.16',
-	'template_master_key' => '',
-	'template_has_hookpoints' => 0,
-];
+			'template_updated' => time(),
+			'template_version' => '1.0.16',
+			'template_master_key' => '',
+			'template_has_hookpoints' => 0,
+		];
 
-// Template: featured (admin)
-$templates[] = [
-	'template_set_id' => 1,
-	'template_app' => 'gdloadout',
-	'template_location' => 'admin',
-	'template_group' => 'manage',
-	'template_name' => 'featured',
-	'template_data' => '$featured',
-	'template_content' => <<<'TEMPLATE_EOT'
+		// Template: featured (admin)
+		$templates[] = [
+			'template_set_id' => 1,
+			'template_app' => 'gdloadout',
+			'template_location' => 'admin',
+			'template_group' => 'manage',
+			'template_name' => 'featured',
+			'template_data' => '$featured',
+			'template_content' => <<<'TEMPLATE_EOT'
 <div class="ipsBox">
     <h2 class="ipsBox_title">Featured Loadouts</h2>
     {{if count($featured) === 0}}<p class="ipsMessage ipsMessage_info">No featured loadouts configured.</p>{{else}}
@@ -348,34 +357,133 @@ $templates[] = [
     {{endif}}
 </div>
 TEMPLATE_EOT,
-	'template_updated' => time(),
-	'template_version' => '1.0.16',
-	'template_master_key' => '',
-	'template_has_hookpoints' => 0,
-];
+			'template_updated' => time(),
+			'template_version' => '1.0.16',
+			'template_master_key' => '',
+			'template_has_hookpoints' => 0,
+		];
 
-// Seed templates
-foreach ( $templates as $tpl )
-{
-	try
-	{
-		\IPS\Db::i()->replace( 'core_theme_templates', $tpl );
+		// Seed templates
+		foreach ( $templates as $tpl )
+		{
+			try
+			{
+				\IPS\Db::i()->replace( 'core_theme_templates', $tpl );
+			}
+			catch ( \Throwable ) {}
+		}
+
+		/* ---------------------------------------------------------------
+		 * Seed lang strings into core_sys_lang_words for every lang_id
+		 * Schema: lang_id, word_app, word_key, word_default, word_js, word_export
+		 * --------------------------------------------------------------- */
+		$strings = [
+			'__app_gdloadout' => 'Loadouts',
+			'menutab__gdloadout_icon' => 'layer-group',
+			'module__gdloadout_loadouts' => 'Loadouts',
+			'module__gdloadout_manage' => 'Manage',
+			'gdloadout_hub_title' => 'Community Loadouts',
+			'gdloadout_hub_subtitle' => 'Browse, build, and share your perfect gear setups',
+			'gdloadout_new_loadout' => 'New Loadout',
+			'gdloadout_browse_all' => 'Browse All',
+			'gdloadout_my_loadouts' => 'My Loadouts',
+			'gdloadout_my_loadouts_title' => 'My Loadouts',
+			'gdloadout_my_loadouts_subtitle' => 'Manage and edit your gear builds',
+			'gdloadout_featured' => 'Featured',
+			'gdloadout_trending' => 'Trending',
+			'gdloadout_top_rated' => 'Top Rated',
+			'gdloadout_recent' => 'Recently Updated',
+			'gdloadout_budget' => 'Budget Builds',
+			'gdloadout_builder_title' => 'Loadout Builder',
+			'gdloadout_name' => 'Name',
+			'gdloadout_name_placeholder' => 'My Competition Setup',
+			'gdloadout_description' => 'Description',
+			'gdloadout_desc_placeholder' => 'Describe your loadout...',
+			'gdloadout_use_case' => 'Use Case',
+			'gdloadout_select_use_case' => 'Select use case...',
+			'gdloadout_visibility' => 'Visibility',
+			'gdloadout_public' => 'Public',
+			'gdloadout_unlisted' => 'Unlisted',
+			'gdloadout_private' => 'Private (VIP)',
+			'gdloadout_search_products' => 'Search Products',
+			'gdloadout_search_placeholder' => 'Search by name, UPC, or MPN...',
+			'gdloadout_your_items' => 'Your Items',
+			'gdloadout_save' => 'Save Loadout',
+			'gdloadout_delete' => 'Delete',
+			'gdloadout_no_items' => 'No items in this loadout',
+			'gdloadout_dealers' => 'dealers',
+			'gdloadout_no_price' => 'No price data',
+			'gdloadout_comments' => 'Comments',
+			'gdloadout_add_comment' => 'Add a comment...',
+			'gdloadout_post_comment' => 'Post',
+			'gdloadout_build_summary' => 'Build Summary',
+			'gdloadout_items' => 'Items',
+			'gdloadout_est_cost' => 'Est. Cost',
+			'gdloadout_add_all_wishlist' => 'Add All to Wishlist',
+			'gdloadout_alert_all' => 'Set Price Alerts',
+			'gdloadout_compliance' => 'Compliance Notes',
+			'gdloadout_no_loadouts_yet' => 'No loadouts yet',
+			'gdloadout_no_loadouts_desc' => 'Create your first gear build to get started',
+			'gdloadout_create_first' => 'Create Your First Loadout',
+			'gdloadout_no_trending' => 'No trending loadouts right now',
+			'gdloadout_err_not_found' => 'Loadout not found',
+			'gdloadout_err_name_required' => 'Name is required',
+			'gdloadout_err_limit_loadouts' => 'You have reached your loadout limit',
+			'gdloadout_err_limit_slots' => 'Too many items — slot limit reached',
+			'gdloadout_notif_loadout_updated' => 'Loadout updated',
+			'gdloadout_notif_loadout_updated_desc' => 'Get notified when a loadout you follow is updated',
+			'gdloadout_notif_loadout_upvoted' => 'Loadout upvoted',
+			'gdloadout_notif_loadout_upvoted_desc' => 'Get notified when someone upvotes your loadout',
+			'gdloadout_notif_loadout_followed' => 'Loadout followed',
+			'gdloadout_notif_loadout_followed_desc' => 'Get notified when someone follows your loadout',
+		];
+
+		foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+		{
+			foreach ( $strings as $key => $val )
+			{
+				try
+				{
+					\IPS\Db::i()->replace( 'core_sys_lang_words', [
+						'lang_id'      => (int) $langId,
+						'word_app'     => 'gdloadout',
+						'word_key'     => $key,
+						'word_default' => $val,
+						'word_js'      => 0,
+						'word_export'  => 1,
+					] );
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+
+		/* ---------------------------------------------------------------
+		 * Notification defaults
+		 * --------------------------------------------------------------- */
+		$notifDefaults = [
+			[ 'notification_app' => 'gdloadout', 'notification_key' => 'loadout_updated', 'default' => '["inline"]' ],
+			[ 'notification_app' => 'gdloadout', 'notification_key' => 'loadout_upvoted', 'default' => '["inline"]' ],
+			[ 'notification_app' => 'gdloadout', 'notification_key' => 'loadout_followed', 'default' => '["inline"]' ],
+		];
+
+		foreach ( $notifDefaults as $nd )
+		{
+			try
+			{
+				\IPS\Db::i()->replace( 'core_notification_defaults', $nd );
+			}
+			catch ( \Throwable ) {}
+		}
+
+		/* ---------------------------------------------------------------
+		 * Clear caches
+		 * --------------------------------------------------------------- */
+		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
+
+		return TRUE;
 	}
-	catch ( \Throwable ) {}
 }
 
-// Notification defaults
-$notifDefaults = [
-	[ 'notification_app' => 'gdloadout', 'notification_key' => 'loadout_updated', 'default' => '["inline"]' ],
-	[ 'notification_app' => 'gdloadout', 'notification_key' => 'loadout_upvoted', 'default' => '["inline"]' ],
-	[ 'notification_app' => 'gdloadout', 'notification_key' => 'loadout_followed', 'default' => '["inline"]' ],
-];
-
-foreach ( $notifDefaults as $nd )
-{
-	try
-	{
-		\IPS\Db::i()->replace( 'core_notification_defaults', $nd );
-	}
-	catch ( \Throwable ) {}
-}
+class upgrade extends _upgrade {}

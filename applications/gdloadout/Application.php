@@ -28,7 +28,7 @@ class _Application extends \IPS\Application
 			'rootTabs'      => array( array( 'key' => 'Loadouts' ) ),
 			'browseTabs'    => array(),
 			'browseTabsEnd' => array(),
-			'activityTabs'  => array(),
+			'mobileTabs'    => array(),
 		);
 	}
 }

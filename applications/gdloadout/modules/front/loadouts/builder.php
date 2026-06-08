@@ -28,7 +28,6 @@ class _builder extends \IPS\Dispatcher\Controller
 			Output::i()->error( 'no_module_permission', '2GL02/1', 403 );
 			return;
 		}
-
 		parent::execute();
 	}
 
@@ -44,24 +43,17 @@ class _builder extends \IPS\Dispatcher\Controller
 					$vipGroupIds[] = (int) $g->g_id;
 				}
 			}
-			if ( \in_array( (int) $member->member_group_id, $vipGroupIds, true ) )
-			{
-				return true;
-			}
+			if ( \in_array( (int) $member->member_group_id, $vipGroupIds, true ) ) return true;
 			$secondary = $member->mgroup_others ?? '';
 			if ( $secondary )
 			{
 				foreach ( explode( ',', $secondary ) as $sg )
 				{
-					if ( \in_array( (int) trim( $sg ), $vipGroupIds, true ) )
-					{
-						return true;
-					}
+					if ( \in_array( (int) trim( $sg ), $vipGroupIds, true ) ) return true;
 				}
 			}
 		}
 		catch ( \Throwable ) {}
-
 		return false;
 	}
 
@@ -81,7 +73,6 @@ class _builder extends \IPS\Dispatcher\Controller
 			try
 			{
 				$loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=? AND member_id=?', $editId, (int) $member->member_id ] )->first();
-
 				foreach ( Db::i()->select( '*', 'gd_loadout_items', [ 'loadout_id=?', $editId ], 'sort_order ASC' ) as $item )
 				{
 					$items[] = $item;
@@ -164,13 +155,9 @@ class _builder extends \IPS\Dispatcher\Controller
 
 		$slotsJson = Request::i()->loadout_slots ?? '[]';
 		$slots     = json_decode( $slotsJson, true );
-		if ( !\is_array( $slots ) )
-		{
-			$slots = [];
-		}
+		if ( !\is_array( $slots ) ) $slots = [];
 
 		$limits = \IPS\gdloadout\Loadout\Limits::forMember( $member );
-
 		if ( $limits['max_slots'] > 0 && \count( $slots ) > $limits['max_slots'] )
 		{
 			Output::i()->json( [ 'error' => Member::loggedIn()->language()->addToStack( 'gdloadout_err_limit_slots' ) ], 400 );
@@ -192,10 +179,7 @@ class _builder extends \IPS\Dispatcher\Controller
 			$slotsWithUpc = 0;
 			foreach ( $slots as $s )
 			{
-				if ( !empty( $s['upc'] ) )
-				{
-					$slotsWithUpc++;
-				}
+				if ( !empty( $s['upc'] ) ) $slotsWithUpc++;
 			}
 			if ( $slotsWithUpc === 0 )
 			{
@@ -213,19 +197,13 @@ class _builder extends \IPS\Dispatcher\Controller
 					$counter++;
 					$uniqueSlug = $slug . '-' . $counter;
 				}
-				catch ( \Throwable )
-				{
-					break;
-				}
+				catch ( \Throwable ) { break; }
 			}
 
 			Db::i()->update( 'gd_loadouts', [
-				'name'        => $name,
-				'slug'        => $uniqueSlug,
-				'description' => $description ?: NULL,
-				'use_case'    => $useCase ?: NULL,
-				'visibility'  => $visibility,
-				'updated_at'  => time(),
+				'name' => $name, 'slug' => $uniqueSlug,
+				'description' => $description ?: NULL, 'use_case' => $useCase ?: NULL,
+				'visibility' => $visibility, 'updated_at' => time(),
 			], [ 'id=?', $editId ] );
 
 			$loadoutId = $editId;
@@ -234,31 +212,20 @@ class _builder extends \IPS\Dispatcher\Controller
 			{
 				try
 				{
-					$ownerName = $member->name ?? 'Unknown';
 					$followers = [];
 					foreach ( Db::i()->select( 'member_id', 'gd_loadout_follows', [ 'loadout_id=?', $editId ] ) as $fid )
 					{
-						if ( (int) $fid !== (int) $member->member_id )
-						{
-							$followers[] = (int) $fid;
-						}
+						if ( (int) $fid !== (int) $member->member_id ) $followers[] = (int) $fid;
 					}
 					if ( $followers )
 					{
 						$notification = new \IPS\Notification(
-							\IPS\Application::load( 'gdloadout' ),
-							'loadout_updated',
-							$member,
-							[],
-							[ 'loadout_name' => $name, 'author_name' => $ownerName, 'username' => $ownerName, 'slug' => $uniqueSlug ]
+							\IPS\Application::load( 'gdloadout' ), 'loadout_updated', $member, [],
+							[ 'loadout_name' => $name, 'author_name' => $member->name, 'username' => $member->name, 'slug' => $uniqueSlug ]
 						);
 						foreach ( $followers as $fMemberId )
 						{
-							try
-							{
-								$notification->recipients->attach( Member::load( $fMemberId ) );
-							}
-							catch ( \Throwable ) {}
+							try { $notification->recipients->attach( Member::load( $fMemberId ) ); } catch ( \Throwable ) {}
 						}
 						$notification->send();
 					}
@@ -286,143 +253,66 @@ class _builder extends \IPS\Dispatcher\Controller
 					$counter++;
 					$uniqueSlug = $slug . '-' . $counter;
 				}
-				catch ( \Throwable )
-				{
-					break;
-				}
+				catch ( \Throwable ) { break; }
 			}
 
 			$loadoutId = Db::i()->insert( 'gd_loadouts', [
-				'member_id'   => (int) $member->member_id,
-				'name'        => $name,
-				'slug'        => $uniqueSlug,
-				'description' => $description ?: NULL,
-				'use_case'    => $useCase ?: NULL,
-				'visibility'  => $visibility,
-				'created_at'  => time(),
+				'member_id' => (int) $member->member_id, 'name' => $name, 'slug' => $uniqueSlug,
+				'description' => $description ?: NULL, 'use_case' => $useCase ?: NULL,
+				'visibility' => $visibility, 'created_at' => time(),
 			] );
 		}
 
 		$validSlotTypes = [ 'base_firearm', 'optic', 'weapon_light', 'laser', 'suppressor', 'foregrip', 'sling', 'holster', 'ammo', 'cleaning', 'extra' ];
-		$totalCost  = 0;
-		$totalItems = 0;
-		$order      = 0;
+		$totalCost = 0; $totalItems = 0; $order = 0;
 
 		foreach ( $slots as $slot )
 		{
-			if ( empty( $slot['upc'] ) )
-			{
-				continue;
-			}
-
+			if ( empty( $slot['upc'] ) ) continue;
 			$slotType = $slot['slot_type'] ?? 'extra';
-			if ( !\in_array( $slotType, $validSlotTypes, true ) )
-			{
-				$slotType = 'extra';
-			}
+			if ( !\in_array( $slotType, $validSlotTypes, true ) ) $slotType = 'extra';
 
 			$notes = NULL;
-			if ( $isVip && !empty( $slot['notes'] ) )
-			{
-				$notes = substr( trim( $slot['notes'] ), 0, 300 );
-			}
+			if ( $isVip && !empty( $slot['notes'] ) ) $notes = substr( trim( $slot['notes'] ), 0, 300 );
 
 			Db::i()->insert( 'gd_loadout_items', [
-				'loadout_id'   => (int) $loadoutId,
-				'upc'          => substr( trim( $slot['upc'] ), 0, 20 ),
-				'slot_type'    => $slotType,
-				'custom_label' => !empty( $slot['custom_label'] ) ? substr( trim( $slot['custom_label'] ), 0, 100 ) : NULL,
-				'sort_order'   => $order,
-				'notes'        => $notes,
-				'added_at'     => time(),
+				'loadout_id' => (int) $loadoutId, 'upc' => substr( trim( $slot['upc'] ), 0, 20 ),
+				'slot_type' => $slotType, 'custom_label' => !empty( $slot['custom_label'] ) ? substr( trim( $slot['custom_label'] ), 0, 100 ) : NULL,
+				'sort_order' => $order, 'notes' => $notes, 'added_at' => time(),
 			] );
-
-			$totalItems++;
-			$order++;
-
-			if ( isset( $slot['price'] ) && (float) $slot['price'] > 0 )
-			{
-				$totalCost += (float) $slot['price'];
-			}
+			$totalItems++; $order++;
+			if ( isset( $slot['price'] ) && (float) $slot['price'] > 0 ) $totalCost += (float) $slot['price'];
 		}
-
-		$hasNfa = 0;
-		$hasStateRestriction = 0;
-		try
-		{
-			$upcs = [];
-			foreach ( $slots as $s )
-			{
-				if ( !empty( $s['upc'] ) )
-				{
-					$upcs[] = substr( trim( $s['upc'] ), 0, 20 );
-				}
-			}
-			if ( $upcs )
-			{
-				$placeholders = implode( ',', array_fill( 0, \count( $upcs ), '?' ) );
-				try
-				{
-					$nfaCount = (int) Db::i()->select( 'COUNT(*)', 'gd_catalog', array_merge(
-						[ "upc IN($placeholders) AND category LIKE ?" ],
-						$upcs,
-						[ '%NFA%' ]
-					) )->first();
-					if ( $nfaCount > 0 )
-					{
-						$hasNfa = 1;
-					}
-				}
-				catch ( \Throwable ) {}
-			}
-		}
-		catch ( \Throwable ) {}
 
 		Db::i()->update( 'gd_loadouts', [
-			'total_items'         => $totalItems,
-			'total_min_price'     => $totalCost > 0 ? round( $totalCost, 2 ) : NULL,
-			'has_nfa_item'        => $hasNfa,
-			'has_state_restriction' => $hasStateRestriction,
+			'total_items' => $totalItems,
+			'total_min_price' => $totalCost > 0 ? round( $totalCost, 2 ) : NULL,
 		], [ 'id=?', (int) $loadoutId ] );
 
 		$ownerName = $member->name ?? 'user';
 		$loadoutSlug = $uniqueSlug ?? $slug;
 		$viewUrl = (string) Url::internal(
 			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $loadoutSlug ),
-			'front',
-			'gdloadout_view'
+			'front', 'gdloadout_view'
 		);
 
-		Output::i()->json( [
-			'ok'         => true,
-			'loadout_id' => (int) $loadoutId,
-			'redirect'   => $viewUrl,
-		] );
+		Output::i()->json( [ 'ok' => true, 'loadout_id' => (int) $loadoutId, 'redirect' => $viewUrl ] );
 	}
 
 	protected function delete(): void
 	{
 		Session::i()->csrfCheck();
-
 		$member = Member::loggedIn();
-		$id     = (int) ( Request::i()->loadout_id ?? 0 );
+		$id = (int) ( Request::i()->loadout_id ?? 0 );
 
-		try
-		{
-			Db::i()->select( 'id', 'gd_loadouts', [ 'id=? AND member_id=?', $id, (int) $member->member_id ] )->first();
-		}
-		catch ( \Throwable )
-		{
-			Output::i()->json( [ 'error' => Member::loggedIn()->language()->addToStack( 'gdloadout_err_not_found' ) ], 404 );
-			return;
-		}
+		try { Db::i()->select( 'id', 'gd_loadouts', [ 'id=? AND member_id=?', $id, (int) $member->member_id ] )->first(); }
+		catch ( \Throwable ) { Output::i()->json( [ 'error' => Member::loggedIn()->language()->addToStack( 'gdloadout_err_not_found' ) ], 404 ); return; }
 
 		Db::i()->delete( 'gd_loadout_items', [ 'loadout_id=?', $id ] );
 		Db::i()->delete( 'gd_loadout_votes', [ 'loadout_id=?', $id ] );
 		Db::i()->delete( 'gd_loadout_follows', [ 'loadout_id=?', $id ] );
 		Db::i()->delete( 'gd_loadout_forum_posts', [ 'loadout_id=?', $id ] );
 		Db::i()->delete( 'gd_loadouts', [ 'id=?', $id ] );
-
 		Output::i()->json( [ 'ok' => true ] );
 	}
 
@@ -446,10 +336,7 @@ class _builder extends \IPS\Dispatcher\Controller
 				try
 				{
 					$u = (string) Db::i()->select( 'upc', 'gd_catalog', [ 'upc=? AND record_status=?', $query, 'active' ] )->first();
-					if ( $u !== '' )
-					{
-						$matchedUpcs[] = $u;
-					}
+					if ( $u !== '' ) $matchedUpcs[] = $u;
 				}
 				catch ( \UnderflowException ) {}
 			}
@@ -474,26 +361,18 @@ class _builder extends \IPS\Dispatcher\Controller
 					try
 					{
 						$row = Db::i()->select( '*', 'gd_catalog', [ 'upc=?', $u ] )->first();
-						$price = NULL;
-						$dealers = 0;
-						$inStock = false;
+						$price = NULL; $dealers = 0;
 						try
 						{
 							$p = Db::i()->select( 'MIN(dealer_price) AS best_price, COUNT(DISTINCT dealer_id) AS dealer_count', 'gd_dealer_listings', [ 'upc=? AND listing_status=?', $u, 'active' ] )->first();
 							$price   = ( $p['best_price'] !== NULL && (float) $p['best_price'] > 0 ) ? (float) $p['best_price'] : NULL;
 							$dealers = (int) $p['dealer_count'];
-							$inStock = $dealers > 0;
 						}
 						catch ( \Throwable ) {}
 						$out[] = [
-							'upc'          => $u,
-							'title'        => $row['title'] ?? '',
-							'brand'        => $row['brand'] ?? '',
-							'best_price'   => $price,
-							'dealer_count' => $dealers,
-							'in_stock'     => $inStock,
-							'category'     => $row['category'] ?? '',
-							'caliber'      => $row['caliber'] ?? '',
+							'upc' => $u, 'title' => $row['title'] ?? '', 'brand' => $row['brand'] ?? '',
+							'best_price' => $price, 'dealer_count' => $dealers, 'in_stock' => $dealers > 0,
+							'category' => $row['category'] ?? '', 'caliber' => $row['caliber'] ?? '',
 						];
 					}
 					catch ( \Throwable ) {}
@@ -509,14 +388,9 @@ class _builder extends \IPS\Dispatcher\Controller
 			foreach ( ( $result['results'] ?? [] ) as $r )
 			{
 				$out[] = [
-					'upc'          => $r['upc'] ?? '',
-					'title'        => $r['title'] ?? '',
-					'brand'        => $r['brand'] ?? '',
-					'best_price'   => $r['best_price'] ?? null,
-					'dealer_count' => $r['dealer_count'] ?? 0,
-					'in_stock'     => $r['in_stock'] ?? false,
-					'category'     => $r['category'] ?? '',
-					'caliber'      => $r['caliber'] ?? '',
+					'upc' => $r['upc'] ?? '', 'title' => $r['title'] ?? '', 'brand' => $r['brand'] ?? '',
+					'best_price' => $r['best_price'] ?? null, 'dealer_count' => $r['dealer_count'] ?? 0,
+					'in_stock' => $r['in_stock'] ?? false, 'category' => $r['category'] ?? '', 'caliber' => $r['caliber'] ?? '',
 				];
 			}
 			Output::i()->json( [ 'total' => $result['total'] ?? 0, 'results' => $out ] );

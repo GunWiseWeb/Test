@@ -1,41 +1,26 @@
-<ips:template parameters="$loadouts, $csrfKey" />
-<div class="ipsBox ipsPull">
-	<div class="ipsBox_body ipsPad">
-		<h2 style="margin-bottom:16px">{lang="gdloadout_featured_title"}</h2>
-		{{if count($loadouts) > 0}}
-		<table class="ipsTable ipsTable_zebra" style="width:100%">
-			<thead>
-				<tr>
-					<th>ID</th>
-					<th>Name</th>
-					<th>Owner</th>
-					<th>Upvotes</th>
-					<th style="width:120px">Featured</th>
-				</tr>
-			</thead>
-			<tbody>
-				{{foreach $loadouts as $lo}}
-				<tr>
-					<td>{expression="(int)$lo['id']"}</td>
-					<td>{expression="htmlspecialchars($lo['name'])"}</td>
-					<td>{expression="htmlspecialchars($lo['owner_name'])"}</td>
-					<td>{expression="(int)$lo['upvotes']"}</td>
-					<td>
-						<form method="post" action="{$lo['toggle_url']}" style="display:inline">
-							<input type="hidden" name="csrfKey" value="{$csrfKey}" />
-							{{if $lo['featured']}}
-							<button type="submit" class="ipsButton ipsButton--negative ipsButton--verySmall">{lang="gdloadout_featured_unfeature"}</button>
-							{{else}}
-							<button type="submit" class="ipsButton ipsButton--primary ipsButton--verySmall">{lang="gdloadout_featured_feature"}</button>
-							{{endif}}
-						</form>
-					</td>
-				</tr>
-				{{endforeach}}
-			</tbody>
-		</table>
-		{{else}}
-		<p style="color:#888">{lang="gdloadout_featured_none"}</p>
-		{{endif}}
-	</div>
+<ips:template parameters="$featured" />
+<div class="ipsBox">
+    <h2 class="ipsBox_title">Featured Loadouts</h2>
+    {{if count($featured) === 0}}
+    <p class="ipsMessage ipsMessage_info">No featured loadouts configured.</p>
+    {{else}}
+    <table class="ipsTable ipsTable_zebra">
+        <thead>
+            <tr>
+                <th>Position</th>
+                <th>Loadout</th>
+                <th>Owner</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{foreach $featured as $f}}
+            <tr>
+                <td>{$f['featured_position']}</td>
+                <td>{$f['name']}</td>
+                <td>{$f['owner_name']}</td>
+            </tr>
+            {{endforeach}}
+        </tbody>
+    </table>
+    {{endif}}
 </div>

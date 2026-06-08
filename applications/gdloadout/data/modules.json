@@ -1,14 +1,12 @@
 {
-	"admin": {
-		"manage": {
-			"default_controller": "limits",
-			"protected": false
-		}
-	},
-	"front": {
-		"loadouts": {
-			"default_controller": "hub",
-			"protected": false
-		}
-	}
+    "front": {
+        "loadouts": {
+            "default_controller": "hub"
+        }
+    },
+    "admin": {
+        "manage": {
+            "default_controller": "limits"
+        }
+    }
 }

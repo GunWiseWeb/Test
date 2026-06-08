@@ -1,104 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <language>
- <app key="gdloadout" version="10001">
-  <word key="__app_gdloadout" js="0">Loadouts</word>
-  <word key="frontnavigation_loadouts" js="0">Loadouts</word>
-  <word key="menutab__gdloadout" js="0">Loadouts</word>
-  <word key="menutab__gdloadout_icon" js="0">layer-group</word>
-  <word key="gdloadout_hub_title" js="0">Loadouts</word>
-  <word key="gdloadout_hub_empty" js="0">No community builds yet — be the first to create a loadout!</word>
-  <word key="menu__gdloadout_loadouts_hub" js="0">Loadouts</word>
-  <word key="menu__gdloadout_manage" js="0">Loadout Settings</word>
-  <word key="menu__gdloadout_manage_limits" js="0">Group Limits</word>
-  <word key="gdloadout_builder_title" js="0">Loadout Builder</word>
-  <word key="gdloadout_builder_name" js="0">Build Name</word>
-  <word key="gdloadout_builder_description" js="0">Description (optional)</word>
-  <word key="gdloadout_builder_use_case" js="0">Use Case</word>
-  <word key="gdloadout_builder_visibility" js="0">Visibility</word>
-  <word key="gdloadout_builder_save" js="0">Save Loadout</word>
-  <word key="gdloadout_builder_delete" js="0">Delete Loadout</word>
-  <word key="gdloadout_builder_search" js="0">Search products...</word>
-  <word key="gdloadout_builder_slot_empty" js="0">+ Add</word>
-  <word key="gdloadout_builder_total_cost" js="0">Est. Build Cost</word>
-  <word key="gdloadout_builder_total_items" js="0">Total Items</word>
-  <word key="gdloadout_builder_add_extra" js="0">+ Add Extra Slot</word>
-  <word key="gdloadout_builder_remove" js="0">Remove</word>
-  <word key="gdloadout_slot_base_firearm" js="0">Base Firearm</word>
-  <word key="gdloadout_slot_optic" js="0">Optic</word>
-  <word key="gdloadout_slot_weapon_light" js="0">Weapon Light</word>
-  <word key="gdloadout_slot_laser" js="0">Laser</word>
-  <word key="gdloadout_slot_suppressor" js="0">Suppressor</word>
-  <word key="gdloadout_slot_foregrip" js="0">Foregrip</word>
-  <word key="gdloadout_slot_sling" js="0">Sling</word>
-  <word key="gdloadout_slot_holster" js="0">Holster</word>
-  <word key="gdloadout_slot_ammo" js="0">Ammo</word>
-  <word key="gdloadout_slot_cleaning" js="0">Cleaning</word>
-  <word key="gdloadout_slot_extra" js="0">Extra</word>
-  <word key="gdloadout_use_case_home_defense" js="0">Home Defense</word>
-  <word key="gdloadout_use_case_concealed_carry" js="0">Concealed Carry</word>
-  <word key="gdloadout_use_case_hunting" js="0">Hunting</word>
-  <word key="gdloadout_use_case_competition" js="0">Competition</word>
-  <word key="gdloadout_use_case_range" js="0">Range</word>
-  <word key="gdloadout_use_case_tactical" js="0">Tactical</word>
-  <word key="gdloadout_use_case_collection" js="0">Collection</word>
-  <word key="gdloadout_vis_public" js="0">Public</word>
-  <word key="gdloadout_vis_unlisted" js="0">Unlisted</word>
-  <word key="gdloadout_vis_private" js="0">Private</word>
-  <word key="gdloadout_limits_title" js="0">Loadout Group Limits</word>
-  <word key="gdloadout_limits_group" js="0">Member Group</word>
-  <word key="gdloadout_limits_max_loadouts" js="0">Max Loadouts</word>
-  <word key="gdloadout_limits_max_slots" js="0">Max Slots per Loadout</word>
-  <word key="gdloadout_limits_unlimited" js="0">0 = unlimited</word>
-  <word key="gdloadout_limits_saved" js="0">Group limits saved.</word>
-  <word key="gdloadout_err_limit_loadouts" js="0">You have reached the maximum number of loadouts for your account.</word>
-  <word key="gdloadout_err_limit_slots" js="0">You have reached the maximum number of slots for this loadout.</word>
-  <word key="gdloadout_err_name_required" js="0">Please enter a name for your loadout.</word>
-  <word key="gdloadout_err_not_found" js="0">Loadout not found.</word>
-  <word key="gdloadout_err_no_permission" js="0">You do not have permission to edit this loadout.</word>
-  <word key="gdloadout_saved" js="0">Loadout saved successfully.</word>
-  <word key="gdloadout_deleted" js="0">Loadout deleted.</word>
-  <word key="gdloadout_confirm_delete" js="0">Are you sure you want to delete this loadout? This cannot be undone.</word>
-  <word key="r__limits_manage" js="0">Can manage loadout limits</word>
-  <word key="gdloadout_sec_featured" js="0">Featured Builds</word>
-  <word key="gdloadout_sec_trending" js="0">Trending</word>
-  <word key="gdloadout_sec_toprated" js="0">Top Rated</word>
-  <word key="gdloadout_sec_recent" js="0">Recently Updated</word>
-  <word key="gdloadout_sec_budget" js="0">Budget Builds</word>
-  <word key="gdloadout_upvote" js="0">Upvote</word>
-  <word key="gdloadout_follow" js="0">Follow</word>
-  <word key="gdloadout_following" js="0">Following</word>
-  <word key="gdloadout_share" js="0">Share</word>
-  <word key="gdloadout_compliance_none" js="0">No compliance issues detected for your state</word>
-  <word key="gdloadout_nfa" js="0">NFA Item</word>
-  <word key="gdloadout_ffl" js="0">FFL Required</word>
-  <word key="gdloadout_state_restricted" js="0">State Restricted</word>
-  <word key="gdloadout_comments" js="0">Comments</word>
-  <word key="gdloadout_comment_placeholder" js="0">Add a comment...</word>
-  <word key="gdloadout_comment_post" js="0">Post Comment</word>
-  <word key="gdloadout_login_required" js="0">Please log in to perform this action.</word>
-  <word key="gdloadout_view_by" js="0">by</word>
-  <word key="gdloadout_view_views" js="0">views</word>
-  <word key="gdloadout_view_items" js="0">items</word>
-  <word key="gdloadout_view_dealers" js="0">dealers</word>
-  <word key="gdloadout_view_est_total" js="0">Est. Total</word>
-  <word key="gdloadout_filter_use_case" js="0">Use Case</word>
-  <word key="gdloadout_filter_all" js="0">All</word>
-  <word key="menu__gdloadout_manage_featured" js="0">Featured Builds</word>
-  <word key="r__featured_manage" js="0">Manage featured builds</word>
-  <word key="gdloadout_featured_title" js="0">Featured Builds</word>
-  <word key="gdloadout_featured_none" js="0">No loadouts to display.</word>
-  <word key="gdloadout_featured_feature" js="0">Feature</word>
-  <word key="gdloadout_featured_unfeature" js="0">Unfeature</word>
-  <word key="notifications__gdloadout_Loadouts" js="0">Loadout Notifications</word>
-  <word key="notifications__gdloadout_Loadouts_desc" js="0">Receive notifications when someone upvotes or follows your loadout, or when a loadout you follow is updated.</word>
-  <word key="gdloadout_notify_loadout_updated" js="0">Loadout Updated</word>
-  <word key="gdloadout_notify_loadout_upvoted" js="0">Loadout Upvoted</word>
-  <word key="gdloadout_notify_loadout_followed" js="0">Loadout Followed</word>
-  <word key="gdloadout_add_all_wishlist" js="0">Add all to wishlist</word>
-  <word key="gdloadout_set_all_alerts" js="0">Set price alerts for all items</word>
-  <word key="gdloadout_widget_trending" js="0">Trending Loadouts</word>
-  <word key="gdloadout_wishlist_added" js="0">items added to wishlist</word>
-  <word key="gdloadout_alerts_set" js="0">price alerts set</word>
-  <word key="gdloadout_my_loadouts_title" js="0">My Loadouts</word>
- </app>
+<app key="gdloadout">
+<word key="__app_gdloadout"><![CDATA[Loadouts]]></word>
+<word key="menutab__gdloadout_icon"><![CDATA[layer-group]]></word>
+<word key="module__gdloadout_loadouts"><![CDATA[Loadouts]]></word>
+<word key="module__gdloadout_manage"><![CDATA[Manage]]></word>
+<word key="gdloadout_hub_title"><![CDATA[Community Loadouts]]></word>
+<word key="gdloadout_hub_subtitle"><![CDATA[Browse, build, and share your perfect gear setups]]></word>
+<word key="gdloadout_new_loadout"><![CDATA[New Loadout]]></word>
+<word key="gdloadout_browse_all"><![CDATA[Browse All]]></word>
+<word key="gdloadout_my_loadouts"><![CDATA[My Loadouts]]></word>
+<word key="gdloadout_my_loadouts_title"><![CDATA[My Loadouts]]></word>
+<word key="gdloadout_my_loadouts_subtitle"><![CDATA[Manage and edit your gear builds]]></word>
+<word key="gdloadout_featured"><![CDATA[Featured]]></word>
+<word key="gdloadout_trending"><![CDATA[Trending]]></word>
+<word key="gdloadout_top_rated"><![CDATA[Top Rated]]></word>
+<word key="gdloadout_recent"><![CDATA[Recently Updated]]></word>
+<word key="gdloadout_budget"><![CDATA[Budget Builds]]></word>
+<word key="gdloadout_builder_title"><![CDATA[Loadout Builder]]></word>
+<word key="gdloadout_name"><![CDATA[Name]]></word>
+<word key="gdloadout_name_placeholder"><![CDATA[My Competition Setup]]></word>
+<word key="gdloadout_description"><![CDATA[Description]]></word>
+<word key="gdloadout_desc_placeholder"><![CDATA[Describe your loadout...]]></word>
+<word key="gdloadout_use_case"><![CDATA[Use Case]]></word>
+<word key="gdloadout_select_use_case"><![CDATA[Select use case...]]></word>
+<word key="gdloadout_visibility"><![CDATA[Visibility]]></word>
+<word key="gdloadout_public"><![CDATA[Public]]></word>
+<word key="gdloadout_unlisted"><![CDATA[Unlisted]]></word>
+<word key="gdloadout_private"><![CDATA[Private (VIP)]]></word>
+<word key="gdloadout_search_products"><![CDATA[Search Products]]></word>
+<word key="gdloadout_search_placeholder"><![CDATA[Search by name, UPC, or MPN...]]></word>
+<word key="gdloadout_your_items"><![CDATA[Your Items]]></word>
+<word key="gdloadout_save"><![CDATA[Save Loadout]]></word>
+<word key="gdloadout_delete"><![CDATA[Delete]]></word>
+<word key="gdloadout_no_items"><![CDATA[No items in this loadout]]></word>
+<word key="gdloadout_dealers"><![CDATA[dealers]]></word>
+<word key="gdloadout_no_price"><![CDATA[No price data]]></word>
+<word key="gdloadout_comments"><![CDATA[Comments]]></word>
+<word key="gdloadout_add_comment"><![CDATA[Add a comment...]]></word>
+<word key="gdloadout_post_comment"><![CDATA[Post]]></word>
+<word key="gdloadout_build_summary"><![CDATA[Build Summary]]></word>
+<word key="gdloadout_items"><![CDATA[Items]]></word>
+<word key="gdloadout_est_cost"><![CDATA[Est. Cost]]></word>
+<word key="gdloadout_add_all_wishlist"><![CDATA[Add All to Wishlist]]></word>
+<word key="gdloadout_alert_all"><![CDATA[Set Price Alerts]]></word>
+<word key="gdloadout_compliance"><![CDATA[Compliance Notes]]></word>
+<word key="gdloadout_no_loadouts_yet"><![CDATA[No loadouts yet]]></word>
+<word key="gdloadout_no_loadouts_desc"><![CDATA[Create your first gear build to get started]]></word>
+<word key="gdloadout_create_first"><![CDATA[Create Your First Loadout]]></word>
+<word key="gdloadout_no_trending"><![CDATA[No trending loadouts right now]]></word>
+<word key="gdloadout_err_not_found"><![CDATA[Loadout not found]]></word>
+<word key="gdloadout_err_name_required"><![CDATA[Name is required]]></word>
+<word key="gdloadout_err_limit_loadouts"><![CDATA[You have reached your loadout limit]]></word>
+<word key="gdloadout_err_limit_slots"><![CDATA[Too many items — slot limit reached]]></word>
+<word key="gdloadout_notif_loadout_updated"><![CDATA[Loadout updated]]></word>
+<word key="gdloadout_notif_loadout_updated_desc"><![CDATA[Get notified when a loadout you follow is updated]]></word>
+<word key="gdloadout_notif_loadout_upvoted"><![CDATA[Loadout upvoted]]></word>
+<word key="gdloadout_notif_loadout_upvoted_desc"><![CDATA[Get notified when someone upvotes your loadout]]></word>
+<word key="gdloadout_notif_loadout_followed"><![CDATA[Loadout followed]]></word>
+<word key="gdloadout_notif_loadout_followed_desc"><![CDATA[Get notified when someone follows your loadout]]></word>
+</app>
 </language>

@@ -1,14 +1,14 @@
 {
-	"FrontNavigation": {
-		"Loadouts": "IPS\\gdloadout\\extensions\\core\\FrontNavigation\\Loadouts"
-	},
-	"Sitemap": {
-		"Loadouts": "IPS\\gdloadout\\extensions\\core\\Sitemap\\Loadouts"
-	},
-	"Notifications": {
-		"Loadouts": "IPS\\gdloadout\\extensions\\core\\Notifications\\Loadouts"
-	},
-	"UserMenu": {
-		"LoadoutLinks": "IPS\\gdloadout\\extensions\\core\\UserMenu\\LoadoutLinks"
-	}
+    "FrontNavigation": {
+        "Loadouts": "IPS\\gdloadout\\extensions\\core\\FrontNavigation\\Loadouts"
+    },
+    "Sitemap": {
+        "Loadouts": "IPS\\gdloadout\\extensions\\core\\Sitemap\\Loadouts"
+    },
+    "Notifications": {
+        "Loadouts": "IPS\\gdloadout\\extensions\\core\\Notifications\\Loadouts"
+    },
+    "UserMenu": {
+        "Loadouts": "IPS\\gdloadout\\extensions\\core\\UserMenu\\Loadouts"
+    }
 }
