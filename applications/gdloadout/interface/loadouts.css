@@ -198,15 +198,16 @@
 .gdlo-modal-type-btn:hover,.gdlo-modal-subchip:hover{background:#f1f5f9;border-color:#94a3b8}
 .gdlo-modal-type-btn.active,.gdlo-modal-subchip.active{background:#2563eb;border-color:#2563eb;color:#fff}
 .gdlo-modal-search{padding:14px 20px}
-.gdlo-modal-results{flex:1;overflow-y:auto;padding:0 20px 16px;display:flex;flex-direction:column;gap:8px}
-.gdlo-modal-row{display:flex;justify-content:space-between;gap:12px;padding:12px;border:1px solid #f1f5f9;border-radius:8px;cursor:pointer;transition:background .12s,border-color .12s}
+.gdlo-modal-results{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:4px 20px 16px;display:block}
+.gdlo-modal-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin:0 0 8px 0;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;background:#fff;box-sizing:border-box;width:100%}
+.gdlo-modal-row:last-child{margin-bottom:0}
 .gdlo-modal-row:hover{background:#f8fafc;border-color:#2563eb}
-.gdlo-modal-row-info{flex:1;min-width:0}
-.gdlo-modal-row-title{font-weight:600;font-size:.92em;color:#0f172a;word-break:break-word}
-.gdlo-modal-row-meta{font-size:.8em;color:#64748b;margin-top:2px}
-.gdlo-modal-row-price{font-weight:700;color:#16a34a;font-size:.92em;white-space:nowrap;flex-shrink:0}
-.gdlo-modal-row-na{color:#94a3b8;font-size:.85em;flex-shrink:0}
-.gdlo-modal-row-noprice{font-size:.78em;color:#94a3b8;background:#f1f5f9;padding:2px 8px;border-radius:999px;flex-shrink:0;align-self:center}
+.gdlo-modal-row-info{flex:1 1 auto;min-width:0;display:block;overflow:hidden}
+.gdlo-modal-row-title{display:block;font-weight:600;font-size:.92em;line-height:1.35;color:#0f172a;white-space:normal;overflow-wrap:anywhere;margin:0 0 3px 0}
+.gdlo-modal-row-meta{display:block;font-size:.8em;line-height:1.3;color:#64748b;white-space:normal;overflow-wrap:anywhere;margin:0}
+.gdlo-modal-row-price{flex:0 0 auto;font-weight:700;color:#16a34a;font-size:.92em;white-space:nowrap;align-self:center}
+.gdlo-modal-row-noprice{flex:0 0 auto;font-size:.74em;color:#94a3b8;background:#f1f5f9;padding:3px 9px;border-radius:999px;white-space:nowrap;align-self:center}
+.gdlo-modal-row-na{flex:0 0 auto;color:#94a3b8;font-size:.85em;white-space:nowrap;align-self:center}
 .gdlo-modal-sort{display:flex;gap:6px;padding:0 20px 12px}
 .gdlo-modal-sort-btn{padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;cursor:pointer;font-size:.82em;font-weight:600}
 .gdlo-modal-sort-btn:hover{background:#f1f5f9;border-color:#94a3b8}
