@@ -1,8 +1,10 @@
 {
     "trendingLoadouts": {
-        "class": "IPS\\gdloadout\\widgets\\trendingLoadouts",
-        "restrict": [],
-        "default_area": "sidebar",
-        "allow_reuse": true
+        "class": "\\IPS\\gdloadout\\widgets\\trendingLoadouts",
+        "restrict": [ "sidebar", "footer", "header" ],
+        "default_area": "",
+        "allow_reuse": true,
+        "menu_style": "menu",
+        "embeddable": false
     }
 }

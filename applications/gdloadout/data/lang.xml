@@ -1,63 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <language>
 <app key="gdloadout">
-<word key="__app_gdloadout"><![CDATA[Loadouts]]></word>
-<word key="menutab__gdloadout_icon"><![CDATA[layer-group]]></word>
-<word key="module__gdloadout_loadouts"><![CDATA[Loadouts]]></word>
-<word key="module__gdloadout_manage"><![CDATA[Manage]]></word>
-<word key="gdloadout_hub_title"><![CDATA[Community Loadouts]]></word>
-<word key="gdloadout_hub_subtitle"><![CDATA[Browse, build, and share your perfect gear setups]]></word>
-<word key="gdloadout_new_loadout"><![CDATA[New Loadout]]></word>
-<word key="gdloadout_browse_all"><![CDATA[Browse All]]></word>
-<word key="gdloadout_my_loadouts"><![CDATA[My Loadouts]]></word>
-<word key="gdloadout_my_loadouts_title"><![CDATA[My Loadouts]]></word>
-<word key="gdloadout_my_loadouts_subtitle"><![CDATA[Manage and edit your gear builds]]></word>
-<word key="gdloadout_featured"><![CDATA[Featured]]></word>
-<word key="gdloadout_trending"><![CDATA[Trending]]></word>
-<word key="gdloadout_top_rated"><![CDATA[Top Rated]]></word>
-<word key="gdloadout_recent"><![CDATA[Recently Updated]]></word>
-<word key="gdloadout_budget"><![CDATA[Budget Builds]]></word>
-<word key="gdloadout_builder_title"><![CDATA[Loadout Builder]]></word>
-<word key="gdloadout_name"><![CDATA[Name]]></word>
-<word key="gdloadout_name_placeholder"><![CDATA[My Competition Setup]]></word>
-<word key="gdloadout_description"><![CDATA[Description]]></word>
-<word key="gdloadout_desc_placeholder"><![CDATA[Describe your loadout...]]></word>
-<word key="gdloadout_use_case"><![CDATA[Use Case]]></word>
-<word key="gdloadout_select_use_case"><![CDATA[Select use case...]]></word>
-<word key="gdloadout_visibility"><![CDATA[Visibility]]></word>
-<word key="gdloadout_public"><![CDATA[Public]]></word>
-<word key="gdloadout_unlisted"><![CDATA[Unlisted]]></word>
-<word key="gdloadout_private"><![CDATA[Private (VIP)]]></word>
-<word key="gdloadout_search_products"><![CDATA[Search Products]]></word>
-<word key="gdloadout_search_placeholder"><![CDATA[Search by name, UPC, or MPN...]]></word>
-<word key="gdloadout_your_items"><![CDATA[Your Items]]></word>
-<word key="gdloadout_save"><![CDATA[Save Loadout]]></word>
-<word key="gdloadout_delete"><![CDATA[Delete]]></word>
-<word key="gdloadout_no_items"><![CDATA[No items in this loadout]]></word>
-<word key="gdloadout_dealers"><![CDATA[dealers]]></word>
-<word key="gdloadout_no_price"><![CDATA[No price data]]></word>
-<word key="gdloadout_comments"><![CDATA[Comments]]></word>
-<word key="gdloadout_add_comment"><![CDATA[Add a comment...]]></word>
-<word key="gdloadout_post_comment"><![CDATA[Post]]></word>
-<word key="gdloadout_build_summary"><![CDATA[Build Summary]]></word>
-<word key="gdloadout_items"><![CDATA[Items]]></word>
-<word key="gdloadout_est_cost"><![CDATA[Est. Cost]]></word>
-<word key="gdloadout_add_all_wishlist"><![CDATA[Add All to Wishlist]]></word>
-<word key="gdloadout_alert_all"><![CDATA[Set Price Alerts]]></word>
-<word key="gdloadout_compliance"><![CDATA[Compliance Notes]]></word>
-<word key="gdloadout_no_loadouts_yet"><![CDATA[No loadouts yet]]></word>
-<word key="gdloadout_no_loadouts_desc"><![CDATA[Create your first gear build to get started]]></word>
-<word key="gdloadout_create_first"><![CDATA[Create Your First Loadout]]></word>
-<word key="gdloadout_no_trending"><![CDATA[No trending loadouts right now]]></word>
-<word key="gdloadout_err_not_found"><![CDATA[Loadout not found]]></word>
-<word key="gdloadout_err_name_required"><![CDATA[Name is required]]></word>
-<word key="gdloadout_err_limit_loadouts"><![CDATA[You have reached your loadout limit]]></word>
-<word key="gdloadout_err_limit_slots"><![CDATA[Too many items — slot limit reached]]></word>
-<word key="gdloadout_notif_loadout_updated"><![CDATA[Loadout updated]]></word>
-<word key="gdloadout_notif_loadout_updated_desc"><![CDATA[Get notified when a loadout you follow is updated]]></word>
-<word key="gdloadout_notif_loadout_upvoted"><![CDATA[Loadout upvoted]]></word>
-<word key="gdloadout_notif_loadout_upvoted_desc"><![CDATA[Get notified when someone upvotes your loadout]]></word>
-<word key="gdloadout_notif_loadout_followed"><![CDATA[Loadout followed]]></word>
-<word key="gdloadout_notif_loadout_followed_desc"><![CDATA[Get notified when someone follows your loadout]]></word>
+<word key="__app_gdloadout" js="0"><![CDATA[Loadouts]]></word>
+<word key="menutab__gdloadout_icon" js="0"><![CDATA[layer-group]]></word>
+<word key="module__gdloadout_loadouts" js="0"><![CDATA[Loadouts]]></word>
+<word key="module__gdloadout_manage" js="0"><![CDATA[Manage]]></word>
+<word key="gdloadout_hub_title" js="0"><![CDATA[Community Loadouts]]></word>
+<word key="gdloadout_hub_subtitle" js="0"><![CDATA[Browse, build, and share your perfect gear setups]]></word>
+<word key="gdloadout_new_loadout" js="0"><![CDATA[New Loadout]]></word>
+<word key="gdloadout_browse_all" js="0"><![CDATA[Browse All]]></word>
+<word key="gdloadout_my_loadouts" js="0"><![CDATA[My Loadouts]]></word>
+<word key="gdloadout_my_loadouts_title" js="0"><![CDATA[My Loadouts]]></word>
+<word key="gdloadout_my_loadouts_subtitle" js="0"><![CDATA[Manage and edit your gear builds]]></word>
+<word key="gdloadout_featured" js="0"><![CDATA[Featured]]></word>
+<word key="gdloadout_trending" js="0"><![CDATA[Trending]]></word>
+<word key="gdloadout_top_rated" js="0"><![CDATA[Top Rated]]></word>
+<word key="gdloadout_recent" js="0"><![CDATA[Recently Updated]]></word>
+<word key="gdloadout_budget" js="0"><![CDATA[Budget Builds]]></word>
+<word key="gdloadout_builder_title" js="0"><![CDATA[Loadout Builder]]></word>
+<word key="gdloadout_name" js="0"><![CDATA[Name]]></word>
+<word key="gdloadout_name_placeholder" js="0"><![CDATA[My Competition Setup]]></word>
+<word key="gdloadout_description" js="0"><![CDATA[Description]]></word>
+<word key="gdloadout_desc_placeholder" js="0"><![CDATA[Describe your loadout...]]></word>
+<word key="gdloadout_use_case" js="0"><![CDATA[Use Case]]></word>
+<word key="gdloadout_select_use_case" js="0"><![CDATA[Select use case...]]></word>
+<word key="gdloadout_visibility" js="0"><![CDATA[Visibility]]></word>
+<word key="gdloadout_public" js="0"><![CDATA[Public]]></word>
+<word key="gdloadout_unlisted" js="0"><![CDATA[Unlisted]]></word>
+<word key="gdloadout_private" js="0"><![CDATA[Private (VIP)]]></word>
+<word key="gdloadout_search_products" js="0"><![CDATA[Search Products]]></word>
+<word key="gdloadout_search_placeholder" js="0"><![CDATA[Search by name, UPC, or MPN...]]></word>
+<word key="gdloadout_your_items" js="0"><![CDATA[Your Items]]></word>
+<word key="gdloadout_save" js="0"><![CDATA[Save Loadout]]></word>
+<word key="gdloadout_delete" js="0"><![CDATA[Delete]]></word>
+<word key="gdloadout_no_items" js="0"><![CDATA[No items in this loadout]]></word>
+<word key="gdloadout_dealers" js="0"><![CDATA[dealers]]></word>
+<word key="gdloadout_no_price" js="0"><![CDATA[No price data]]></word>
+<word key="gdloadout_comments" js="0"><![CDATA[Comments]]></word>
+<word key="gdloadout_add_comment" js="0"><![CDATA[Add a comment...]]></word>
+<word key="gdloadout_post_comment" js="0"><![CDATA[Post]]></word>
+<word key="gdloadout_build_summary" js="0"><![CDATA[Build Summary]]></word>
+<word key="gdloadout_items" js="0"><![CDATA[Items]]></word>
+<word key="gdloadout_est_cost" js="0"><![CDATA[Est. Cost]]></word>
+<word key="gdloadout_add_all_wishlist" js="0"><![CDATA[Add All to Wishlist]]></word>
+<word key="gdloadout_alert_all" js="0"><![CDATA[Set Price Alerts]]></word>
+<word key="gdloadout_compliance" js="0"><![CDATA[Compliance Notes]]></word>
+<word key="gdloadout_no_loadouts_yet" js="0"><![CDATA[No loadouts yet]]></word>
+<word key="gdloadout_no_loadouts_desc" js="0"><![CDATA[Create your first gear build to get started]]></word>
+<word key="gdloadout_create_first" js="0"><![CDATA[Create Your First Loadout]]></word>
+<word key="gdloadout_no_trending" js="0"><![CDATA[No trending loadouts right now]]></word>
+<word key="gdloadout_err_not_found" js="0"><![CDATA[Loadout not found]]></word>
+<word key="gdloadout_err_name_required" js="0"><![CDATA[Name is required]]></word>
+<word key="gdloadout_err_limit_loadouts" js="0"><![CDATA[You have reached your loadout limit]]></word>
+<word key="gdloadout_err_limit_slots" js="0"><![CDATA[Too many items — slot limit reached]]></word>
+<word key="gdloadout_notif_loadout_updated" js="0"><![CDATA[Loadout updated]]></word>
+<word key="gdloadout_notif_loadout_updated_desc" js="0"><![CDATA[Get notified when a loadout you follow is updated]]></word>
+<word key="gdloadout_notif_loadout_upvoted" js="0"><![CDATA[Loadout upvoted]]></word>
+<word key="gdloadout_notif_loadout_upvoted_desc" js="0"><![CDATA[Get notified when someone upvotes your loadout]]></word>
+<word key="gdloadout_notif_loadout_followed" js="0"><![CDATA[Loadout followed]]></word>
+<word key="gdloadout_notif_loadout_followed_desc" js="0"><![CDATA[Get notified when someone follows your loadout]]></word>
 </app>
 </language>
