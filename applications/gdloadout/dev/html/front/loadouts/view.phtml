@@ -70,8 +70,8 @@
                     </div>
                     <div class="gdlo-view-item-price">
                         {{if $item['live_price']}}
-                        <span class="gdlo-view-item-price-val">{expression="'$' . number_format((float)\$item['live_price'], 2)"}</span>
-                        <span class="gdlo-view-item-dealers">{expression="(int)\$item['active_dealer_count']"} {lang="gdloadout_dealers"}</span>
+                        <span class="gdlo-view-item-price-val">{expression="'$' . number_format((float)$item['live_price'], 2)"}</span>
+                        <span class="gdlo-view-item-dealers">{expression="(int)$item['active_dealer_count']"} {lang="gdloadout_dealers"}</span>
                         {{else}}
                         <span class="gdlo-view-item-price-na">{lang="gdloadout_no_price"}</span>
                         {{endif}}
@@ -107,7 +107,7 @@
                     </div>
                     {{if $loadout['total_min_price'] > 0}}
                     <div class="gdlo-view-summary-stat">
-                        <span class="gdlo-view-summary-stat-val">{expression="'$' . number_format((float)\$loadout['total_min_price'], 2)"}</span>
+                        <span class="gdlo-view-summary-stat-val">{expression="'$' . number_format((float)$loadout['total_min_price'], 2)"}</span>
                         <span class="gdlo-view-summary-stat-lbl">{lang="gdloadout_est_cost"}</span>
                     </div>
                     {{endif}}
@@ -131,10 +131,10 @@
                 <div class="gdlo-view-compliance">
                     <h4><i class="fa-solid fa-triangle-exclamation"></i> {lang="gdloadout_compliance"}</h4>
                     {{if $compliance['nfa_count'] > 0}}
-                    <p>{expression="(int)\$compliance['nfa_count']"} NFA item(s) — requires tax stamp</p>
+                    <p>{expression="(int)$compliance['nfa_count']"} NFA item(s) — requires tax stamp</p>
                     {{endif}}
                     {{if $compliance['ffl_count'] > 0}}
-                    <p>{expression="(int)\$compliance['ffl_count']"} item(s) require FFL transfer</p>
+                    <p>{expression="(int)$compliance['ffl_count']"} item(s) require FFL transfer</p>
                     {{endif}}
                 </div>
                 {{endif}}

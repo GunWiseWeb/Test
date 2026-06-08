@@ -34,7 +34,7 @@ $templates[] = [
     <div class="gdlo-hub-filters">
         <a href="{expression="\IPS\Http\Url::internal('app=gdloadout&module=loadouts&controller=hub', 'front', 'gdloadout_hub')"}" class="gdlo-hub-pill{{if $activeUseCase === ''}} gdlo-hub-pill--active{{endif}}">All</a>
         {{foreach $useCases as $uc}}
-        <a href="{expression="\IPS\Http\Url::internal('app=gdloadout&module=loadouts&controller=hub&use_case=' . urlencode(\$uc), 'front', 'gdloadout_hub')"}" class="gdlo-hub-pill{{if $activeUseCase === $uc}} gdlo-hub-pill--active{{endif}}">{$uc}</a>
+        <a href="{expression="\IPS\Http\Url::internal('app=gdloadout&module=loadouts&controller=hub&use_case=' . urlencode($uc), 'front', 'gdloadout_hub')"}" class="gdlo-hub-pill{{if $activeUseCase === $uc}} gdlo-hub-pill--active{{endif}}">{$uc}</a>
         {{endforeach}}
     </div>
     {{if count($sections['featured']) > 0}}
@@ -45,7 +45,7 @@ $templates[] = [
             <a href="{$loadout['view_url']}" class="gdlo-hub-card gdlo-hub-card--featured">
                 <div class="gdlo-hub-card-name">{$loadout['name']}</div>
                 <div class="gdlo-hub-card-meta"><span class="gdlo-hub-card-author"><i class="fa-solid fa-user"></i> {$loadout['owner_name']}</span>{{if $loadout['use_case']}}<span class="gdlo-hub-card-uc">{$loadout['use_case']}</span>{{endif}}</div>
-                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)\$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
+                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
             </a>
             {{endforeach}}
         </div>
@@ -59,7 +59,7 @@ $templates[] = [
             <a href="{$loadout['view_url']}" class="gdlo-hub-card">
                 <div class="gdlo-hub-card-name">{$loadout['name']}</div>
                 <div class="gdlo-hub-card-meta"><span class="gdlo-hub-card-author"><i class="fa-solid fa-user"></i> {$loadout['owner_name']}</span>{{if $loadout['use_case']}}<span class="gdlo-hub-card-uc">{$loadout['use_case']}</span>{{endif}}</div>
-                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)\$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
+                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
             </a>
             {{endforeach}}
         </div>
@@ -73,7 +73,7 @@ $templates[] = [
             <a href="{$loadout['view_url']}" class="gdlo-hub-card">
                 <div class="gdlo-hub-card-name">{$loadout['name']}</div>
                 <div class="gdlo-hub-card-meta"><span class="gdlo-hub-card-author"><i class="fa-solid fa-user"></i> {$loadout['owner_name']}</span>{{if $loadout['use_case']}}<span class="gdlo-hub-card-uc">{$loadout['use_case']}</span>{{endif}}</div>
-                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)\$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
+                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
             </a>
             {{endforeach}}
         </div>
@@ -87,7 +87,7 @@ $templates[] = [
             <a href="{$loadout['view_url']}" class="gdlo-hub-card">
                 <div class="gdlo-hub-card-name">{$loadout['name']}</div>
                 <div class="gdlo-hub-card-meta"><span class="gdlo-hub-card-author"><i class="fa-solid fa-user"></i> {$loadout['owner_name']}</span>{{if $loadout['use_case']}}<span class="gdlo-hub-card-uc">{$loadout['use_case']}</span>{{endif}}</div>
-                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)\$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
+                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
             </a>
             {{endforeach}}
         </div>
@@ -101,7 +101,7 @@ $templates[] = [
             <a href="{$loadout['view_url']}" class="gdlo-hub-card">
                 <div class="gdlo-hub-card-name">{$loadout['name']}</div>
                 <div class="gdlo-hub-card-meta"><span class="gdlo-hub-card-author"><i class="fa-solid fa-user"></i> {$loadout['owner_name']}</span>{{if $loadout['use_case']}}<span class="gdlo-hub-card-uc">{$loadout['use_case']}</span>{{endif}}</div>
-                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)\$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
+                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
             </a>
             {{endforeach}}
         </div>
@@ -156,7 +156,7 @@ $templates[] = [
                         {{if $item['notes']}}<div class="gdlo-view-item-notes">{$item['notes']}</div>{{endif}}
                     </div>
                     <div class="gdlo-view-item-price">
-                        {{if $item['live_price']}}<span class="gdlo-view-item-price-val">{expression="'$' . number_format((float)\$item['live_price'], 2)"}</span><span class="gdlo-view-item-dealers">{expression="(int)\$item['active_dealer_count']"} {lang="gdloadout_dealers"}</span>{{else}}<span class="gdlo-view-item-price-na">{lang="gdloadout_no_price"}</span>{{endif}}
+                        {{if $item['live_price']}}<span class="gdlo-view-item-price-val">{expression="'$' . number_format((float)$item['live_price'], 2)"}</span><span class="gdlo-view-item-dealers">{expression="(int)$item['active_dealer_count']"} {lang="gdloadout_dealers"}</span>{{else}}<span class="gdlo-view-item-price-na">{lang="gdloadout_no_price"}</span>{{endif}}
                     </div>
                 </div>
                 {{endforeach}}
@@ -179,7 +179,7 @@ $templates[] = [
                 <h3 class="gdlo-view-summary-title">{lang="gdloadout_build_summary"}</h3>
                 <div class="gdlo-view-summary-stats">
                     <div class="gdlo-view-summary-stat"><span class="gdlo-view-summary-stat-val">{$loadout['total_items']}</span><span class="gdlo-view-summary-stat-lbl">{lang="gdloadout_items"}</span></div>
-                    {{if $loadout['total_min_price'] > 0}}<div class="gdlo-view-summary-stat"><span class="gdlo-view-summary-stat-val">{expression="'$' . number_format((float)\$loadout['total_min_price'], 2)"}</span><span class="gdlo-view-summary-stat-lbl">{lang="gdloadout_est_cost"}</span></div>{{endif}}
+                    {{if $loadout['total_min_price'] > 0}}<div class="gdlo-view-summary-stat"><span class="gdlo-view-summary-stat-val">{expression="'$' . number_format((float)$loadout['total_min_price'], 2)"}</span><span class="gdlo-view-summary-stat-lbl">{lang="gdloadout_est_cost"}</span></div>{{endif}}
                 </div>
                 <div class="gdlo-view-summary-actions">
                     <button type="button" class="gdlo-btn gdlo-btn--vote{{if $hasVoted}} gdlo-btn--voted{{endif}}" id="gdloUpvoteBtn"><i class="fa-solid fa-heart"></i> <span id="gdloUpvoteCount">{$loadout['upvotes']}</span></button>
@@ -192,8 +192,8 @@ $templates[] = [
                 {{if $compliance['has_issues']}}
                 <div class="gdlo-view-compliance">
                     <h4><i class="fa-solid fa-triangle-exclamation"></i> {lang="gdloadout_compliance"}</h4>
-                    {{if $compliance['nfa_count'] > 0}}<p>{expression="(int)\$compliance['nfa_count']"} NFA item(s) — requires tax stamp</p>{{endif}}
-                    {{if $compliance['ffl_count'] > 0}}<p>{expression="(int)\$compliance['ffl_count']"} item(s) require FFL transfer</p>{{endif}}
+                    {{if $compliance['nfa_count'] > 0}}<p>{expression="(int)$compliance['nfa_count']"} NFA item(s) — requires tax stamp</p>{{endif}}
+                    {{if $compliance['ffl_count'] > 0}}<p>{expression="(int)$compliance['ffl_count']"} item(s) require FFL transfer</p>{{endif}}
                 </div>
                 {{endif}}
                 <div class="gdlo-view-summary-share"><span class="gdlo-view-views"><i class="fa-solid fa-eye"></i> {$loadout['view_count']} views</span></div>
@@ -234,7 +234,7 @@ $templates[] = [
             <a href="{$loadout['view_url']}" class="gdlo-hub-card-link">
                 <div class="gdlo-hub-card-name">{$loadout['name']}</div>
                 <div class="gdlo-hub-card-meta">{{if $loadout['use_case']}}<span class="gdlo-hub-card-uc">{$loadout['use_case']}</span>{{endif}}{{if $loadout['visibility'] === 'private'}}<span class="gdlo-hub-card-badge"><i class="fa-solid fa-lock"></i></span>{{endif}}{{if $loadout['visibility'] === 'unlisted'}}<span class="gdlo-hub-card-badge"><i class="fa-solid fa-eye-slash"></i></span>{{endif}}</div>
-                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)\$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
+                <div class="gdlo-hub-card-stats"><span><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span><span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span><span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>{{if $loadout['total_min_price'] > 0}}<span class="gdlo-hub-card-price">{expression="'$' . number_format((float)$loadout['total_min_price'], 0)"}</span>{{endif}}</div>
             </a>
             <div class="gdlo-hub-card-actions"><a href="{$loadout['edit_url']}" class="gdlo-btn gdlo-btn--sm gdlo-btn--secondary"><i class="fa-solid fa-pen"></i> Edit</a></div>
         </div>
@@ -456,9 +456,3 @@ try
 }
 catch ( \Throwable ) {}
 
-// Build front navigation
-try
-{
-	\IPS\core\FrontNavigation::i()->buildDefaultFrontNavigation();
-}
-catch ( \Throwable ) {}

@@ -37,7 +37,7 @@
                     <span><i class="fa-solid fa-eye"></i> {$loadout['view_count']}</span>
                     <span><i class="fa-solid fa-cubes"></i> {$loadout['total_items']}</span>
                     {{if $loadout['total_min_price'] > 0}}
-                    <span class="gdlo-hub-card-price">{expression="'$' . number_format((float)\$loadout['total_min_price'], 0)"}</span>
+                    <span class="gdlo-hub-card-price">{expression="'$' . number_format((float)$loadout['total_min_price'], 0)"}</span>
                     {{endif}}
                 </div>
             </a>
