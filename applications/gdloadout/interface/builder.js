@@ -277,7 +277,8 @@
 	function initExtraPicker() {
 		if (!extraChips) return;
 		extraChips.innerHTML = '';
-		extraLib.forEach(function (name) {
+		var libNames = Array.isArray(extraLib) ? extraLib : Object.keys(extraLib).map(function(k){ return extraLib[k]; });
+		libNames.forEach(function (name) {
 			var chip = document.createElement('button');
 			chip.type = 'button';
 			chip.className = 'gdlo-chip';

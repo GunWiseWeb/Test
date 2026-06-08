@@ -117,7 +117,7 @@ class _builder extends \IPS\Dispatcher\Controller
 		$csrfKey   = Session::i()->csrfKey;
 
 		$coreSlots = \IPS\gdloadout\Loadout\Slots::CORE_SLOTS;
-		$extraLib  = \IPS\gdloadout\Loadout\Slots::EXTRA_LIBRARY;
+		$extraLib  = array_values( \IPS\gdloadout\Loadout\Slots::EXTRA_LIBRARY );
 
 		$initData = json_encode( [
 			'loadout'     => $loadout,
