@@ -111,4 +111,8 @@ $lang = array(
     'gdloadout_modal_search' => 'Search by name, UPC, or MPN...',
     'gdloadout_modal_no_products' => 'No products in this category yet — try searching by name or UPC/MPN.',
     'gdloadout_modal_all' => 'All',
+    'gdloadout_modal_sort_relevance' => 'Relevance',
+    'gdloadout_modal_sort_name' => 'Name (A–Z)',
+    'gdloadout_modal_load_more' => 'Load more',
+    'gdloadout_modal_no_price' => 'No price yet',
 );

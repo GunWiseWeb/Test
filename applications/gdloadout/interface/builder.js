@@ -584,8 +584,13 @@
 	var modalSearch  = document.getElementById('gdModalSearch');
 	var modalResults = document.getElementById('gdModalResults');
 	var modalEmpty   = document.getElementById('gdModalEmpty');
+	var modalSort    = document.getElementById('gdModalSort');
+	var modalLoadMore = document.getElementById('gdModalLoadMore');
 	var modalTimer   = null;
 	var modalCategory = [];
+	var modalCurrentSort = 'relevance';
+	var modalCurrentPage = 1;
+	var modalTotalLoaded = 0;
 
 	function openSlotModal(key) {
 		if (!modalEl) { if (searchInput) searchInput.focus(); return; }
@@ -596,9 +601,14 @@
 		if (modalSearch) modalSearch.value = '';
 		if (modalResults) modalResults.innerHTML = '';
 		if (modalEmpty) modalEmpty.style.display = 'none';
+		if (modalLoadMore) modalLoadMore.style.display = 'none';
 		if (modalTypes) modalTypes.innerHTML = '';
 		if (modalSubs) modalSubs.innerHTML = '';
 		modalCategory = [];
+		modalCurrentSort = 'relevance';
+		modalCurrentPage = 1;
+		modalTotalLoaded = 0;
+		renderSortToggle();
 
 		var catInfo = slotCategory[key];
 
@@ -679,26 +689,58 @@
 		document.body.style.overflow = '';
 	}
 
-	function loadModalResults() {
+	function renderSortToggle() {
+		if (!modalSort) return;
+		modalSort.innerHTML = '';
+		var sorts = [
+			{ key: 'relevance', label: 'Relevance' },
+			{ key: 'brand', label: 'Name (A–Z)' }
+		];
+		// TODO: add Cheapest sort when best_price indexed
+		sorts.forEach(function (s) {
+			var btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'gdlo-modal-sort-btn' + (modalCurrentSort === s.key ? ' active' : '');
+			btn.textContent = s.label;
+			btn.addEventListener('click', function () {
+				if (modalCurrentSort === s.key) return;
+				modalCurrentSort = s.key;
+				modalCurrentPage = 1;
+				modalTotalLoaded = 0;
+				renderSortToggle();
+				loadModalResults(false);
+			});
+			modalSort.appendChild(btn);
+		});
+	}
+
+	function loadModalResults(append) {
 		if (!modalResults) return;
 		var q = modalSearch ? modalSearch.value.trim() : '';
 
-		modalResults.innerHTML = '<div class="gdlo-modal-row" style="justify-content:center;border:none;cursor:default"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+		if (!append) {
+			modalResults.innerHTML = '<div class="gdlo-modal-row" style="justify-content:center;border:none;cursor:default"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+			modalCurrentPage = 1;
+			modalTotalLoaded = 0;
+		}
 		if (modalEmpty) modalEmpty.style.display = 'none';
+		if (modalLoadMore) modalLoadMore.style.display = 'none';
 
 		var catStr = '';
 		if (modalCategory.length === 1) catStr = modalCategory[0];
 		else if (modalCategory.length > 1) catStr = modalCategory.join(',');
 
-		var url = searchUrl + (searchUrl.indexOf('?') > -1 ? '&' : '?') + 'q=' + encodeURIComponent(q);
+		var url = searchUrl + (searchUrl.indexOf('?') > -1 ? '&' : '?') + 'q=' + encodeURIComponent(q)
+			+ '&page=' + modalCurrentPage
+			+ '&sort=' + encodeURIComponent(modalCurrentSort);
 		if (catStr) url += '&category=' + encodeURIComponent(catStr);
 
 		fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 			.then(function (resp) { return resp.json(); })
 			.then(function (data) {
-				modalResults.innerHTML = '';
+				if (!append) modalResults.innerHTML = '';
 				if (!data.results || data.results.length === 0) {
-					if (modalEmpty) modalEmpty.style.display = '';
+					if (modalTotalLoaded === 0 && modalEmpty) modalEmpty.style.display = '';
 					return;
 				}
 				if (modalEmpty) modalEmpty.style.display = 'none';
@@ -706,11 +748,17 @@
 				data.results.forEach(function (r) {
 					var row = document.createElement('div');
 					row.className = 'gdlo-modal-row';
+					var priceHtml;
+					if (r.best_price && parseFloat(r.best_price) > 0) {
+						priceHtml = '<div class="gdlo-modal-row-price">$' + parseFloat(r.best_price).toFixed(2) + '</div>';
+					} else {
+						priceHtml = '<div class="gdlo-modal-row-noprice">No price yet</div>';
+					}
 					row.innerHTML = '<div class="gdlo-modal-row-info">'
 						+ '<div class="gdlo-modal-row-title">' + escapeHtml(r.title || r.upc) + '</div>'
 						+ '<div class="gdlo-modal-row-meta">' + escapeHtml(r.brand || '') + (r.caliber ? ' &middot; ' + escapeHtml(r.caliber) : '') + (r.dealer_count > 0 ? ' &middot; ' + r.dealer_count + ' dealer' + (r.dealer_count !== 1 ? 's' : '') : '') + '</div>'
 						+ '</div>'
-						+ (r.best_price ? '<div class="gdlo-modal-row-price">$' + parseFloat(r.best_price).toFixed(2) + '</div>' : '<div class="gdlo-modal-row-na">N/A</div>');
+						+ priceHtml;
 
 					row.addEventListener('click', function () {
 						assignProduct(r);
@@ -718,16 +766,35 @@
 					});
 					modalResults.appendChild(row);
 				});
+
+				modalTotalLoaded += data.results.length;
+				var total = data.total || 0;
+				if (modalLoadMore) {
+					if (data.results.length >= 24 && modalTotalLoaded < total) {
+						modalLoadMore.style.display = '';
+					} else {
+						modalLoadMore.style.display = 'none';
+					}
+				}
 			})
 			.catch(function () {
-				modalResults.innerHTML = '<div class="gdlo-modal-empty" style="color:#dc2626">Search error — please try again.</div>';
+				if (!append) modalResults.innerHTML = '<div class="gdlo-modal-empty" style="color:#dc2626">Search error — please try again.</div>';
 			});
 	}
 
 	if (modalSearch) {
 		modalSearch.addEventListener('input', function () {
 			clearTimeout(modalTimer);
-			modalTimer = setTimeout(function () { loadModalResults(); }, 300);
+			modalCurrentPage = 1;
+			modalTotalLoaded = 0;
+			modalTimer = setTimeout(function () { loadModalResults(false); }, 300);
+		});
+	}
+
+	if (modalLoadMore) {
+		modalLoadMore.addEventListener('click', function () {
+			modalCurrentPage++;
+			loadModalResults(true);
 		});
 	}
 

@@ -356,16 +356,18 @@ $templates[] = [
     </div>
     <div id="gdModalTypes" class="gdlo-modal-types"></div>
     <div id="gdModalSubtypes" class="gdlo-modal-subtypes"></div>
+    <div id="gdModalSort" class="gdlo-modal-sort"></div>
     <div class="gdlo-modal-search">
       <input type="text" id="gdModalSearch" class="gdlo-input" placeholder="{lang="gdloadout_modal_search"}" />
     </div>
     <div id="gdModalResults" class="gdlo-modal-results"></div>
+    <button type="button" id="gdModalLoadMore" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" style="display:none;margin:0 20px 16px">{lang="gdloadout_modal_load_more"}</button>
     <div id="gdModalEmpty" class="gdlo-modal-empty" style="display:none">{lang="gdloadout_modal_no_products"}</div>
   </div>
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.15',
+	'template_version' => '1.0.16',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];

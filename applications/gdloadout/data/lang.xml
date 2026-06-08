@@ -111,5 +111,9 @@
 <word key="gdloadout_modal_search" js="0"><![CDATA[Search by name, UPC, or MPN...]]></word>
 <word key="gdloadout_modal_no_products" js="0"><![CDATA[No products in this category yet — try searching by name or UPC/MPN.]]></word>
 <word key="gdloadout_modal_all" js="0"><![CDATA[All]]></word>
+<word key="gdloadout_modal_sort_relevance" js="0"><![CDATA[Relevance]]></word>
+<word key="gdloadout_modal_sort_name" js="0"><![CDATA[Name (A–Z)]]></word>
+<word key="gdloadout_modal_load_more" js="0"><![CDATA[Load more]]></word>
+<word key="gdloadout_modal_no_price" js="0"><![CDATA[No price yet]]></word>
 </app>
 </language>

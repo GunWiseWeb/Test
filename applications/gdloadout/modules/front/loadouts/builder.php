@@ -423,8 +423,12 @@ class _builder extends \IPS\Dispatcher\Controller
 				$filters['category'] = \count( $cats ) === 1 ? $cats[0] : $cats;
 			}
 
+			$sortParam = trim( (string) ( Request::i()->sort ?? 'relevance' ) );
+			$allowedSorts = [ 'relevance', 'brand' ];
+			$sort = \in_array( $sortParam, $allowedSorts, true ) ? $sortParam : 'relevance';
+
 			$searcher = new \IPS\gdsearch\Search\Searcher();
-			$result   = $searcher->search( $query, $filters, 'relevance', $page, 24 );
+			$result   = $searcher->search( $query, $filters, $sort, $page, 24 );
 
 			$out = [];
 			foreach ( ( $result['results'] ?? [] ) as $r )
