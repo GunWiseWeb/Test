@@ -136,6 +136,7 @@ $categories = [
 		'Grips & Grip Panels', 'Rails & Mounts', 'Handguards & Forends',
 		'Muzzle Devices', 'Bolts & Bolt Carriers', 'Buffers & Springs',
 		'Slides', 'Frames & Receivers', 'Sight Mounts', 'Magazine Wells',
+		'Scope Rings', 'Upper Receivers', 'Lower Receivers',
 	],
 	'Holsters & Carry' => [
 		'IWB Holsters', 'OWB Holsters', 'Shoulder Holsters', 'Ankle Holsters',

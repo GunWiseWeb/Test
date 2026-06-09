@@ -999,6 +999,8 @@ class Importer
 				$mapped['category_id'] = $this->categoryMapper->resolve( $rawCatId );
 			}
 
+			$mapped['category_id'] = $this->refineCategoryByTitle( (int) ( $mapped['category_id'] ?? 0 ), $sTitle );
+
 			/* Category-based ammo flag (Sports South sends none). Ammunition subtree => is_ammo. */
 			$mapped['is_ammo'] = in_array( (int) ( $mapped['category_id'] ?? 0 ), self::AMMO_CATEGORY_IDS, true ) ? 1 : 0;
 
@@ -1361,5 +1363,67 @@ class Importer
 	public function getStats(): array
 	{
 		return $this->stats;
+	}
+
+	/** @var array<string,int> */
+	protected array $refineCatIds = [];
+
+	protected function catIdByName( string $name ): int
+	{
+		if ( isset( $this->refineCatIds[ $name ] ) )
+		{
+			return $this->refineCatIds[ $name ];
+		}
+		try
+		{
+			$id = (int) \IPS\Db::i()->select( 'id', 'gd_categories', [ 'name=?', $name ] )->first();
+		}
+		catch ( \Throwable )
+		{
+			$id = 0;
+		}
+		return $this->refineCatIds[ $name ] = $id;
+	}
+
+	protected function refineCategoryByTitle( int $categoryId, string $title ): int
+	{
+		if ( $categoryId === 0 || $title === '' )
+		{
+			return $categoryId;
+		}
+
+		$t = strtolower( $title );
+		$railsMounts = $this->catIdByName( 'Rails & Mounts' );
+		$framesRecv  = $this->catIdByName( 'Frames & Receivers' );
+		$partsAcc    = $this->catIdByName( 'Parts & Accessories' );
+
+		if ( $categoryId === $railsMounts && str_contains( $t, 'scope ring' ) )
+		{
+			$id = $this->catIdByName( 'Scope Rings' );
+			if ( $id ) { return $id; }
+		}
+
+		if ( $categoryId === $framesRecv )
+		{
+			if ( str_contains( $t, 'upper' ) )
+			{
+				$id = $this->catIdByName( 'Upper Receivers' );
+				if ( $id ) { return $id; }
+			}
+			if ( str_contains( $t, 'lower' ) )
+			{
+				$id = $this->catIdByName( 'Lower Receivers' );
+				if ( $id ) { return $id; }
+			}
+		}
+
+		if ( $categoryId === $partsAcc && str_contains( $t, 'trigger' )
+			&& !str_contains( $t, 'trigger guard' ) && !str_contains( $t, 'trigger lock' ) )
+		{
+			$id = $this->catIdByName( 'Triggers & Trigger Groups' );
+			if ( $id ) { return $id; }
+		}
+
+		return $categoryId;
 	}
 }
