@@ -1,8 +1,0 @@
-[
-	{ "method": "changeColumn", "params": [ "gd_dealer_ratings", "review_body",       { "name": "review_body",       "type": "MEDIUMTEXT", "allow_null": true } ], "silence_errors": true },
-	{ "method": "changeColumn", "params": [ "gd_dealer_ratings", "dealer_response",   { "name": "dealer_response",   "type": "MEDIUMTEXT", "allow_null": true } ], "silence_errors": true },
-	{ "method": "changeColumn", "params": [ "gd_dealer_ratings", "dispute_reason",    { "name": "dispute_reason",    "type": "MEDIUMTEXT", "allow_null": true } ], "silence_errors": true },
-	{ "method": "changeColumn", "params": [ "gd_dealer_ratings", "dispute_evidence",  { "name": "dispute_evidence",  "type": "MEDIUMTEXT", "allow_null": true } ], "silence_errors": true },
-	{ "method": "changeColumn", "params": [ "gd_dealer_ratings", "customer_response", { "name": "customer_response", "type": "MEDIUMTEXT", "allow_null": true } ], "silence_errors": true },
-	{ "method": "changeColumn", "params": [ "gd_dealer_ratings", "customer_evidence", { "name": "customer_evidence", "type": "MEDIUMTEXT", "allow_null": true } ], "silence_errors": true }
-]

@@ -1,3 +1,0 @@
-[
-	{ "method": "addColumn", "params": [ "gd_dealer_feed_config", { "name": "last_review_check", "type": "DATETIME", "allow_null": true, "default": null } ], "silence_errors": true }
-]
