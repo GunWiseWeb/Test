@@ -1,5 +1,5 @@
 <?php
-namespace IPS\gdcatalog\setup\upg_10099;
+namespace IPS\gdcatalog\setup\upg_10100;
 use function defined;
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) ) { header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' ); exit; }
 class _upgrade
@@ -23,8 +23,7 @@ class _upgrade
 			} catch ( \Throwable ) {}
 		}
 
-		/* v1.0.98: Seed Scope Rings / Upper Receivers / Lower Receivers
-		   as children of Parts & Accessories (idempotent) */
+		/* v1.0.98+: Seed new child categories (idempotent) */
 		$seeds = [
 			'Parts & Accessories' => [ 'Scope Rings', 'Upper Receivers', 'Lower Receivers' ],
 			'Tactical Gear'       => [ 'Flashlights & Headlamps' ],

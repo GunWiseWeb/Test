@@ -1397,10 +1397,20 @@ class Importer
 		$framesRecv  = $this->catIdByName( 'Frames & Receivers' );
 		$partsAcc    = $this->catIdByName( 'Parts & Accessories' );
 
-		if ( $categoryId === $railsMounts && str_contains( $t, 'scope ring' ) )
+		if ( $categoryId === $railsMounts )
 		{
-			$id = $this->catIdByName( 'Scope Rings' );
-			if ( $id ) { return $id; }
+			$isRing = ( str_contains( $t, 'scope ring' )
+				|| str_contains( $t, 'opti-lock ring' )
+				|| str_contains( $t, 'scp ring' )
+				|| str_contains( $t, 'matchring' )
+				|| str_contains( $t, 'ring combo' )
+				|| str_contains( $t, 'rings' ) );
+			$isMount = ( str_contains( $t, 'ringmount' ) || str_contains( $t, 'ring mount' ) );
+			if ( $isRing && !$isMount )
+			{
+				$id = $this->catIdByName( 'Scope Rings' );
+				if ( $id ) { return $id; }
+			}
 		}
 
 		if ( $categoryId === $framesRecv )
