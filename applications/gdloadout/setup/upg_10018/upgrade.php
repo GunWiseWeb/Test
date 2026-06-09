@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10017;
+namespace IPS\gdloadout\setup\upg_10018;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -28,7 +28,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Seed all lang strings accumulated through v1.0.17
+		// Seed all lang strings accumulated through v1.0.18
 		$newStrings = [
 			'menutab__gdloadout'               => 'Loadouts',
 			'gdloadout_share_forum'            => 'Loadout Share Forum',
