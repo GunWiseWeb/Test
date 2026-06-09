@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10023;
+namespace IPS\gdloadout\setup\upg_10024;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -28,7 +28,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Re-seed builder template (v1.0.21 added gdModalFacetBar + gdModalFacetClear)
+		// Re-seed builder template
 		try
 		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
@@ -145,14 +145,14 @@ class _upgrade
 </div>
 TEMPLATE_EOT,
 				'template_updated'       => time(),
-				'template_version'       => '1.0.23',
+				'template_version'       => '1.0.24',
 				'template_master_key'    => '',
 				'template_has_hookpoints' => 0,
 			] );
 		}
 		catch ( \Throwable ) {}
 
-		// Seed all lang strings accumulated through v1.0.23
+		// Seed all lang strings accumulated through v1.0.24
 		$newStrings = [
 			'menutab__gdloadout'               => 'Loadouts',
 			'gdloadout_share_forum'            => 'Loadout Share Forum',

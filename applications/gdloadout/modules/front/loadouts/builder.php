@@ -499,17 +499,26 @@ class _builder extends \IPS\Dispatcher\Controller
 			$out = [];
 			foreach ( ( $result['results'] ?? [] ) as $r )
 			{
-				$img = '';
+				$img = ''; $catTitle = ''; $catBrand = '';
 				if ( !empty( $r['upc'] ) )
 				{
-					try { $img = (string) Db::i()->select( 'image_url', 'gd_catalog', [ 'upc=?', $r['upc'] ] )->first(); }
-					catch ( \Throwable ) {}
+					try {
+						$cat = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $r['upc'] ] )->first();
+						$catTitle = (string) ( $cat['title'] ?? '' );
+						$catBrand = (string) ( $cat['brand'] ?? '' );
+						$img      = (string) ( $cat['image_url'] ?? '' );
+					} catch ( \Throwable ) {}
 				}
 				$out[] = [
-					'upc' => $r['upc'] ?? '', 'title' => $r['title'] ?? '', 'brand' => $r['brand'] ?? '',
-					'best_price' => $r['best_price'] ?? null, 'dealer_count' => $r['dealer_count'] ?? 0,
-					'in_stock' => $r['in_stock'] ?? false, 'category' => $r['category'] ?? '', 'caliber' => $r['caliber'] ?? '',
-					'image_url' => $img,
+					'upc'         => $r['upc'] ?? '',
+					'title'       => $catTitle !== '' ? $catTitle : ( $r['title'] ?? '' ),
+					'brand'       => $catBrand !== '' ? $catBrand : ( $r['brand'] ?? '' ),
+					'best_price'  => $r['best_price'] ?? null,
+					'dealer_count'=> $r['dealer_count'] ?? 0,
+					'in_stock'    => $r['in_stock'] ?? false,
+					'category'    => $r['category'] ?? '',
+					'caliber'     => $r['caliber'] ?? '',
+					'image_url'   => $img,
 				];
 			}
 			Output::i()->json( [ 'total' => $result['total'] ?? 0, 'results' => $out, 'aggregations' => $cleanAggs ] );
