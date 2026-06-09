@@ -158,6 +158,7 @@ $categories = [
 		'Foregrips & Vertical Grips', 'Suppressors & Solvent Traps',
 		'Cheek Rests & Risers', 'Shell Holders & Carriers',
 		'Shooting Bags & Rests', 'Ear & Eye Protection', 'Gloves & Apparel',
+		'Flashlights & Headlamps',
 	],
 	'Hunting Gear' => [
 		'Game Calls', 'Scent Control', 'Hunting Blinds', 'Feeders & Attractants',

@@ -1424,6 +1424,25 @@ class Importer
 			if ( $id ) { return $id; }
 		}
 
+		$weaponLights = $this->catIdByName( 'Weapon Lights' );
+		if ( $categoryId === $weaponLights )
+		{
+			$isGeneral = ( str_contains( $t, 'headlamp' ) || str_contains( $t, 'head lamp' )
+				|| str_contains( $t, 'penlight' ) || str_contains( $t, 'pen light' )
+				|| str_contains( $t, 'lantern' ) || str_contains( $t, 'work light' )
+				|| str_contains( $t, 'spotlight' )
+				|| ( str_contains( $t, 'flashlight' )
+					&& !str_contains( $t, 'rail' ) && !str_contains( $t, 'pistol' )
+					&& !str_contains( $t, 'weapon' ) && !str_contains( $t, 'scout' )
+					&& !str_contains( $t, 'mount' ) && !str_contains( $t, 'picatinny' )
+					&& !str_contains( $t, 'm-lok' ) ) );
+			if ( $isGeneral )
+			{
+				$id = $this->catIdByName( 'Flashlights & Headlamps' );
+				if ( $id ) { return $id; }
+			}
+		}
+
 		return $categoryId;
 	}
 }
