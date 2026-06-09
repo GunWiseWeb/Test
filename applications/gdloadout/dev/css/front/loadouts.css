@@ -200,16 +200,16 @@
 .gdlo-modal-type-btn:hover,.gdlo-modal-subchip:hover{background:#f1f5f9;border-color:#94a3b8}
 .gdlo-modal-type-btn.active,.gdlo-modal-subchip.active{background:#2563eb;border-color:#2563eb;color:#fff}
 .gdlo-modal-search{flex:0 0 auto;padding:14px 20px 12px}
-.gdlo-modal-results{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:8px 20px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;align-content:start}
-.gdlo-modal-card{display:flex;flex-direction:column;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;overflow:hidden;transition:border-color .12s,box-shadow .12s}
+.gdlo-modal-results{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:8px 20px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+.gdlo-modal-card{display:flex;flex-direction:row;align-items:center;gap:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;overflow:hidden;padding:10px;min-height:92px;transition:border-color .12s,box-shadow .12s}
 .gdlo-modal-card:hover{border-color:#2563eb;box-shadow:0 4px 14px rgba(37,99,235,.12)}
-.gdlo-modal-card-img{flex:0 0 auto;width:100%;height:110px;object-fit:contain;background:#f8fafc;display:block;border-bottom:1px solid #eef2f7}
-.gdlo-modal-card-ph{flex:0 0 auto;width:100%;height:110px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:2.2em;color:#cbd5e1;border-bottom:1px solid #eef2f7}
-.gdlo-modal-card-body{flex:1 1 auto;padding:10px 11px 12px;display:flex;flex-direction:column;gap:5px;min-width:0}
-.gdlo-modal-card-title{font-weight:600;font-size:.82em;line-height:1.3;color:#0f172a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.gdlo-modal-card-brand{font-size:.76em;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gdlo-modal-card-price{font-weight:700;font-size:.86em;color:#16a34a}
-.gdlo-modal-card-noprice{font-size:.72em;color:#94a3b8;background:#f1f5f9;padding:2px 8px;border-radius:999px;align-self:flex-start}
+.gdlo-modal-card-img{flex:0 0 auto;width:72px;height:72px;object-fit:contain;background:#f8fafc;border:1px solid #eef2f7;border-radius:8px;display:block}
+.gdlo-modal-card-ph{flex:0 0 auto;width:72px;height:72px;background:#f1f5f9;border:1px solid #eef2f7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.8em;color:#cbd5e1}
+.gdlo-modal-card-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.gdlo-modal-card-title{font-weight:600;font-size:.85em;line-height:1.3;color:#0f172a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gdlo-modal-card-brand{font-size:.78em;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gdlo-modal-card-price{font-weight:700;font-size:.88em;color:#16a34a}
+.gdlo-modal-card-noprice{font-size:.74em;color:#94a3b8;background:#f1f5f9;padding:2px 8px;border-radius:999px;align-self:flex-start}
 .gdlo-modal-sort{flex:0 0 auto;display:flex;gap:8px;row-gap:8px;flex-wrap:wrap;padding:14px 20px 0}
 .gdlo-modal-sort:empty{display:none;padding:0}
 .gdlo-modal-sort-btn{padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;cursor:pointer;font-size:.82em;font-weight:600}
@@ -239,6 +239,6 @@
 .gdlo-hero-card--filled .gdlo-hero-info{flex:1 1 auto;min-width:0}
 @media(max-width:640px){
   .gdlo-modal-panel{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}
-  .gdlo-modal-results{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+  .gdlo-modal-results{grid-template-columns:1fr;gap:10px}
   .gdlo-modal-facets{max-height:none}
 }
