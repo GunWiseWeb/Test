@@ -417,11 +417,35 @@ class _builder extends \IPS\Dispatcher\Controller
 				return;
 			}
 
+			$arr = function ( $v ) {
+				if ( \is_array( $v ) ) { return array_values( array_filter( array_map( fn( $x ) => trim( (string) $x ), $v ), fn( $x ) => $x !== '' ) ); }
+				$v = trim( (string) $v );
+				return $v !== '' ? [ $v ] : [];
+			};
+
 			$filters = [];
 			if ( $cats )
 			{
 				$filters['category'] = \count( $cats ) === 1 ? $cats[0] : $cats;
 			}
+
+			foreach ( [
+				'brand', 'caliber', 'action', 'casing', 'bullet_type', 'capacity',
+				'holster_type', 'holster_color', 'holster_material', 'holster_hand',
+				'apparel_pattern', 'apparel_size', 'apparel_material',
+				'blade_shape', 'blade_length', 'blade_material', 'blade_edge', 'knife_handle',
+				'hunt_call_type', 'hunt_game', 'optic_magnification', 'optic_objective',
+			] as $facetKey )
+			{
+				$val = $arr( Request::i()->$facetKey ?? [] );
+				if ( $val ) { $filters[ $facetKey ] = $val; }
+			}
+
+			if ( !empty( Request::i()->in_stock ) )  { $filters['in_stock'] = true; }
+			$minPrice = (float) ( Request::i()->min_price ?? 0 );
+			$maxPrice = (float) ( Request::i()->max_price ?? 0 );
+			if ( $minPrice > 0 ) { $filters['min_price'] = $minPrice; }
+			if ( $maxPrice > 0 ) { $filters['max_price'] = $maxPrice; }
 
 			$sortParam = trim( (string) ( Request::i()->sort ?? 'relevance' ) );
 			$allowedSorts = [ 'relevance', 'brand' ];
@@ -429,6 +453,46 @@ class _builder extends \IPS\Dispatcher\Controller
 
 			$searcher = new \IPS\gdsearch\Search\Searcher();
 			$result   = $searcher->search( $query, $filters, $sort, $page, 24 );
+
+			$aggs = $result['aggregations'] ?? [];
+			foreach ( [ 'calibers', 'actions', 'capacities', 'casings', 'bullet_types',
+				'holster_types', 'holster_colors', 'holster_materials', 'holster_hands',
+				'apparel_patterns', 'apparel_sizes', 'apparel_materials',
+				'blade_shapes', 'blade_lengths', 'blade_materials', 'blade_edges', 'knife_handles',
+				'hunt_call_types', 'hunt_games', 'optics_mags', 'optics_objs' ] as $scopedAgg )
+			{
+				if ( isset( $aggs[ $scopedAgg ]['values']['buckets'] ) )
+				{
+					$aggs[ $scopedAgg ]['buckets'] = $aggs[ $scopedAgg ]['values']['buckets'];
+				}
+			}
+
+			foreach ( [ 'brands', 'calibers', 'actions', 'capacities', 'casings', 'bullet_types',
+				'holster_types', 'holster_colors', 'holster_materials', 'holster_hands',
+				'apparel_patterns', 'apparel_sizes', 'apparel_materials',
+				'blade_shapes', 'blade_lengths', 'blade_materials', 'blade_edges', 'knife_handles',
+				'hunt_call_types', 'hunt_games', 'optics_mags', 'optics_objs' ] as $aggKey )
+			{
+				if ( isset( $aggs[ $aggKey ]['buckets'] ) && \is_array( $aggs[ $aggKey ]['buckets'] ) )
+				{
+					$aggs[ $aggKey ]['buckets'] = array_values( array_filter(
+						$aggs[ $aggKey ]['buckets'],
+						static function ( $b ) { return trim( (string) ( $b['key'] ?? '' ) ) !== ''; }
+					) );
+					if ( empty( $aggs[ $aggKey ]['buckets'] ) ) { unset( $aggs[ $aggKey ] ); }
+				}
+				else
+				{
+					unset( $aggs[ $aggKey ] );
+				}
+			}
+			unset( $aggs['categories'] );
+
+			$cleanAggs = [];
+			foreach ( $aggs as $k => $v )
+			{
+				if ( !empty( $v['buckets'] ) ) { $cleanAggs[ $k ] = [ 'buckets' => $v['buckets'] ]; }
+			}
 
 			$out = [];
 			foreach ( ( $result['results'] ?? [] ) as $r )
@@ -439,7 +503,7 @@ class _builder extends \IPS\Dispatcher\Controller
 					'in_stock' => $r['in_stock'] ?? false, 'category' => $r['category'] ?? '', 'caliber' => $r['caliber'] ?? '',
 				];
 			}
-			Output::i()->json( [ 'total' => $result['total'] ?? 0, 'results' => $out ] );
+			Output::i()->json( [ 'total' => $result['total'] ?? 0, 'results' => $out, 'aggregations' => $cleanAggs ] );
 		}
 		catch ( \Throwable $e )
 		{

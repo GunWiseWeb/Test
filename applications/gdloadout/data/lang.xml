@@ -115,5 +115,10 @@
 <word key="gdloadout_modal_sort_name" js="0"><![CDATA[Name (A–Z)]]></word>
 <word key="gdloadout_modal_load_more" js="0"><![CDATA[Load more]]></word>
 <word key="gdloadout_modal_no_price" js="0"><![CDATA[No price yet]]></word>
+<word key="gdloadout_modal_filters" js="0"><![CDATA[Filters]]></word>
+<word key="gdloadout_modal_in_stock" js="0"><![CDATA[In stock only]]></word>
+<word key="gdloadout_modal_min_price" js="0"><![CDATA[Min $]]></word>
+<word key="gdloadout_modal_max_price" js="0"><![CDATA[Max $]]></word>
+<word key="gdloadout_modal_clear_filters" js="0"><![CDATA[Clear filters]]></word>
 </app>
 </language>

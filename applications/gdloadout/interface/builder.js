@@ -586,11 +586,38 @@
 	var modalEmpty   = document.getElementById('gdModalEmpty');
 	var modalSort    = document.getElementById('gdModalSort');
 	var modalLoadMore = document.getElementById('gdModalLoadMore');
+	var modalFacets  = document.getElementById('gdModalFacets');
 	var modalTimer   = null;
 	var modalCategory = [];
 	var modalCurrentSort = 'relevance';
 	var modalCurrentPage = 1;
 	var modalTotalLoaded = 0;
+	var modalActiveFilters = {};
+
+	var FACET_MAP = {
+		brands:             { param: 'brand',             label: 'Brand' },
+		calibers:           { param: 'caliber',           label: 'Caliber' },
+		actions:            { param: 'action',            label: 'Action' },
+		capacities:         { param: 'capacity',          label: 'Capacity' },
+		casings:            { param: 'casing',            label: 'Casing' },
+		bullet_types:       { param: 'bullet_type',       label: 'Bullet Type' },
+		holster_types:      { param: 'holster_type',      label: 'Holster Type' },
+		holster_colors:     { param: 'holster_color',     label: 'Holster Color' },
+		holster_materials:  { param: 'holster_material',  label: 'Holster Material' },
+		holster_hands:      { param: 'holster_hand',      label: 'Hand' },
+		apparel_patterns:   { param: 'apparel_pattern',   label: 'Pattern' },
+		apparel_sizes:      { param: 'apparel_size',      label: 'Size' },
+		apparel_materials:  { param: 'apparel_material',  label: 'Material' },
+		blade_shapes:       { param: 'blade_shape',       label: 'Blade Shape' },
+		blade_lengths:      { param: 'blade_length',      label: 'Blade Length' },
+		blade_materials:    { param: 'blade_material',    label: 'Blade Material' },
+		blade_edges:        { param: 'blade_edge',        label: 'Edge Type' },
+		knife_handles:      { param: 'knife_handle',      label: 'Handle' },
+		hunt_call_types:    { param: 'hunt_call_type',    label: 'Call Type' },
+		hunt_games:         { param: 'hunt_game',         label: 'Game' },
+		optics_mags:        { param: 'optic_magnification', label: 'Magnification' },
+		optics_objs:        { param: 'optic_objective',     label: 'Objective' }
+	};
 
 	function openSlotModal(key) {
 		if (!modalEl) { if (searchInput) searchInput.focus(); return; }
@@ -604,10 +631,12 @@
 		if (modalLoadMore) modalLoadMore.style.display = 'none';
 		if (modalTypes) modalTypes.innerHTML = '';
 		if (modalSubs) modalSubs.innerHTML = '';
+		if (modalFacets) modalFacets.innerHTML = '';
 		modalCategory = [];
 		modalCurrentSort = 'relevance';
 		modalCurrentPage = 1;
 		modalTotalLoaded = 0;
+		modalActiveFilters = {};
 		renderSortToggle();
 
 		var catInfo = slotCategory[key];
@@ -714,6 +743,177 @@
 		});
 	}
 
+	function buildFacetParams() {
+		var parts = [];
+		Object.keys(modalActiveFilters).forEach(function (param) {
+			var vals = modalActiveFilters[param];
+			if (Array.isArray(vals)) {
+				vals.forEach(function (v) {
+					parts.push(encodeURIComponent(param) + '[]=' + encodeURIComponent(v));
+				});
+			} else if (vals === true) {
+				parts.push(encodeURIComponent(param) + '=1');
+			} else if (typeof vals === 'number' && vals > 0) {
+				parts.push(encodeURIComponent(param) + '=' + vals);
+			}
+		});
+		return parts.join('&');
+	}
+
+	function hasActiveFilters() {
+		var keys = Object.keys(modalActiveFilters);
+		for (var i = 0; i < keys.length; i++) {
+			var v = modalActiveFilters[keys[i]];
+			if (Array.isArray(v) && v.length > 0) return true;
+			if (v === true) return true;
+			if (typeof v === 'number' && v > 0) return true;
+		}
+		return false;
+	}
+
+	function renderFacets(aggs) {
+		if (!modalFacets) return;
+		modalFacets.innerHTML = '';
+		if (!aggs || typeof aggs !== 'object') return;
+
+		var aggKeys = Object.keys(FACET_MAP);
+		var rendered = false;
+
+		aggKeys.forEach(function (aggKey) {
+			if (!aggs[aggKey] || !aggs[aggKey].buckets || aggs[aggKey].buckets.length === 0) return;
+			var info = FACET_MAP[aggKey];
+			var buckets = aggs[aggKey].buckets;
+			var selected = modalActiveFilters[info.param] || [];
+
+			var details = document.createElement('details');
+			details.className = 'gdlo-modal-facet-group';
+			if (selected.length > 0) details.open = true;
+
+			var summary = document.createElement('summary');
+			summary.textContent = info.label;
+			if (selected.length > 0) {
+				var cnt = document.createElement('span');
+				cnt.className = 'gdlo-modal-facet-cnt';
+				cnt.textContent = ' (' + selected.length + ')';
+				summary.appendChild(cnt);
+			}
+			details.appendChild(summary);
+
+			var opts = document.createElement('div');
+			opts.className = 'gdlo-modal-facet-opts';
+
+			buckets.forEach(function (b) {
+				var label = document.createElement('label');
+				label.className = 'gdlo-modal-facet-opt';
+
+				var cb = document.createElement('input');
+				cb.type = 'checkbox';
+				cb.value = b.key;
+				if (selected.indexOf(b.key) !== -1) cb.checked = true;
+
+				cb.addEventListener('change', function () {
+					var cur = modalActiveFilters[info.param] || [];
+					if (cb.checked) {
+						if (cur.indexOf(b.key) === -1) cur.push(b.key);
+					} else {
+						cur = cur.filter(function (v) { return v !== b.key; });
+					}
+					modalActiveFilters[info.param] = cur.length > 0 ? cur : [];
+					if (cur.length === 0) delete modalActiveFilters[info.param];
+					modalCurrentPage = 1;
+					modalTotalLoaded = 0;
+					loadModalResults(false);
+				});
+
+				var text = document.createElement('span');
+				text.textContent = b.key;
+				var count = document.createElement('em');
+				count.className = 'gdlo-modal-facet-doc';
+				count.textContent = '(' + b.doc_count + ')';
+
+				label.appendChild(cb);
+				label.appendChild(text);
+				label.appendChild(count);
+				opts.appendChild(label);
+			});
+
+			details.appendChild(opts);
+			modalFacets.appendChild(details);
+			rendered = true;
+		});
+
+		var priceRow = document.createElement('div');
+		priceRow.className = 'gdlo-modal-facet-price';
+
+		var minInput = document.createElement('input');
+		minInput.type = 'number';
+		minInput.placeholder = 'Min $';
+		minInput.min = '0';
+		minInput.step = '1';
+		if (modalActiveFilters.min_price > 0) minInput.value = modalActiveFilters.min_price;
+
+		var dash = document.createElement('span');
+		dash.textContent = '–';
+
+		var maxInput = document.createElement('input');
+		maxInput.type = 'number';
+		maxInput.placeholder = 'Max $';
+		maxInput.min = '0';
+		maxInput.step = '1';
+		if (modalActiveFilters.max_price > 0) maxInput.value = modalActiveFilters.max_price;
+
+		var stockLabel = document.createElement('label');
+		stockLabel.className = 'gdlo-modal-facet-opt';
+		stockLabel.style.marginLeft = '10px';
+		var stockCb = document.createElement('input');
+		stockCb.type = 'checkbox';
+		if (modalActiveFilters.in_stock === true) stockCb.checked = true;
+		stockCb.addEventListener('change', function () {
+			if (stockCb.checked) { modalActiveFilters.in_stock = true; }
+			else { delete modalActiveFilters.in_stock; }
+			modalCurrentPage = 1; modalTotalLoaded = 0;
+			loadModalResults(false);
+		});
+		var stockText = document.createElement('span');
+		stockText.textContent = 'In stock only';
+		stockLabel.appendChild(stockCb);
+		stockLabel.appendChild(stockText);
+
+		var priceTimer = null;
+		function onPriceChange() {
+			clearTimeout(priceTimer);
+			priceTimer = setTimeout(function () {
+				var mn = parseFloat(minInput.value) || 0;
+				var mx = parseFloat(maxInput.value) || 0;
+				if (mn > 0) { modalActiveFilters.min_price = mn; } else { delete modalActiveFilters.min_price; }
+				if (mx > 0) { modalActiveFilters.max_price = mx; } else { delete modalActiveFilters.max_price; }
+				modalCurrentPage = 1; modalTotalLoaded = 0;
+				loadModalResults(false);
+			}, 500);
+		}
+		minInput.addEventListener('input', onPriceChange);
+		maxInput.addEventListener('input', onPriceChange);
+
+		priceRow.appendChild(minInput);
+		priceRow.appendChild(dash);
+		priceRow.appendChild(maxInput);
+		priceRow.appendChild(stockLabel);
+		modalFacets.appendChild(priceRow);
+
+		if (hasActiveFilters()) {
+			var clearBtn = document.createElement('button');
+			clearBtn.type = 'button';
+			clearBtn.className = 'gdlo-modal-facet-clear';
+			clearBtn.textContent = 'Clear filters';
+			clearBtn.addEventListener('click', function () {
+				modalActiveFilters = {};
+				modalCurrentPage = 1; modalTotalLoaded = 0;
+				loadModalResults(false);
+			});
+			modalFacets.appendChild(clearBtn);
+		}
+	}
+
 	function loadModalResults(append) {
 		if (!modalResults) return;
 		var q = modalSearch ? modalSearch.value.trim() : '';
@@ -735,10 +935,15 @@
 			+ '&sort=' + encodeURIComponent(modalCurrentSort);
 		if (catStr) url += '&category=' + encodeURIComponent(catStr);
 
+		var facetParams = buildFacetParams();
+		if (facetParams) url += '&' + facetParams;
+
 		fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 			.then(function (resp) { return resp.json(); })
 			.then(function (data) {
 				if (!append) modalResults.innerHTML = '';
+				if (!append) renderFacets(data.aggregations || null);
+
 				if (!data.results || data.results.length === 0) {
 					if (modalTotalLoaded === 0 && modalEmpty) modalEmpty.style.display = '';
 					return;

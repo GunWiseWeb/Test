@@ -115,4 +115,9 @@ $lang = array(
     'gdloadout_modal_sort_name' => 'Name (A–Z)',
     'gdloadout_modal_load_more' => 'Load more',
     'gdloadout_modal_no_price' => 'No price yet',
+    'gdloadout_modal_filters' => 'Filters',
+    'gdloadout_modal_in_stock' => 'In stock only',
+    'gdloadout_modal_min_price' => 'Min $',
+    'gdloadout_modal_max_price' => 'Max $',
+    'gdloadout_modal_clear_filters' => 'Clear filters',
 );
