@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10024;
+namespace IPS\gdloadout\setup\upg_10025;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -145,14 +145,14 @@ class _upgrade
 </div>
 TEMPLATE_EOT,
 				'template_updated'       => time(),
-				'template_version'       => '1.0.24',
+				'template_version'       => '1.0.25',
 				'template_master_key'    => '',
 				'template_has_hookpoints' => 0,
 			] );
 		}
 		catch ( \Throwable ) {}
 
-		// Seed all lang strings accumulated through v1.0.24
+		// Seed all lang strings accumulated through v1.0.25
 		$newStrings = [
 			'menutab__gdloadout'               => 'Loadouts',
 			'gdloadout_share_forum'            => 'Loadout Share Forum',
