@@ -409,6 +409,7 @@ class _builder extends \IPS\Dispatcher\Controller
 							'upc' => $u, 'title' => $row['title'] ?? '', 'brand' => $row['brand'] ?? '',
 							'best_price' => $price, 'dealer_count' => $dealers, 'in_stock' => $dealers > 0,
 							'category' => $row['category'] ?? '', 'caliber' => $row['caliber'] ?? '',
+							'image_url' => (string) ( $row['image_url'] ?? '' ),
 						];
 					}
 					catch ( \Throwable ) {}
@@ -497,10 +498,17 @@ class _builder extends \IPS\Dispatcher\Controller
 			$out = [];
 			foreach ( ( $result['results'] ?? [] ) as $r )
 			{
+				$img = '';
+				if ( !empty( $r['upc'] ) )
+				{
+					try { $img = (string) Db::i()->select( 'image_url', 'gd_catalog', [ 'upc=?', $r['upc'] ] )->first(); }
+					catch ( \Throwable ) {}
+				}
 				$out[] = [
 					'upc' => $r['upc'] ?? '', 'title' => $r['title'] ?? '', 'brand' => $r['brand'] ?? '',
 					'best_price' => $r['best_price'] ?? null, 'dealer_count' => $r['dealer_count'] ?? 0,
 					'in_stock' => $r['in_stock'] ?? false, 'category' => $r['category'] ?? '', 'caliber' => $r['caliber'] ?? '',
+					'image_url' => $img,
 				];
 			}
 			Output::i()->json( [ 'total' => $result['total'] ?? 0, 'results' => $out, 'aggregations' => $cleanAggs ] );

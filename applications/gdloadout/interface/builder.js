@@ -883,7 +883,7 @@
 		var q = modalSearch ? modalSearch.value.trim() : '';
 
 		if (!append) {
-			modalResults.innerHTML = '<div class="gdlo-modal-row" style="justify-content:center;border:none;cursor:default"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+			modalResults.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px"><i class="fa-solid fa-spinner fa-spin"></i></div>';
 			modalCurrentPage = 1;
 			modalTotalLoaded = 0;
 		}
@@ -915,25 +915,25 @@
 				if (modalEmpty) modalEmpty.style.display = 'none';
 
 				data.results.forEach(function (r) {
-					var row = document.createElement('div');
-					row.className = 'gdlo-modal-row';
-					var priceHtml;
-					if (r.best_price && parseFloat(r.best_price) > 0) {
-						priceHtml = '<div class="gdlo-modal-row-price">$' + parseFloat(r.best_price).toFixed(2) + '</div>';
-					} else {
-						priceHtml = '<div class="gdlo-modal-row-noprice">No price yet</div>';
-					}
-					row.innerHTML = '<div class="gdlo-modal-row-info">'
-						+ '<div class="gdlo-modal-row-title">' + escapeHtml(r.title || r.upc) + '</div>'
-						+ '<div class="gdlo-modal-row-meta">' + escapeHtml(r.brand || '') + (r.caliber ? ' &middot; ' + escapeHtml(r.caliber) : '') + (r.dealer_count > 0 ? ' &middot; ' + r.dealer_count + ' dealer' + (r.dealer_count !== 1 ? 's' : '') : '') + '</div>'
-						+ '</div>'
-						+ priceHtml;
-
-					row.addEventListener('click', function () {
+					var card = document.createElement('div');
+					card.className = 'gdlo-modal-card';
+					var imgHtml = (r.image_url && r.image_url.length)
+						? '<img class="gdlo-modal-card-img" src="' + escapeAttr(r.image_url) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'gdlo-modal-card-ph\\\'>&#128230;</div>\'">'
+						: '<div class="gdlo-modal-card-ph">&#128230;</div>';
+					var priceHtml = (r.best_price && parseFloat(r.best_price) > 0)
+						? '<div class="gdlo-modal-card-price">$' + parseFloat(r.best_price).toFixed(2) + '</div>'
+						: '<div class="gdlo-modal-card-noprice">No price yet</div>';
+					card.innerHTML = imgHtml
+						+ '<div class="gdlo-modal-card-body">'
+						+ '<div class="gdlo-modal-card-title">' + escapeHtml(r.title || r.upc) + '</div>'
+						+ '<div class="gdlo-modal-card-brand">' + escapeHtml(r.brand || '') + '</div>'
+						+ priceHtml
+						+ '</div>';
+					card.addEventListener('click', function () {
 						assignProduct(r);
 						closeSlotModal();
 					});
-					modalResults.appendChild(row);
+					modalResults.appendChild(card);
 				});
 
 				modalTotalLoaded += data.results.length;
