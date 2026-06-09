@@ -587,6 +587,8 @@
 	var modalSort    = document.getElementById('gdModalSort');
 	var modalLoadMore = document.getElementById('gdModalLoadMore');
 	var modalFacets  = document.getElementById('gdModalFacets');
+	var modalFacetBar = document.getElementById('gdModalFacetBar');
+	var modalFacetClear = document.getElementById('gdModalFacetClear');
 	var modalTimer   = null;
 	var modalCategory = [];
 	var modalCurrentSort = 'relevance';
@@ -632,6 +634,8 @@
 		if (modalTypes) modalTypes.innerHTML = '';
 		if (modalSubs) modalSubs.innerHTML = '';
 		if (modalFacets) modalFacets.innerHTML = '';
+		if (modalFacetBar) modalFacetBar.innerHTML = '';
+		if (modalFacetClear) modalFacetClear.style.display = 'none';
 		modalCategory = [];
 		modalCurrentSort = 'relevance';
 		modalCurrentPage = 1;
@@ -664,38 +668,6 @@
 			}
 			modalTypes.style.display = '';
 			if (modalSubs) modalSubs.style.display = 'none';
-		} else if (catInfo && catInfo.subtypes) {
-			if (modalTypes) modalTypes.style.display = 'none';
-			var allChip = document.createElement('button');
-			allChip.type = 'button';
-			allChip.className = 'gdlo-modal-subchip active';
-			allChip.textContent = 'All';
-			allChip.addEventListener('click', function () {
-				var chips = modalSubs.querySelectorAll('.gdlo-modal-subchip');
-				for (var c = 0; c < chips.length; c++) chips[c].classList.remove('active');
-				allChip.classList.add('active');
-				modalCategory = [catInfo.category];
-				loadModalResults();
-			});
-			modalSubs.appendChild(allChip);
-
-			Object.keys(catInfo.subtypes).forEach(function (subLabel) {
-				var chip = document.createElement('button');
-				chip.type = 'button';
-				chip.className = 'gdlo-modal-subchip';
-				chip.textContent = subLabel;
-				chip.addEventListener('click', function () {
-					var chips = modalSubs.querySelectorAll('.gdlo-modal-subchip');
-					for (var c = 0; c < chips.length; c++) chips[c].classList.remove('active');
-					chip.classList.add('active');
-					modalCategory = [catInfo.subtypes[subLabel]];
-					loadModalResults();
-				});
-				modalSubs.appendChild(chip);
-			});
-
-			modalCategory = [catInfo.category];
-			modalSubs.style.display = '';
 		} else if (catInfo && catInfo.category) {
 			if (modalTypes) modalTypes.style.display = 'none';
 			if (modalSubs) modalSubs.style.display = 'none';
@@ -774,143 +746,135 @@
 	function renderFacets(aggs) {
 		if (!modalFacets) return;
 		modalFacets.innerHTML = '';
-		if (!aggs || typeof aggs !== 'object') return;
+		if (modalFacetBar) modalFacetBar.innerHTML = '';
 
 		var aggKeys = Object.keys(FACET_MAP);
-		var rendered = false;
 
-		aggKeys.forEach(function (aggKey) {
-			if (!aggs[aggKey] || !aggs[aggKey].buckets || aggs[aggKey].buckets.length === 0) return;
-			var info = FACET_MAP[aggKey];
-			var buckets = aggs[aggKey].buckets;
-			var selected = modalActiveFilters[info.param] || [];
+		if (aggs && typeof aggs === 'object') {
+			aggKeys.forEach(function (aggKey) {
+				if (!aggs[aggKey] || !aggs[aggKey].buckets || aggs[aggKey].buckets.length === 0) return;
+				var info = FACET_MAP[aggKey];
+				var buckets = aggs[aggKey].buckets;
+				var selected = modalActiveFilters[info.param] || [];
 
-			var details = document.createElement('details');
-			details.className = 'gdlo-modal-facet-group';
-			if (selected.length > 0) details.open = true;
+				var details = document.createElement('details');
+				details.className = 'gdlo-modal-facet-group';
+				if (selected.length > 0) details.open = true;
 
-			var summary = document.createElement('summary');
-			summary.textContent = info.label;
-			if (selected.length > 0) {
-				var cnt = document.createElement('span');
-				cnt.className = 'gdlo-modal-facet-cnt';
-				cnt.textContent = ' (' + selected.length + ')';
-				summary.appendChild(cnt);
-			}
-			details.appendChild(summary);
+				var summary = document.createElement('summary');
+				summary.textContent = info.label;
+				if (selected.length > 0) {
+					var cnt = document.createElement('span');
+					cnt.className = 'gdlo-modal-facet-cnt';
+					cnt.textContent = ' (' + selected.length + ')';
+					summary.appendChild(cnt);
+				}
+				details.appendChild(summary);
 
-			var opts = document.createElement('div');
-			opts.className = 'gdlo-modal-facet-opts';
+				var opts = document.createElement('div');
+				opts.className = 'gdlo-modal-facet-opts';
 
-			buckets.forEach(function (b) {
-				var label = document.createElement('label');
-				label.className = 'gdlo-modal-facet-opt';
+				buckets.forEach(function (b) {
+					var label = document.createElement('label');
+					label.className = 'gdlo-modal-facet-opt';
 
-				var cb = document.createElement('input');
-				cb.type = 'checkbox';
-				cb.value = b.key;
-				if (selected.indexOf(b.key) !== -1) cb.checked = true;
+					var cb = document.createElement('input');
+					cb.type = 'checkbox';
+					cb.value = b.key;
+					if (selected.indexOf(b.key) !== -1) cb.checked = true;
 
-				cb.addEventListener('change', function () {
-					var cur = modalActiveFilters[info.param] || [];
-					if (cb.checked) {
-						if (cur.indexOf(b.key) === -1) cur.push(b.key);
-					} else {
-						cur = cur.filter(function (v) { return v !== b.key; });
-					}
-					modalActiveFilters[info.param] = cur.length > 0 ? cur : [];
-					if (cur.length === 0) delete modalActiveFilters[info.param];
-					modalCurrentPage = 1;
-					modalTotalLoaded = 0;
-					loadModalResults(false);
+					cb.addEventListener('change', function () {
+						var cur = modalActiveFilters[info.param] || [];
+						if (cb.checked) {
+							if (cur.indexOf(b.key) === -1) cur.push(b.key);
+						} else {
+							cur = cur.filter(function (v) { return v !== b.key; });
+						}
+						modalActiveFilters[info.param] = cur.length > 0 ? cur : [];
+						if (cur.length === 0) delete modalActiveFilters[info.param];
+						modalCurrentPage = 1;
+						modalTotalLoaded = 0;
+						loadModalResults(false);
+					});
+
+					var text = document.createElement('span');
+					text.textContent = b.key;
+					var count = document.createElement('em');
+					count.className = 'gdlo-modal-facet-doc';
+					count.textContent = '(' + b.doc_count + ')';
+
+					label.appendChild(cb);
+					label.appendChild(text);
+					label.appendChild(count);
+					opts.appendChild(label);
 				});
 
-				var text = document.createElement('span');
-				text.textContent = b.key;
-				var count = document.createElement('em');
-				count.className = 'gdlo-modal-facet-doc';
-				count.textContent = '(' + b.doc_count + ')';
-
-				label.appendChild(cb);
-				label.appendChild(text);
-				label.appendChild(count);
-				opts.appendChild(label);
+				details.appendChild(opts);
+				modalFacets.appendChild(details);
 			});
-
-			details.appendChild(opts);
-			modalFacets.appendChild(details);
-			rendered = true;
-		});
-
-		var priceRow = document.createElement('div');
-		priceRow.className = 'gdlo-modal-facet-price';
-
-		var minInput = document.createElement('input');
-		minInput.type = 'number';
-		minInput.placeholder = 'Min $';
-		minInput.min = '0';
-		minInput.step = '1';
-		if (modalActiveFilters.min_price > 0) minInput.value = modalActiveFilters.min_price;
-
-		var dash = document.createElement('span');
-		dash.textContent = '–';
-
-		var maxInput = document.createElement('input');
-		maxInput.type = 'number';
-		maxInput.placeholder = 'Max $';
-		maxInput.min = '0';
-		maxInput.step = '1';
-		if (modalActiveFilters.max_price > 0) maxInput.value = modalActiveFilters.max_price;
-
-		var stockLabel = document.createElement('label');
-		stockLabel.className = 'gdlo-modal-facet-opt';
-		stockLabel.style.marginLeft = '10px';
-		var stockCb = document.createElement('input');
-		stockCb.type = 'checkbox';
-		if (modalActiveFilters.in_stock === true) stockCb.checked = true;
-		stockCb.addEventListener('change', function () {
-			if (stockCb.checked) { modalActiveFilters.in_stock = true; }
-			else { delete modalActiveFilters.in_stock; }
-			modalCurrentPage = 1; modalTotalLoaded = 0;
-			loadModalResults(false);
-		});
-		var stockText = document.createElement('span');
-		stockText.textContent = 'In stock only';
-		stockLabel.appendChild(stockCb);
-		stockLabel.appendChild(stockText);
-
-		var priceTimer = null;
-		function onPriceChange() {
-			clearTimeout(priceTimer);
-			priceTimer = setTimeout(function () {
-				var mn = parseFloat(minInput.value) || 0;
-				var mx = parseFloat(maxInput.value) || 0;
-				if (mn > 0) { modalActiveFilters.min_price = mn; } else { delete modalActiveFilters.min_price; }
-				if (mx > 0) { modalActiveFilters.max_price = mx; } else { delete modalActiveFilters.max_price; }
-				modalCurrentPage = 1; modalTotalLoaded = 0;
-				loadModalResults(false);
-			}, 500);
 		}
-		minInput.addEventListener('input', onPriceChange);
-		maxInput.addEventListener('input', onPriceChange);
 
-		priceRow.appendChild(minInput);
-		priceRow.appendChild(dash);
-		priceRow.appendChild(maxInput);
-		priceRow.appendChild(stockLabel);
-		modalFacets.appendChild(priceRow);
+		if (modalFacetBar) {
+			var priceRow = document.createElement('div');
+			priceRow.className = 'gdlo-modal-facet-price';
 
-		if (hasActiveFilters()) {
-			var clearBtn = document.createElement('button');
-			clearBtn.type = 'button';
-			clearBtn.className = 'gdlo-modal-facet-clear';
-			clearBtn.textContent = 'Clear filters';
-			clearBtn.addEventListener('click', function () {
-				modalActiveFilters = {};
+			var minInput = document.createElement('input');
+			minInput.type = 'number';
+			minInput.placeholder = 'Min $';
+			minInput.min = '0';
+			minInput.step = '1';
+			if (modalActiveFilters.min_price > 0) minInput.value = modalActiveFilters.min_price;
+
+			var dash = document.createElement('span');
+			dash.textContent = '–';
+
+			var maxInput = document.createElement('input');
+			maxInput.type = 'number';
+			maxInput.placeholder = 'Max $';
+			maxInput.min = '0';
+			maxInput.step = '1';
+			if (modalActiveFilters.max_price > 0) maxInput.value = modalActiveFilters.max_price;
+
+			priceRow.appendChild(minInput);
+			priceRow.appendChild(dash);
+			priceRow.appendChild(maxInput);
+			modalFacetBar.appendChild(priceRow);
+
+			var stockLabel = document.createElement('label');
+			stockLabel.className = 'gdlo-modal-facet-instock';
+			var stockCb = document.createElement('input');
+			stockCb.type = 'checkbox';
+			if (modalActiveFilters.in_stock === true) stockCb.checked = true;
+			stockCb.addEventListener('change', function () {
+				if (stockCb.checked) { modalActiveFilters.in_stock = true; }
+				else { delete modalActiveFilters.in_stock; }
 				modalCurrentPage = 1; modalTotalLoaded = 0;
 				loadModalResults(false);
 			});
-			modalFacets.appendChild(clearBtn);
+			var stockText = document.createElement('span');
+			stockText.textContent = 'In stock only';
+			stockLabel.appendChild(stockCb);
+			stockLabel.appendChild(stockText);
+			modalFacetBar.appendChild(stockLabel);
+
+			var priceTimer = null;
+			function onPriceChange() {
+				clearTimeout(priceTimer);
+				priceTimer = setTimeout(function () {
+					var mn = parseFloat(minInput.value) || 0;
+					var mx = parseFloat(maxInput.value) || 0;
+					if (mn > 0) { modalActiveFilters.min_price = mn; } else { delete modalActiveFilters.min_price; }
+					if (mx > 0) { modalActiveFilters.max_price = mx; } else { delete modalActiveFilters.max_price; }
+					modalCurrentPage = 1; modalTotalLoaded = 0;
+					loadModalResults(false);
+				}, 500);
+			}
+			minInput.addEventListener('input', onPriceChange);
+			maxInput.addEventListener('input', onPriceChange);
+		}
+
+		if (modalFacetClear) {
+			modalFacetClear.style.display = hasActiveFilters() ? '' : 'none';
 		}
 	}
 
@@ -1000,6 +964,15 @@
 		modalLoadMore.addEventListener('click', function () {
 			modalCurrentPage++;
 			loadModalResults(true);
+		});
+	}
+
+	if (modalFacetClear) {
+		modalFacetClear.addEventListener('click', function () {
+			modalActiveFilters = {};
+			modalCurrentPage = 1;
+			modalTotalLoaded = 0;
+			loadModalResults(false);
 		});
 	}
 

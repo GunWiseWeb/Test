@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10020;
+namespace IPS\gdloadout\setup\upg_10021;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -28,7 +28,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		// Re-seed builder template (added gdModalFacets div)
+		// Re-seed builder template (added gdModalFacetBar + gdModalFacetClear)
 		try
 		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
@@ -136,6 +136,8 @@ class _upgrade
       <input type="text" id="gdModalSearch" class="gdlo-input" placeholder="{lang="gdloadout_modal_search"}" />
     </div>
     <div id="gdModalFacets" class="gdlo-modal-facets"></div>
+    <div id="gdModalFacetBar" class="gdlo-modal-facet-bar"></div>
+    <button type="button" id="gdModalFacetClear" class="gdlo-modal-facet-clear" style="display:none">{lang="gdloadout_modal_clear_filters"}</button>
     <div id="gdModalResults" class="gdlo-modal-results"></div>
     <button type="button" id="gdModalLoadMore" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" style="display:none;margin:0 20px 16px">{lang="gdloadout_modal_load_more"}</button>
     <div id="gdModalEmpty" class="gdlo-modal-empty" style="display:none">{lang="gdloadout_modal_no_products"}</div>
@@ -143,14 +145,14 @@ class _upgrade
 </div>
 TEMPLATE_EOT,
 				'template_updated'       => time(),
-				'template_version'       => '1.0.20',
+				'template_version'       => '1.0.21',
 				'template_master_key'    => '',
 				'template_has_hookpoints' => 0,
 			] );
 		}
 		catch ( \Throwable ) {}
 
-		// Seed all lang strings accumulated through v1.0.20
+		// Seed all lang strings accumulated through v1.0.21
 		$newStrings = [
 			'menutab__gdloadout'               => 'Loadouts',
 			'gdloadout_share_forum'            => 'Loadout Share Forum',
