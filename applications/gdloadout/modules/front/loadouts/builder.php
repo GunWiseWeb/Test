@@ -428,7 +428,8 @@ class _builder extends \IPS\Dispatcher\Controller
 			$filters = [];
 			if ( $cats )
 			{
-				$filters['category'] = \count( $cats ) === 1 ? $cats[0] : $cats;
+				$catField = ( Request::i()->catfield ?? '' ) === 'subcategory' ? 'subcategory' : 'category';
+				$filters[ $catField ] = \count( $cats ) === 1 ? $cats[0] : $cats;
 			}
 
 			foreach ( [

@@ -613,6 +613,7 @@
 	var modalCurrentPage = 1;
 	var modalTotalLoaded = 0;
 	var modalActiveFilters = {};
+	var modalCatField = 'category';
 
 	var FACET_MAP = {
 		brands:             { param: 'brand',             label: 'Brand' },
@@ -662,6 +663,7 @@
 		renderSortToggle();
 
 		var catInfo = slotCategory[key];
+		modalCatField = (catInfo && catInfo.field) ? catInfo.field : 'category';
 
 		if (catInfo && catInfo.types) {
 			var typeKeys = Object.keys(catInfo.types);
@@ -915,7 +917,7 @@
 		var url = searchUrl + (searchUrl.indexOf('?') > -1 ? '&' : '?') + 'q=' + encodeURIComponent(q)
 			+ '&page=' + modalCurrentPage
 			+ '&sort=' + encodeURIComponent(modalCurrentSort);
-		if (catStr) url += '&category=' + encodeURIComponent(catStr);
+		if (catStr) url += '&category=' + encodeURIComponent(catStr) + '&catfield=' + encodeURIComponent(modalCatField);
 
 		var facetParams = buildFacetParams();
 		if (facetParams) url += '&' + facetParams;

@@ -33,7 +33,7 @@ class Searcher
      * Run a search query.
      *
      * @param string $query      Full-text search string
-     * @param array  $filters    Associative array: category, brand, caliber, in_stock, min_price, max_price
+     * @param array  $filters    Associative array: category, subcategory, brand, caliber, in_stock, min_price, max_price, etc.
      * @param string $sort       relevance|price_asc|price_desc|brand
      * @param int    $page       1-based page number
      * @param int    $perPage    Results per page
@@ -100,6 +100,7 @@ class Searcher
             }
         };
         $facet( 'category.keyword',    $filters['category']    ?? '' );
+        $facet( 'subcategory.keyword', $filters['subcategory'] ?? '' );
         $facet( 'brand.keyword',       $filters['brand']       ?? '' );
         $facet( 'caliber.keyword',     $filters['caliber']     ?? '' );
         $facet( 'action_type.keyword', $filters['action']      ?? '' );
@@ -174,6 +175,7 @@ class Searcher
             'sort' => [ $sortClause ],
             'aggs' => [
                 'categories' => [ 'terms' => [ 'field' => 'category.keyword', 'size' => 20 ] ],
+                'subcategories' => [ 'terms' => [ 'field' => 'subcategory.keyword', 'size' => 50 ] ],
                 'brands'     => [ 'terms' => [ 'field' => 'brand.keyword',    'size' => 50 ] ],
                 /* Type-specific facets scoped to the categories where the attribute is valid, so
                    Sports South attribute bleed (e.g. a holster color landing in caliber) never

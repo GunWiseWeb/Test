@@ -24,23 +24,20 @@ class _Slots
 	];
 
 	public const SLOT_CATEGORY = [
-		'base_firearm' => [ 'types' => [
+		'base_firearm' => [ 'field' => 'subcategory', 'types' => [
 			'Handgun'  => [ 'Handguns', 'Pistols', 'Revolvers', 'Derringers', 'Single-Shot Pistols' ],
 			'Rifle'    => [ 'Rifles', 'Bolt-Action Rifles', 'Semi-Automatic Rifles', 'Lever-Action Rifles', 'Pump-Action Rifles', 'Single-Shot Rifles', 'Break-Action Rifles', 'Rimfire Rifles' ],
 			'Shotgun'  => [ 'Shotguns', 'Semi-Automatic Shotguns', 'Pump-Action Shotguns', 'Over/Under Shotguns', 'Side-by-Side Shotguns', 'Single-Shot Shotguns', 'Break-Action Shotguns' ],
 		] ],
-		'optic'        => [ 'category' => 'Optics', 'subtypes' => [
-			'Red Dot' => 'Red Dot Sights', 'LPVO' => 'LPVOs (1-6x and similar)', 'Scope' => 'Rifle Scopes',
-			'Holographic' => 'Holographic Sights', 'Prism' => 'Prism Scopes', 'Magnifier' => 'Magnifiers',
-		] ],
-		'weapon_light' => [ 'category' => 'Weapon Lights' ],
-		'laser'        => [ 'category' => 'Laser Sights' ],
-		'suppressor'   => [ 'category' => 'Suppressors' ],
-		'foregrip'     => [ 'category' => 'Foregrips & Vertical Grips' ],
-		'rail_mount'   => [ 'category' => 'Rails & Mounts' ],
-		'trigger'      => [ 'category' => 'Triggers & Trigger Groups' ],
-		'stock'        => [ 'category' => 'Stocks & Chassis' ],
-		'sling'        => [ 'category' => 'Slings & Swivels' ],
+		'optic'        => [ 'field' => 'category', 'category' => 'Optics' ],
+		'weapon_light' => [ 'field' => 'subcategory', 'category' => 'Weapon Lights' ],
+		'laser'        => [ 'field' => 'subcategory', 'category' => 'Laser Sights' ],
+		'suppressor'   => [ 'field' => 'subcategory', 'category' => 'Suppressors' ],
+		'foregrip'     => [ 'field' => 'subcategory', 'category' => 'Foregrips & Vertical Grips' ],
+		'rail_mount'   => [ 'field' => 'subcategory', 'category' => 'Rails & Mounts' ],
+		'trigger'      => [ 'field' => 'subcategory', 'category' => 'Triggers & Trigger Groups' ],
+		'stock'        => [ 'field' => 'subcategory', 'category' => 'Stocks & Chassis' ],
+		'sling'        => [ 'field' => 'subcategory', 'category' => 'Slings & Swivels' ],
 	];
 
 	public const EXTRA_LIBRARY = [
