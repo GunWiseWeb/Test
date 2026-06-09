@@ -88,7 +88,7 @@
 		slotGrid.innerHTML = '';
 
 		Object.keys(coreSlots).forEach(function (key) {
-			slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null };
+			slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '' };
 
 			var existingItem = null;
 			for (var i = 0; i < items.length; i++) {
@@ -98,6 +98,7 @@
 				slots[key].upc   = existingItem.upc || '';
 				slots[key].title = existingItem.title || existingItem.custom_label || slotLabels[key] || key;
 				slots[key].price = (existingItem.price_snapshot !== undefined && existingItem.price_snapshot !== null) ? existingItem.price_snapshot : null;
+				slots[key].image = existingItem.image_url || '';
 				if (existingItem.notes) {
 					itemNotes[key] = existingItem.notes;
 				}
@@ -128,9 +129,15 @@
 		if (activeSlotKey === 'base_firearm') heroSlotEl.classList.add('gdlo-hero-card--active');
 		if (s && s.upc) {
 			heroSlotEl.classList.add('gdlo-hero-card--filled');
-			heroSlotEl.innerHTML = '<div class="gdlo-hero-label">' + escapeHtml(slotLabels['base_firearm']) + '</div>'
+			var heroImg = s.image
+				? '<img src="' + escapeAttr(s.image) + '" alt="" class="gdlo-hero-img" />'
+				: '<div class="gdlo-hero-img-ph">📦</div>';
+			heroSlotEl.innerHTML = heroImg
+				+ '<div class="gdlo-hero-info">'
+				+ '<div class="gdlo-hero-label">' + escapeHtml(slotLabels['base_firearm']) + '</div>'
 				+ '<div class="gdlo-hero-title">' + escapeHtml(s.title || s.upc) + '</div>'
-				+ (s.price ? '<div class="gdlo-hero-price">$' + parseFloat(s.price).toFixed(2) + '</div>' : '');
+				+ (s.price ? '<div class="gdlo-hero-price">$' + parseFloat(s.price).toFixed(2) + '</div>' : '')
+				+ '</div>';
 		} else {
 			heroSlotEl.innerHTML = '<div class="gdlo-hero-label">' + escapeHtml(slotLabels['base_firearm']) + '</div>'
 				+ '<div class="gdlo-hero-empty">Select your base firearm</div>';
@@ -160,7 +167,11 @@
 			card.classList.add('gdlo-slot-card--filled');
 			card.style.setProperty('--slot-color', info.color || '#2980b9');
 
-			card.innerHTML = '<div class="gdlo-slot-label" style="color:' + escapeAttr(info.color || '#666') + '">' + escapeHtml(slotLabels[key] || key) + '</div>'
+			var slotImg = slot.image
+				? '<img src="' + escapeAttr(slot.image) + '" alt="" class="gdlo-slot-img" />'
+				: '<div class="gdlo-slot-img-ph">📦</div>';
+			card.innerHTML = slotImg
+				+ '<div class="gdlo-slot-label" style="color:' + escapeAttr(info.color || '#666') + '">' + escapeHtml(slotLabels[key] || key) + '</div>'
 				+ '<div class="gdlo-slot-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
 				+ (slot.price ? '<div class="gdlo-slot-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
 				+ '<button type="button" class="gdlo-slot-remove" data-slot-key="' + key + '">&times;</button>';
@@ -172,6 +183,7 @@
 					slots[key].upc = '';
 					slots[key].title = '';
 					slots[key].price = null;
+					slots[key].image = '';
 					delete itemNotes[key];
 					renderSlotCard(key);
 					updateSummary();
@@ -217,7 +229,7 @@
 	function addExtraSlot(label) {
 		extraCounter++;
 		var key = 'extra_' + extraCounter;
-		slots[key] = { type: 'extra', upc: '', title: '', price: null, custom_label: label || 'Extra' };
+		slots[key] = { type: 'extra', upc: '', title: '', price: null, custom_label: label || 'Extra', image: '' };
 
 		var card = document.createElement('div');
 		card.className = 'gdlo-extra-card';
@@ -234,7 +246,11 @@
 		var slot = slots[key];
 
 		if (slot && slot.upc) {
-			card.innerHTML = '<div class="gdlo-slot-label">' + escapeHtml(slot.custom_label || 'Extra') + '</div>'
+			var extraImg = slot.image
+				? '<img src="' + escapeAttr(slot.image) + '" alt="" class="gdlo-slot-img" />'
+				: '<div class="gdlo-slot-img-ph">📦</div>';
+			card.innerHTML = extraImg
+				+ '<div class="gdlo-slot-label">' + escapeHtml(slot.custom_label || 'Extra') + '</div>'
 				+ '<div class="gdlo-slot-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
 				+ (slot.price ? '<div class="gdlo-slot-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
 				+ '<button type="button" class="gdlo-slot-remove" data-slot-key="' + key + '">&times;</button>';
@@ -265,6 +281,7 @@
 					slots[lastKey].upc   = items[i].upc || '';
 					slots[lastKey].title = items[i].title || items[i].custom_label || 'Extra';
 					slots[lastKey].price = (items[i].price_snapshot !== undefined && items[i].price_snapshot !== null) ? items[i].price_snapshot : null;
+					slots[lastKey].image = items[i].image_url || '';
 					if (items[i].notes) {
 						itemNotes[lastKey] = items[i].notes;
 					}
@@ -382,6 +399,7 @@
 		slots[activeSlotKey].upc   = product.upc || '';
 		slots[activeSlotKey].title = product.title || product.upc || '';
 		slots[activeSlotKey].price = product.best_price || null;
+		slots[activeSlotKey].image = product.image_url || '';
 
 		if (coreSlots[activeSlotKey]) {
 			renderSlotCard(activeSlotKey);

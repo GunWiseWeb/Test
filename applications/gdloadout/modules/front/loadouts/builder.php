@@ -79,9 +79,10 @@ class _builder extends \IPS\Dispatcher\Controller
 					{
 						try
 						{
-							$cat = Db::i()->select( 'title, brand', 'gd_catalog', [ 'upc=?', $item['upc'] ] )->first();
+							$cat = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $item['upc'] ] )->first();
 							$item['title'] = $cat['title'] ?? '';
 							$item['brand'] = $cat['brand'] ?? '';
+							$item['image_url'] = $cat['image_url'] ?? '';
 						}
 						catch ( \UnderflowException ) { $item['title'] = ''; }
 						try
