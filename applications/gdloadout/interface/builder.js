@@ -130,8 +130,8 @@
 		if (s && s.upc) {
 			heroSlotEl.classList.add('gdlo-hero-card--filled');
 			var heroImg = s.image
-				? '<img src="' + escapeAttr(s.image) + '" alt="" class="gdlo-hero-img" />'
-				: '<div class="gdlo-hero-img-ph">📦</div>';
+				? '<img class="gdlo-hero-img" src="' + escapeAttr(s.image) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'gdlo-hero-img-ph\\\'>&#128230;</div>\'">'
+				: '<div class="gdlo-hero-img-ph">&#128230;</div>';
 			heroSlotEl.innerHTML = heroImg
 				+ '<div class="gdlo-hero-info">'
 				+ '<div class="gdlo-hero-label">' + escapeHtml(slotLabels['base_firearm']) + '</div>'
@@ -168,8 +168,8 @@
 			card.style.setProperty('--slot-color', info.color || '#2980b9');
 
 			var slotImg = slot.image
-				? '<img src="' + escapeAttr(slot.image) + '" alt="" class="gdlo-slot-img" />'
-				: '<div class="gdlo-slot-img-ph">📦</div>';
+				? '<img class="gdlo-slot-img" src="' + escapeAttr(slot.image) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'gdlo-slot-img-ph\\\'>&#128230;</div>\'">'
+				: '<div class="gdlo-slot-img-ph">&#128230;</div>';
 			card.innerHTML = slotImg
 				+ '<div class="gdlo-slot-label" style="color:' + escapeAttr(info.color || '#666') + '">' + escapeHtml(slotLabels[key] || key) + '</div>'
 				+ '<div class="gdlo-slot-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
@@ -247,8 +247,8 @@
 
 		if (slot && slot.upc) {
 			var extraImg = slot.image
-				? '<img src="' + escapeAttr(slot.image) + '" alt="" class="gdlo-slot-img" />'
-				: '<div class="gdlo-slot-img-ph">📦</div>';
+				? '<img class="gdlo-slot-img" src="' + escapeAttr(slot.image) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'gdlo-slot-img-ph\\\'>&#128230;</div>\'">'
+				: '<div class="gdlo-slot-img-ph">&#128230;</div>';
 			card.innerHTML = extraImg
 				+ '<div class="gdlo-slot-label">' + escapeHtml(slot.custom_label || 'Extra') + '</div>'
 				+ '<div class="gdlo-slot-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
