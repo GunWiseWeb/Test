@@ -104,28 +104,133 @@
 .gdlo-view-comment-form{display:flex;flex-direction:column;gap:10px;background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(15,23,42,.06);border:1px solid #f1f5f9}
 .gdlo-view-empty{text-align:center;padding:40px;color:#94a3b8}
 
-/* ===== Builder (light, matches builder.phtml) ===== */
-.gdlo-builder{width:100%;max-width:1400px;margin:0 auto;padding:24px;box-sizing:border-box;color:#1e293b}
-.gdlo-builder-header{margin-bottom:20px}
-.gdlo-builder-title{font-size:1.7em;font-weight:800;color:#0f172a;margin:0 0 12px}
-.gdlo-builder-meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.gdlo-builder-field{margin-bottom:14px}
-.gdlo-builder-body{display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start}
-@media(max-width:900px){.gdlo-builder-body{grid-template-columns:1fr}}
-.gdlo-builder-slots{min-width:0}
-.gdlo-builder-slot-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.gdlo-builder-search{background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,.08);border:1px solid #f1f5f9;position:sticky;top:80px}
-.gdlo-builder-search-box{margin-bottom:12px}
-.gdlo-builder-results{max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
-.gdlo-builder-row{display:flex;justify-content:space-between;gap:10px;padding:10px;border-radius:8px;cursor:pointer;border:1px solid #f1f5f9;transition:background .12s}
-.gdlo-builder-row:hover{background:#f8fafc}
-.gdlo-builder-footer{margin-top:20px;display:flex;gap:10px;justify-content:flex-end}
+/* ===== Wizard Stepper ===== */
+.gdlo-wiz{width:100%;max-width:1400px;margin:0 auto;padding:24px;box-sizing:border-box;color:#1e293b}
+.gdlo-stepper{display:flex;gap:4px;margin-bottom:28px;border-bottom:2px solid #e2e8f0;padding-bottom:0}
+.gdlo-step{display:flex;align-items:center;gap:8px;padding:12px 20px;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;color:#94a3b8;font-size:.92em;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.gdlo-step:hover{color:#475569}
+.gdlo-step--active{color:#2563eb;border-bottom-color:#2563eb}
+.gdlo-step--done{color:#16a34a}
+.gdlo-step-num{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#e2e8f0;color:#64748b;font-size:.82em;font-weight:700;flex-shrink:0}
+.gdlo-step--active .gdlo-step-num{background:#2563eb;color:#fff}
+.gdlo-step--done .gdlo-step-num{background:#16a34a;color:#fff}
 
-/* ===== Slot-grid builder (restored) ===== */
-.gdlo-canvas{display:flex;gap:24px;flex-wrap:wrap;padding:16px;color:#1e293b}
-.gdlo-left{flex:2;min-width:320px}
-.gdlo-right{flex:1;min-width:280px}
-.gdlo-sticky{position:sticky;top:80px}
+/* ===== Wizard Step Layout ===== */
+.gdlo-wiz-step{animation:gdloFadeIn .2s ease}
+@keyframes gdloFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.gdlo-wiz-heading{font-size:1.4em;font-weight:800;color:#0f172a;margin:0 0 20px}
+.gdlo-wiz-body{display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start}
+@media(max-width:900px){.gdlo-wiz-body{grid-template-columns:1fr}}
+.gdlo-wiz-main{min-width:0}
+.gdlo-wiz-side{position:sticky;top:80px}
+.gdlo-pick-open .gdlo-wiz-side{display:none}
+.gdlo-pick-open .gdlo-wiz-body{grid-template-columns:1fr}
+
+/* ===== Wizard Nav ===== */
+.gdlo-wiz-nav{display:flex;align-items:center;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid #e2e8f0}
+
+/* ===== Build Mode Cards ===== */
+.gdlo-mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:600px){.gdlo-mode-grid{grid-template-columns:1fr}}
+.gdlo-mode-card{border:2px solid #e2e8f0;border-radius:14px;padding:24px;cursor:pointer;text-align:center;transition:all .15s;background:#fff}
+.gdlo-mode-card:hover{border-color:#94a3b8;box-shadow:0 4px 12px rgba(15,23,42,.08)}
+.gdlo-mode-card--active{border-color:#2563eb;background:#eff6ff;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.gdlo-mode-icon{font-size:2.2em;color:#64748b;margin-bottom:12px;display:block}
+.gdlo-mode-card--active .gdlo-mode-icon{color:#2563eb}
+.gdlo-mode-name{font-weight:700;font-size:1.1em;color:#0f172a;margin-bottom:6px}
+.gdlo-mode-desc{font-size:.85em;color:#64748b;line-height:1.4}
+
+/* ===== Platform Chips ===== */
+.gdlo-platform-grid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px}
+.gdlo-platform-chip{padding:10px 18px;border:2px solid #e2e8f0;border-radius:10px;background:#fff;color:#334155;cursor:pointer;font-size:.92em;font-weight:600;transition:all .12s}
+.gdlo-platform-chip:hover{border-color:#94a3b8;background:#f8fafc}
+.gdlo-platform-chip--active{border-color:#2563eb;background:#eff6ff;color:#2563eb}
+
+/* ===== Slot Card Grid ===== */
+.gdlo-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.gdlo-card{border:1px solid #e2e8f0;border-radius:12px;padding:16px;cursor:pointer;transition:all .15s;background:#fff;position:relative;min-height:100px;display:flex;flex-direction:column;overflow:hidden}
+.gdlo-card:hover{border-color:#2563eb;box-shadow:0 4px 14px rgba(37,99,235,.1)}
+.gdlo-card--active{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.gdlo-card--filled{border-color:#16a34a}
+.gdlo-card-img{width:100%;height:80px;object-fit:contain;background:#f8fafc;border-radius:8px;margin-bottom:10px;display:block}
+.gdlo-card-img-ph{width:100%;height:80px;background:#f8fafc;border-radius:8px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;font-size:1.8em;color:#cbd5e1}
+.gdlo-card-body{flex:1}
+.gdlo-card-label{font-size:.7em;text-transform:uppercase;letter-spacing:.04em;color:#64748b;font-weight:700;margin-bottom:4px}
+.gdlo-card-title{font-weight:600;font-size:.88em;color:#0f172a;word-break:break-word;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gdlo-card-price{font-size:.85em;color:#16a34a;font-weight:700}
+.gdlo-card-remove{position:absolute;top:6px;right:8px;border:none;background:rgba(255,255,255,.9);color:#dc2626;font-size:1.3em;cursor:pointer;padding:2px 6px;line-height:1;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.gdlo-card-remove:hover{background:#fee2e2}
+.gdlo-card-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex:1;gap:4px}
+.gdlo-card-empty-icon{font-size:1.6em;color:#cbd5e1;margin-bottom:4px}
+.gdlo-card-add{font-size:.78em;color:#2563eb;font-weight:600}
+.gdlo-card-req{font-size:.65em;text-transform:uppercase;letter-spacing:.05em;color:#dc2626;font-weight:700;margin-top:2px}
+
+/* ===== Progress Bar ===== */
+.gdlo-progress-wrap{width:100%;height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden;margin-bottom:8px}
+.gdlo-progress-fill{height:100%;background:#2563eb;border-radius:999px;transition:width .3s ease;width:0}
+.gdlo-progress-text{font-size:.82em;color:#64748b;text-align:center}
+
+/* ===== Inline Picker ===== */
+.gdlo-pick{background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 4px 20px rgba(15,23,42,.1);margin-bottom:20px;overflow:hidden}
+.gdlo-pick-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc}
+.gdlo-pick-title{margin:0;font-size:1.1em;font-weight:700;color:#0f172a}
+.gdlo-pick-close{background:none;border:none;font-size:1.8em;line-height:1;color:#64748b;cursor:pointer;padding:0 4px}
+.gdlo-pick-close:hover{color:#dc2626}
+.gdlo-pick-types{display:flex;gap:8px;flex-wrap:wrap;padding:14px 20px 0}
+.gdlo-pick-types:empty{display:none;padding:0}
+.gdlo-pick-type-btn{padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;cursor:pointer;font-size:.9em;font-weight:600;transition:all .12s}
+.gdlo-pick-type-btn:hover{background:#f1f5f9;border-color:#94a3b8}
+.gdlo-pick-type-btn.active{background:#2563eb;border-color:#2563eb;color:#fff}
+.gdlo-pick-search{padding:14px 20px 12px}
+.gdlo-pick-sort{display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 10px}
+.gdlo-pick-sort:empty{display:none;padding:0}
+.gdlo-pick-sort-btn{padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;cursor:pointer;font-size:.82em;font-weight:600;transition:all .12s}
+.gdlo-pick-sort-btn:hover{background:#f1f5f9}
+.gdlo-pick-sort-btn.active{background:#0f172a;border-color:#0f172a;color:#fff}
+.gdlo-pick-results{padding:8px 20px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start;max-height:420px;overflow-y:auto}
+.gdlo-pick-card{display:flex;flex-direction:row;align-items:center;gap:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;overflow:hidden;padding:10px;min-height:84px;transition:border-color .12s,box-shadow .12s}
+.gdlo-pick-card:hover{border-color:#2563eb;box-shadow:0 4px 14px rgba(37,99,235,.12)}
+.gdlo-pick-card-img{flex:0 0 auto;width:68px;height:68px;object-fit:contain;background:#f8fafc;border:1px solid #eef2f7;border-radius:8px;display:block}
+.gdlo-pick-card-ph{flex:0 0 auto;width:68px;height:68px;background:#f1f5f9;border:1px solid #eef2f7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.8em;color:#cbd5e1}
+.gdlo-pick-card-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.gdlo-pick-card-title{font-weight:600;font-size:.85em;line-height:1.3;color:#0f172a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gdlo-pick-card-brand{font-size:.78em;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gdlo-pick-card-price{font-weight:700;font-size:.88em;color:#16a34a}
+.gdlo-pick-card-noprice{font-size:.74em;color:#94a3b8;background:#f1f5f9;padding:2px 8px;border-radius:999px;align-self:flex-start}
+.gdlo-pick-facets{padding:8px 20px 0;display:flex;flex-direction:column;gap:10px;max-height:200px;overflow-y:auto}
+.gdlo-pick-facets:empty{display:none;padding:0}
+.gdlo-pick-facet-group{border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px}
+.gdlo-pick-facet-group>summary{font-weight:600;font-size:.82em;color:#334155;cursor:pointer;list-style:none}
+.gdlo-pick-facet-group>summary::-webkit-details-marker{display:none}
+.gdlo-pick-facet-cnt{font-weight:400;color:#2563eb}
+.gdlo-pick-facet-opts{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}
+.gdlo-pick-facet-opt{display:flex;align-items:center;gap:4px;font-size:.82em;color:#475569;white-space:nowrap;cursor:pointer}
+.gdlo-pick-facet-doc{color:#94a3b8;font-style:normal;font-size:.9em}
+.gdlo-pick-facet-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 20px 0}
+.gdlo-pick-facet-price{display:flex;gap:8px;align-items:center}
+.gdlo-pick-facet-price input{width:84px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;font-size:.85em}
+.gdlo-pick-facet-instock{display:flex;align-items:center;gap:6px;font-size:.82em;color:#475569;white-space:nowrap;cursor:pointer}
+.gdlo-pick-facet-clear{padding:6px 20px 0;font-size:.8em;color:#2563eb;cursor:pointer;background:none;border:none;text-align:left}
+.gdlo-pick-facet-clear:hover{text-decoration:underline}
+.gdlo-pick-empty{padding:30px 20px;text-align:center;color:#64748b}
+
+/* ===== Extras ===== */
+.gdlo-extra-add{display:flex;gap:8px;align-items:center;margin-bottom:20px}
+.gdlo-extra-add .gdlo-input--sm{flex:1;max-width:260px;padding:8px 12px}
+
+/* ===== Review List ===== */
+.gdlo-review-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.gdlo-review-item{display:flex;gap:14px;align-items:center;background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(15,23,42,.07);border:1px solid #f1f5f9}
+.gdlo-review-item-img{width:56px;height:56px;flex-shrink:0;object-fit:contain;background:#f8fafc;border-radius:8px;border:1px solid #eef2f7}
+.gdlo-review-item-ph{width:56px;height:56px;flex-shrink:0;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.4em;color:#cbd5e1}
+.gdlo-review-item-info{flex:1;min-width:0}
+.gdlo-review-item-label{font-size:.7em;text-transform:uppercase;letter-spacing:.04em;color:#64748b;font-weight:700;margin-bottom:3px}
+.gdlo-review-item-title{font-weight:600;color:#0f172a;font-size:.92em;line-height:1.3}
+.gdlo-review-item-price{text-align:right;flex-shrink:0;font-weight:700;color:#16a34a;font-size:.95em}
+.gdlo-review-item-noprice{text-align:right;flex-shrink:0;color:#94a3b8;font-size:.82em}
+.gdlo-review-empty{text-align:center;padding:40px;color:#94a3b8;font-size:.95em}
+
+/* ===== Common Panels (used in wizard side) ===== */
 .gdlo-field{margin-bottom:16px}
 .gdlo-input--title{font-size:1.25em;font-weight:600}
 .gdlo-input--sm{flex:1;padding:6px 10px;border-radius:4px}
@@ -133,48 +238,9 @@
 .gdlo-select{padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;flex:1;min-width:120px;background:#fff;color:#1e293b}
 .gdlo-select:focus{outline:none;border-color:#2563eb}
 .gdlo-section-label{font-weight:700;font-size:.85em;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin-bottom:10px}
-.gdlo-slot-count{color:#64748b;font-weight:600;margin-left:6px}
-.gdlo-hero-card{border:2px solid #e2e8f0;border-radius:10px;padding:18px;margin-bottom:20px;background:#fff;cursor:pointer;transition:border-color .2s}
-.gdlo-hero-card:hover{border-color:#2563eb}
-.gdlo-hero-card--active{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-.gdlo-hero-card--filled{border-color:#dc2626}
-.gdlo-hero-label{font-size:.75em;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin-bottom:6px}
-.gdlo-hero-empty{color:#94a3b8;font-size:.95em}
-.gdlo-hero-title{font-weight:700;color:#0f172a;font-size:1.1em}
-.gdlo-hero-price{font-weight:600;color:#16a34a;font-size:.95em;margin-top:4px}
-.gdlo-slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px}
-.gdlo-slot-card{border:1px solid #e2e8f0;border-radius:8px;padding:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s;background:#fff;position:relative;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.gdlo-slot-card:hover{border-color:#2563eb}
-.gdlo-slot-card--active{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-.gdlo-slot-card--filled{border-color:#16a34a}
-.gdlo-slot-label{font-size:.7em;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;font-weight:700}
-.gdlo-slot-title{font-weight:600;font-size:.85em;color:#0f172a;word-break:break-word}
-.gdlo-slot-price{font-size:.8em;color:#16a34a;font-weight:600;margin-top:3px}
-.gdlo-slot-remove{position:absolute;top:4px;right:6px;border:none;background:none;color:#dc2626;font-size:1.2em;cursor:pointer;padding:2px 5px;line-height:1}
-.gdlo-slot-empty-icon{font-size:1.4em;margin-bottom:6px;opacity:.5}
-.gdlo-slot-empty-label{font-size:.75em;color:#64748b;margin-bottom:4px}
-.gdlo-slot-empty-add{font-size:.72em;color:#2563eb;font-weight:600}
-.gdlo-extra-slots{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
-.gdlo-extra-card{border:1px solid #e2e8f0;border-radius:8px;padding:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s;background:#fff;position:relative;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.gdlo-extra-card:hover{border-color:#2563eb}
-.gdlo-extra-card.gdlo-slot-card--active{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-.gdlo-extra-card.gdlo-slot-card--filled{border-left:4px solid #2980b9}
-.gdlo-add-extra{margin-bottom:20px}
-.gdlo-picker{border:1px dashed #cbd5e1;border-radius:8px;padding:16px;margin-bottom:20px;background:#f8fafc}
-.gdlo-picker-title{font-weight:600;margin-bottom:8px;color:#0f172a}
-.gdlo-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.gdlo-chip{padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;cursor:pointer;font-size:.9em;font-weight:600;transition:all .12s}
-.gdlo-chip:hover{background:#f1f5f9;border-color:#2563eb}
-.gdlo-chip--custom{border-style:dashed;color:#64748b}
-.gdlo-picker-custom{display:flex;gap:8px}
 .gdlo-panel{border:1px solid #e2e8f0;border-radius:8px;background:#fff;overflow:hidden;margin-bottom:16px}
 .gdlo-panel-head{padding:14px 16px;border-bottom:1px solid #e2e8f0;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:.04em;font-size:.85em;background:#f8fafc}
 .gdlo-panel-body{padding:12px 16px}
-.gdlo-search-results{max-height:300px;overflow-y:auto;padding:0 16px 12px}
-.gdlo-search-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .1s}
-.gdlo-search-row:hover{background:#f8fafc}
-.gdlo-search-name{font-weight:500;color:#0f172a;font-size:.9em}
-.gdlo-search-price{font-weight:600;color:#16a34a;font-size:.85em}
 .gdlo-summary-body{padding:16px;text-align:center}
 .gdlo-total-cost{font-size:2em;font-weight:700;color:#16a34a}
 .gdlo-total-items{font-size:.85em;color:#64748b;margin-top:4px}
@@ -184,61 +250,12 @@
 .gdlo-breakdown-price{white-space:nowrap;font-weight:600;color:#0f172a}
 .gdlo-actions{display:flex;gap:10px;margin-top:16px}
 .gdlo-save-btn{flex:1}
+.gdlo-notes-input{width:100%;padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:.88em;box-sizing:border-box}
 
-/* ===== Slot Picker Modal ===== */
-.gdlo-modal{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center}
-.gdlo-modal-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.5)}
-.gdlo-modal-panel{position:relative;background:#fff;border-radius:14px;width:720px;max-width:calc(100vw - 32px);max-height:calc(100vh - 64px);display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
-.gdlo-modal-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2e8f0}
-.gdlo-modal-title{margin:0;font-size:1.1em;font-weight:700;color:#0f172a}
-.gdlo-modal-close{background:none;border:none;font-size:1.8em;line-height:1;color:#64748b;cursor:pointer;padding:0 4px}
-.gdlo-modal-types{flex:0 0 auto;display:flex;gap:8px;row-gap:8px;flex-wrap:wrap;padding:14px 20px 0}
-.gdlo-modal-types:empty{display:none;padding:0}
-.gdlo-modal-subtypes{flex:0 0 auto;display:flex;gap:8px;row-gap:8px;flex-wrap:wrap;padding:14px 20px 0}
-.gdlo-modal-subtypes:empty{display:none;padding:0}
-.gdlo-modal-type-btn,.gdlo-modal-subchip{padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;cursor:pointer;font-size:.9em;font-weight:600}
-.gdlo-modal-type-btn:hover,.gdlo-modal-subchip:hover{background:#f1f5f9;border-color:#94a3b8}
-.gdlo-modal-type-btn.active,.gdlo-modal-subchip.active{background:#2563eb;border-color:#2563eb;color:#fff}
-.gdlo-modal-search{flex:0 0 auto;padding:14px 20px 12px}
-.gdlo-modal-results{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;padding:8px 20px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
-.gdlo-modal-card{display:flex;flex-direction:row;align-items:center;gap:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;overflow:hidden;padding:10px;min-height:92px;transition:border-color .12s,box-shadow .12s}
-.gdlo-modal-card:hover{border-color:#2563eb;box-shadow:0 4px 14px rgba(37,99,235,.12)}
-.gdlo-modal-card-img{flex:0 0 auto;width:72px;height:72px;object-fit:contain;background:#f8fafc;border:1px solid #eef2f7;border-radius:8px;display:block}
-.gdlo-modal-card-ph{flex:0 0 auto;width:72px;height:72px;background:#f1f5f9;border:1px solid #eef2f7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.8em;color:#cbd5e1}
-.gdlo-modal-card-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
-.gdlo-modal-card-title{font-weight:600;font-size:.85em;line-height:1.3;color:#0f172a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.gdlo-modal-card-brand{font-size:.78em;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gdlo-modal-card-price{font-weight:700;font-size:.88em;color:#16a34a}
-.gdlo-modal-card-noprice{font-size:.74em;color:#94a3b8;background:#f1f5f9;padding:2px 8px;border-radius:999px;align-self:flex-start}
-.gdlo-modal-sort{flex:0 0 auto;display:flex;gap:8px;row-gap:8px;flex-wrap:wrap;padding:14px 20px 0}
-.gdlo-modal-sort:empty{display:none;padding:0}
-.gdlo-modal-sort-btn{padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;cursor:pointer;font-size:.82em;font-weight:600}
-.gdlo-modal-sort-btn:hover{background:#f1f5f9;border-color:#94a3b8}
-.gdlo-modal-sort-btn.active{background:#0f172a;border-color:#0f172a;color:#fff}
-.gdlo-modal-facets{flex:0 0 auto;padding:8px 20px 0;display:flex;flex-direction:column;gap:10px;max-height:240px;overflow-y:auto;overflow-x:hidden}
-.gdlo-modal-facets:empty{display:none;padding:0}
-.gdlo-modal-facet-group{flex:0 0 auto;border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px}
-.gdlo-modal-facet-group > summary{font-weight:600;font-size:.82em;color:#334155;cursor:pointer;list-style:none}
-.gdlo-modal-facet-group > summary::-webkit-details-marker{display:none}
-.gdlo-modal-facet-cnt{font-weight:400;color:#2563eb}
-.gdlo-modal-facet-opts{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}
-.gdlo-modal-facet-opt{display:flex;align-items:center;gap:4px;font-size:.82em;color:#475569;white-space:nowrap;cursor:pointer}
-.gdlo-modal-facet-doc{color:#94a3b8;font-style:normal;font-size:.9em}
-.gdlo-modal-facet-bar{flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 20px 0}
-.gdlo-modal-facet-price{display:flex;gap:8px;align-items:center}
-.gdlo-modal-facet-price input{width:84px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;font-size:.85em}
-.gdlo-modal-facet-instock{display:flex;align-items:center;gap:6px;font-size:.82em;color:#475569;white-space:nowrap;cursor:pointer}
-.gdlo-modal-facet-clear{flex:0 0 auto;padding:6px 20px 0;font-size:.8em;color:#2563eb;cursor:pointer;background:none;border:none;text-align:left}
-.gdlo-modal-facet-clear:hover{text-decoration:underline}
-.gdlo-modal-empty{padding:30px 20px;text-align:center;color:#64748b}
-.gdlo-slot-img{width:46px;height:46px;object-fit:contain;background:#f8fafc;border:1px solid #eef2f7;border-radius:8px;margin:0 auto 8px;display:block}
-.gdlo-slot-img-ph{width:46px;height:46px;background:#f1f5f9;border:1px solid #eef2f7;border-radius:8px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:1.3em;color:#cbd5e1}
-.gdlo-hero-card--filled{display:flex;align-items:center;gap:16px;text-align:left}
-.gdlo-hero-img{width:72px;height:72px;flex:0 0 auto;object-fit:contain;background:#f8fafc;border:1px solid #eef2f7;border-radius:10px;display:block}
-.gdlo-hero-img-ph{width:72px;height:72px;flex:0 0 auto;background:#f1f5f9;border:1px solid #eef2f7;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2em;color:#cbd5e1}
-.gdlo-hero-card--filled .gdlo-hero-info{flex:1 1 auto;min-width:0}
+/* ===== Responsive ===== */
 @media(max-width:640px){
-  .gdlo-modal-panel{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}
-  .gdlo-modal-results{grid-template-columns:1fr;gap:10px}
-  .gdlo-modal-facets{max-height:none}
+  .gdlo-stepper{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .gdlo-pick-results{grid-template-columns:1fr;gap:10px}
+  .gdlo-card-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .gdlo-mode-grid{grid-template-columns:1fr}
 }

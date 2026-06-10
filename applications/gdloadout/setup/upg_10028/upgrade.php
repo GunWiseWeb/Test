@@ -1,3 +1,39 @@
+<?php
+
+namespace IPS\gdloadout\setup\upg_10028;
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		/* ── a) Ensure build_mode column exists ── */
+		try
+		{
+			\IPS\Db::i()->addColumn( 'gd_loadouts', [
+				'name'       => 'build_mode',
+				'type'       => 'VARCHAR',
+				'length'     => 30,
+				'allow_null' => false,
+				'default'    => 'complete_firearm',
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* ── b) Ensure platform column exists ── */
+		try
+		{
+			\IPS\Db::i()->addColumn( 'gd_loadouts', [
+				'name'       => 'platform',
+				'type'       => 'VARCHAR',
+				'length'     => 50,
+				'allow_null' => true,
+				'default'    => null,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* ── c) Re-seed builder template ── */
+		$templateContent = <<<'TEMPLATE_EOT'
 <ips:template parameters="$initData" />
 <script type="application/json" id="gdlo-init">{$initData|raw}</script>
 <div id="gdLoadoutBuilder" class="gdlo-wiz">
@@ -164,3 +200,75 @@
 </div>
 
 </div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'       => 1,
+				'template_app'          => 'gdloadout',
+				'template_location'     => 'front',
+				'template_group'        => 'loadouts',
+				'template_name'         => 'builder',
+				'template_data'         => '$initData',
+				'template_content'      => $templateContent,
+				'template_updated'      => time(),
+				'template_version'      => '1.0.28',
+				'template_master_key'   => '',
+				'template_has_hookpoints' => 0,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* ── d) Seed new lang strings ── */
+		$newStrings = [
+			'gdloadout_step_setup'          => 'Setup',
+			'gdloadout_step_core'           => 'Core Build',
+			'gdloadout_step_accessories'    => 'Accessories',
+			'gdloadout_step_review'         => 'Review & Save',
+			'gdloadout_build_mode'          => 'Build Mode',
+			'gdloadout_mode_complete'       => 'Complete Firearm',
+			'gdloadout_mode_complete_desc'  => 'Start with a factory firearm, add accessories',
+			'gdloadout_mode_component'      => 'Build from Components',
+			'gdloadout_mode_component_desc' => 'Assemble from individual parts (AR, AK, etc.)',
+			'gdloadout_platform'            => 'Platform',
+			'gdloadout_core_slots'          => 'Core Slots',
+			'gdloadout_accessories'         => 'Accessories',
+			'gdloadout_custom_extras'       => 'Custom Extras',
+			'gdloadout_progress'            => 'Build Progress',
+			'gdloadout_vip_notes'           => 'Item Notes (VIP)',
+			'gdloadout_builder_prev'        => 'Previous',
+			'gdloadout_builder_next'        => 'Next',
+			'gdloadout_extra_placeholder'   => 'Custom slot name...',
+		];
+
+		foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+		{
+			foreach ( $newStrings as $key => $val )
+			{
+				try
+				{
+					\IPS\Db::i()->replace( 'core_sys_lang_words', [
+						'lang_id'      => (int) $langId,
+						'word_app'     => 'gdloadout',
+						'word_key'     => $key,
+						'word_default' => $val,
+						'word_js'      => 0,
+						'word_export'  => 1,
+					] );
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+
+		/* ── e) Clear caches ── */
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->settings ); }     catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }            catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

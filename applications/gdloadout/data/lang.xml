@@ -120,5 +120,23 @@
 <word key="gdloadout_modal_min_price" js="0"><![CDATA[Min $]]></word>
 <word key="gdloadout_modal_max_price" js="0"><![CDATA[Max $]]></word>
 <word key="gdloadout_modal_clear_filters" js="0"><![CDATA[Clear filters]]></word>
+<word key="gdloadout_step_setup" js="0"><![CDATA[Setup]]></word>
+<word key="gdloadout_step_core" js="0"><![CDATA[Core Build]]></word>
+<word key="gdloadout_step_accessories" js="0"><![CDATA[Accessories]]></word>
+<word key="gdloadout_step_review" js="0"><![CDATA[Review & Save]]></word>
+<word key="gdloadout_build_mode" js="0"><![CDATA[Build Mode]]></word>
+<word key="gdloadout_mode_complete" js="0"><![CDATA[Complete Firearm]]></word>
+<word key="gdloadout_mode_complete_desc" js="0"><![CDATA[Start with a factory firearm, add accessories]]></word>
+<word key="gdloadout_mode_component" js="0"><![CDATA[Build from Components]]></word>
+<word key="gdloadout_mode_component_desc" js="0"><![CDATA[Assemble from individual parts (AR, AK, etc.)]]></word>
+<word key="gdloadout_platform" js="0"><![CDATA[Platform]]></word>
+<word key="gdloadout_core_slots" js="0"><![CDATA[Core Slots]]></word>
+<word key="gdloadout_accessories" js="0"><![CDATA[Accessories]]></word>
+<word key="gdloadout_custom_extras" js="0"><![CDATA[Custom Extras]]></word>
+<word key="gdloadout_progress" js="0"><![CDATA[Build Progress]]></word>
+<word key="gdloadout_vip_notes" js="0"><![CDATA[Item Notes (VIP)]]></word>
+<word key="gdloadout_builder_prev" js="0"><![CDATA[Previous]]></word>
+<word key="gdloadout_builder_next" js="0"><![CDATA[Next]]></word>
+<word key="gdloadout_extra_placeholder" js="0"><![CDATA[Custom slot name...]]></word>
 </app>
 </language>

@@ -138,6 +138,20 @@
                 "allow_null": true,
                 "default": null,
                 "name": "forum_topic_id"
+            },
+            "build_mode": {
+                "type": "VARCHAR",
+                "length": 30,
+                "allow_null": false,
+                "default": "complete_firearm",
+                "name": "build_mode"
+            },
+            "platform": {
+                "type": "VARCHAR",
+                "length": 50,
+                "allow_null": true,
+                "default": null,
+                "name": "platform"
             }
         },
         "indexes": {

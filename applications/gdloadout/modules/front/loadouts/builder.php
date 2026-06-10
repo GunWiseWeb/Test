@@ -117,23 +117,20 @@ class _builder extends \IPS\Dispatcher\Controller
 		$searchUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=search', 'front', 'gdloadout_builder' );
 		$csrfKey   = Session::i()->csrfKey;
 
-		$coreSlots = \IPS\gdloadout\Loadout\Slots::CORE_SLOTS;
-		$extraLib  = array_values( \IPS\gdloadout\Loadout\Slots::EXTRA_LIBRARY );
-
-		$slotCategory = \IPS\gdloadout\Loadout\Slots::SLOT_CATEGORY;
-
 		$initData = json_encode( [
-			'loadout'      => $loadout,
-			'items'        => $items,
-			'coreSlots'    => $coreSlots,
-			'extraLib'     => $extraLib,
-			'limits'       => $limits,
-			'isVip'        => $isVip,
-			'saveUrl'      => $saveUrl,
-			'deleteUrl'    => $deleteUrl,
-			'searchUrl'    => $searchUrl,
-			'csrfKey'      => $csrfKey,
-			'slotCategory' => $slotCategory,
+			'loadout'            => $loadout,
+			'items'              => $items,
+			'completeFirearmCore' => \IPS\gdloadout\Loadout\Slots::COMPLETE_FIREARM_CORE,
+			'componentCore'      => \IPS\gdloadout\Loadout\Slots::COMPONENT_CORE,
+			'accessorySlots'     => \IPS\gdloadout\Loadout\Slots::ACCESSORY_SLOTS,
+			'slotCategories'     => \IPS\gdloadout\Loadout\Slots::SLOT_CATEGORIES,
+			'platforms'          => \IPS\gdloadout\Loadout\Slots::PLATFORMS,
+			'limits'             => $limits,
+			'isVip'              => $isVip,
+			'saveUrl'            => $saveUrl,
+			'deleteUrl'          => $deleteUrl,
+			'searchUrl'          => $searchUrl,
+			'csrfKey'            => $csrfKey,
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
@@ -160,6 +157,19 @@ class _builder extends \IPS\Dispatcher\Controller
 		$description = trim( Request::i()->loadout_description ?? '' );
 		$useCase     = trim( Request::i()->loadout_use_case ?? '' );
 		$visibility  = Request::i()->loadout_visibility ?? 'unlisted';
+
+		$buildModeParam = trim( Request::i()->loadout_build_mode ?? 'complete_firearm' );
+		if ( !\in_array( $buildModeParam, [ 'complete_firearm', 'component_build' ], true ) )
+		{
+			$buildModeParam = 'complete_firearm';
+		}
+
+		$platformParam = trim( Request::i()->loadout_platform ?? '' );
+		$validPlatforms = array_keys( \IPS\gdloadout\Loadout\Slots::PLATFORMS );
+		if ( $platformParam !== '' && !\in_array( $platformParam, $validPlatforms, true ) )
+		{
+			$platformParam = '';
+		}
 
 		if ( !\in_array( $visibility, [ 'public', 'unlisted', 'private' ], true ) )
 		{
@@ -222,7 +232,8 @@ class _builder extends \IPS\Dispatcher\Controller
 			Db::i()->update( 'gd_loadouts', [
 				'name' => $name, 'slug' => $uniqueSlug,
 				'description' => $description ?: NULL, 'use_case' => $useCase ?: NULL,
-				'visibility' => $visibility, 'updated_at' => time(),
+				'visibility' => $visibility, 'build_mode' => $buildModeParam,
+				'platform' => $platformParam ?: NULL, 'updated_at' => time(),
 			], [ 'id=?', $editId ] );
 
 			$loadoutId = $editId;
@@ -278,11 +289,17 @@ class _builder extends \IPS\Dispatcher\Controller
 			$loadoutId = Db::i()->insert( 'gd_loadouts', [
 				'member_id' => (int) $member->member_id, 'name' => $name, 'slug' => $uniqueSlug,
 				'description' => $description ?: NULL, 'use_case' => $useCase ?: NULL,
-				'visibility' => $visibility, 'created_at' => time(),
+				'visibility' => $visibility, 'build_mode' => $buildModeParam,
+				'platform' => $platformParam ?: NULL, 'created_at' => time(),
 			] );
 		}
 
-		$validSlotTypes = [ 'base_firearm', 'optic', 'weapon_light', 'laser', 'suppressor', 'foregrip', 'rail_mount', 'trigger', 'stock', 'sling', 'holster', 'ammo', 'cleaning', 'extra' ];
+		$validSlotTypes = [
+			'base_firearm', 'optic', 'weapon_light', 'laser', 'suppressor', 'sling',
+			'rail_mount', 'scope_rings', 'lower_receiver', 'upper_receiver', 'barrel',
+			'handguard', 'muzzle', 'bcg', 'buffer', 'trigger', 'stock', 'grip',
+			'magazine', 'holster', 'ear_eye_pro', 'cleaning', 'bipod', 'extra',
+		];
 		$totalCost = 0; $totalItems = 0; $order = 0;
 
 		foreach ( $slots as $slot )

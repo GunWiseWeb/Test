@@ -14,53 +14,37 @@
 	var isVip     = !!init.isVip;
 	var maxSlots  = (init.limits && init.limits.max_slots) ? parseInt(init.limits.max_slots, 10) : 0;
 	var loadoutId = (init.loadout && init.loadout.id) ? parseInt(init.loadout.id, 10) : 0;
-	var coreSlots = init.coreSlots || {};
-	var extraLib  = init.extraLib || [];
-	var items     = init.items || [];
 
-	var slotCategory = init.slotCategory || {};
+	var completeFirearmCore = init.completeFirearmCore || {};
+	var componentCore       = init.componentCore || {};
+	var accessorySlots      = init.accessorySlots || {};
+	var slotCategories      = init.slotCategories || {};
+	var platformOptions     = init.platforms || {};
+	var items               = init.items || [];
 
-	var slotLabels = {
-		base_firearm: 'Base Firearm', optic: 'Optic', weapon_light: 'Weapon Light',
-		laser: 'Laser', suppressor: 'Suppressor', foregrip: 'Foregrip',
-		rail_mount: 'Rail / Mount', trigger: 'Trigger', stock: 'Stock', sling: 'Sling'
-	};
-
-	var nameInput   = document.getElementById('gdLoadoutName');
-	var descInput   = document.getElementById('gdLoadoutDesc');
-	var useCaseSel  = document.getElementById('gdLoadoutUseCase');
-	var visSel      = document.getElementById('gdLoadoutVisibility');
-	var slotGrid    = document.getElementById('gdSlotGrid');
-	var extraSlotsEl = document.getElementById('gdExtraSlots');
-	var addExtraBtn = document.getElementById('gdAddExtra');
-	var extraPicker = document.getElementById('gdExtraPicker');
-	var extraChips  = document.getElementById('gdExtraChips');
-	var customInput = document.getElementById('gdCustomSlotName');
-	var addCustom   = document.getElementById('gdAddCustomSlot');
-	var searchInput = document.getElementById('gdSearchInput');
-	var searchRes   = document.getElementById('gdSearchResults');
-	var totalCostEl = document.getElementById('gdTotalCost');
-	var totalItemsEl = document.getElementById('gdTotalItems');
-	var breakdownEl = document.getElementById('gdItemBreakdown');
-	var vipNotesEl  = document.getElementById('gdVipNotes');
-	var notesBody   = document.getElementById('gdNotesBody');
-	var saveBtn     = document.getElementById('gdSaveBtn');
-	var deleteBtn   = document.getElementById('gdDeleteBtn');
-
-	var heroSlotEl = document.getElementById('gdHeroSlot');
-	var slotCountEl = document.getElementById('gdSlotCount');
-
-	var slots = {};
+	var currentStep = 1;
+	var buildMode   = 'complete_firearm';
+	var platform    = '';
+	var slots       = {};
 	var activeSlotKey = null;
+	var itemNotes   = {};
 	var extraCounter = 0;
-	var searchTimer = null;
-	var itemNotes = {};
 
-	if (isVip) {
+	var nameInput  = document.getElementById('gdLoadoutName');
+	var descInput  = document.getElementById('gdLoadoutDesc');
+	var useCaseSel = document.getElementById('gdLoadoutUseCase');
+	var visSel     = document.getElementById('gdLoadoutVisibility');
+	var saveBtn    = document.getElementById('gdSaveBtn');
+	var deleteBtn  = document.getElementById('gdDeleteBtn');
+	var prevBtn    = document.getElementById('gdPrevBtn');
+	var nextBtn    = document.getElementById('gdNextBtn');
+	var stepperEl  = document.getElementById('gdStepper');
+
+	if (isVip && visSel) {
 		var privOpt = document.createElement('option');
 		privOpt.value = 'private';
 		privOpt.textContent = 'Private';
-		if (visSel) visSel.appendChild(privOpt);
+		visSel.appendChild(privOpt);
 	}
 
 	if (init.loadout) {
@@ -68,11 +52,11 @@
 		if (descInput)  descInput.value  = init.loadout.description || '';
 		if (useCaseSel) useCaseSel.value = init.loadout.use_case || '';
 		if (visSel)     visSel.value     = init.loadout.visibility || 'unlisted';
+		if (init.loadout.build_mode) buildMode = init.loadout.build_mode;
+		if (init.loadout.platform)   platform  = init.loadout.platform;
 	}
 
-	if (loadoutId > 0 && deleteBtn) {
-		deleteBtn.style.display = '';
-	}
+	if (loadoutId > 0 && deleteBtn) deleteBtn.style.display = '';
 
 	for (var i = 0; i < items.length; i++) {
 		if (items[i].notes) {
@@ -83,424 +67,836 @@
 		}
 	}
 
-	function initCoreSlots() {
-		if (!slotGrid) return;
-		slotGrid.innerHTML = '';
+	/* ===== Wizard Navigation ===== */
+	function goToStep(step) {
+		if (step < 1 || step > 4) return;
+		currentStep = step;
+		for (var s = 1; s <= 4; s++) {
+			var el = document.getElementById('gdStep' + s);
+			if (el) el.style.display = s === step ? '' : 'none';
+		}
+		var btns = stepperEl ? stepperEl.querySelectorAll('.gdlo-step') : [];
+		for (var j = 0; j < btns.length; j++) {
+			var sn = parseInt(btns[j].dataset.step, 10);
+			btns[j].classList.remove('gdlo-step--active', 'gdlo-step--done');
+			if (sn === step) btns[j].classList.add('gdlo-step--active');
+			else if (sn < step) btns[j].classList.add('gdlo-step--done');
+		}
+		if (prevBtn) prevBtn.style.display = step > 1 ? '' : 'none';
+		if (nextBtn) nextBtn.style.display = step < 4 ? '' : 'none';
+		closePicker();
+		if (step === 2) renderCoreGrid();
+		if (step === 3) { renderAccGrid(); renderExtraGrid(); }
+		if (step === 4) { renderReview(); renderNotesPanel(); }
+		updateAllSummaries();
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+	}
 
-		Object.keys(coreSlots).forEach(function (key) {
-			slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '' };
-
-			var existingItem = null;
-			for (var i = 0; i < items.length; i++) {
-				if (items[i].slot_type === key) { existingItem = items[i]; break; }
-			}
-			if (existingItem) {
-				slots[key].upc   = existingItem.upc || '';
-				slots[key].title = existingItem.title || existingItem.custom_label || slotLabels[key] || key;
-				slots[key].price = (existingItem.price_snapshot !== undefined && existingItem.price_snapshot !== null) ? existingItem.price_snapshot : null;
-				slots[key].image = existingItem.image_url || '';
-				if (existingItem.notes) {
-					itemNotes[key] = existingItem.notes;
-				}
-			}
-
-			if (key === 'base_firearm') {
-				renderHeroCard();
-				if (heroSlotEl) {
-					heroSlotEl.addEventListener('click', function () { selectSlot('base_firearm'); });
-				}
-				return;
-			}
-
-			var card = document.createElement('div');
-			card.className = 'gdlo-slot-card';
-			card.dataset.slotKey = key;
-			card.addEventListener('click', function () { selectSlot(key); });
-			slotGrid.appendChild(card);
-			renderSlotCard(key, card);
+	if (stepperEl) {
+		stepperEl.addEventListener('click', function (e) {
+			var btn = e.target.closest('.gdlo-step');
+			if (!btn) return;
+			var s = parseInt(btn.dataset.step, 10);
+			if (s) goToStep(s);
 		});
-		updateSlotCount();
+	}
+	if (prevBtn) prevBtn.addEventListener('click', function () { goToStep(currentStep - 1); });
+	if (nextBtn) nextBtn.addEventListener('click', function () { goToStep(currentStep + 1); });
+
+	/* ===== Build Mode ===== */
+	function setMode(mode) {
+		buildMode = mode;
+		var cards = document.querySelectorAll('#gdModeGrid .gdlo-mode-card');
+		for (var c = 0; c < cards.length; c++) {
+			cards[c].classList.toggle('gdlo-mode-card--active', cards[c].dataset.mode === mode);
+		}
+		var platRow = document.getElementById('gdPlatformRow');
+		if (platRow) platRow.style.display = mode === 'component_build' ? '' : 'none';
 	}
 
-	function renderHeroCard() {
-		if (!heroSlotEl) return;
-		var s = slots['base_firearm'];
-		heroSlotEl.className = 'gdlo-hero-card';
-		if (activeSlotKey === 'base_firearm') heroSlotEl.classList.add('gdlo-hero-card--active');
-		if (s && s.upc) {
-			heroSlotEl.classList.add('gdlo-hero-card--filled');
-			var heroImg = s.image
-				? '<img class="gdlo-hero-img" src="' + escapeAttr(s.image) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'gdlo-hero-img-ph\\\'>&#128230;</div>\'">'
-				: '<div class="gdlo-hero-img-ph">&#128230;</div>';
-			heroSlotEl.innerHTML = heroImg
-				+ '<div class="gdlo-hero-info">'
-				+ '<div class="gdlo-hero-label">' + escapeHtml(slotLabels['base_firearm']) + '</div>'
-				+ '<div class="gdlo-hero-title">' + escapeHtml(s.title || s.upc) + '</div>'
-				+ (s.price ? '<div class="gdlo-hero-price">$' + parseFloat(s.price).toFixed(2) + '</div>' : '')
-				+ '</div>';
-		} else {
-			heroSlotEl.innerHTML = '<div class="gdlo-hero-label">' + escapeHtml(slotLabels['base_firearm']) + '</div>'
-				+ '<div class="gdlo-hero-empty">Select your base firearm</div>';
-		}
-	}
-
-	function updateSlotCount() {
-		if (!slotCountEl) return;
-		var filled = 0, empty = 0;
-		Object.keys(coreSlots).forEach(function (k) {
-			if (slots[k] && slots[k].upc) filled++; else empty++;
-		});
-		slotCountEl.textContent = filled + ' filled · ' + empty + ' empty';
-	}
-
-	function renderSlotCard(key, card) {
-		if (key === 'base_firearm') { renderHeroCard(); updateSlotCount(); return; }
-		if (!card) card = slotGrid.querySelector('[data-slot-key="' + key + '"]');
-		if (!card) return;
-
-		var info = coreSlots[key] || {};
-		var slot = slots[key];
-
-		card.className = 'gdlo-slot-card';
-
-		if (slot && slot.upc) {
-			card.classList.add('gdlo-slot-card--filled');
-			card.style.setProperty('--slot-color', info.color || '#2980b9');
-
-			var slotImg = slot.image
-				? '<img class="gdlo-slot-img" src="' + escapeAttr(slot.image) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'gdlo-slot-img-ph\\\'>&#128230;</div>\'">'
-				: '<div class="gdlo-slot-img-ph">&#128230;</div>';
-			card.innerHTML = slotImg
-				+ '<div class="gdlo-slot-label" style="color:' + escapeAttr(info.color || '#666') + '">' + escapeHtml(slotLabels[key] || key) + '</div>'
-				+ '<div class="gdlo-slot-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
-				+ (slot.price ? '<div class="gdlo-slot-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
-				+ '<button type="button" class="gdlo-slot-remove" data-slot-key="' + key + '">&times;</button>';
-
-			var rmBtn = card.querySelector('.gdlo-slot-remove');
-			if (rmBtn) {
-				rmBtn.addEventListener('click', function (e) {
-					e.stopPropagation();
-					slots[key].upc = '';
-					slots[key].title = '';
-					slots[key].price = null;
-					slots[key].image = '';
-					delete itemNotes[key];
-					renderSlotCard(key);
-					updateSummary();
-					updateSlotCount();
-					updateNotesPanel();
-				});
-			}
-		} else {
-			card.innerHTML = '<i class="fa-solid fa-' + escapeAttr(info.icon || 'plus') + ' gdlo-slot-empty-icon" style="color:' + escapeAttr(info.color || '#bbb') + '"></i>'
-				+ '<div class="gdlo-slot-empty-label">' + escapeHtml(slotLabels[key] || key) + '</div>'
-				+ '<div class="gdlo-slot-empty-add">+ Add</div>';
-			card.style.removeProperty('--slot-color');
-		}
-
-		if (activeSlotKey === key) {
-			card.classList.add('gdlo-slot-card--active');
-		}
-	}
-
-	function selectSlot(key) {
-		activeSlotKey = key;
-
-		renderHeroCard();
-
-		var cards = slotGrid.querySelectorAll('[data-slot-key]');
-		for (var i = 0; i < cards.length; i++) {
-			renderSlotCard(cards[i].dataset.slotKey, cards[i]);
-		}
-
-		var extraCards = extraSlotsEl.querySelectorAll('[data-slot-key]');
-		for (var j = 0; j < extraCards.length; j++) {
-			var ek = extraCards[j].dataset.slotKey;
-			if (activeSlotKey === ek) {
-				extraCards[j].classList.add('gdlo-slot-card--active');
-			} else {
-				extraCards[j].classList.remove('gdlo-slot-card--active');
-			}
-		}
-
-		openSlotModal(key);
-	}
-
-	function addExtraSlot(label) {
-		extraCounter++;
-		var key = 'extra_' + extraCounter;
-		slots[key] = { type: 'extra', upc: '', title: '', price: null, custom_label: label || 'Extra', image: '' };
-
-		var card = document.createElement('div');
-		card.className = 'gdlo-extra-card';
-		card.dataset.slotKey = key;
-		card.addEventListener('click', function () { selectSlot(key); });
-		extraSlotsEl.appendChild(card);
-		renderExtraCard(key, card);
-		updateSummary();
-	}
-
-	function renderExtraCard(key, card) {
-		if (!card) card = extraSlotsEl.querySelector('[data-slot-key="' + key + '"]');
-		if (!card) return;
-		var slot = slots[key];
-
-		if (slot && slot.upc) {
-			var extraImg = slot.image
-				? '<img class="gdlo-slot-img" src="' + escapeAttr(slot.image) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'gdlo-slot-img-ph\\\'>&#128230;</div>\'">'
-				: '<div class="gdlo-slot-img-ph">&#128230;</div>';
-			card.innerHTML = extraImg
-				+ '<div class="gdlo-slot-label">' + escapeHtml(slot.custom_label || 'Extra') + '</div>'
-				+ '<div class="gdlo-slot-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
-				+ (slot.price ? '<div class="gdlo-slot-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
-				+ '<button type="button" class="gdlo-slot-remove" data-slot-key="' + key + '">&times;</button>';
-		} else {
-			card.innerHTML = '<div class="gdlo-slot-empty-label">' + escapeHtml(slot.custom_label || 'Extra') + '</div>'
-				+ '<div class="gdlo-slot-empty-add">+ Add</div>'
-				+ '<button type="button" class="gdlo-slot-remove" data-slot-key="' + key + '">&times;</button>';
-		}
-
-		card.querySelector('.gdlo-slot-remove').addEventListener('click', function (e) {
-			e.stopPropagation();
-			delete slots[key];
-			delete itemNotes[key];
-			card.remove();
-			if (activeSlotKey === key) activeSlotKey = null;
-			updateSummary();
-			updateNotesPanel();
+	var modeGrid = document.getElementById('gdModeGrid');
+	if (modeGrid) {
+		modeGrid.addEventListener('click', function (e) {
+			var card = e.target.closest('.gdlo-mode-card');
+			if (!card) return;
+			setMode(card.dataset.mode);
 		});
 	}
 
-	function initExtraSlots() {
-		var extraIdx = 0;
-		for (var i = 0; i < items.length; i++) {
-			if (items[i].slot_type === 'extra') {
-				addExtraSlot(items[i].custom_label || 'Extra');
-				var lastKey = 'extra_' + extraCounter;
-				if (slots[lastKey]) {
-					slots[lastKey].upc   = items[i].upc || '';
-					slots[lastKey].title = items[i].title || items[i].custom_label || 'Extra';
-					slots[lastKey].price = (items[i].price_snapshot !== undefined && items[i].price_snapshot !== null) ? items[i].price_snapshot : null;
-					slots[lastKey].image = items[i].image_url || '';
-					if (items[i].notes) {
-						itemNotes[lastKey] = items[i].notes;
-					}
-					var card = extraSlotsEl.querySelector('[data-slot-key="' + lastKey + '"]');
-					renderExtraCard(lastKey, card);
-				}
-				extraIdx++;
-			}
-		}
-	}
-
-	function initExtraPicker() {
-		if (!extraChips) return;
-		extraChips.innerHTML = '';
-		var libNames = Array.isArray(extraLib) ? extraLib : Object.keys(extraLib).map(function(k){ return extraLib[k]; });
-		libNames.forEach(function (name) {
+	/* ===== Platform ===== */
+	function initPlatformChips() {
+		var container = document.getElementById('gdPlatformChips');
+		if (!container) return;
+		container.innerHTML = '';
+		var keys = Object.keys(platformOptions);
+		keys.forEach(function (key) {
 			var chip = document.createElement('button');
 			chip.type = 'button';
-			chip.className = 'gdlo-chip';
-			chip.textContent = name;
+			chip.className = 'gdlo-platform-chip' + (platform === key ? ' gdlo-platform-chip--active' : '');
+			chip.textContent = platformOptions[key];
+			chip.dataset.platform = key;
 			chip.addEventListener('click', function () {
-				addExtraSlot(name);
+				platform = key;
+				var all = container.querySelectorAll('.gdlo-platform-chip');
+				for (var a = 0; a < all.length; a++) {
+					all[a].classList.toggle('gdlo-platform-chip--active', all[a].dataset.platform === key);
+				}
 			});
-			extraChips.appendChild(chip);
+			container.appendChild(chip);
 		});
-		var customChip = document.createElement('button');
-		customChip.type = 'button';
-		customChip.className = 'gdlo-chip gdlo-chip--custom';
-		customChip.textContent = 'Custom…';
-		customChip.addEventListener('click', function () {
-			var wrap = document.getElementById('gdCustomWrap');
-			if (wrap) wrap.style.display = wrap.style.display === 'none' ? 'flex' : 'none';
-		});
-		extraChips.appendChild(customChip);
 	}
+
+	/* ===== Slot Helpers ===== */
+	function getCoreSlotDefs() {
+		return buildMode === 'complete_firearm' ? completeFirearmCore : componentCore;
+	}
+
+	function getAllSlotDefs() {
+		var defs = {};
+		var core = getCoreSlotDefs();
+		Object.keys(core).forEach(function (k) { defs[k] = core[k]; });
+		Object.keys(accessorySlots).forEach(function (k) { defs[k] = accessorySlots[k]; });
+		return defs;
+	}
+
+	function ensureSlot(key) {
+		if (!slots[key]) {
+			slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '' };
+		}
+	}
+
+	function getSlotLabel(key) {
+		var allDefs = getAllSlotDefs();
+		if (allDefs[key]) return allDefs[key].label;
+		if (slots[key] && slots[key].custom_label) return slots[key].custom_label;
+		return key;
+	}
+
+	/* ===== Card Rendering ===== */
+	function createSlotCard(key, slotDef) {
+		ensureSlot(key);
+		var card = document.createElement('div');
+		card.className = 'gdlo-card';
+		card.dataset.slotKey = key;
+		var slot = slots[key];
+
+		if (slot && slot.upc) {
+			card.classList.add('gdlo-card--filled');
+			var imgHtml = slot.image
+				? '<img class="gdlo-card-img" src="' + escapeAttr(slot.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+				: '<div class="gdlo-card-img-ph"><i class="' + escapeAttr(slotDef.icon || 'fa-solid fa-cube') + '"></i></div>';
+			card.innerHTML = imgHtml
+				+ '<div class="gdlo-card-body">'
+				+ '<div class="gdlo-card-label">' + escapeHtml(slotDef.label) + '</div>'
+				+ '<div class="gdlo-card-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
+				+ (slot.price ? '<div class="gdlo-card-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
+				+ '</div>'
+				+ '<button type="button" class="gdlo-card-remove" data-slot-key="' + escapeAttr(key) + '">&times;</button>';
+		} else {
+			card.innerHTML = '<div class="gdlo-card-empty">'
+				+ '<i class="' + escapeAttr(slotDef.icon || 'fa-solid fa-plus') + ' gdlo-card-empty-icon"></i>'
+				+ '<div class="gdlo-card-label">' + escapeHtml(slotDef.label) + '</div>'
+				+ '<div class="gdlo-card-add">+ Add</div>'
+				+ (slotDef.required ? '<div class="gdlo-card-req">Required</div>' : '')
+				+ '</div>';
+		}
+
+		if (activeSlotKey === key) card.classList.add('gdlo-card--active');
+
+		card.addEventListener('click', function (e) {
+			if (e.target.closest('.gdlo-card-remove')) return;
+			activeSlotKey = key;
+			highlightCards();
+			openPicker(key, slotDef);
+		});
+
+		var rmBtn = card.querySelector('.gdlo-card-remove');
+		if (rmBtn) {
+			rmBtn.addEventListener('click', function (e) {
+				e.stopPropagation();
+				slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '' };
+				delete itemNotes[key];
+				if (currentStep === 2) renderCoreGrid();
+				if (currentStep === 3) { renderAccGrid(); renderExtraGrid(); }
+				updateAllSummaries();
+			});
+		}
+
+		return card;
+	}
+
+	function createExtraCard(key) {
+		var slot = slots[key];
+		if (!slot) return null;
+		var card = document.createElement('div');
+		card.className = 'gdlo-card';
+		card.dataset.slotKey = key;
+		var label = slot.custom_label || 'Extra';
+
+		if (slot.upc) {
+			card.classList.add('gdlo-card--filled');
+			var imgHtml = slot.image
+				? '<img class="gdlo-card-img" src="' + escapeAttr(slot.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+				: '<div class="gdlo-card-img-ph"><i class="fa-solid fa-cube"></i></div>';
+			card.innerHTML = imgHtml
+				+ '<div class="gdlo-card-body">'
+				+ '<div class="gdlo-card-label">' + escapeHtml(label) + '</div>'
+				+ '<div class="gdlo-card-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
+				+ (slot.price ? '<div class="gdlo-card-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
+				+ '</div>'
+				+ '<button type="button" class="gdlo-card-remove" data-slot-key="' + escapeAttr(key) + '">&times;</button>';
+		} else {
+			card.innerHTML = '<div class="gdlo-card-empty">'
+				+ '<i class="fa-solid fa-plus gdlo-card-empty-icon"></i>'
+				+ '<div class="gdlo-card-label">' + escapeHtml(label) + '</div>'
+				+ '<div class="gdlo-card-add">+ Add</div>'
+				+ '</div>'
+				+ '<button type="button" class="gdlo-card-remove" data-slot-key="' + escapeAttr(key) + '">&times;</button>';
+		}
+
+		if (activeSlotKey === key) card.classList.add('gdlo-card--active');
+
+		card.addEventListener('click', function (e) {
+			if (e.target.closest('.gdlo-card-remove')) return;
+			activeSlotKey = key;
+			highlightCards();
+			openPicker(key, { label: label, icon: 'fa-solid fa-cube', required: false });
+		});
+
+		var rmBtn = card.querySelector('.gdlo-card-remove');
+		if (rmBtn) {
+			rmBtn.addEventListener('click', function (e) {
+				e.stopPropagation();
+				delete slots[key];
+				delete itemNotes[key];
+				if (activeSlotKey === key) { activeSlotKey = null; closePicker(); }
+				renderExtraGrid();
+				updateAllSummaries();
+			});
+		}
+
+		return card;
+	}
+
+	function highlightCards() {
+		var all = document.querySelectorAll('.gdlo-card');
+		for (var c = 0; c < all.length; c++) {
+			all[c].classList.toggle('gdlo-card--active', all[c].dataset.slotKey === activeSlotKey);
+		}
+	}
+
+	/* ===== Grid Rendering ===== */
+	function renderCoreGrid() {
+		var grid = document.getElementById('gdCoreGrid');
+		if (!grid) return;
+		grid.innerHTML = '';
+		var defs = getCoreSlotDefs();
+		Object.keys(defs).forEach(function (key) {
+			ensureSlot(key);
+			grid.appendChild(createSlotCard(key, defs[key]));
+		});
+		updateProgress(2);
+	}
+
+	function renderAccGrid() {
+		var grid = document.getElementById('gdAccGrid');
+		if (!grid) return;
+		grid.innerHTML = '';
+		Object.keys(accessorySlots).forEach(function (key) {
+			ensureSlot(key);
+			grid.appendChild(createSlotCard(key, accessorySlots[key]));
+		});
+		updateProgress(3);
+	}
+
+	function renderExtraGrid() {
+		var grid = document.getElementById('gdExtraGrid');
+		if (!grid) return;
+		grid.innerHTML = '';
+		Object.keys(slots).forEach(function (key) {
+			if (!key.match(/^extra_/)) return;
+			var card = createExtraCard(key);
+			if (card) grid.appendChild(card);
+		});
+	}
+
+	/* ===== Extra Slots ===== */
+	var addExtraBtn = document.getElementById('gdAddExtra');
+	var extraNameInput = document.getElementById('gdExtraName');
 
 	if (addExtraBtn) {
 		addExtraBtn.addEventListener('click', function () {
-			extraPicker.style.display = extraPicker.style.display === 'none' ? 'block' : 'none';
+			var label = extraNameInput ? extraNameInput.value.trim() : '';
+			if (!label) label = 'Extra';
+			extraCounter++;
+			var key = 'extra_' + extraCounter;
+			slots[key] = { type: 'extra', upc: '', title: '', price: null, custom_label: label, image: '' };
+			if (extraNameInput) extraNameInput.value = '';
+			renderExtraGrid();
+			updateAllSummaries();
 		});
 	}
 
-	if (addCustom) {
-		addCustom.addEventListener('click', function () {
-			var val = customInput.value.trim();
-			if (val) {
-				addExtraSlot(val);
-				customInput.value = '';
-				var wrap = document.getElementById('gdCustomWrap');
-				if (wrap) wrap.style.display = 'none';
-			}
-		});
-	}
+	/* ===== Progress ===== */
+	function updateProgress(step) {
+		var fillEl, textEl;
+		if (step === 2) {
+			fillEl = document.getElementById('gdProgressFill2');
+			textEl = document.getElementById('gdProgressText2');
+		} else if (step === 3) {
+			fillEl = document.getElementById('gdProgressFill3');
+			textEl = document.getElementById('gdProgressText3');
+		} else return;
 
-	document.addEventListener('keydown', function (e) {
-		if (e.key === 'Escape' && extraPicker) extraPicker.style.display = 'none';
-	});
-
-	if (searchInput) {
-		searchInput.addEventListener('input', function () {
-			clearTimeout(searchTimer);
-			var q = searchInput.value.trim();
-			if (q.length < 2) { searchRes.innerHTML = ''; return; }
-			searchTimer = setTimeout(function () { doSearch(q); }, 350);
-		});
-	}
-
-	function doSearch(q) {
-		searchRes.innerHTML = '<div class="gdlo-search-row" style="justify-content:center;border:none;cursor:default"><i class="fa-solid fa-spinner fa-spin"></i></div>';
-
-		var url = searchUrl + (searchUrl.indexOf('?') > -1 ? '&' : '?') + 'q=' + encodeURIComponent(q);
-
-		fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-			.then(function (resp) { return resp.json(); })
-			.then(function (data) {
-				searchRes.innerHTML = '';
-				if (!data.results || data.results.length === 0) {
-					searchRes.innerHTML = '<div class="gdlo-search-row" style="justify-content:center;border:none;cursor:default"><span class="gdlo-search-meta">No results</span></div>';
-					return;
-				}
-				data.results.forEach(function (r) {
-					var row = document.createElement('div');
-					row.className = 'gdlo-search-row';
-					row.innerHTML = '<div><div class="gdlo-search-title">' + escapeHtml(r.title || r.upc) + '</div>'
-						+ '<div class="gdlo-search-meta">' + escapeHtml(r.brand || '') + (r.caliber ? ' &middot; ' + escapeHtml(r.caliber) : '') + (r.category ? ' &middot; ' + escapeHtml(r.category) : '') + '</div></div>'
-						+ (r.best_price ? '<div class="gdlo-search-price">$' + parseFloat(r.best_price).toFixed(2) + '</div>' : '<div class="gdlo-search-meta">N/A</div>');
-
-					row.addEventListener('click', function () {
-						assignProduct(r);
-					});
-					searchRes.appendChild(row);
-				});
-			})
-			.catch(function () {
-				searchRes.innerHTML = '<div class="gdlo-search-row" style="justify-content:center;border:none;cursor:default"><span style="color:#c00">Search error</span></div>';
+		var defs, filled = 0, total = 0;
+		if (step === 2) {
+			defs = getCoreSlotDefs();
+			Object.keys(defs).forEach(function (k) {
+				total++;
+				if (slots[k] && slots[k].upc) filled++;
 			});
-	}
-
-	function assignProduct(product) {
-		if (!activeSlotKey) {
-			var emptyKey = findFirstEmptySlot();
-			if (emptyKey) activeSlotKey = emptyKey;
-			else return;
-		}
-
-		if (maxSlots > 0) {
-			var filled = 0;
-			Object.keys(slots).forEach(function (k) { if (slots[k].upc) filled++; });
-			if (!slots[activeSlotKey].upc && filled >= maxSlots) {
-				alert('Slot limit reached (' + maxSlots + ')');
-				return;
-			}
-		}
-
-		slots[activeSlotKey].upc   = product.upc || '';
-		slots[activeSlotKey].title = product.title || product.upc || '';
-		slots[activeSlotKey].price = product.best_price || null;
-		slots[activeSlotKey].image = product.image_url || '';
-
-		if (coreSlots[activeSlotKey]) {
-			renderSlotCard(activeSlotKey);
 		} else {
-			renderExtraCard(activeSlotKey);
+			Object.keys(accessorySlots).forEach(function (k) {
+				total++;
+				if (slots[k] && slots[k].upc) filled++;
+			});
+			Object.keys(slots).forEach(function (k) {
+				if (k.match(/^extra_/)) {
+					total++;
+					if (slots[k].upc) filled++;
+				}
+			});
 		}
 
-		updateSummary();
-		updateSlotCount();
-		updateNotesPanel();
-
-		var nextEmpty = findNextEmptySlot(activeSlotKey);
-		if (nextEmpty) selectSlot(nextEmpty);
+		var pct = total > 0 ? Math.round((filled / total) * 100) : 0;
+		if (fillEl) fillEl.style.width = pct + '%';
+		if (textEl) textEl.textContent = filled + ' / ' + total + ' slots filled';
 	}
 
-	function findFirstEmptySlot() {
-		var keys = Object.keys(slots);
-		for (var i = 0; i < keys.length; i++) {
-			if (!slots[keys[i]].upc) return keys[i];
-		}
-		return null;
-	}
-
-	function findNextEmptySlot(afterKey) {
-		var keys = Object.keys(slots);
-		var idx = keys.indexOf(afterKey);
-		for (var i = idx + 1; i < keys.length; i++) {
-			if (!slots[keys[i]].upc) return keys[i];
-		}
-		for (var j = 0; j < idx; j++) {
-			if (!slots[keys[j]].upc) return keys[j];
-		}
-		return null;
-	}
-
-	function updateSummary() {
-		var total = 0;
-		var count = 0;
-		var breakdown = '';
-
+	/* ===== Summary ===== */
+	function getFilledSlots() {
+		var result = [];
 		Object.keys(slots).forEach(function (key) {
-			var s = slots[key];
-			if (s.upc) {
-				count++;
-				var p = s.price ? parseFloat(s.price) : 0;
-				total += p;
-				breakdown += '<div class="gdlo-breakdown-row">'
-					+ '<span class="gdlo-breakdown-name">' + escapeHtml(s.title || s.upc) + '</span>'
-					+ '<span class="gdlo-breakdown-price">' + (p > 0 ? '$' + p.toFixed(2) : '—') + '</span></div>';
+			if (slots[key] && slots[key].upc) {
+				result.push({ key: key, slot: slots[key] });
 			}
 		});
-
-		if (totalCostEl)  totalCostEl.textContent  = '$' + total.toFixed(2);
-		if (totalItemsEl) totalItemsEl.textContent  = count + ' item' + (count !== 1 ? 's' : '');
-		if (breakdownEl)  breakdownEl.innerHTML    = breakdown || '<div style="color:#999;text-align:center;padding:4px">No items yet</div>';
+		return result;
 	}
 
-	function updateNotesPanel() {
-		if (!isVip || !vipNotesEl || !notesBody) return;
-
-		var filledKeys = [];
-		Object.keys(slots).forEach(function (key) {
-			if (slots[key].upc) filledKeys.push(key);
+	function updateAllSummaries() {
+		var filled = getFilledSlots();
+		var totalCost = 0, count = filled.length;
+		filled.forEach(function (f) {
+			if (f.slot.price) totalCost += parseFloat(f.slot.price);
 		});
 
-		if (filledKeys.length === 0) {
-			vipNotesEl.style.display = 'none';
+		var costStr = '$' + totalCost.toFixed(2);
+		var itemStr = count + ' item' + (count !== 1 ? 's' : '');
+
+		var costEls = ['gdSideCost2', 'gdSideCost3', 'gdTotalCost'];
+		var itemEls = ['gdSideItems2', 'gdSideItems3', 'gdTotalItems'];
+		costEls.forEach(function (id) { var el = document.getElementById(id); if (el) el.textContent = costStr; });
+		itemEls.forEach(function (id) { var el = document.getElementById(id); if (el) el.textContent = itemStr; });
+
+		var breakdownEl = document.getElementById('gdItemBreakdown');
+		if (breakdownEl) {
+			if (count === 0) {
+				breakdownEl.innerHTML = '<div style="color:#999;text-align:center;padding:4px">No items yet</div>';
+			} else {
+				var html = '';
+				filled.forEach(function (f) {
+					var p = f.slot.price ? parseFloat(f.slot.price) : 0;
+					html += '<div class="gdlo-breakdown-row">'
+						+ '<span class="gdlo-breakdown-name">' + escapeHtml(f.slot.title || f.slot.upc) + '</span>'
+						+ '<span class="gdlo-breakdown-price">' + (p > 0 ? '$' + p.toFixed(2) : '—') + '</span></div>';
+				});
+				breakdownEl.innerHTML = html;
+			}
+		}
+
+		updateProgress(2);
+		updateProgress(3);
+	}
+
+	/* ===== Review (Step 4) ===== */
+	function renderReview() {
+		var list = document.getElementById('gdReviewList');
+		if (!list) return;
+		list.innerHTML = '';
+
+		var filled = getFilledSlots();
+		if (filled.length === 0) {
+			list.innerHTML = '<div class="gdlo-review-empty">No items added yet. Go back to add products to your build.</div>';
 			return;
 		}
 
-		vipNotesEl.style.display = '';
-		notesBody.innerHTML = '';
+		filled.forEach(function (f) {
+			var slot = f.slot;
+			var label = getSlotLabel(f.key);
+			var imgHtml = slot.image
+				? '<img class="gdlo-review-item-img" src="' + escapeAttr(slot.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+				: '<div class="gdlo-review-item-ph"><i class="fa-solid fa-cube"></i></div>';
+			var priceHtml = slot.price && parseFloat(slot.price) > 0
+				? '<div class="gdlo-review-item-price">$' + parseFloat(slot.price).toFixed(2) + '</div>'
+				: '<div class="gdlo-review-item-noprice">No price</div>';
 
-		filledKeys.forEach(function (key) {
-			var s = slots[key];
-			var label = s.custom_label || slotLabels[key] || s.title || key;
+			var item = document.createElement('div');
+			item.className = 'gdlo-review-item';
+			item.innerHTML = imgHtml
+				+ '<div class="gdlo-review-item-info">'
+				+ '<div class="gdlo-review-item-label">' + escapeHtml(label) + '</div>'
+				+ '<div class="gdlo-review-item-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
+				+ '</div>' + priceHtml;
+			list.appendChild(item);
+		});
+	}
 
+	function renderNotesPanel() {
+		var panel = document.getElementById('gdVipNotes');
+		var body  = document.getElementById('gdNotesBody');
+		if (!panel || !body) return;
+		if (!isVip) { panel.style.display = 'none'; return; }
+
+		var filled = getFilledSlots();
+		if (filled.length === 0) { panel.style.display = 'none'; return; }
+
+		panel.style.display = '';
+		body.innerHTML = '';
+		filled.forEach(function (f) {
+			var label = getSlotLabel(f.key);
 			var row = document.createElement('div');
 			row.style.marginBottom = '8px';
-
 			var lbl = document.createElement('div');
-			lbl.className = 'gdlo-slot-label';
+			lbl.className = 'gdlo-card-label';
 			lbl.textContent = label;
 			row.appendChild(lbl);
-
 			var inp = document.createElement('input');
 			inp.type = 'text';
 			inp.className = 'gdlo-notes-input';
 			inp.placeholder = 'Note for ' + label + '...';
 			inp.maxLength = 300;
-			inp.value = itemNotes[key] || '';
-			inp.dataset.slotKey = key;
-			inp.addEventListener('input', function () {
-				itemNotes[key] = inp.value;
-			});
+			inp.value = itemNotes[f.key] || '';
+			inp.addEventListener('input', function () { itemNotes[f.key] = inp.value; });
 			row.appendChild(inp);
-
-			notesBody.appendChild(row);
+			body.appendChild(row);
 		});
 	}
 
+	/* ===== Inline Picker ===== */
+	var pickerTimer     = null;
+	var pickerCategory  = [];
+	var pickerCatField  = 'category';
+	var pickerSort      = 'relevance';
+	var pickerPage      = 1;
+	var pickerLoaded    = 0;
+	var pickerFilters   = {};
+
+	var FACET_MAP = {
+		brands:            { param: 'brand',              label: 'Brand' },
+		calibers:          { param: 'caliber',            label: 'Caliber' },
+		actions:           { param: 'action',             label: 'Action' },
+		capacities:        { param: 'capacity',           label: 'Capacity' },
+		casings:           { param: 'casing',             label: 'Casing' },
+		bullet_types:      { param: 'bullet_type',        label: 'Bullet Type' },
+		holster_types:     { param: 'holster_type',        label: 'Holster Type' },
+		holster_colors:    { param: 'holster_color',       label: 'Holster Color' },
+		holster_materials: { param: 'holster_material',    label: 'Holster Material' },
+		holster_hands:     { param: 'holster_hand',        label: 'Hand' },
+		apparel_patterns:  { param: 'apparel_pattern',     label: 'Pattern' },
+		apparel_sizes:     { param: 'apparel_size',        label: 'Size' },
+		apparel_materials: { param: 'apparel_material',    label: 'Material' },
+		blade_shapes:      { param: 'blade_shape',         label: 'Blade Shape' },
+		blade_lengths:     { param: 'blade_length',        label: 'Blade Length' },
+		blade_materials:   { param: 'blade_material',      label: 'Blade Material' },
+		blade_edges:       { param: 'blade_edge',          label: 'Edge Type' },
+		knife_handles:     { param: 'knife_handle',        label: 'Handle' },
+		hunt_call_types:   { param: 'hunt_call_type',      label: 'Call Type' },
+		hunt_games:        { param: 'hunt_game',           label: 'Game' },
+		optics_mags:       { param: 'optic_magnification', label: 'Magnification' },
+		optics_objs:       { param: 'optic_objective',     label: 'Objective' }
+	};
+
+	function openPicker(key, slotDef) {
+		var panel = document.getElementById('gdPickerPanel');
+		if (!panel) return;
+
+		activeSlotKey = key;
+		document.getElementById('gdLoadoutBuilder').classList.add('gdlo-pick-open');
+
+		var title = document.getElementById('gdPickTitle');
+		if (title) title.textContent = slotDef.label || key;
+
+		var searchInput = document.getElementById('gdPickSearch');
+		if (searchInput) searchInput.value = '';
+
+		var resultsEl = document.getElementById('gdPickResults');
+		if (resultsEl) resultsEl.innerHTML = '';
+		var emptyEl = document.getElementById('gdPickEmpty');
+		if (emptyEl) emptyEl.style.display = 'none';
+		var loadMoreEl = document.getElementById('gdPickLoadMore');
+		if (loadMoreEl) loadMoreEl.style.display = 'none';
+		var facetsEl = document.getElementById('gdPickFacets');
+		if (facetsEl) facetsEl.innerHTML = '';
+		var facetBarEl = document.getElementById('gdPickFacetBar');
+		if (facetBarEl) facetBarEl.innerHTML = '';
+		var facetClearEl = document.getElementById('gdPickFacetClear');
+		if (facetClearEl) facetClearEl.style.display = 'none';
+
+		pickerCategory = [];
+		pickerSort = 'relevance';
+		pickerPage = 1;
+		pickerLoaded = 0;
+		pickerFilters = {};
+
+		var catInfo = slotCategories[key];
+		pickerCatField = (catInfo && catInfo.field) ? catInfo.field : 'category';
+
+		var typesEl = document.getElementById('gdPickTypes');
+		if (typesEl) typesEl.innerHTML = '';
+
+		if (catInfo && catInfo.types) {
+			var typeKeys = Object.keys(catInfo.types);
+			typeKeys.forEach(function (typeName) {
+				var btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'gdlo-pick-type-btn';
+				btn.textContent = typeName;
+				btn.addEventListener('click', function () {
+					var btns = typesEl.querySelectorAll('.gdlo-pick-type-btn');
+					for (var b = 0; b < btns.length; b++) btns[b].classList.remove('active');
+					btn.classList.add('active');
+					pickerCategory = catInfo.types[typeName];
+					pickerPage = 1; pickerLoaded = 0;
+					loadPickerResults(false);
+				});
+				typesEl.appendChild(btn);
+			});
+			var firstBtn = typesEl.querySelector('.gdlo-pick-type-btn');
+			if (firstBtn) {
+				firstBtn.classList.add('active');
+				pickerCategory = catInfo.types[typeKeys[0]];
+			}
+			typesEl.style.display = '';
+		} else if (catInfo && catInfo.category) {
+			if (typesEl) typesEl.style.display = 'none';
+			pickerCategory = [catInfo.category];
+		} else {
+			if (typesEl) typesEl.style.display = 'none';
+		}
+
+		renderPickerSort();
+		panel.style.display = '';
+		loadPickerResults(false);
+		if (searchInput) setTimeout(function () { searchInput.focus(); }, 100);
+	}
+
+	function closePicker() {
+		var panel = document.getElementById('gdPickerPanel');
+		if (panel) panel.style.display = 'none';
+		var builder = document.getElementById('gdLoadoutBuilder');
+		if (builder) builder.classList.remove('gdlo-pick-open');
+		activeSlotKey = null;
+		highlightCards();
+	}
+
+	var pickCloseBtn = document.getElementById('gdPickClose');
+	if (pickCloseBtn) pickCloseBtn.addEventListener('click', closePicker);
+
+	document.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape') closePicker();
+	});
+
+	function renderPickerSort() {
+		var sortEl = document.getElementById('gdPickSort');
+		if (!sortEl) return;
+		sortEl.innerHTML = '';
+		var sorts = [
+			{ key: 'relevance', label: 'Relevance' },
+			{ key: 'brand', label: 'Name (A–Z)' }
+		];
+		sorts.forEach(function (s) {
+			var btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'gdlo-pick-sort-btn' + (pickerSort === s.key ? ' active' : '');
+			btn.textContent = s.label;
+			btn.addEventListener('click', function () {
+				if (pickerSort === s.key) return;
+				pickerSort = s.key;
+				pickerPage = 1; pickerLoaded = 0;
+				renderPickerSort();
+				loadPickerResults(false);
+			});
+			sortEl.appendChild(btn);
+		});
+	}
+
+	function buildFacetParams() {
+		var parts = [];
+		Object.keys(pickerFilters).forEach(function (param) {
+			var vals = pickerFilters[param];
+			if (Array.isArray(vals)) {
+				vals.forEach(function (v) { parts.push(encodeURIComponent(param) + '[]=' + encodeURIComponent(v)); });
+			} else if (vals === true) {
+				parts.push(encodeURIComponent(param) + '=1');
+			} else if (typeof vals === 'number' && vals > 0) {
+				parts.push(encodeURIComponent(param) + '=' + vals);
+			}
+		});
+		return parts.join('&');
+	}
+
+	function hasActiveFilters() {
+		var keys = Object.keys(pickerFilters);
+		for (var i = 0; i < keys.length; i++) {
+			var v = pickerFilters[keys[i]];
+			if (Array.isArray(v) && v.length > 0) return true;
+			if (v === true) return true;
+			if (typeof v === 'number' && v > 0) return true;
+		}
+		return false;
+	}
+
+	function renderFacets(aggs) {
+		var facetsEl = document.getElementById('gdPickFacets');
+		if (!facetsEl) return;
+		facetsEl.innerHTML = '';
+
+		var facetBarEl = document.getElementById('gdPickFacetBar');
+		if (facetBarEl) facetBarEl.innerHTML = '';
+
+		if (aggs && typeof aggs === 'object') {
+			Object.keys(FACET_MAP).forEach(function (aggKey) {
+				if (!aggs[aggKey] || !aggs[aggKey].buckets || aggs[aggKey].buckets.length === 0) return;
+				var info = FACET_MAP[aggKey];
+				var buckets = aggs[aggKey].buckets;
+				var selected = pickerFilters[info.param] || [];
+
+				var details = document.createElement('details');
+				details.className = 'gdlo-pick-facet-group';
+				if (selected.length > 0) details.open = true;
+
+				var summary = document.createElement('summary');
+				summary.textContent = info.label;
+				if (selected.length > 0) {
+					var cnt = document.createElement('span');
+					cnt.className = 'gdlo-pick-facet-cnt';
+					cnt.textContent = ' (' + selected.length + ')';
+					summary.appendChild(cnt);
+				}
+				details.appendChild(summary);
+
+				var opts = document.createElement('div');
+				opts.className = 'gdlo-pick-facet-opts';
+				buckets.forEach(function (b) {
+					var label = document.createElement('label');
+					label.className = 'gdlo-pick-facet-opt';
+					var cb = document.createElement('input');
+					cb.type = 'checkbox';
+					cb.value = b.key;
+					if (selected.indexOf(b.key) !== -1) cb.checked = true;
+					cb.addEventListener('change', function () {
+						var cur = pickerFilters[info.param] || [];
+						if (cb.checked) { if (cur.indexOf(b.key) === -1) cur.push(b.key); }
+						else { cur = cur.filter(function (v) { return v !== b.key; }); }
+						pickerFilters[info.param] = cur.length > 0 ? cur : [];
+						if (cur.length === 0) delete pickerFilters[info.param];
+						pickerPage = 1; pickerLoaded = 0;
+						loadPickerResults(false);
+					});
+					var text = document.createElement('span');
+					text.textContent = b.key;
+					var count = document.createElement('em');
+					count.className = 'gdlo-pick-facet-doc';
+					count.textContent = '(' + b.doc_count + ')';
+					label.appendChild(cb);
+					label.appendChild(text);
+					label.appendChild(count);
+					opts.appendChild(label);
+				});
+				details.appendChild(opts);
+				facetsEl.appendChild(details);
+			});
+		}
+
+		if (facetBarEl) {
+			var priceRow = document.createElement('div');
+			priceRow.className = 'gdlo-pick-facet-price';
+			var minInput = document.createElement('input');
+			minInput.type = 'number'; minInput.placeholder = 'Min $'; minInput.min = '0'; minInput.step = '1';
+			if (pickerFilters.min_price > 0) minInput.value = pickerFilters.min_price;
+			var dash = document.createElement('span');
+			dash.textContent = '–';
+			var maxInput = document.createElement('input');
+			maxInput.type = 'number'; maxInput.placeholder = 'Max $'; maxInput.min = '0'; maxInput.step = '1';
+			if (pickerFilters.max_price > 0) maxInput.value = pickerFilters.max_price;
+			priceRow.appendChild(minInput); priceRow.appendChild(dash); priceRow.appendChild(maxInput);
+			facetBarEl.appendChild(priceRow);
+
+			var stockLabel = document.createElement('label');
+			stockLabel.className = 'gdlo-pick-facet-instock';
+			var stockCb = document.createElement('input');
+			stockCb.type = 'checkbox';
+			if (pickerFilters.in_stock === true) stockCb.checked = true;
+			stockCb.addEventListener('change', function () {
+				if (stockCb.checked) pickerFilters.in_stock = true;
+				else delete pickerFilters.in_stock;
+				pickerPage = 1; pickerLoaded = 0;
+				loadPickerResults(false);
+			});
+			var stockText = document.createElement('span');
+			stockText.textContent = 'In stock only';
+			stockLabel.appendChild(stockCb); stockLabel.appendChild(stockText);
+			facetBarEl.appendChild(stockLabel);
+
+			var priceTimer = null;
+			function onPriceChange() {
+				clearTimeout(priceTimer);
+				priceTimer = setTimeout(function () {
+					var mn = parseFloat(minInput.value) || 0;
+					var mx = parseFloat(maxInput.value) || 0;
+					if (mn > 0) pickerFilters.min_price = mn; else delete pickerFilters.min_price;
+					if (mx > 0) pickerFilters.max_price = mx; else delete pickerFilters.max_price;
+					pickerPage = 1; pickerLoaded = 0;
+					loadPickerResults(false);
+				}, 500);
+			}
+			minInput.addEventListener('input', onPriceChange);
+			maxInput.addEventListener('input', onPriceChange);
+		}
+
+		var clearBtn = document.getElementById('gdPickFacetClear');
+		if (clearBtn) clearBtn.style.display = hasActiveFilters() ? '' : 'none';
+	}
+
+	var facetClearBtn = document.getElementById('gdPickFacetClear');
+	if (facetClearBtn) {
+		facetClearBtn.addEventListener('click', function () {
+			pickerFilters = {};
+			pickerPage = 1; pickerLoaded = 0;
+			loadPickerResults(false);
+		});
+	}
+
+	function loadPickerResults(append) {
+		var resultsEl = document.getElementById('gdPickResults');
+		if (!resultsEl) return;
+		var searchInput = document.getElementById('gdPickSearch');
+		var q = searchInput ? searchInput.value.trim() : '';
+
+		if (!append) {
+			resultsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+			pickerPage = 1;
+			pickerLoaded = 0;
+		}
+
+		var emptyEl = document.getElementById('gdPickEmpty');
+		var loadMoreEl = document.getElementById('gdPickLoadMore');
+		if (emptyEl) emptyEl.style.display = 'none';
+		if (loadMoreEl) loadMoreEl.style.display = 'none';
+
+		var catStr = '';
+		if (pickerCategory.length === 1) catStr = pickerCategory[0];
+		else if (pickerCategory.length > 1) catStr = pickerCategory.join(',');
+
+		var url = searchUrl + (searchUrl.indexOf('?') > -1 ? '&' : '?') + 'q=' + encodeURIComponent(q)
+			+ '&page=' + pickerPage + '&sort=' + encodeURIComponent(pickerSort);
+		if (catStr) url += '&category=' + encodeURIComponent(catStr) + '&catfield=' + encodeURIComponent(pickerCatField);
+
+		var facetParams = buildFacetParams();
+		if (facetParams) url += '&' + facetParams;
+
+		fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+			.then(function (resp) { return resp.json(); })
+			.then(function (data) {
+				if (!append) resultsEl.innerHTML = '';
+				if (!append) renderFacets(data.aggregations || null);
+
+				var aggs = data.aggregations || {};
+				Object.keys(aggs).forEach(function (k) {
+					if (aggs[k] && aggs[k].values && aggs[k].values.buckets) {
+						aggs[k].buckets = aggs[k].values.buckets;
+					}
+				});
+
+				if (!data.results || data.results.length === 0) {
+					if (pickerLoaded === 0 && emptyEl) emptyEl.style.display = '';
+					return;
+				}
+				if (emptyEl) emptyEl.style.display = 'none';
+
+				data.results.forEach(function (r) {
+					var card = document.createElement('div');
+					card.className = 'gdlo-pick-card';
+					var imgHtml = (r.image_url && r.image_url.length)
+						? '<img class="gdlo-pick-card-img" src="' + escapeAttr(r.image_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+						: '<div class="gdlo-pick-card-ph">&#128230;</div>';
+					var priceHtml = (r.best_price && parseFloat(r.best_price) > 0)
+						? '<div class="gdlo-pick-card-price">$' + parseFloat(r.best_price).toFixed(2) + '</div>'
+						: '<div class="gdlo-pick-card-noprice">No price yet</div>';
+					card.innerHTML = imgHtml
+						+ '<div class="gdlo-pick-card-body">'
+						+ '<div class="gdlo-pick-card-title">' + escapeHtml(r.title || r.upc) + '</div>'
+						+ '<div class="gdlo-pick-card-brand">' + escapeHtml(r.brand || '') + '</div>'
+						+ priceHtml + '</div>';
+					card.addEventListener('click', function () { assignProduct(r); });
+					resultsEl.appendChild(card);
+				});
+
+				pickerLoaded += data.results.length;
+				var total = data.total || 0;
+				if (loadMoreEl) {
+					loadMoreEl.style.display = (data.results.length >= 24 && pickerLoaded < total) ? '' : 'none';
+				}
+			})
+			.catch(function () {
+				if (!append) resultsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:#dc2626">Search error — please try again.</div>';
+			});
+	}
+
+	var pickSearch = document.getElementById('gdPickSearch');
+	if (pickSearch) {
+		pickSearch.addEventListener('input', function () {
+			clearTimeout(pickerTimer);
+			pickerPage = 1; pickerLoaded = 0;
+			pickerTimer = setTimeout(function () { loadPickerResults(false); }, 300);
+		});
+	}
+
+	var pickLoadMore = document.getElementById('gdPickLoadMore');
+	if (pickLoadMore) {
+		pickLoadMore.addEventListener('click', function () {
+			pickerPage++;
+			loadPickerResults(true);
+		});
+	}
+
+	/* ===== Assign Product ===== */
+	function assignProduct(product) {
+		if (!activeSlotKey) return;
+
+		if (maxSlots > 0) {
+			var filled = 0;
+			Object.keys(slots).forEach(function (k) { if (slots[k] && slots[k].upc) filled++; });
+			if (!(slots[activeSlotKey] && slots[activeSlotKey].upc) && filled >= maxSlots) {
+				alert('Slot limit reached (' + maxSlots + ')');
+				return;
+			}
+		}
+
+		ensureSlot(activeSlotKey);
+		slots[activeSlotKey].upc   = product.upc || '';
+		slots[activeSlotKey].title = product.title || product.upc || '';
+		slots[activeSlotKey].price = product.best_price || null;
+		slots[activeSlotKey].image = product.image_url || '';
+
+		closePicker();
+		if (currentStep === 2) renderCoreGrid();
+		if (currentStep === 3) { renderAccGrid(); renderExtraGrid(); }
+		updateAllSummaries();
+	}
+
+	/* ===== Save ===== */
 	if (saveBtn) {
 		saveBtn.addEventListener('click', function () {
 			var name = nameInput ? nameInput.value.trim() : '';
@@ -509,16 +905,14 @@
 			var slotArr = [];
 			Object.keys(slots).forEach(function (key) {
 				var s = slots[key];
-				if (s.upc) {
+				if (s && s.upc) {
 					var entry = {
 						upc: s.upc,
-						slot_type: s.type,
+						slot_type: s.type || key,
 						custom_label: s.custom_label || null,
 						price: s.price || null
 					};
-					if (isVip && itemNotes[key]) {
-						entry.notes = itemNotes[key];
-					}
+					if (isVip && itemNotes[key]) entry.notes = itemNotes[key];
 					slotArr.push(entry);
 				}
 			});
@@ -530,14 +924,15 @@
 			body.append('loadout_description', descInput ? descInput.value : '');
 			body.append('loadout_use_case', useCaseSel ? useCaseSel.value : '');
 			body.append('loadout_visibility', visSel ? visSel.value : 'unlisted');
+			body.append('loadout_build_mode', buildMode);
+			body.append('loadout_platform', platform);
 			body.append('loadout_slots', JSON.stringify(slotArr));
 
 			saveBtn.disabled = true;
 			saveBtn.textContent = 'Saving...';
 
 			fetch(saveUrl, {
-				method: 'POST',
-				body: body,
+				method: 'POST', body: body,
 				headers: { 'X-Requested-With': 'XMLHttpRequest' }
 			})
 			.then(function (resp) { return resp.json(); })
@@ -545,13 +940,8 @@
 				saveBtn.disabled = false;
 				saveBtn.textContent = 'Save Loadout';
 				if (data.error) { alert(data.error); return; }
-				if (data.ok && data.redirect) {
-					window.location.href = data.redirect;
-					return;
-				}
-				if (data.ok && data.loadout_id) {
-					loadoutId = data.loadout_id;
-				}
+				if (data.ok && data.redirect) { window.location.href = data.redirect; return; }
+				if (data.ok && data.loadout_id) loadoutId = data.loadout_id;
 			})
 			.catch(function () {
 				saveBtn.disabled = false;
@@ -561,17 +951,16 @@
 		});
 	}
 
+	/* ===== Delete ===== */
 	if (deleteBtn) {
 		deleteBtn.addEventListener('click', function () {
 			if (!confirm('Are you sure you want to delete this loadout?')) return;
-
 			var body = new FormData();
 			body.append('csrfKey', csrfKey);
 			body.append('loadout_id', loadoutId);
 
 			fetch(deleteUrl, {
-				method: 'POST',
-				body: body,
+				method: 'POST', body: body,
 				headers: { 'X-Requested-With': 'XMLHttpRequest' }
 			})
 			.then(function (resp) { return resp.json(); })
@@ -584,6 +973,7 @@
 		});
 	}
 
+	/* ===== Utilities ===== */
 	function escapeHtml(str) {
 		var d = document.createElement('div');
 		d.appendChild(document.createTextNode(str || ''));
@@ -594,425 +984,38 @@
 		return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 	}
 
-	// ===== Slot Picker Modal =====
-	var modalEl      = document.getElementById('gdSlotModal');
-	var modalTitle   = document.getElementById('gdModalTitle');
-	var modalTypes   = document.getElementById('gdModalTypes');
-	var modalSubs    = document.getElementById('gdModalSubtypes');
-	var modalSearch  = document.getElementById('gdModalSearch');
-	var modalResults = document.getElementById('gdModalResults');
-	var modalEmpty   = document.getElementById('gdModalEmpty');
-	var modalSort    = document.getElementById('gdModalSort');
-	var modalLoadMore = document.getElementById('gdModalLoadMore');
-	var modalFacets  = document.getElementById('gdModalFacets');
-	var modalFacetBar = document.getElementById('gdModalFacetBar');
-	var modalFacetClear = document.getElementById('gdModalFacetClear');
-	var modalTimer   = null;
-	var modalCategory = [];
-	var modalCurrentSort = 'relevance';
-	var modalCurrentPage = 1;
-	var modalTotalLoaded = 0;
-	var modalActiveFilters = {};
-	var modalCatField = 'category';
+	/* ===== Init ===== */
+	function initFromExisting() {
+		var coreDefs = getCoreSlotDefs();
+		Object.keys(coreDefs).forEach(function (key) { ensureSlot(key); });
+		Object.keys(accessorySlots).forEach(function (key) { ensureSlot(key); });
 
-	var FACET_MAP = {
-		brands:             { param: 'brand',             label: 'Brand' },
-		calibers:           { param: 'caliber',           label: 'Caliber' },
-		actions:            { param: 'action',            label: 'Action' },
-		capacities:         { param: 'capacity',          label: 'Capacity' },
-		casings:            { param: 'casing',            label: 'Casing' },
-		bullet_types:       { param: 'bullet_type',       label: 'Bullet Type' },
-		holster_types:      { param: 'holster_type',      label: 'Holster Type' },
-		holster_colors:     { param: 'holster_color',     label: 'Holster Color' },
-		holster_materials:  { param: 'holster_material',  label: 'Holster Material' },
-		holster_hands:      { param: 'holster_hand',      label: 'Hand' },
-		apparel_patterns:   { param: 'apparel_pattern',   label: 'Pattern' },
-		apparel_sizes:      { param: 'apparel_size',      label: 'Size' },
-		apparel_materials:  { param: 'apparel_material',  label: 'Material' },
-		blade_shapes:       { param: 'blade_shape',       label: 'Blade Shape' },
-		blade_lengths:      { param: 'blade_length',      label: 'Blade Length' },
-		blade_materials:    { param: 'blade_material',    label: 'Blade Material' },
-		blade_edges:        { param: 'blade_edge',        label: 'Edge Type' },
-		knife_handles:      { param: 'knife_handle',      label: 'Handle' },
-		hunt_call_types:    { param: 'hunt_call_type',    label: 'Call Type' },
-		hunt_games:         { param: 'hunt_game',         label: 'Game' },
-		optics_mags:        { param: 'optic_magnification', label: 'Magnification' },
-		optics_objs:        { param: 'optic_objective',     label: 'Objective' }
-	};
+		for (var i = 0; i < items.length; i++) {
+			var it = items[i];
+			var key = it.slot_type || 'extra';
 
-	function openSlotModal(key) {
-		if (!modalEl) { if (searchInput) searchInput.focus(); return; }
-
-		activeSlotKey = key;
-		var label = slotLabels[key] || (slots[key] && slots[key].custom_label) || key;
-		if (modalTitle) modalTitle.textContent = label;
-		if (modalSearch) modalSearch.value = '';
-		if (modalResults) modalResults.innerHTML = '';
-		if (modalEmpty) modalEmpty.style.display = 'none';
-		if (modalLoadMore) modalLoadMore.style.display = 'none';
-		if (modalTypes) modalTypes.innerHTML = '';
-		if (modalSubs) modalSubs.innerHTML = '';
-		if (modalFacets) modalFacets.innerHTML = '';
-		if (modalFacetBar) modalFacetBar.innerHTML = '';
-		if (modalFacetClear) modalFacetClear.style.display = 'none';
-		modalCategory = [];
-		modalCurrentSort = 'relevance';
-		modalCurrentPage = 1;
-		modalTotalLoaded = 0;
-		modalActiveFilters = {};
-		renderSortToggle();
-
-		var catInfo = slotCategory[key];
-		modalCatField = (catInfo && catInfo.field) ? catInfo.field : 'category';
-
-		if (catInfo && catInfo.types) {
-			var typeKeys = Object.keys(catInfo.types);
-			typeKeys.forEach(function (typeName) {
-				var btn = document.createElement('button');
-				btn.type = 'button';
-				btn.className = 'gdlo-modal-type-btn';
-				btn.textContent = typeName;
-				btn.addEventListener('click', function () {
-					var btns = modalTypes.querySelectorAll('.gdlo-modal-type-btn');
-					for (var b = 0; b < btns.length; b++) btns[b].classList.remove('active');
-					btn.classList.add('active');
-					modalCategory = catInfo.types[typeName];
-					loadModalResults();
-				});
-				modalTypes.appendChild(btn);
-			});
-			var firstBtn = modalTypes.querySelector('.gdlo-modal-type-btn');
-			if (firstBtn) {
-				firstBtn.classList.add('active');
-				modalCategory = catInfo.types[typeKeys[0]];
+			if (key === 'extra') {
+				extraCounter++;
+				var ek = 'extra_' + extraCounter;
+				slots[ek] = {
+					type: 'extra', upc: it.upc || '', title: it.title || it.custom_label || 'Extra',
+					price: (it.price_snapshot !== undefined && it.price_snapshot !== null) ? it.price_snapshot : null,
+					custom_label: it.custom_label || 'Extra', image: it.image_url || ''
+				};
+				if (it.notes) itemNotes[ek] = it.notes;
+			} else {
+				ensureSlot(key);
+				slots[key].upc   = it.upc || '';
+				slots[key].title = it.title || it.custom_label || key;
+				slots[key].price = (it.price_snapshot !== undefined && it.price_snapshot !== null) ? it.price_snapshot : null;
+				slots[key].image = it.image_url || '';
+				if (it.notes) itemNotes[key] = it.notes;
 			}
-			modalTypes.style.display = '';
-			if (modalSubs) modalSubs.style.display = 'none';
-		} else if (catInfo && catInfo.category) {
-			if (modalTypes) modalTypes.style.display = 'none';
-			if (modalSubs) modalSubs.style.display = 'none';
-			modalCategory = [catInfo.category];
-		} else {
-			if (modalTypes) modalTypes.style.display = 'none';
-			if (modalSubs) modalSubs.style.display = 'none';
-			modalCategory = [];
-		}
-
-		modalEl.style.display = '';
-		document.body.style.overflow = 'hidden';
-		loadModalResults();
-		if (modalSearch) setTimeout(function () { modalSearch.focus(); }, 100);
-	}
-
-	function closeSlotModal() {
-		if (!modalEl) return;
-		modalEl.style.display = 'none';
-		document.body.style.overflow = '';
-	}
-
-	function renderSortToggle() {
-		if (!modalSort) return;
-		modalSort.innerHTML = '';
-		var sorts = [
-			{ key: 'relevance', label: 'Relevance' },
-			{ key: 'brand', label: 'Name (A–Z)' }
-		];
-		// TODO: add Cheapest sort when best_price indexed
-		sorts.forEach(function (s) {
-			var btn = document.createElement('button');
-			btn.type = 'button';
-			btn.className = 'gdlo-modal-sort-btn' + (modalCurrentSort === s.key ? ' active' : '');
-			btn.textContent = s.label;
-			btn.addEventListener('click', function () {
-				if (modalCurrentSort === s.key) return;
-				modalCurrentSort = s.key;
-				modalCurrentPage = 1;
-				modalTotalLoaded = 0;
-				renderSortToggle();
-				loadModalResults(false);
-			});
-			modalSort.appendChild(btn);
-		});
-	}
-
-	function buildFacetParams() {
-		var parts = [];
-		Object.keys(modalActiveFilters).forEach(function (param) {
-			var vals = modalActiveFilters[param];
-			if (Array.isArray(vals)) {
-				vals.forEach(function (v) {
-					parts.push(encodeURIComponent(param) + '[]=' + encodeURIComponent(v));
-				});
-			} else if (vals === true) {
-				parts.push(encodeURIComponent(param) + '=1');
-			} else if (typeof vals === 'number' && vals > 0) {
-				parts.push(encodeURIComponent(param) + '=' + vals);
-			}
-		});
-		return parts.join('&');
-	}
-
-	function hasActiveFilters() {
-		var keys = Object.keys(modalActiveFilters);
-		for (var i = 0; i < keys.length; i++) {
-			var v = modalActiveFilters[keys[i]];
-			if (Array.isArray(v) && v.length > 0) return true;
-			if (v === true) return true;
-			if (typeof v === 'number' && v > 0) return true;
-		}
-		return false;
-	}
-
-	function renderFacets(aggs) {
-		if (!modalFacets) return;
-		modalFacets.innerHTML = '';
-		if (modalFacetBar) modalFacetBar.innerHTML = '';
-
-		var aggKeys = Object.keys(FACET_MAP);
-
-		if (aggs && typeof aggs === 'object') {
-			aggKeys.forEach(function (aggKey) {
-				if (!aggs[aggKey] || !aggs[aggKey].buckets || aggs[aggKey].buckets.length === 0) return;
-				var info = FACET_MAP[aggKey];
-				var buckets = aggs[aggKey].buckets;
-				var selected = modalActiveFilters[info.param] || [];
-
-				var details = document.createElement('details');
-				details.className = 'gdlo-modal-facet-group';
-				if (selected.length > 0) details.open = true;
-
-				var summary = document.createElement('summary');
-				summary.textContent = info.label;
-				if (selected.length > 0) {
-					var cnt = document.createElement('span');
-					cnt.className = 'gdlo-modal-facet-cnt';
-					cnt.textContent = ' (' + selected.length + ')';
-					summary.appendChild(cnt);
-				}
-				details.appendChild(summary);
-
-				var opts = document.createElement('div');
-				opts.className = 'gdlo-modal-facet-opts';
-
-				buckets.forEach(function (b) {
-					var label = document.createElement('label');
-					label.className = 'gdlo-modal-facet-opt';
-
-					var cb = document.createElement('input');
-					cb.type = 'checkbox';
-					cb.value = b.key;
-					if (selected.indexOf(b.key) !== -1) cb.checked = true;
-
-					cb.addEventListener('change', function () {
-						var cur = modalActiveFilters[info.param] || [];
-						if (cb.checked) {
-							if (cur.indexOf(b.key) === -1) cur.push(b.key);
-						} else {
-							cur = cur.filter(function (v) { return v !== b.key; });
-						}
-						modalActiveFilters[info.param] = cur.length > 0 ? cur : [];
-						if (cur.length === 0) delete modalActiveFilters[info.param];
-						modalCurrentPage = 1;
-						modalTotalLoaded = 0;
-						loadModalResults(false);
-					});
-
-					var text = document.createElement('span');
-					text.textContent = b.key;
-					var count = document.createElement('em');
-					count.className = 'gdlo-modal-facet-doc';
-					count.textContent = '(' + b.doc_count + ')';
-
-					label.appendChild(cb);
-					label.appendChild(text);
-					label.appendChild(count);
-					opts.appendChild(label);
-				});
-
-				details.appendChild(opts);
-				modalFacets.appendChild(details);
-			});
-		}
-
-		if (modalFacetBar) {
-			var priceRow = document.createElement('div');
-			priceRow.className = 'gdlo-modal-facet-price';
-
-			var minInput = document.createElement('input');
-			minInput.type = 'number';
-			minInput.placeholder = 'Min $';
-			minInput.min = '0';
-			minInput.step = '1';
-			if (modalActiveFilters.min_price > 0) minInput.value = modalActiveFilters.min_price;
-
-			var dash = document.createElement('span');
-			dash.textContent = '–';
-
-			var maxInput = document.createElement('input');
-			maxInput.type = 'number';
-			maxInput.placeholder = 'Max $';
-			maxInput.min = '0';
-			maxInput.step = '1';
-			if (modalActiveFilters.max_price > 0) maxInput.value = modalActiveFilters.max_price;
-
-			priceRow.appendChild(minInput);
-			priceRow.appendChild(dash);
-			priceRow.appendChild(maxInput);
-			modalFacetBar.appendChild(priceRow);
-
-			var stockLabel = document.createElement('label');
-			stockLabel.className = 'gdlo-modal-facet-instock';
-			var stockCb = document.createElement('input');
-			stockCb.type = 'checkbox';
-			if (modalActiveFilters.in_stock === true) stockCb.checked = true;
-			stockCb.addEventListener('change', function () {
-				if (stockCb.checked) { modalActiveFilters.in_stock = true; }
-				else { delete modalActiveFilters.in_stock; }
-				modalCurrentPage = 1; modalTotalLoaded = 0;
-				loadModalResults(false);
-			});
-			var stockText = document.createElement('span');
-			stockText.textContent = 'In stock only';
-			stockLabel.appendChild(stockCb);
-			stockLabel.appendChild(stockText);
-			modalFacetBar.appendChild(stockLabel);
-
-			var priceTimer = null;
-			function onPriceChange() {
-				clearTimeout(priceTimer);
-				priceTimer = setTimeout(function () {
-					var mn = parseFloat(minInput.value) || 0;
-					var mx = parseFloat(maxInput.value) || 0;
-					if (mn > 0) { modalActiveFilters.min_price = mn; } else { delete modalActiveFilters.min_price; }
-					if (mx > 0) { modalActiveFilters.max_price = mx; } else { delete modalActiveFilters.max_price; }
-					modalCurrentPage = 1; modalTotalLoaded = 0;
-					loadModalResults(false);
-				}, 500);
-			}
-			minInput.addEventListener('input', onPriceChange);
-			maxInput.addEventListener('input', onPriceChange);
-		}
-
-		if (modalFacetClear) {
-			modalFacetClear.style.display = hasActiveFilters() ? '' : 'none';
 		}
 	}
 
-	function loadModalResults(append) {
-		if (!modalResults) return;
-		var q = modalSearch ? modalSearch.value.trim() : '';
-
-		if (!append) {
-			modalResults.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px"><i class="fa-solid fa-spinner fa-spin"></i></div>';
-			modalCurrentPage = 1;
-			modalTotalLoaded = 0;
-		}
-		if (modalEmpty) modalEmpty.style.display = 'none';
-		if (modalLoadMore) modalLoadMore.style.display = 'none';
-
-		var catStr = '';
-		if (modalCategory.length === 1) catStr = modalCategory[0];
-		else if (modalCategory.length > 1) catStr = modalCategory.join(',');
-
-		var url = searchUrl + (searchUrl.indexOf('?') > -1 ? '&' : '?') + 'q=' + encodeURIComponent(q)
-			+ '&page=' + modalCurrentPage
-			+ '&sort=' + encodeURIComponent(modalCurrentSort);
-		if (catStr) url += '&category=' + encodeURIComponent(catStr) + '&catfield=' + encodeURIComponent(modalCatField);
-
-		var facetParams = buildFacetParams();
-		if (facetParams) url += '&' + facetParams;
-
-		fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-			.then(function (resp) { return resp.json(); })
-			.then(function (data) {
-				if (!append) modalResults.innerHTML = '';
-				if (!append) renderFacets(data.aggregations || null);
-
-				if (!data.results || data.results.length === 0) {
-					if (modalTotalLoaded === 0 && modalEmpty) modalEmpty.style.display = '';
-					return;
-				}
-				if (modalEmpty) modalEmpty.style.display = 'none';
-
-				data.results.forEach(function (r) {
-					var card = document.createElement('div');
-					card.className = 'gdlo-modal-card';
-					var imgHtml = (r.image_url && r.image_url.length)
-						? '<img class="gdlo-modal-card-img" src="' + escapeAttr(r.image_url) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=\\\'gdlo-modal-card-ph\\\'>&#128230;</div>\'">'
-						: '<div class="gdlo-modal-card-ph">&#128230;</div>';
-					var priceHtml = (r.best_price && parseFloat(r.best_price) > 0)
-						? '<div class="gdlo-modal-card-price">$' + parseFloat(r.best_price).toFixed(2) + '</div>'
-						: '<div class="gdlo-modal-card-noprice">No price yet</div>';
-					card.innerHTML = imgHtml
-						+ '<div class="gdlo-modal-card-body">'
-						+ '<div class="gdlo-modal-card-title">' + escapeHtml(r.title || r.upc) + '</div>'
-						+ '<div class="gdlo-modal-card-brand">' + escapeHtml(r.brand || '') + '</div>'
-						+ priceHtml
-						+ '</div>';
-					card.addEventListener('click', function () {
-						assignProduct(r);
-						closeSlotModal();
-					});
-					modalResults.appendChild(card);
-				});
-
-				modalTotalLoaded += data.results.length;
-				var total = data.total || 0;
-				if (modalLoadMore) {
-					if (data.results.length >= 24 && modalTotalLoaded < total) {
-						modalLoadMore.style.display = '';
-					} else {
-						modalLoadMore.style.display = 'none';
-					}
-				}
-			})
-			.catch(function () {
-				if (!append) modalResults.innerHTML = '<div class="gdlo-modal-empty" style="color:#dc2626">Search error — please try again.</div>';
-			});
-	}
-
-	if (modalSearch) {
-		modalSearch.addEventListener('input', function () {
-			clearTimeout(modalTimer);
-			modalCurrentPage = 1;
-			modalTotalLoaded = 0;
-			modalTimer = setTimeout(function () { loadModalResults(false); }, 300);
-		});
-	}
-
-	if (modalLoadMore) {
-		modalLoadMore.addEventListener('click', function () {
-			modalCurrentPage++;
-			loadModalResults(true);
-		});
-	}
-
-	if (modalFacetClear) {
-		modalFacetClear.addEventListener('click', function () {
-			modalActiveFilters = {};
-			modalCurrentPage = 1;
-			modalTotalLoaded = 0;
-			loadModalResults(false);
-		});
-	}
-
-	if (modalEl) {
-		modalEl.addEventListener('click', function (e) {
-			if (e.target.dataset.close === '1' || e.target.closest('[data-close="1"]')) {
-				closeSlotModal();
-			}
-		});
-	}
-
-	document.addEventListener('keydown', function (e) {
-		if (e.key === 'Escape' && modalEl && modalEl.style.display !== 'none') {
-			closeSlotModal();
-		}
-	});
-
-	initCoreSlots();
-	initExtraSlots();
-	initExtraPicker();
-	updateSummary();
-	updateNotesPanel();
+	setMode(buildMode);
+	initPlatformChips();
+	initFromExisting();
+	goToStep(1);
 })();
