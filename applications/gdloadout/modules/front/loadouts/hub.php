@@ -35,7 +35,15 @@ class _hub extends \IPS\Dispatcher\Controller
 		try { $fresh = Db::i()->select( 'forum_topic_id', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first(); } catch ( \Throwable ) {}
 		if ( $fresh && (int) $fresh > 0 )
 		{
-			return (int) $fresh;
+			try
+			{
+				\IPS\forums\Topic::load( (int) $fresh );
+				return (int) $fresh;
+			}
+			catch ( \OutOfRangeException $e )
+			{
+				try { Db::i()->update( 'gd_loadouts', [ 'forum_topic_id' => 0 ], [ 'id=?', $loadoutId ] ); } catch ( \Throwable ) {}
+			}
 		}
 
 		if ( ( $loadout['visibility'] ?? '' ) === 'private' )
@@ -73,7 +81,20 @@ class _hub extends \IPS\Dispatcher\Controller
 
 		$topicTitle = ( $loadout['name'] ?? 'Loadout' ) . ' — Loadout by ' . $ownerName;
 
-		$postBody = '<p><strong><a href="' . htmlspecialchars( $viewUrl, ENT_QUOTES, 'UTF-8' ) . '">'
+		$leadImg = '';
+		try
+		{
+			$imgUpc = (string) Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=? AND slot_type=?', $loadoutId, 'base_firearm' ], 'sort_order ASC', 1 )->first();
+			if ( !$imgUpc ) { $imgUpc = (string) Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=?', $loadoutId ], 'sort_order ASC', 1 )->first(); }
+			if ( $imgUpc )
+			{
+				$imgUrl = (string) Db::i()->select( 'image_url', 'gd_catalog', [ 'upc=?', $imgUpc ] )->first();
+				if ( $imgUrl ) { $leadImg = '<p><img src="' . htmlspecialchars( $imgUrl, ENT_QUOTES, 'UTF-8' ) . '" alt="' . htmlspecialchars( $loadout['name'] ?? '', ENT_QUOTES, 'UTF-8' ) . '" style="max-width:320px;height:auto;"></p>'; }
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$postBody = $leadImg . '<p><strong><a href="' . htmlspecialchars( $viewUrl, ENT_QUOTES, 'UTF-8' ) . '">'
 			. htmlspecialchars( $loadout['name'] ?? '', ENT_QUOTES, 'UTF-8' ) . '</a></strong></p>'
 			. '<p>' . htmlspecialchars( $loadout['description'] ?? '', ENT_QUOTES, 'UTF-8' ) . '</p>'
 			. '<p><strong>Items:</strong> ' . (int) ( $loadout['total_items'] ?? 0 )
@@ -866,10 +887,13 @@ class _hub extends \IPS\Dispatcher\Controller
 		}
 
 		$ownerName = $member->name ?? 'Unknown';
-		Output::i()->redirect( Url::internal(
-			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $loadout['slug'] ?? '' ),
-			'front', 'gdloadout_view'
-		) );
+		Output::i()->redirect(
+			Url::internal(
+				'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $loadout['slug'] ?? '' ),
+				'front', 'gdloadout_view'
+			),
+			Member::loggedIn()->language()->addToStack( 'gdloadout_discussion_started' )
+		);
 	}
 
 	protected function copy(): void
