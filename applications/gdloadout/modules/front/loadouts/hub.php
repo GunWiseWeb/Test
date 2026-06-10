@@ -419,11 +419,15 @@ class _hub extends \IPS\Dispatcher\Controller
 			'isLoggedIn'  => (bool) $member->member_id,
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
+		$canCopy = ( (int) $member->member_id && !$isOwner );
+		$copyUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=copy&loadout_id=' . (int) $loadout['id'], 'front' );
+
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
 		Output::i()->jsFiles  = array_merge( Output::i()->jsFiles, Output::i()->js( 'loadout.js', 'gdloadout', 'interface' ) );
 		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->view(
 			$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance,
-			$hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl
+			$hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl,
+			$canCopy, $copyUrl, $csrfKey
 		);
 	}
 
@@ -563,21 +567,54 @@ class _hub extends \IPS\Dispatcher\Controller
 		{
 			foreach ( Db::i()->select( '*', 'gd_loadouts', [ 'member_id=?', (int) $member->member_id ], 'COALESCE(updated_at, created_at) DESC' ) as $row )
 			{
-				$row['view_url'] = (string) Url::internal(
-					'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $member->name ) . '&slug=' . urlencode( $row['slug'] ),
-					'front', 'gdloadout_view'
-				);
-				$row['edit_url'] = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $row['id'], 'front', 'gdloadout_builder_edit' );
+				$this->enrichLoadout( $row );
+				$row['edit_url']   = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $row['id'], 'front', 'gdloadout_builder_edit' );
+				$row['delete_url'] = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=deleteLoadout&loadout_id=' . (int) $row['id'], 'front' );
 				$loadouts[] = $row;
 			}
 		}
 		catch ( \Throwable ) {}
 
 		$builderUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder', 'front', 'gdloadout_builder' );
+		$csrfKey    = Session::i()->csrfKey;
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
 		Output::i()->title    = Member::loggedIn()->language()->addToStack( 'gdloadout_my_loadouts_title' );
-		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->myLoadouts( $loadouts, $builderUrl );
+		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->myLoadouts( $loadouts, $builderUrl, $csrfKey );
+	}
+
+	protected function deleteLoadout(): void
+	{
+		Session::i()->csrfCheck();
+		$member = Member::loggedIn();
+		if ( !$member->member_id )
+		{
+			Output::i()->redirect( Url::internal( 'app=core&module=system&controller=login', 'front', 'login' ) );
+			return;
+		}
+
+		$loadoutId = (int) ( Request::i()->loadout_id ?? 0 );
+		if ( !$loadoutId )
+		{
+			Output::i()->error( 'gdloadout_err_not_found', '2GDL/5', 404 );
+			return;
+		}
+
+		$loadout = null;
+		try { $loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=? AND member_id=?', $loadoutId, (int) $member->member_id ] )->first(); } catch ( \Throwable ) {}
+		if ( !$loadout )
+		{
+			Output::i()->error( 'gdloadout_err_not_found', '2GDL/5', 404 );
+			return;
+		}
+
+		try { Db::i()->delete( 'gd_loadout_items', [ 'loadout_id=?', $loadoutId ] ); } catch ( \Throwable ) {}
+		try { Db::i()->delete( 'gd_loadout_votes', [ 'loadout_id=?', $loadoutId ] ); } catch ( \Throwable ) {}
+		try { Db::i()->delete( 'gd_loadout_follows', [ 'loadout_id=?', $loadoutId ] ); } catch ( \Throwable ) {}
+		try { Db::i()->delete( 'gd_loadout_comments', [ 'loadout_id=?', $loadoutId ] ); } catch ( \Throwable ) {}
+		try { Db::i()->delete( 'gd_loadouts', [ 'id=?', $loadoutId ] ); } catch ( \Throwable ) {}
+
+		Output::i()->redirect( Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=mine', 'front', 'gdloadout_mine' ) );
 	}
 
 	protected function addAllToWishlist(): void

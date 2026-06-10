@@ -1,4 +1,20 @@
-<ips:template parameters="$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey" />
+<?php
+
+namespace IPS\gdloadout\setup\upg_10032;
+
+use function defined;
+
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$viewContent = <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
 
     <div class="gdlo-view-header">
@@ -167,3 +183,108 @@
         </div>
     </div>
 </div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'        => 1,
+				'template_app'           => 'gdloadout',
+				'template_location'      => 'front',
+				'template_group'         => 'loadouts',
+				'template_name'          => 'view',
+				'template_data'          => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey',
+				'template_content'       => $viewContent,
+				'template_updated'       => time(),
+				'template_version'       => '1.0.32',
+				'template_master_key'    => '',
+				'template_has_hookpoints' => 0,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		$myContent = <<<'TEMPLATE_EOT'
+<div class="gdlo-hub">
+    <div class="gdlo-hub-hero">
+        <div class="gdlo-hub-hero-text">
+            <h1 class="gdlo-hub-title">{lang="gdloadout_my_loadouts_title"}</h1>
+            <p class="gdlo-hub-subtitle">{lang="gdloadout_my_loadouts_subtitle"}</p>
+        </div>
+        <a href="{$builderUrl}" class="gdlo-btn gdlo-btn--primary"><i class="fa-solid fa-plus"></i> {lang="gdloadout_new_loadout"}</a>
+    </div>
+
+    {{if count($loadouts) === 0}}
+    <div class="gdlo-empty">
+        <i class="fa-solid fa-layer-group"></i>
+        <h3>{lang="gdloadout_no_loadouts_yet"}</h3>
+        <p>{lang="gdloadout_no_loadouts_desc"}</p>
+        <a href="{$builderUrl}" class="gdlo-btn gdlo-btn--primary">{lang="gdloadout_create_first"}</a>
+    </div>
+    {{else}}
+    <div class="gdlo-hub-grid">
+        {{foreach $loadouts as $loadout}}
+        <div class="gdlo-hub-card">
+            <a href="{$loadout['view_url']}" class="gdlo-hub-card-imglink">
+                <div class="gdlo-hub-card-img">
+                    {{if $loadout['base_image']}}<img src="{$loadout['base_image']}" alt="{$loadout['name']}" loading="lazy" onerror="this.style.display='none';this.parentNode.querySelector('.gdlo-hub-card-noimg').style.display='flex'">{{endif}}
+                    <i class="fa-solid fa-crosshairs gdlo-hub-card-noimg" {{if $loadout['base_image']}}style="display:none"{{endif}} aria-hidden="true"></i>
+                </div>
+            </a>
+            <div class="gdlo-hub-card-body">
+                <a href="{$loadout['view_url']}" class="gdlo-hub-card-name">{$loadout['name']}</a>
+                <div class="gdlo-hub-card-meta">
+                    {{if $loadout['use_case']}}<span class="gdlo-hub-tag">{$loadout['use_case']}</span>{{endif}}
+                    {{if $loadout['visibility'] === 'private'}}<span class="gdlo-hub-card-badge" title="Private"><i class="fa-solid fa-lock"></i></span>{{endif}}
+                    {{if $loadout['visibility'] === 'unlisted'}}<span class="gdlo-hub-card-badge" title="Unlisted"><i class="fa-solid fa-eye-slash"></i></span>{{endif}}
+                </div>
+                {{if $loadout['total_min_price'] > 0}}
+                <div class="gdlo-hub-price"><span class="gdlo-hub-price-val">{expression="'$' . number_format((float)$loadout['total_min_price'], 2)"}</span><span class="gdlo-hub-price-parts">{$loadout['total_items']} {lang="gdloadout_parts"}</span></div>
+                {{else}}
+                <div class="gdlo-hub-price"><span class="gdlo-hub-price-na">{lang="gdloadout_no_price_yet"}</span><span class="gdlo-hub-price-parts">{$loadout['total_items']} {lang="gdloadout_parts"}</span></div>
+                {{endif}}
+                <div class="gdlo-hub-card-stats">
+                    <span aria-label="Upvotes" title="Upvotes"><i class="fa-solid fa-heart" aria-hidden="true"></i> {$loadout['upvotes']}</span>
+                    <span aria-label="Views" title="Views"><i class="fa-solid fa-eye" aria-hidden="true"></i> {$loadout['view_count']}</span>
+                </div>
+            </div>
+            <div class="gdlo-hub-actions">
+                <a href="{$loadout['edit_url']}" class="gdlo-hub-btn gdlo-hub-btn--view"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit</a>
+                <form method="post" action="{$loadout['delete_url']}" onsubmit="return confirm('Delete this loadout?');" style="flex:0 0 auto;margin:0;">
+                    <input type="hidden" name="csrfKey" value="{$csrfKey}">
+                    <button type="submit" class="gdlo-hub-btn gdlo-hub-btn--danger" aria-label="Delete loadout" title="Delete loadout"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+                </form>
+            </div>
+        </div>
+        {{endforeach}}
+    </div>
+    {{endif}}
+</div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'        => 1,
+				'template_app'           => 'gdloadout',
+				'template_location'      => 'front',
+				'template_group'         => 'loadouts',
+				'template_name'          => 'myLoadouts',
+				'template_data'          => '$loadouts, $builderUrl, $csrfKey',
+				'template_content'       => $myContent,
+				'template_updated'       => time(),
+				'template_version'       => '1.0.32',
+				'template_master_key'    => '',
+				'template_has_hookpoints' => 0,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }            catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}
