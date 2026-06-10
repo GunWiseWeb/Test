@@ -18,7 +18,7 @@
             "real": "app=gdloadout&module=loadouts&controller=builder"
         },
         "gdloadout_view": {
-            "friendly": "{@username}/{@slug}",
+            "friendly": "view/{@username}/{@slug}",
             "real": "app=gdloadout&module=loadouts&controller=hub&do=view"
         }
     }

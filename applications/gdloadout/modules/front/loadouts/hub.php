@@ -28,9 +28,14 @@ class _hub extends \IPS\Dispatcher\Controller
 
 	public static function ensureForumTopic( array $loadout ): ?int
 	{
-		if ( !empty( $loadout['forum_topic_id'] ) && (int) $loadout['forum_topic_id'] > 0 )
+		$loadoutId = (int) ( $loadout['id'] ?? 0 );
+		if ( !$loadoutId ) return null;
+
+		$fresh = null;
+		try { $fresh = Db::i()->select( 'forum_topic_id', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first(); } catch ( \Throwable ) {}
+		if ( $fresh && (int) $fresh > 0 )
 		{
-			return (int) $loadout['forum_topic_id'];
+			return (int) $fresh;
 		}
 
 		if ( ( $loadout['visibility'] ?? '' ) === 'private' )
@@ -52,9 +57,8 @@ class _hub extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) { return null; }
 
-		$ownerName = 'Unknown';
-		try { $ownerName = Member::load( (int) $loadout['member_id'] )->name; } catch ( \Throwable ) {}
 		$owner = Member::load( (int) $loadout['member_id'] );
+		$ownerName = $owner->name ?? 'Unknown';
 
 		$viewUrl = (string) Url::internal(
 			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $loadout['slug'] ?? '' ),
@@ -78,30 +82,46 @@ class _hub extends \IPS\Dispatcher\Controller
 			. '</p>'
 			. '<p><a href="' . htmlspecialchars( $viewUrl, ENT_QUOTES, 'UTF-8' ) . '">View full loadout on GunRack</a></p>';
 
-		$topic = \IPS\forums\Topic::createItem( $owner, $owner->ip_address, \IPS\DateTime::create(), $forum, FALSE );
-		$topic->title = $topicTitle;
-		$topic->save();
-
-		$post = \IPS\forums\Topic\Post::create( $topic, $postBody, TRUE, NULL, NULL, $owner );
-		$topic->topic_firstpost = $post->pid;
-		$topic->save();
-
-		$topicId = (int) $topic->tid;
-
-		Db::i()->update( 'gd_loadouts', [ 'forum_topic_id' => $topicId ], [ 'id=?', (int) $loadout['id'] ] );
-
 		try
 		{
-			Db::i()->insert( 'gd_loadout_forum_posts', [
-				'loadout_id' => (int) $loadout['id'],
-				'member_id'  => (int) $loadout['member_id'],
-				'topic_id'   => $topicId,
-				'posted_at'  => time(),
-			] );
-		}
-		catch ( \Throwable ) {}
+			$topic = \IPS\forums\Topic::createItem( $owner, $owner->ip_address, \IPS\DateTime::create(), $forum, FALSE );
+			$topic->title = $topicTitle;
+			$topic->save();
 
-		return $topicId;
+			$post = \IPS\forums\Topic\Post::create( $topic, $postBody, TRUE, NULL, NULL, $owner );
+			$topic->topic_firstpost = $post->pid;
+			$topic->save();
+
+			$topicId = (int) $topic->tid;
+
+			Db::i()->update( 'gd_loadouts', [ 'forum_topic_id' => $topicId ], [ 'id=?', $loadoutId ] );
+
+			try
+			{
+				Db::i()->insert( 'gd_loadout_forum_posts', [
+					'loadout_id' => $loadoutId,
+					'member_id'  => (int) $loadout['member_id'],
+					'topic_id'   => $topicId,
+					'posted_at'  => time(),
+				] );
+			}
+			catch ( \Throwable ) {}
+
+			return $topicId;
+		}
+		catch ( \Throwable $e )
+		{
+			\IPS\Log::log( $e, 'gdloadout_forum' );
+
+			if ( isset( $topic ) && $topic->tid )
+			{
+				$recoveredId = (int) $topic->tid;
+				try { Db::i()->update( 'gd_loadouts', [ 'forum_topic_id' => $recoveredId ], [ 'id=?', $loadoutId ] ); } catch ( \Throwable ) {}
+				return $recoveredId;
+			}
+
+			return null;
+		}
 	}
 
 	protected function enrichLoadout( array &$row ): void
@@ -445,11 +465,9 @@ class _hub extends \IPS\Dispatcher\Controller
 		$forumTopicUrl = '';
 		try
 		{
-			$topicId = self::ensureForumTopic( $loadout );
-			if ( $topicId )
+			if ( !empty( $loadout['forum_topic_id'] ) && (int) $loadout['forum_topic_id'] > 0 )
 			{
-				$loadout['forum_topic_id'] = $topicId;
-				$topic = \IPS\forums\Topic::load( $topicId );
+				$topic = \IPS\forums\Topic::load( (int) $loadout['forum_topic_id'] );
 				$forumTopicUrl = (string) $topic->url();
 				$loadout['comment_count'] = max( 0, (int) ( $topic->posts ?? 1 ) - 1 );
 			}
