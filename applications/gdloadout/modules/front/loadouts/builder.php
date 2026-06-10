@@ -290,19 +290,20 @@ class _builder extends \IPS\Dispatcher\Controller
 			] );
 		}
 
-		$validSlotTypes = [
-			'base_firearm', 'optic', 'weapon_light', 'laser', 'suppressor', 'sling',
-			'rail_mount', 'scope_rings', 'lower_receiver', 'upper_receiver', 'barrel',
-			'handguard', 'muzzle', 'bcg', 'buffer', 'trigger', 'stock', 'grip',
-			'magazine', 'holster', 'ear_eye_pro', 'cleaning', 'bipod', 'extra',
-		];
+		$completeSlots  = [ 'base_firearm', 'optic', 'weapon_light', 'laser', 'suppressor', 'sling', 'rail_mount', 'scope_rings' ];
+		$componentSlots = [ 'lower_receiver', 'upper_receiver', 'barrel', 'handguard', 'muzzle', 'bcg', 'buffer', 'trigger', 'stock', 'grip', 'optic', 'scope_rings', 'rail_mount', 'weapon_light', 'laser', 'suppressor', 'sling' ];
+		$extraSlots     = [ 'magazine', 'holster', 'ear_eye_pro', 'cleaning', 'bipod', 'extra' ];
+		$allowedForMode = array_merge(
+			( $buildModeParam === 'component_build' ) ? $componentSlots : $completeSlots,
+			$extraSlots
+		);
 		$totalCost = 0; $totalItems = 0; $order = 0;
 
 		foreach ( $slots as $slot )
 		{
 			if ( empty( $slot['upc'] ) ) continue;
 			$slotType = $slot['slot_type'] ?? 'extra';
-			if ( !\in_array( $slotType, $validSlotTypes, true ) ) $slotType = 'extra';
+			if ( !\in_array( $slotType, $allowedForMode, true ) ) continue;
 
 			$notes = NULL;
 			if ( $isVip && !empty( $slot['notes'] ) ) $notes = substr( trim( $slot['notes'] ), 0, 300 );

@@ -104,7 +104,56 @@
 	if (nextBtn) nextBtn.addEventListener('click', function () { goToStep(currentStep + 1); });
 
 	/* ===== Build Mode ===== */
+	function hasAnyPart() {
+		var keys = Object.keys(slots);
+		for (var i = 0; i < keys.length; i++) {
+			if (slots[keys[i]] && slots[keys[i]].upc) return true;
+		}
+		return false;
+	}
+
+	function showModeNote() {
+		var grid = document.getElementById('gdModeGrid');
+		if (!grid) return;
+		var next = grid.nextElementSibling;
+		if (next && next.classList.contains('gdlo-mode-note')) return;
+		var note = document.createElement('div');
+		note.className = 'gdlo-mode-note';
+		note.textContent = 'Reset the build to change modes.';
+		grid.parentNode.insertBefore(note, grid.nextSibling);
+	}
+
+	function hideModeNote() {
+		var grid = document.getElementById('gdModeGrid');
+		if (!grid) return;
+		var next = grid.nextElementSibling;
+		if (next && next.classList.contains('gdlo-mode-note')) {
+			next.parentNode.removeChild(next);
+		}
+	}
+
+	function updateModeLock() {
+		var hasParts = hasAnyPart();
+		var cards = document.querySelectorAll('#gdModeGrid .gdlo-mode-card');
+		for (var c = 0; c < cards.length; c++) {
+			var isActive = cards[c].dataset.mode === buildMode;
+			if (hasParts && !isActive) {
+				cards[c].classList.add('gdlo-mode-locked');
+				cards[c].setAttribute('aria-disabled', 'true');
+			} else {
+				cards[c].classList.remove('gdlo-mode-locked');
+				cards[c].removeAttribute('aria-disabled');
+			}
+		}
+		if (!hasParts) hideModeNote();
+	}
+
 	function setMode(mode) {
+		if (hasAnyPart() && mode !== buildMode) {
+			showModeNote();
+			return;
+		}
+		hideModeNote();
 		buildMode = mode;
 		var cards = document.querySelectorAll('#gdModeGrid .gdlo-mode-card');
 		for (var c = 0; c < cards.length; c++) {
@@ -112,6 +161,7 @@
 		}
 		var platRow = document.getElementById('gdPlatformRow');
 		if (platRow) platRow.style.display = mode === 'component_build' ? '' : 'none';
+		updateModeLock();
 	}
 
 	var modeGrid = document.getElementById('gdModeGrid');
@@ -219,6 +269,7 @@
 				if (currentStep === 2) renderCoreGrid();
 				if (currentStep === 3) { renderAccGrid(); renderExtraGrid(); }
 				updateAllSummaries();
+				updateModeLock();
 			});
 		}
 
@@ -272,6 +323,7 @@
 				if (activeSlotKey === key) { activeSlotKey = null; closePicker(); }
 				renderExtraGrid();
 				updateAllSummaries();
+				updateModeLock();
 			});
 		}
 
@@ -894,6 +946,7 @@
 		if (currentStep === 2) renderCoreGrid();
 		if (currentStep === 3) { renderAccGrid(); renderExtraGrid(); }
 		updateAllSummaries();
+		updateModeLock();
 	}
 
 	/* ===== Save ===== */
@@ -1017,5 +1070,6 @@
 	setMode(buildMode);
 	initPlatformChips();
 	initFromExisting();
+	updateModeLock();
 	goToStep(1);
 })();
