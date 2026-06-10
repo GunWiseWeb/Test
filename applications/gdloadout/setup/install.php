@@ -122,7 +122,7 @@ $templates[] = [
 	'template_location' => 'front',
 	'template_group' => 'loadouts',
 	'template_name' => 'view',
-	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl',
+	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl, $startDiscussionUrl',
 	'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
 
@@ -258,17 +258,6 @@ $templates[] = [
             </div>
             {{endif}}
 
-            <div class="gdlo-view-discussion">
-                <h3 class="gdlo-view-comments-title"><i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_discussion"}</h3>
-                {{if $forumTopicUrl}}
-                <p class="gdlo-view-discussion-desc">{lang="gdloadout_discussion_desc"}</p>
-                <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--primary" target="_blank" rel="noopener">
-                    <i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_join_discussion"}{{if $loadout['comment_count'] > 0}} ({$loadout['comment_count']}){{endif}}
-                </a>
-                {{else}}
-                <p class="gdlo-view-discussion-desc">{lang="gdloadout_discussion_none"}</p>
-                {{endif}}
-            </div>
         </div>
 
         <div class="gdlo-view-sidebar">
@@ -314,6 +303,19 @@ $templates[] = [
                 </form>
                 {{endif}}
 
+                {{if $forumTopicUrl}}
+                <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" target="_blank" rel="noopener">
+                    <i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_join_discussion"}{{if $loadout['comment_count'] > 0}} ({$loadout['comment_count']}){{endif}}
+                </a>
+                {{elseif $isOwner}}
+                <form method="post" action="{$startDiscussionUrl}" class="gdlo-startdisc-form" style="margin:0;">
+                    <input type="hidden" name="csrfKey" value="{$csrfKey}">
+                    <button type="submit" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full">
+                        <i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_start_discussion"}
+                    </button>
+                </form>
+                {{endif}}
+
                 {{if $compliance['has_issues']}}
                 <div class="gdlo-view-compliance gdlo-compliance--warn">
                     <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
@@ -334,7 +336,7 @@ $templates[] = [
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.34',
+	'template_version' => '1.0.35',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];

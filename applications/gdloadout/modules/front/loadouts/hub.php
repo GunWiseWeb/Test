@@ -537,6 +537,7 @@ class _hub extends \IPS\Dispatcher\Controller
 
 		$canCopy = ( (int) $member->member_id && !$isOwner );
 		$copyUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=copy&loadout_id=' . (int) $loadout['id'], 'front' );
+		$startDiscussionUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=startDiscussion&loadout_id=' . (int) $loadout['id'], 'front' );
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
 		Output::i()->jsFiles  = array_merge( Output::i()->jsFiles, Output::i()->js( 'loadout.js', 'gdloadout', 'interface' ) );
@@ -545,7 +546,8 @@ class _hub extends \IPS\Dispatcher\Controller
 			$hasVoted, $hasFollowed, $initData, $forumTopicUrl,
 			$canCopy, $copyUrl, $csrfKey,
 			$canSuggest, $suggestions, $pendingSuggestionCount,
-			$acceptSugUrl, $rejectSugUrl
+			$acceptSugUrl, $rejectSugUrl,
+			$startDiscussionUrl
 		);
 	}
 
@@ -811,6 +813,45 @@ class _hub extends \IPS\Dispatcher\Controller
 		{
 			Output::i()->json( [ 'error' => 'Failed to create forum topic' ], 500 );
 		}
+	}
+
+	protected function startDiscussion(): void
+	{
+		Session::i()->csrfCheck();
+		$member = Member::loggedIn();
+		if ( !$member->member_id )
+		{
+			Output::i()->redirect( Url::internal( 'app=core&module=system&controller=login', 'front', 'login' ) );
+			return;
+		}
+
+		$loadoutId = (int) ( Request::i()->loadout_id ?? 0 );
+		if ( !$loadoutId )
+		{
+			Output::i()->error( 'gdloadout_err_not_found', '2GDL/8', 404 );
+			return;
+		}
+
+		$loadout = null;
+		try { $loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=? AND member_id=?', $loadoutId, (int) $member->member_id ] )->first(); } catch ( \Throwable ) {}
+		if ( !$loadout )
+		{
+			Output::i()->error( 'gdloadout_err_not_found', '2GDL/8', 404 );
+			return;
+		}
+
+		$topicId = self::ensureForumTopic( $loadout );
+		if ( !$topicId )
+		{
+			Output::i()->error( 'gdloadout_discussion_no_forum', '2GDL/9', 400 );
+			return;
+		}
+
+		$ownerName = $member->name ?? 'Unknown';
+		Output::i()->redirect( Url::internal(
+			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $loadout['slug'] ?? '' ),
+			'front', 'gdloadout_view'
+		) );
 	}
 
 	protected function copy(): void

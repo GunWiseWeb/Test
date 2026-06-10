@@ -180,5 +180,7 @@
 <word key="gdloadout_notif_suggestion_received_desc" js="0"><![CDATA[Get notified when someone suggests a swap on your loadout]]></word>
 <word key="gdloadout_notif_suggestion_resolved" js="0"><![CDATA[Suggestion resolved]]></word>
 <word key="gdloadout_notif_suggestion_resolved_desc" js="0"><![CDATA[Get notified when an owner accepts or rejects your suggestion]]></word>
+<word key="gdloadout_start_discussion" js="0"><![CDATA[Start Discussion]]></word>
+<word key="gdloadout_discussion_no_forum" js="0"><![CDATA[Set a target forum in ACP → Loadouts → Settings to enable discussions.]]></word>
 </app>
 </language>

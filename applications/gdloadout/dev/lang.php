@@ -180,4 +180,6 @@ $lang = array(
     'gdloadout_notif_suggestion_received_desc' => 'Get notified when someone suggests a swap on your loadout',
     'gdloadout_notif_suggestion_resolved' => 'Suggestion resolved',
     'gdloadout_notif_suggestion_resolved_desc' => 'Get notified when an owner accepts or rejects your suggestion',
+    'gdloadout_start_discussion' => 'Start Discussion',
+    'gdloadout_discussion_no_forum' => 'Set a target forum in ACP → Loadouts → Settings to enable discussions.',
 );
