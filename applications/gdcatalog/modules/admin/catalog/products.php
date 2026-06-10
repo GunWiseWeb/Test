@@ -84,15 +84,7 @@ class _products extends \IPS\Dispatcher\Controller
 		return $descendants;
 	}
 
-	/**
-	 * Product list with search/filter.
-	 *
-	 * Products and categories are flattened into scalar arrays and
-	 * all dynamic URLs (edit, approve, form action) are pre-built in
-	 * the controller. The template then only uses plain `{$row['key']}`
-	 * access per Rule #12 — no nested `{url="...{$x->upc}"}` tokens.
-	 */
-	protected function manage()
+	protected function buildProductWhere(): array
 	{
 		$where        = [];
 		$search       = \IPS\Request::i()->q ?? '';
@@ -113,15 +105,6 @@ class _products extends \IPS\Dispatcher\Controller
 			$where[] = [ 'record_status=?', $status ];
 		}
 
-		/* v1.0.28: Image status filter - expanded for HEAD-validation states.
-		 *
-		 * Values:
-		 *   missing   - image_url is NULL or empty string
-		 *   present   - image_url has a value (regardless of validation)
-		 *   unchecked - has URL but never validated yet (image_validated IS NULL)
-		 *   ok        - validated and status 200-399
-		 *   broken    - validated and status >= 400 or = 0 (network errors)
-		 */
 		$imageStatus = (string) ( \IPS\Request::i()->image_status ?? '' );
 		$validImageStatuses = [ 'missing', 'present', 'unchecked', 'ok', 'broken' ];
 		if ( !in_array( $imageStatus, $validImageStatuses, true ) )
@@ -150,20 +133,6 @@ class _products extends \IPS\Dispatcher\Controller
 			$where[] = [ 'image_validated = 1 AND (image_http_status >= 400 OR image_http_status = 0)' ];
 		}
 
-		/* v1.0.23: Parent-aware category filter.
-		 *
-		 * gd_categories is hierarchical (Ammunition parent has children
-		 * Handgun Ammo, Rifle Ammo, Shotgun Ammo, etc). When admin selects
-		 * a parent category in the filter dropdown, they expect to see ALL
-		 * products in that parent OR any of its descendants.
-		 *
-		 * For example: selecting "Ammunition" (id=17) should match
-		 * category_id IN (17, 18, 19, 20, 21, 22) since those subcategories
-		 * have parent_id=17.
-		 *
-		 * Strategy: collect the selected category's ID plus all its
-		 * descendant IDs (recursively, in case of multi-level hierarchy),
-		 * then filter with IN clause. */
 		if ( $catId > 0 )
 		{
 			$descendantIds = self::collectCategoryDescendants( $catId );
@@ -172,13 +141,10 @@ class _products extends \IPS\Dispatcher\Controller
 
 			if ( count( $descendantIds ) === 1 )
 			{
-				/* Leaf category - exact match */
 				$where[] = [ 'category_id=?', $catId ];
 			}
 			else
 			{
-				/* Parent with children - IN clause.
-				 * Build placeholders dynamically since IPS\Db needs them. */
 				$placeholders = implode( ',', array_fill( 0, count( $descendantIds ), '?' ) );
 				$where[] = array_merge(
 					[ 'category_id IN (' . $placeholders . ')' ],
@@ -222,6 +188,27 @@ class _products extends \IPS\Dispatcher\Controller
 				$where[] = [ $missingField . ' IS NULL OR ' . $missingField . '=?', '' ];
 			}
 		}
+
+		return $where;
+	}
+
+	/**
+	 * Product list with search/filter.
+	 *
+	 * Products and categories are flattened into scalar arrays and
+	 * all dynamic URLs (edit, approve, form action) are pre-built in
+	 * the controller. The template then only uses plain `{$row['key']}`
+	 * access per Rule #12 — no nested `{url="...{$x->upc}"}` tokens.
+	 */
+	protected function manage()
+	{
+		$search       = \IPS\Request::i()->q ?? '';
+		$status       = \IPS\Request::i()->status ?? '';
+		$catId        = (int) ( \IPS\Request::i()->category ?? 0 );
+		$missingField = (string) ( \IPS\Request::i()->missing_field ?? '' );
+		$imageStatus  = (string) ( \IPS\Request::i()->image_status ?? '' );
+
+		$where = $this->buildProductWhere();
 
 		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
 		$perPage = 50;
@@ -335,11 +322,41 @@ class _products extends \IPS\Dispatcher\Controller
 			'app=gdcatalog&module=catalog&controller=products&do=downloadCsvTemplate'
 		);
 
+		$catOptions = [];
+		try
+		{
+			$parents = [];
+			foreach ( \IPS\Db::i()->select( '*', 'gd_categories', [ 'parent_id=?', 0 ], 'name ASC' ) as $p )
+			{
+				$parents[ (int) $p['id'] ] = $p['name'];
+			}
+			foreach ( $parents as $pid => $pname )
+			{
+				$catOptions[ $pname ] = [];
+				foreach ( \IPS\Db::i()->select( '*', 'gd_categories', [ 'parent_id=?', $pid ], 'name ASC' ) as $c )
+				{
+					$catOptions[ $pname ][ (int) $c['id'] ] = $c['name'];
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$bulkMoveUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=products&do=bulkMove'
+		);
+		$csrfKey = \IPS\Session::i()->csrfKey;
+
+		\IPS\Output::i()->jsFiles = array_merge(
+			\IPS\Output::i()->jsFiles ?? [],
+			\IPS\Output::i()->js( 'bulkSelect.js', 'gdcatalog', 'interface' )
+		);
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_products_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->productList(
 			$products, $categories, $search, $status, $catId, $imageStatus,
 			$total, $pagination, $formActionUrl, $productCount, $categoryCount,
-			$addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl, $missingField
+			$addProductUrl, $importCsvUrl, $downloadCsvTemplateUrl, $missingField,
+			$catOptions, $bulkMoveUrl, $csrfKey, $total
 		);
 	}
 
@@ -1560,6 +1577,78 @@ class _products extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products&do=edit&upc=' . urlencode( $upc ) ),
 			sprintf( 'Unlocked %d fields', $unlocked )
+		);
+	}
+
+	protected function bulkMove()
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$targetCategoryId = (int) \IPS\Request::i()->bulk_target_category;
+		if ( $targetCategoryId <= 0 )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products' ),
+				'No target category selected'
+			);
+			return;
+		}
+
+		$mode = (string) ( \IPS\Request::i()->bulk_mode ?? 'selected' );
+		$upcs = [];
+
+		if ( $mode === 'all' )
+		{
+			$where = $this->buildProductWhere();
+			foreach ( \IPS\Db::i()->select( 'upc', 'gd_catalog', $where ) as $upc )
+			{
+				$upcs[] = (string) $upc;
+			}
+		}
+		else
+		{
+			$raw = \IPS\Request::i()->bulk_upc ?? [];
+			if ( is_array( $raw ) )
+			{
+				foreach ( $raw as $u )
+				{
+					$upcs[] = (string) $u;
+				}
+			}
+		}
+
+		if ( empty( $upcs ) )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products' ),
+				'No products selected'
+			);
+			return;
+		}
+
+		$batches = array_chunk( $upcs, 500 );
+		foreach ( $batches as $batch )
+		{
+			$placeholders = implode( ',', array_fill( 0, count( $batch ), '?' ) );
+			\IPS\Db::i()->preparedQuery(
+				"UPDATE `" . \IPS\Db::i()->prefix . "gd_catalog` SET `category_id`=?, `last_updated`=? WHERE `upc` IN (" . $placeholders . ")",
+				array_merge( [ $targetCategoryId, date( 'Y-m-d H:i:s' ) ], $batch )
+			);
+		}
+
+		try
+		{
+			foreach ( $upcs as $upc )
+			{
+				\IPS\Task::queue( 'gdcatalog', 'IndexProduct', [ 'upc' => $upc ], 3 );
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$count = count( $upcs );
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products' ),
+			sprintf( '%d product(s) moved', $count )
 		);
 	}
 

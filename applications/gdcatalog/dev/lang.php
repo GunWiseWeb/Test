@@ -325,6 +325,14 @@ $lang = array(
 	'gdcatalog_edit_description'               => "Description",
 	'gdcatalog_edit_image_url'                 => "Image URL",
 
+	/* Bulk Select / Move */
+	'gdcatalog_bulk_selected'                  => "product(s) selected",
+	'gdcatalog_bulk_select_all_matching'       => "Select all matching",
+	'gdcatalog_bulk_all_selected'              => "All matching products selected",
+	'gdcatalog_bulk_move_to'                   => "Move to",
+	'gdcatalog_bulk_choose_category'           => "— Choose category —",
+	'gdcatalog_bulk_apply'                     => "Apply",
+
 	/* Manual Upload (v1.0.50) */
 	'gdcatalog_upload_feed_title'              => "Upload Feed File",
 	'gdcatalog_upload_success'                 => "Feed file uploaded successfully. Use Run Import to process it.",

@@ -277,5 +277,11 @@
     <word key="gdcatalog_edit_status" js="0"><![CDATA[Status]]></word>
     <word key="gdcatalog_edit_description" js="0"><![CDATA[Description]]></word>
     <word key="gdcatalog_edit_image_url" js="0"><![CDATA[Image URL]]></word>
+    <word key="gdcatalog_bulk_selected" js="0"><![CDATA[product(s) selected]]></word>
+    <word key="gdcatalog_bulk_select_all_matching" js="0"><![CDATA[Select all matching]]></word>
+    <word key="gdcatalog_bulk_all_selected" js="0"><![CDATA[All matching products selected]]></word>
+    <word key="gdcatalog_bulk_move_to" js="0"><![CDATA[Move to]]></word>
+    <word key="gdcatalog_bulk_choose_category" js="0"><![CDATA[— Choose category —]]></word>
+    <word key="gdcatalog_bulk_apply" js="0"><![CDATA[Apply]]></word>
   </app>
 </language>
