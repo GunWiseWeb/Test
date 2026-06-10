@@ -122,7 +122,7 @@ $templates[] = [
 	'template_location' => 'front',
 	'template_group' => 'loadouts',
 	'template_name' => 'view',
-	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey',
+	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey',
 	'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
 
@@ -204,20 +204,16 @@ $templates[] = [
                 {{endforeach}}
             </div>
 
-            <div class="gdlo-view-comments" id="gdloComments">
-                <h3 class="gdlo-view-comments-title"><i class="fa-solid fa-comments"></i> {lang="gdloadout_comments"} ({$loadout['comment_count']})</h3>
-                <div class="gdlo-view-comments-list" id="gdloCommentList">
-                    {{foreach $comments as $c}}
-                    <div class="gdlo-view-comment">
-                        <strong class="gdlo-view-comment-author">{$c['member_name']}</strong>
-                        <p class="gdlo-view-comment-body">{$c['comment']}</p>
-                    </div>
-                    {{endforeach}}
-                </div>
-                <div class="gdlo-view-comment-form" id="gdloCommentForm">
-                    <textarea id="gdloCommentText" class="gdlo-input" placeholder="{lang="gdloadout_add_comment"}" rows="2"></textarea>
-                    <button type="button" class="gdlo-btn gdlo-btn--primary gdlo-btn--sm" id="gdloCommentSubmit">{lang="gdloadout_post_comment"}</button>
-                </div>
+            <div class="gdlo-view-discussion">
+                <h3 class="gdlo-view-comments-title"><i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_discussion"}</h3>
+                {{if $forumTopicUrl}}
+                <p class="gdlo-view-discussion-desc">{lang="gdloadout_discussion_desc"}</p>
+                <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--primary" target="_blank" rel="noopener">
+                    <i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_join_discussion"}{{if $loadout['comment_count'] > 0}} ({$loadout['comment_count']}){{endif}}
+                </a>
+                {{else}}
+                <p class="gdlo-view-discussion-desc">{lang="gdloadout_discussion_none"}</p>
+                {{endif}}
             </div>
         </div>
 
@@ -264,16 +260,6 @@ $templates[] = [
                 </form>
                 {{endif}}
 
-                <div class="gdlo-view-summary-extras">
-                    {{if $forumTopicUrl}}
-                    <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" target="_blank"><i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_view_discussion"}</a>
-                    {{else}}
-                        {{if $canShareForum}}
-                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloShareForumBtn"><i class="fa-solid fa-share" aria-hidden="true"></i> {lang="gdloadout_share_to_forum"}</button>
-                        {{endif}}
-                    {{endif}}
-                </div>
-
                 {{if $compliance['has_issues']}}
                 <div class="gdlo-view-compliance gdlo-compliance--warn">
                     <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
@@ -294,7 +280,7 @@ $templates[] = [
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.32',
+	'template_version' => '1.0.33',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];

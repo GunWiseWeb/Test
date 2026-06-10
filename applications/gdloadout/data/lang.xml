@@ -145,5 +145,9 @@
 <word key="gdloadout_parts" js="0"><![CDATA[parts]]></word>
 <word key="gdloadout_no_price_yet" js="0"><![CDATA[No price yet]]></word>
 <word key="gdloadout_copy_private" js="0"><![CDATA[Private loadouts cannot be copied]]></word>
+<word key="gdloadout_discussion" js="0"><![CDATA[Discussion]]></word>
+<word key="gdloadout_discussion_desc" js="0"><![CDATA[Join the conversation in the forum. Report posts, follow the topic, and get native notifications.]]></word>
+<word key="gdloadout_join_discussion" js="0"><![CDATA[Join Discussion]]></word>
+<word key="gdloadout_discussion_none" js="0"><![CDATA[Discussion is not available for this loadout.]]></word>
 </app>
 </language>

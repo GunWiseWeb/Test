@@ -10,7 +10,6 @@
     var loadoutId = initData.loadoutId || 0;
     var upvoteUrl = initData.upvoteUrl || '';
     var followUrl = initData.followUrl || '';
-    var commentUrl = initData.commentUrl || '';
     var wishlistUrl = initData.wishlistUrl || '';
     var alertUrl = initData.alertUrl || '';
     var csrfKey = initData.csrfKey || '';
@@ -18,18 +17,12 @@
     var hasFollowed = initData.hasFollowed || false;
     var isLoggedIn = initData.isLoggedIn || false;
 
-    var shareUrl = initData.shareUrl || '';
-
     var upvoteBtn = document.getElementById('gdloUpvoteBtn');
     var upvoteCount = document.getElementById('gdloUpvoteCount');
     var followBtn = document.getElementById('gdloFollowBtn');
     var followCount = document.getElementById('gdloFollowCount');
     var wishlistBtn = document.getElementById('gdloWishlistBtn');
     var alertBtn = document.getElementById('gdloAlertBtn');
-    var shareForumBtn = document.getElementById('gdloShareForumBtn');
-    var commentText = document.getElementById('gdloCommentText');
-    var commentSubmit = document.getElementById('gdloCommentSubmit');
-    var commentList = document.getElementById('gdloCommentList');
 
     function postAction(url, extraData, callback) {
         if (!isLoggedIn) { alert('Please log in'); return; }
@@ -89,49 +82,5 @@
                 }
             });
         });
-    }
-
-    if (shareForumBtn && shareUrl) {
-        shareForumBtn.addEventListener('click', function() {
-            if (shareForumBtn.disabled) return;
-            shareForumBtn.disabled = true;
-            shareForumBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sharing...';
-            postAction(shareUrl, null, function(data) {
-                if (data.ok && data.topic_url) {
-                    var link = document.createElement('a');
-                    link.href = data.topic_url;
-                    link.className = 'gdlo-btn gdlo-btn--secondary gdlo-btn--full';
-                    link.target = '_blank';
-                    link.innerHTML = '<i class="fa-solid fa-comments"></i> View Discussion';
-                    shareForumBtn.parentNode.replaceChild(link, shareForumBtn);
-                } else {
-                    shareForumBtn.disabled = false;
-                    shareForumBtn.innerHTML = '<i class="fa-solid fa-share"></i> Share to Forum';
-                    alert(data.error || 'Failed to share');
-                }
-            });
-        });
-    }
-
-    if (commentSubmit && commentText) {
-        commentSubmit.addEventListener('click', function() {
-            var text = commentText.value.trim();
-            if (!text) return;
-            postAction(commentUrl, { comment_text: text }, function(data) {
-                if (data.ok && data.comment) {
-                    var div = document.createElement('div');
-                    div.className = 'gdlo-view-comment';
-                    div.innerHTML = '<strong class="gdlo-view-comment-author">' + escHtml(data.comment.member_name) + '</strong><p class="gdlo-view-comment-body">' + escHtml(data.comment.comment) + '</p>';
-                    commentList.appendChild(div);
-                    commentText.value = '';
-                }
-            });
-        });
-    }
-
-    function escHtml(str) {
-        var div = document.createElement('div');
-        div.appendChild(document.createTextNode(str || ''));
-        return div.innerHTML;
     }
 })();

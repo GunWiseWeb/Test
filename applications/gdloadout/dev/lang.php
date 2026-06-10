@@ -145,4 +145,8 @@ $lang = array(
     'gdloadout_parts' => 'parts',
     'gdloadout_no_price_yet' => 'No price yet',
     'gdloadout_copy_private' => 'Private loadouts cannot be copied',
+    'gdloadout_discussion' => 'Discussion',
+    'gdloadout_discussion_desc' => 'Join the conversation in the forum. Report posts, follow the topic, and get native notifications.',
+    'gdloadout_join_discussion' => 'Join Discussion',
+    'gdloadout_discussion_none' => 'Discussion is not available for this loadout.',
 );

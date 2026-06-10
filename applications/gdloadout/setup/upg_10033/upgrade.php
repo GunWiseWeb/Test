@@ -1,8 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10032;
-
-use function defined;
+namespace IPS\gdloadout\setup\upg_10033;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -14,6 +12,7 @@ class _upgrade
 {
 	public function step1(): bool
 	{
+		// Reseed view template — removed custom comments, added discussion panel (v1.0.33)
 		$viewContent = <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
 
@@ -95,20 +94,16 @@ class _upgrade
                 {{endforeach}}
             </div>
 
-            <div class="gdlo-view-comments" id="gdloComments">
-                <h3 class="gdlo-view-comments-title"><i class="fa-solid fa-comments"></i> {lang="gdloadout_comments"} ({$loadout['comment_count']})</h3>
-                <div class="gdlo-view-comments-list" id="gdloCommentList">
-                    {{foreach $comments as $c}}
-                    <div class="gdlo-view-comment">
-                        <strong class="gdlo-view-comment-author">{$c['member_name']}</strong>
-                        <p class="gdlo-view-comment-body">{$c['comment']}</p>
-                    </div>
-                    {{endforeach}}
-                </div>
-                <div class="gdlo-view-comment-form" id="gdloCommentForm">
-                    <textarea id="gdloCommentText" class="gdlo-input" placeholder="{lang="gdloadout_add_comment"}" rows="2"></textarea>
-                    <button type="button" class="gdlo-btn gdlo-btn--primary gdlo-btn--sm" id="gdloCommentSubmit">{lang="gdloadout_post_comment"}</button>
-                </div>
+            <div class="gdlo-view-discussion">
+                <h3 class="gdlo-view-comments-title"><i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_discussion"}</h3>
+                {{if $forumTopicUrl}}
+                <p class="gdlo-view-discussion-desc">{lang="gdloadout_discussion_desc"}</p>
+                <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--primary" target="_blank" rel="noopener">
+                    <i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_join_discussion"}{{if $loadout['comment_count'] > 0}} ({$loadout['comment_count']}){{endif}}
+                </a>
+                {{else}}
+                <p class="gdlo-view-discussion-desc">{lang="gdloadout_discussion_none"}</p>
+                {{endif}}
             </div>
         </div>
 
@@ -155,16 +150,6 @@ class _upgrade
                 </form>
                 {{endif}}
 
-                <div class="gdlo-view-summary-extras">
-                    {{if $forumTopicUrl}}
-                    <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" target="_blank"><i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_view_discussion"}</a>
-                    {{else}}
-                        {{if $canShareForum}}
-                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloShareForumBtn"><i class="fa-solid fa-share" aria-hidden="true"></i> {lang="gdloadout_share_to_forum"}</button>
-                        {{endif}}
-                    {{endif}}
-                </div>
-
                 {{if $compliance['has_issues']}}
                 <div class="gdlo-view-compliance gdlo-compliance--warn">
                     <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
@@ -188,97 +173,53 @@ TEMPLATE_EOT;
 		try
 		{
 			\IPS\Db::i()->replace( 'core_theme_templates', [
-				'template_set_id'        => 1,
-				'template_app'           => 'gdloadout',
-				'template_location'      => 'front',
-				'template_group'         => 'loadouts',
-				'template_name'          => 'view',
-				'template_data'          => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey',
-				'template_content'       => $viewContent,
-				'template_updated'       => time(),
-				'template_version'       => '1.0.32',
-				'template_master_key'    => '',
+				'template_set_id'       => 1,
+				'template_app'          => 'gdloadout',
+				'template_location'     => 'front',
+				'template_group'        => 'loadouts',
+				'template_name'         => 'view',
+				'template_data'         => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey',
+				'template_content'      => $viewContent,
+				'template_updated'      => time(),
+				'template_version'      => '1.0.33',
+				'template_master_key'   => '',
 				'template_has_hookpoints' => 0,
 			] );
 		}
 		catch ( \Throwable ) {}
 
-		$myContent = <<<'TEMPLATE_EOT'
-<div class="gdlo-hub">
-    <div class="gdlo-hub-hero">
-        <div class="gdlo-hub-hero-text">
-            <h1 class="gdlo-hub-title">{lang="gdloadout_my_loadouts_title"}</h1>
-            <p class="gdlo-hub-subtitle">{lang="gdloadout_my_loadouts_subtitle"}</p>
-        </div>
-        <a href="{$builderUrl}" class="gdlo-btn gdlo-btn--primary"><i class="fa-solid fa-plus"></i> {lang="gdloadout_new_loadout"}</a>
-    </div>
-
-    {{if count($loadouts) === 0}}
-    <div class="gdlo-empty">
-        <i class="fa-solid fa-layer-group"></i>
-        <h3>{lang="gdloadout_no_loadouts_yet"}</h3>
-        <p>{lang="gdloadout_no_loadouts_desc"}</p>
-        <a href="{$builderUrl}" class="gdlo-btn gdlo-btn--primary">{lang="gdloadout_create_first"}</a>
-    </div>
-    {{else}}
-    <div class="gdlo-hub-grid">
-        {{foreach $loadouts as $loadout}}
-        <div class="gdlo-hub-card">
-            <a href="{$loadout['view_url']}" class="gdlo-hub-card-imglink">
-                <div class="gdlo-hub-card-img">
-                    {{if $loadout['base_image']}}<img src="{$loadout['base_image']}" alt="{$loadout['name']}" loading="lazy" onerror="this.style.display='none';this.parentNode.querySelector('.gdlo-hub-card-noimg').style.display='flex'">{{endif}}
-                    <i class="fa-solid fa-crosshairs gdlo-hub-card-noimg" {{if $loadout['base_image']}}style="display:none"{{endif}} aria-hidden="true"></i>
-                </div>
-            </a>
-            <div class="gdlo-hub-card-body">
-                <a href="{$loadout['view_url']}" class="gdlo-hub-card-name">{$loadout['name']}</a>
-                <div class="gdlo-hub-card-meta">
-                    {{if $loadout['use_case']}}<span class="gdlo-hub-tag">{$loadout['use_case']}</span>{{endif}}
-                    {{if $loadout['visibility'] === 'private'}}<span class="gdlo-hub-card-badge" title="Private"><i class="fa-solid fa-lock"></i></span>{{endif}}
-                    {{if $loadout['visibility'] === 'unlisted'}}<span class="gdlo-hub-card-badge" title="Unlisted"><i class="fa-solid fa-eye-slash"></i></span>{{endif}}
-                </div>
-                {{if $loadout['total_min_price'] > 0}}
-                <div class="gdlo-hub-price"><span class="gdlo-hub-price-val">{expression="'$' . number_format((float)$loadout['total_min_price'], 2)"}</span><span class="gdlo-hub-price-parts">{$loadout['total_items']} {lang="gdloadout_parts"}</span></div>
-                {{else}}
-                <div class="gdlo-hub-price"><span class="gdlo-hub-price-na">{lang="gdloadout_no_price_yet"}</span><span class="gdlo-hub-price-parts">{$loadout['total_items']} {lang="gdloadout_parts"}</span></div>
-                {{endif}}
-                <div class="gdlo-hub-card-stats">
-                    <span aria-label="Upvotes" title="Upvotes"><i class="fa-solid fa-heart" aria-hidden="true"></i> {$loadout['upvotes']}</span>
-                    <span aria-label="Views" title="Views"><i class="fa-solid fa-eye" aria-hidden="true"></i> {$loadout['view_count']}</span>
-                </div>
-            </div>
-            <div class="gdlo-hub-actions">
-                <a href="{$loadout['edit_url']}" class="gdlo-hub-btn gdlo-hub-btn--view"><i class="fa-solid fa-pen" aria-hidden="true"></i> Edit</a>
-                <form method="post" action="{$loadout['delete_url']}" onsubmit="return confirm('Delete this loadout?');" style="flex:0 0 auto;margin:0;">
-                    <input type="hidden" name="csrfKey" value="{$csrfKey}">
-                    <button type="submit" class="gdlo-hub-btn gdlo-hub-btn--danger" aria-label="Delete loadout" title="Delete loadout"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
-                </form>
-            </div>
-        </div>
-        {{endforeach}}
-    </div>
-    {{endif}}
-</div>
-TEMPLATE_EOT;
+		// Seed 4 new lang strings for existing installs (rule #43 6-col schema, rule #44 per-row catch)
+		$newStrings = [
+			'gdloadout_discussion'      => 'Discussion',
+			'gdloadout_discussion_desc' => 'Join the conversation in the forum. Report posts, follow the topic, and get native notifications.',
+			'gdloadout_join_discussion'  => 'Join Discussion',
+			'gdloadout_discussion_none'  => 'Discussion is not available for this loadout.',
+		];
 
 		try
 		{
-			\IPS\Db::i()->replace( 'core_theme_templates', [
-				'template_set_id'        => 1,
-				'template_app'           => 'gdloadout',
-				'template_location'      => 'front',
-				'template_group'         => 'loadouts',
-				'template_name'          => 'myLoadouts',
-				'template_data'          => '$loadouts, $builderUrl, $csrfKey',
-				'template_content'       => $myContent,
-				'template_updated'       => time(),
-				'template_version'       => '1.0.32',
-				'template_master_key'    => '',
-				'template_has_hookpoints' => 0,
-			] );
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gdloadout',
+							'word_key'     => $key,
+							'word_default' => $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
 		}
 		catch ( \Throwable ) {}
 
+		// Clear caches
 		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); }            catch ( \Throwable ) {}

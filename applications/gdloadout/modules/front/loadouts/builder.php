@@ -322,6 +322,16 @@ class _builder extends \IPS\Dispatcher\Controller
 			'total_min_price' => $totalCost > 0 ? round( $totalCost, 2 ) : NULL,
 		], [ 'id=?', (int) $loadoutId ] );
 
+		if ( \in_array( $visibility, [ 'public', 'unlisted' ], true ) )
+		{
+			try
+			{
+				$savedRow = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', (int) $loadoutId ] )->first();
+				_hub::ensureForumTopic( $savedRow );
+			}
+			catch ( \Throwable ) {}
+		}
+
 		$ownerName = $member->name ?? 'user';
 		$loadoutSlug = $uniqueSlug ?? $slug;
 		$viewUrl = (string) Url::internal(
