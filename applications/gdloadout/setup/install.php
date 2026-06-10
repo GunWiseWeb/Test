@@ -122,7 +122,7 @@ $templates[] = [
 	'template_location' => 'front',
 	'template_group' => 'loadouts',
 	'template_name' => 'view',
-	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey',
+	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl',
 	'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
 
@@ -204,6 +204,60 @@ $templates[] = [
                 {{endforeach}}
             </div>
 
+            {{if $isOwner}}
+            {{if $pendingSuggestionCount > 0}}
+            <div class="gdlo-suggest-panel" id="gdloSuggestionsPanel">
+                <h3 class="gdlo-suggest-panel-title"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> {lang="gdloadout_suggestions_pending"} ({$pendingSuggestionCount})</h3>
+                {{foreach $suggestions as $sug}}
+                <div class="gdlo-suggestion-card">
+                    <div class="gdlo-suggestion-from"><i class="fa-solid fa-user" aria-hidden="true"></i> {$sug['from_name']} &mdash; {$sug['slot_type']}</div>
+                    <div class="gdlo-suggestion-swap">
+                        <div class="gdlo-suggestion-part">
+                            {{if $sug['current_image']}}<img src="{$sug['current_image']}" alt="" class="gdlo-suggestion-img" />{{else}}<div class="gdlo-suggestion-img-ph"><i class="fa-solid fa-cube"></i></div>{{endif}}
+                            <span class="gdlo-suggestion-part-title">{$sug['current_title']}</span>
+                        </div>
+                        <span class="gdlo-suggestion-arrow"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                        <div class="gdlo-suggestion-part">
+                            {{if $sug['sug_image']}}<img src="{$sug['sug_image']}" alt="" class="gdlo-suggestion-img" />{{else}}<div class="gdlo-suggestion-img-ph"><i class="fa-solid fa-cube"></i></div>{{endif}}
+                            <span class="gdlo-suggestion-part-title">{$sug['sug_title']}</span>
+                            {{if $sug['sug_price']}}<span class="gdlo-suggestion-price">{expression="'$' . number_format((float)$sug['sug_price'], 2)"}</span>{{endif}}
+                        </div>
+                    </div>
+                    {{if $sug['message']}}<div class="gdlo-suggestion-msg">{$sug['message']}</div>{{endif}}
+                    <div class="gdlo-suggestion-actions">
+                        <form method="post" action="{$acceptSugUrl}" style="display:inline"><input type="hidden" name="csrfKey" value="{$csrfKey}" /><input type="hidden" name="suggestion_id" value="{$sug['id']}" /><button type="submit" class="gdlo-btn gdlo-btn--primary gdlo-btn--sm"><i class="fa-solid fa-check"></i> {lang="gdloadout_suggestion_accept"}</button></form>
+                        <form method="post" action="{$rejectSugUrl}" style="display:inline"><input type="hidden" name="csrfKey" value="{$csrfKey}" /><input type="hidden" name="suggestion_id" value="{$sug['id']}" /><button type="submit" class="gdlo-btn gdlo-btn--sm"><i class="fa-solid fa-xmark"></i> {lang="gdloadout_suggestion_reject"}</button></form>
+                    </div>
+                </div>
+                {{endforeach}}
+            </div>
+            {{endif}}
+            {{endif}}
+
+            {{if $canSuggest}}
+            <div class="gdlo-suggest-panel" id="gdloSuggestForm">
+                <h3 class="gdlo-suggest-panel-title"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> {lang="gdloadout_suggest_swap"}</h3>
+                <div class="gdlo-suggest-form">
+                    <div class="gdlo-suggest-field">
+                        <label class="gdlo-suggest-label">{lang="gdloadout_suggest_pick_slot"}</label>
+                        <select id="gdloSuggestSlot" class="gdlo-select"></select>
+                    </div>
+                    <div class="gdlo-suggest-field">
+                        <label class="gdlo-suggest-label">{lang="gdloadout_suggest_pick_product"}</label>
+                        <input type="text" id="gdloSuggestSearch" class="gdlo-input" placeholder="{lang="gdloadout_modal_search"}" autocomplete="off" />
+                        <div id="gdloSuggestResults" class="gdlo-suggest-results" style="display:none"></div>
+                        <div id="gdloSuggestSelected" class="gdlo-suggest-selected" style="display:none"></div>
+                    </div>
+                    <div class="gdlo-suggest-field">
+                        <label class="gdlo-suggest-label">{lang="gdloadout_suggest_message"}</label>
+                        <textarea id="gdloSuggestMessage" class="gdlo-input" rows="2" maxlength="500"></textarea>
+                    </div>
+                    <button type="button" id="gdloSuggestSubmit" class="gdlo-btn gdlo-btn--primary"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> {lang="gdloadout_suggest_submit"}</button>
+                    <div id="gdloSuggestStatus" class="gdlo-suggest-status" style="display:none"></div>
+                </div>
+            </div>
+            {{endif}}
+
             <div class="gdlo-view-discussion">
                 <h3 class="gdlo-view-comments-title"><i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_discussion"}</h3>
                 {{if $forumTopicUrl}}
@@ -280,7 +334,7 @@ $templates[] = [
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.33',
+	'template_version' => '1.0.34',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];
@@ -681,6 +735,8 @@ $notifDefaults = [
 	[ 'notification_app' => 'gdloadout', 'notification_key' => 'loadout_updated', 'default' => '["inline"]' ],
 	[ 'notification_app' => 'gdloadout', 'notification_key' => 'loadout_upvoted', 'default' => '["inline"]' ],
 	[ 'notification_app' => 'gdloadout', 'notification_key' => 'loadout_followed', 'default' => '["inline"]' ],
+	[ 'notification_app' => 'gdloadout', 'notification_key' => 'suggestion_received', 'default' => '["inline"]' ],
+	[ 'notification_app' => 'gdloadout', 'notification_key' => 'suggestion_resolved', 'default' => '["inline"]' ],
 ];
 
 foreach ( $notifDefaults as $nd )
@@ -760,6 +816,31 @@ try
 	}
 }
 catch ( \Throwable ) {}
+
+// Seed suggestion settings
+$suggestSettings = [
+	[ 'conf_key' => 'gdloadout_suggest_mode',      'conf_default' => 'anyone', 'conf_value' => 'anyone' ],
+	[ 'conf_key' => 'gdloadout_suggest_groups',     'conf_default' => '',       'conf_value' => ''       ],
+	[ 'conf_key' => 'gdloadout_suggest_min_posts',  'conf_default' => '0',      'conf_value' => '0'      ],
+	[ 'conf_key' => 'gdloadout_suggest_min_rep',    'conf_default' => '0',      'conf_value' => '0'      ],
+];
+foreach ( $suggestSettings as $ss )
+{
+	try
+	{
+		$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_sys_conf_settings', [ 'conf_key=?', $ss['conf_key'] ] )->first();
+		if ( $exists === 0 )
+		{
+			\IPS\Db::i()->insert( 'core_sys_conf_settings', [
+				'conf_key'     => $ss['conf_key'],
+				'conf_value'   => $ss['conf_value'],
+				'conf_default' => $ss['conf_default'],
+				'conf_app'     => 'gdloadout',
+			] );
+		}
+	}
+	catch ( \Throwable ) {}
+}
 
 // Seed default group limits for every group that doesn't already have one
 try

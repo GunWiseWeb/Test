@@ -1070,6 +1070,41 @@
 	setMode(buildMode);
 	initPlatformChips();
 	initFromExisting();
+
+	/* ===== Apply Suggestion ===== */
+	(function applySuggestion() {
+		var params = new URLSearchParams(window.location.search);
+		var applySlot = params.get('apply_slot');
+		var applyUpc = params.get('apply_upc');
+		if (!applySlot || !applyUpc || !loadoutId) return;
+
+		ensureSlot(applySlot);
+		slots[applySlot].upc = applyUpc;
+		slots[applySlot].title = 'Loading...';
+		slots[applySlot].price = null;
+		slots[applySlot].image = '';
+
+		var sep = searchUrl.indexOf('?') === -1 ? '?' : '&';
+		fetch(searchUrl + sep + 'q=' + encodeURIComponent(applyUpc), { credentials: 'same-origin' })
+			.then(function(r) { return r.json(); })
+			.then(function(data) {
+				var results = data.results || [];
+				for (var i = 0; i < results.length; i++) {
+					if (results[i].upc === applyUpc) {
+						slots[applySlot].title = results[i].title || applyUpc;
+						slots[applySlot].price = results[i].best_price || null;
+						slots[applySlot].image = results[i].image_url || '';
+						break;
+					}
+				}
+				renderCoreGrid();
+				renderAccGrid();
+				renderExtraGrid();
+				updateAllSummaries();
+			})
+			.catch(function() {});
+	})();
+
 	updateModeLock();
 	goToStep(1);
 })();

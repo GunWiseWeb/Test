@@ -149,5 +149,36 @@
 <word key="gdloadout_discussion_desc" js="0"><![CDATA[Join the conversation in the forum. Report posts, follow the topic, and get native notifications.]]></word>
 <word key="gdloadout_join_discussion" js="0"><![CDATA[Join Discussion]]></word>
 <word key="gdloadout_discussion_none" js="0"><![CDATA[Discussion is not available for this loadout.]]></word>
+<word key="gdloadout_suggest_swap" js="0"><![CDATA[Suggest a Swap]]></word>
+<word key="gdloadout_suggest_pick_slot" js="0"><![CDATA[Slot to swap]]></word>
+<word key="gdloadout_suggest_pick_product" js="0"><![CDATA[Replacement product]]></word>
+<word key="gdloadout_suggest_message" js="0"><![CDATA[Note (optional)]]></word>
+<word key="gdloadout_suggest_submit" js="0"><![CDATA[Send Suggestion]]></word>
+<word key="gdloadout_suggestions_pending" js="0"><![CDATA[Suggestions]]></word>
+<word key="gdloadout_suggestion_accept" js="0"><![CDATA[Accept]]></word>
+<word key="gdloadout_suggestion_reject" js="0"><![CDATA[Reject]]></word>
+<word key="gdloadout_suggestion_from" js="0"><![CDATA[Suggestion from]]></word>
+<word key="gdloadout_suggest_thanks" js="0"><![CDATA[Suggestion sent! The owner will be notified.]]></word>
+<word key="gdloadout_suggest_not_eligible" js="0"><![CDATA[You are not eligible to suggest swaps on this loadout.]]></word>
+<word key="gdloadout_suggest_mode" js="0"><![CDATA[Suggestion Eligibility Mode]]></word>
+<word key="gdloadout_suggest_mode_desc" js="0"><![CDATA[Who can suggest slot swaps on loadouts]]></word>
+<word key="gdloadout_suggest_mode_anyone" js="0"><![CDATA[Anyone (logged in)]]></word>
+<word key="gdloadout_suggest_mode_group" js="0"><![CDATA[Specific groups only]]></word>
+<word key="gdloadout_suggest_mode_threshold" js="0"><![CDATA[Post/rep threshold]]></word>
+<word key="gdloadout_suggest_mode_owner_toggle" js="0"><![CDATA[Owner controls per loadout]]></word>
+<word key="gdloadout_suggest_groups" js="0"><![CDATA[Eligible Group IDs]]></word>
+<word key="gdloadout_suggest_groups_desc" js="0"><![CDATA[Comma-separated group IDs eligible to suggest (when mode = group)]]></word>
+<word key="gdloadout_suggest_min_posts" js="0"><![CDATA[Minimum Posts]]></word>
+<word key="gdloadout_suggest_min_posts_desc" js="0"><![CDATA[Minimum post count to suggest (when mode = threshold)]]></word>
+<word key="gdloadout_suggest_min_rep" js="0"><![CDATA[Minimum Reputation]]></word>
+<word key="gdloadout_suggest_min_rep_desc" js="0"><![CDATA[Minimum reputation points to suggest (when mode = threshold)]]></word>
+<word key="gdloadout_suggestions_open" js="0"><![CDATA[Accept Suggestions]]></word>
+<word key="gdloadout_suggestions_open_desc" js="0"><![CDATA[Allow other users to suggest slot swaps on this loadout]]></word>
+<word key="gdloadout_notify_suggestion_received" js="0"><![CDATA[New suggestion on your loadout]]></word>
+<word key="gdloadout_notify_suggestion_resolved" js="0"><![CDATA[Your suggestion was resolved]]></word>
+<word key="gdloadout_notif_suggestion_received" js="0"><![CDATA[New suggestion received]]></word>
+<word key="gdloadout_notif_suggestion_received_desc" js="0"><![CDATA[Get notified when someone suggests a swap on your loadout]]></word>
+<word key="gdloadout_notif_suggestion_resolved" js="0"><![CDATA[Suggestion resolved]]></word>
+<word key="gdloadout_notif_suggestion_resolved_desc" js="0"><![CDATA[Get notified when an owner accepts or rejects your suggestion]]></word>
 </app>
 </language>

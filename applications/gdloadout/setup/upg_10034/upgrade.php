@@ -1,4 +1,175 @@
-<ips:template parameters="$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl" />
+<?php
+
+namespace IPS\gdloadout\setup\upg_10034;
+
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$prefix = \IPS\Db::i()->prefix;
+
+		// 1. Create gd_loadout_suggestions table (idempotent)
+		if ( !\IPS\Db::i()->checkForTable( 'gd_loadout_suggestions' ) )
+		{
+			\IPS\Db::i()->createTable( [
+				'name'    => 'gd_loadout_suggestions',
+				'columns' => [
+					[
+						'name'           => 'id',
+						'type'           => 'BIGINT',
+						'length'         => 20,
+						'unsigned'       => true,
+						'auto_increment' => true,
+						'allow_null'     => false,
+					],
+					[
+						'name'       => 'loadout_id',
+						'type'       => 'BIGINT',
+						'length'     => 20,
+						'unsigned'   => true,
+						'allow_null' => false,
+					],
+					[
+						'name'       => 'from_member',
+						'type'       => 'BIGINT',
+						'length'     => 20,
+						'unsigned'   => true,
+						'allow_null' => false,
+					],
+					[
+						'name'       => 'slot_type',
+						'type'       => 'VARCHAR',
+						'length'     => 30,
+						'allow_null' => false,
+						'default'    => '',
+					],
+					[
+						'name'       => 'suggested_upc',
+						'type'       => 'VARCHAR',
+						'length'     => 20,
+						'allow_null' => false,
+						'default'    => '',
+					],
+					[
+						'name'       => 'message',
+						'type'       => 'VARCHAR',
+						'length'     => 500,
+						'allow_null' => true,
+						'default'    => null,
+					],
+					[
+						'name'       => 'status',
+						'type'       => 'VARCHAR',
+						'length'     => 12,
+						'allow_null' => false,
+						'default'    => 'pending',
+					],
+					[
+						'name'       => 'created_at',
+						'type'       => 'INT',
+						'length'     => 10,
+						'unsigned'   => true,
+						'allow_null' => false,
+						'default'    => 0,
+					],
+					[
+						'name'       => 'resolved_at',
+						'type'       => 'INT',
+						'length'     => 10,
+						'unsigned'   => true,
+						'allow_null' => true,
+						'default'    => null,
+					],
+				],
+				'indexes' => [
+					[
+						'type'    => 'primary',
+						'name'    => 'PRIMARY',
+						'columns' => [ 'id' ],
+						'length'  => [ null ],
+					],
+					[
+						'type'    => 'key',
+						'name'    => 'loadout_id',
+						'columns' => [ 'loadout_id' ],
+						'length'  => [ null ],
+					],
+					[
+						'type'    => 'key',
+						'name'    => 'from_member',
+						'columns' => [ 'from_member' ],
+						'length'  => [ null ],
+					],
+					[
+						'type'    => 'key',
+						'name'    => 'status',
+						'columns' => [ 'status' ],
+						'length'  => [ null ],
+					],
+				],
+			] );
+		}
+
+		// 2. Add suggestions_open column to gd_loadouts (idempotent)
+		if ( !\IPS\Db::i()->checkForColumn( 'gd_loadouts', 'suggestions_open' ) )
+		{
+			\IPS\Db::i()->addColumn( 'gd_loadouts', [
+				'name'       => 'suggestions_open',
+				'type'       => 'TINYINT',
+				'length'     => 1,
+				'unsigned'   => true,
+				'allow_null' => false,
+				'default'    => 1,
+			] );
+		}
+
+		// 3. Seed suggestion settings (idempotent)
+		$suggestSettings = [
+			[ 'conf_key' => 'gdloadout_suggest_mode',      'conf_default' => 'anyone', 'conf_value' => 'anyone' ],
+			[ 'conf_key' => 'gdloadout_suggest_groups',     'conf_default' => '',       'conf_value' => ''       ],
+			[ 'conf_key' => 'gdloadout_suggest_min_posts',  'conf_default' => '0',      'conf_value' => '0'      ],
+			[ 'conf_key' => 'gdloadout_suggest_min_rep',    'conf_default' => '0',      'conf_value' => '0'      ],
+		];
+		foreach ( $suggestSettings as $ss )
+		{
+			try
+			{
+				$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_sys_conf_settings', [ 'conf_key=?', $ss['conf_key'] ] )->first();
+				if ( $exists === 0 )
+				{
+					\IPS\Db::i()->insert( 'core_sys_conf_settings', [
+						'conf_key'     => $ss['conf_key'],
+						'conf_value'   => $ss['conf_value'],
+						'conf_default' => $ss['conf_default'],
+						'conf_app'     => 'gdloadout',
+					] );
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		// 4. Seed notification defaults for suggestion_received and suggestion_resolved
+		$notifDefaults = [
+			[ 'notification_app' => 'gdloadout', 'notification_key' => 'suggestion_received', 'default' => '["inline"]' ],
+			[ 'notification_app' => 'gdloadout', 'notification_key' => 'suggestion_resolved', 'default' => '["inline"]' ],
+		];
+		foreach ( $notifDefaults as $nd )
+		{
+			try
+			{
+				\IPS\Db::i()->replace( 'core_notification_defaults', $nd );
+			}
+			catch ( \Throwable ) {}
+		}
+
+		// 5. Reseed the view template with suggestion UI (rule #28 — nowdoc, byte-for-byte match)
+		$viewContent = <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
 
     <div class="gdlo-view-header">
@@ -207,3 +378,91 @@
         </div>
     </div>
 </div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'       => 1,
+				'template_app'          => 'gdloadout',
+				'template_location'     => 'front',
+				'template_group'        => 'loadouts',
+				'template_name'         => 'view',
+				'template_data'         => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl',
+				'template_content'      => $viewContent,
+				'template_updated'      => time(),
+				'template_version'      => '1.0.34',
+				'template_master_key'   => '',
+				'template_has_hookpoints' => 0,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		// 6. Seed new lang strings (rule #43 6-col schema, rule #44 per-row try/catch)
+		$newStrings = [
+			'gdloadout_suggest_swap'                   => 'Suggest a Swap',
+			'gdloadout_suggest_pick_slot'              => 'Slot to swap',
+			'gdloadout_suggest_pick_product'           => 'Replacement product',
+			'gdloadout_suggest_message'                => 'Note (optional)',
+			'gdloadout_suggest_submit'                 => 'Send Suggestion',
+			'gdloadout_suggestions_pending'            => 'Suggestions',
+			'gdloadout_suggestion_accept'              => 'Accept',
+			'gdloadout_suggestion_reject'              => 'Reject',
+			'gdloadout_suggestion_from'                => 'Suggestion from',
+			'gdloadout_suggest_thanks'                 => 'Suggestion sent! The owner will be notified.',
+			'gdloadout_suggest_not_eligible'           => 'You are not eligible to suggest swaps on this loadout.',
+			'gdloadout_suggest_mode'                   => 'Suggestion Eligibility Mode',
+			'gdloadout_suggest_mode_desc'              => 'Who can suggest slot swaps on loadouts',
+			'gdloadout_suggest_mode_anyone'            => 'Anyone (logged in)',
+			'gdloadout_suggest_mode_group'             => 'Specific groups only',
+			'gdloadout_suggest_mode_threshold'         => 'Post/rep threshold',
+			'gdloadout_suggest_mode_owner_toggle'      => 'Owner controls per loadout',
+			'gdloadout_suggest_groups'                 => 'Eligible Group IDs',
+			'gdloadout_suggest_groups_desc'            => 'Comma-separated group IDs eligible to suggest (when mode = group)',
+			'gdloadout_suggest_min_posts'              => 'Minimum Posts',
+			'gdloadout_suggest_min_posts_desc'         => 'Minimum post count to suggest (when mode = threshold)',
+			'gdloadout_suggest_min_rep'                => 'Minimum Reputation',
+			'gdloadout_suggest_min_rep_desc'           => 'Minimum reputation points to suggest (when mode = threshold)',
+			'gdloadout_suggestions_open'               => 'Accept Suggestions',
+			'gdloadout_suggestions_open_desc'          => 'Allow other users to suggest slot swaps on this loadout',
+			'gdloadout_notify_suggestion_received'     => 'New suggestion on your loadout',
+			'gdloadout_notify_suggestion_resolved'     => 'Your suggestion was resolved',
+			'gdloadout_notif_suggestion_received'      => 'New suggestion received',
+			'gdloadout_notif_suggestion_received_desc' => 'Get notified when someone suggests a swap on your loadout',
+			'gdloadout_notif_suggestion_resolved'      => 'Suggestion resolved',
+			'gdloadout_notif_suggestion_resolved_desc' => 'Get notified when an owner accepts or rejects your suggestion',
+		];
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gdloadout',
+							'word_key'     => $key,
+							'word_default' => $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		// 7. Clear caches
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }            catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

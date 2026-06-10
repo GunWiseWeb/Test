@@ -152,6 +152,14 @@
                 "allow_null": true,
                 "default": null,
                 "name": "platform"
+            },
+            "suggestions_open": {
+                "type": "TINYINT",
+                "length": 1,
+                "unsigned": true,
+                "allow_null": false,
+                "default": 1,
+                "name": "suggestions_open"
             }
         },
         "indexes": {
@@ -596,5 +604,118 @@
             }
         },
         "name": "gd_loadout_group_limits"
+    },
+    "gd_loadout_suggestions": {
+        "columns": {
+            "id": {
+                "type": "BIGINT",
+                "length": 20,
+                "unsigned": true,
+                "auto_increment": true,
+                "allow_null": false,
+                "name": "id"
+            },
+            "loadout_id": {
+                "type": "BIGINT",
+                "length": 20,
+                "unsigned": true,
+                "allow_null": false,
+                "name": "loadout_id"
+            },
+            "from_member": {
+                "type": "BIGINT",
+                "length": 20,
+                "unsigned": true,
+                "allow_null": false,
+                "name": "from_member"
+            },
+            "slot_type": {
+                "type": "VARCHAR",
+                "length": 30,
+                "allow_null": false,
+                "default": "",
+                "name": "slot_type"
+            },
+            "suggested_upc": {
+                "type": "VARCHAR",
+                "length": 20,
+                "allow_null": false,
+                "default": "",
+                "name": "suggested_upc"
+            },
+            "message": {
+                "type": "VARCHAR",
+                "length": 500,
+                "allow_null": true,
+                "default": null,
+                "name": "message"
+            },
+            "status": {
+                "type": "VARCHAR",
+                "length": 12,
+                "allow_null": false,
+                "default": "pending",
+                "name": "status"
+            },
+            "created_at": {
+                "type": "INT",
+                "length": 10,
+                "unsigned": true,
+                "allow_null": false,
+                "default": 0,
+                "name": "created_at"
+            },
+            "resolved_at": {
+                "type": "INT",
+                "length": 10,
+                "unsigned": true,
+                "allow_null": true,
+                "default": null,
+                "name": "resolved_at"
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [
+                    null
+                ],
+                "columns": [
+                    "id"
+                ]
+            },
+            "loadout_id": {
+                "type": "key",
+                "name": "loadout_id",
+                "length": [
+                    null
+                ],
+                "columns": [
+                    "loadout_id"
+                ]
+            },
+            "from_member": {
+                "type": "key",
+                "name": "from_member",
+                "length": [
+                    null
+                ],
+                "columns": [
+                    "from_member"
+                ]
+            },
+            "status": {
+                "type": "key",
+                "name": "status",
+                "length": [
+                    null
+                ],
+                "columns": [
+                    "status"
+                ]
+            }
+        },
+        "name": "gd_loadout_suggestions"
     }
 }

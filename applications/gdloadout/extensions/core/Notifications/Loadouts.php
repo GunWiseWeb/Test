@@ -23,6 +23,8 @@ class _Loadouts
 					'loadout_updated',
 					'loadout_upvoted',
 					'loadout_followed',
+					'suggestion_received',
+					'suggestion_resolved',
 				],
 			],
 		];
@@ -77,6 +79,42 @@ class _Loadouts
 		return [
 			'title'   => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_notify_loadout_followed' ),
 			'content' => htmlspecialchars( $followerName ) . ' is now following "' . htmlspecialchars( $loadoutName ) . '"',
+			'url'     => $url,
+		];
+	}
+	public function parse_suggestion_received( \IPS\Notification\Inline $notification, $extra ): array
+	{
+		$loadoutName   = $extra['loadout_name'] ?? '';
+		$suggesterName = $extra['suggester_name'] ?? '';
+		$username      = $extra['username'] ?? '';
+		$slug          = $extra['slug'] ?? '';
+		$url = (string) Url::internal(
+			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $username ) . '&slug=' . urlencode( $slug ),
+			'front',
+			'gdloadout_view'
+		);
+		return [
+			'title'   => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_notify_suggestion_received' ),
+			'content' => htmlspecialchars( $suggesterName ) . ' suggested a swap on "' . htmlspecialchars( $loadoutName ) . '"',
+			'url'     => $url,
+		];
+	}
+
+	public function parse_suggestion_resolved( \IPS\Notification\Inline $notification, $extra ): array
+	{
+		$loadoutName = $extra['loadout_name'] ?? '';
+		$action      = $extra['action'] ?? 'resolved';
+		$username    = $extra['username'] ?? '';
+		$slug        = $extra['slug'] ?? '';
+		$url = (string) Url::internal(
+			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $username ) . '&slug=' . urlencode( $slug ),
+			'front',
+			'gdloadout_view'
+		);
+		$verb = $action === 'accepted' ? 'accepted' : 'declined';
+		return [
+			'title'   => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_notify_suggestion_resolved' ),
+			'content' => 'Your suggestion on "' . htmlspecialchars( $loadoutName ) . '" was ' . $verb,
 			'url'     => $url,
 		];
 	}

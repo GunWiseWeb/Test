@@ -456,16 +456,83 @@ class _hub extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
+		$canSuggest = false;
+		if ( $member->member_id && !$isOwner )
+		{
+			$canSuggest = \IPS\gdloadout\Loadout\Loadout::canSuggest( $member, $loadout );
+		}
+
+		$suggestions = [];
+		$pendingSuggestionCount = 0;
+		try
+		{
+			if ( $isOwner )
+			{
+				foreach ( Db::i()->select( '*', 'gd_loadout_suggestions', [ 'loadout_id=? AND status=?', (int) $loadout['id'], 'pending' ], 'created_at DESC' ) as $sug )
+				{
+					$sugFromName = 'Unknown';
+					try { $sugFromName = Member::load( (int) $sug['from_member'] )->name; } catch ( \Throwable ) {}
+
+					$sugProduct = [];
+					try { $sugProduct = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $sug['suggested_upc'] ] )->first(); } catch ( \Throwable ) {}
+
+					$sugPrice = null;
+					try
+					{
+						$p = Db::i()->select( 'MIN(dealer_price) AS best_price', 'gd_dealer_listings', [ 'upc=? AND listing_status=?', $sug['suggested_upc'], 'active' ] )->first();
+						if ( $p['best_price'] !== null && (float) $p['best_price'] > 0 ) $sugPrice = (float) $p['best_price'];
+					}
+					catch ( \Throwable ) {}
+
+					$currentUpc = '';
+					$currentProduct = [];
+					try { $currentUpc = (string) Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=? AND slot_type=?', (int) $loadout['id'], $sug['slot_type'] ] )->first(); } catch ( \Throwable ) {}
+					if ( $currentUpc ) { try { $currentProduct = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $currentUpc ] )->first(); } catch ( \Throwable ) {} }
+
+					$sug['from_name']       = $sugFromName;
+					$sug['sug_title']       = $sugProduct['title'] ?? $sug['suggested_upc'];
+					$sug['sug_brand']       = $sugProduct['brand'] ?? '';
+					$sug['sug_image']       = $sugProduct['image_url'] ?? '';
+					$sug['sug_price']       = $sugPrice;
+					$sug['current_upc']     = $currentUpc;
+					$sug['current_title']   = $currentProduct['title'] ?? $currentUpc;
+					$sug['current_image']   = $currentProduct['image_url'] ?? '';
+					$suggestions[] = $sug;
+				}
+				$pendingSuggestionCount = \count( $suggestions );
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$filledSlots = [];
+		foreach ( $items as $it )
+		{
+			$slotKey = $it['slot_type'] ?? 'extra';
+			if ( !empty( $it['upc'] ) && $slotKey !== 'extra' )
+			{
+				$filledSlots[ $slotKey ] = $it['product_title'] ?: $it['upc'];
+			}
+		}
+
+		$suggestUrl   = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=suggest', 'front' );
+		$acceptSugUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=acceptSuggestion', 'front' );
+		$rejectSugUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=rejectSuggestion', 'front' );
+		$searchUrl    = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=search', 'front', 'gdloadout_builder' );
+
 		$initData = json_encode( [
 			'loadoutId'   => (int) $loadout['id'],
 			'upvoteUrl'   => $upvoteUrl,
 			'followUrl'   => $followUrl,
 			'wishlistUrl' => $wishlistUrl,
 			'alertUrl'    => $alertUrl,
+			'suggestUrl'  => $suggestUrl,
+			'searchUrl'   => $searchUrl,
 			'csrfKey'     => $csrfKey,
 			'hasVoted'    => $hasVoted,
 			'hasFollowed' => $hasFollowed,
 			'isLoggedIn'  => (bool) $member->member_id,
+			'canSuggest'  => $canSuggest,
+			'filledSlots' => $filledSlots,
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		$canCopy = ( (int) $member->member_id && !$isOwner );
@@ -476,7 +543,9 @@ class _hub extends \IPS\Dispatcher\Controller
 		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->view(
 			$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance,
 			$hasVoted, $hasFollowed, $initData, $forumTopicUrl,
-			$canCopy, $copyUrl, $csrfKey
+			$canCopy, $copyUrl, $csrfKey,
+			$canSuggest, $suggestions, $pendingSuggestionCount,
+			$acceptSugUrl, $rejectSugUrl
 		);
 	}
 
@@ -831,6 +900,192 @@ class _hub extends \IPS\Dispatcher\Controller
 		catch ( \Throwable ) {}
 
 		Output::i()->redirect( Url::internal( 'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $newId, 'front', 'gdloadout_builder_edit' ) );
+	}
+
+	protected function suggest(): void
+	{
+		Session::i()->csrfCheck();
+		$member = Member::loggedIn();
+		if ( !$member->member_id ) { Output::i()->json( [ 'error' => 'Login required' ], 403 ); return; }
+
+		$loadoutId = (int) ( Request::i()->loadout_id ?? 0 );
+		if ( !$loadoutId ) { Output::i()->json( [ 'error' => 'Invalid' ], 400 ); return; }
+
+		$loadout = null;
+		try { $loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first(); } catch ( \Throwable ) {}
+		if ( !$loadout ) { Output::i()->json( [ 'error' => 'Not found' ], 404 ); return; }
+
+		if ( !\IPS\gdloadout\Loadout\Loadout::canSuggest( $member, $loadout ) )
+		{
+			Output::i()->json( [ 'error' => 'Not eligible to suggest' ], 403 );
+			return;
+		}
+
+		$slotType     = trim( (string) ( Request::i()->slot_type ?? '' ) );
+		$suggestedUpc = trim( (string) ( Request::i()->suggested_upc ?? '' ) );
+		$message      = trim( (string) ( Request::i()->message ?? '' ) );
+
+		if ( $slotType === '' || $suggestedUpc === '' )
+		{
+			Output::i()->json( [ 'error' => 'Slot and product are required' ], 400 );
+			return;
+		}
+
+		$completeSlots  = [ 'base_firearm', 'optic', 'weapon_light', 'laser', 'suppressor', 'sling', 'rail_mount', 'scope_rings' ];
+		$componentSlots = [ 'lower_receiver', 'upper_receiver', 'barrel', 'handguard', 'muzzle', 'bcg', 'buffer', 'trigger', 'stock', 'grip', 'optic', 'scope_rings', 'rail_mount', 'weapon_light', 'laser', 'suppressor', 'sling' ];
+		$extraSlots     = [ 'magazine', 'holster', 'ear_eye_pro', 'cleaning', 'bipod' ];
+		$validForMode   = array_merge(
+			( ( $loadout['build_mode'] ?? 'complete_firearm' ) === 'component_build' ) ? $componentSlots : $completeSlots,
+			$extraSlots
+		);
+		if ( !\in_array( $slotType, $validForMode, true ) )
+		{
+			Output::i()->json( [ 'error' => 'Invalid slot for this build mode' ], 400 );
+			return;
+		}
+
+		$catalogExists = false;
+		try { Db::i()->select( 'upc', 'gd_catalog', [ 'upc=? AND record_status=?', $suggestedUpc, 'active' ] )->first(); $catalogExists = true; } catch ( \Throwable ) {}
+		if ( !$catalogExists )
+		{
+			Output::i()->json( [ 'error' => 'Product not found in catalog' ], 400 );
+			return;
+		}
+
+		if ( mb_strlen( $message ) > 500 ) $message = mb_substr( $message, 0, 500 );
+
+		Db::i()->insert( 'gd_loadout_suggestions', [
+			'loadout_id'    => $loadoutId,
+			'from_member'   => (int) $member->member_id,
+			'slot_type'     => $slotType,
+			'suggested_upc' => $suggestedUpc,
+			'message'       => $message ?: null,
+			'status'        => 'pending',
+			'created_at'    => time(),
+			'resolved_at'   => null,
+		] );
+
+		try
+		{
+			$ownerId = (int) ( $loadout['member_id'] ?? 0 );
+			if ( $ownerId && $ownerId !== (int) $member->member_id )
+			{
+				$owner = Member::load( $ownerId );
+				$notification = new \IPS\Notification(
+					\IPS\Application::load( 'gdloadout' ), 'suggestion_received', $owner, [ $owner ],
+					[ 'loadout_name' => $loadout['name'] ?? '', 'suggester_name' => $member->name, 'username' => $owner->name ?? '', 'slug' => $loadout['slug'] ?? '' ]
+				);
+				$notification->recipients->attach( $owner );
+				$notification->send();
+			}
+		}
+		catch ( \Throwable ) {}
+
+		Output::i()->json( [ 'ok' => true ] );
+	}
+
+	protected function acceptSuggestion(): void
+	{
+		Session::i()->csrfCheck();
+		$member = Member::loggedIn();
+		if ( !$member->member_id ) { Output::i()->json( [ 'error' => 'Login required' ], 403 ); return; }
+
+		$sugId = (int) ( Request::i()->suggestion_id ?? 0 );
+		if ( !$sugId ) { Output::i()->json( [ 'error' => 'Invalid' ], 400 ); return; }
+
+		$sug = null;
+		try { $sug = Db::i()->select( '*', 'gd_loadout_suggestions', [ 'id=? AND status=?', $sugId, 'pending' ] )->first(); } catch ( \Throwable ) {}
+		if ( !$sug ) { Output::i()->json( [ 'error' => 'Suggestion not found' ], 404 ); return; }
+
+		$loadout = null;
+		try { $loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=? AND member_id=?', (int) $sug['loadout_id'], (int) $member->member_id ] )->first(); } catch ( \Throwable ) {}
+		if ( !$loadout ) { Output::i()->json( [ 'error' => 'Not your loadout' ], 403 ); return; }
+
+		Db::i()->update( 'gd_loadout_suggestions', [ 'status' => 'accepted', 'resolved_at' => time() ], [ 'id=?', $sugId ] );
+
+		try
+		{
+			$suggester = Member::load( (int) $sug['from_member'] );
+			if ( $suggester->member_id )
+			{
+				$ownerName = $member->name ?? 'Unknown';
+				$notification = new \IPS\Notification(
+					\IPS\Application::load( 'gdloadout' ), 'suggestion_resolved', $suggester, [ $suggester ],
+					[ 'loadout_name' => $loadout['name'] ?? '', 'action' => 'accepted', 'username' => $ownerName, 'slug' => $loadout['slug'] ?? '' ]
+				);
+				$notification->recipients->attach( $suggester );
+				$notification->send();
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$builderUrl = (string) Url::internal(
+			'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $loadout['id']
+			. '&apply_slot=' . urlencode( $sug['slot_type'] )
+			. '&apply_upc=' . urlencode( $sug['suggested_upc'] ),
+			'front', 'gdloadout_builder_edit'
+		);
+
+		Output::i()->redirect( Url::external( $builderUrl ) );
+	}
+
+	protected function rejectSuggestion(): void
+	{
+		Session::i()->csrfCheck();
+		$member = Member::loggedIn();
+		if ( !$member->member_id ) { Output::i()->json( [ 'error' => 'Login required' ], 403 ); return; }
+
+		$sugId = (int) ( Request::i()->suggestion_id ?? 0 );
+		if ( !$sugId ) { Output::i()->json( [ 'error' => 'Invalid' ], 400 ); return; }
+
+		$sug = null;
+		try { $sug = Db::i()->select( '*', 'gd_loadout_suggestions', [ 'id=? AND status=?', $sugId, 'pending' ] )->first(); } catch ( \Throwable ) {}
+		if ( !$sug ) { Output::i()->json( [ 'error' => 'Not found' ], 404 ); return; }
+
+		$loadout = null;
+		try { $loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=? AND member_id=?', (int) $sug['loadout_id'], (int) $member->member_id ] )->first(); } catch ( \Throwable ) {}
+		if ( !$loadout ) { Output::i()->json( [ 'error' => 'Not your loadout' ], 403 ); return; }
+
+		Db::i()->update( 'gd_loadout_suggestions', [ 'status' => 'rejected', 'resolved_at' => time() ], [ 'id=?', $sugId ] );
+
+		try
+		{
+			$suggester = Member::load( (int) $sug['from_member'] );
+			if ( $suggester->member_id )
+			{
+				$ownerName = $member->name ?? 'Unknown';
+				$notification = new \IPS\Notification(
+					\IPS\Application::load( 'gdloadout' ), 'suggestion_resolved', $suggester, [ $suggester ],
+					[ 'loadout_name' => $loadout['name'] ?? '', 'action' => 'rejected', 'username' => $ownerName, 'slug' => $loadout['slug'] ?? '' ]
+				);
+				$notification->recipients->attach( $suggester );
+				$notification->send();
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$ownerName = $member->name ?? 'Unknown';
+		Output::i()->redirect( Url::internal(
+			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $loadout['slug'] ?? '' ),
+			'front', 'gdloadout_view'
+		) );
+	}
+
+	protected function withdrawSuggestion(): void
+	{
+		Session::i()->csrfCheck();
+		$member = Member::loggedIn();
+		if ( !$member->member_id ) { Output::i()->json( [ 'error' => 'Login required' ], 403 ); return; }
+
+		$sugId = (int) ( Request::i()->suggestion_id ?? 0 );
+		if ( !$sugId ) { Output::i()->json( [ 'error' => 'Invalid' ], 400 ); return; }
+
+		$sug = null;
+		try { $sug = Db::i()->select( '*', 'gd_loadout_suggestions', [ 'id=? AND from_member=? AND status=?', $sugId, (int) $member->member_id, 'pending' ] )->first(); } catch ( \Throwable ) {}
+		if ( !$sug ) { Output::i()->json( [ 'error' => 'Not found' ], 404 ); return; }
+
+		Db::i()->update( 'gd_loadout_suggestions', [ 'status' => 'withdrawn', 'resolved_at' => time() ], [ 'id=?', $sugId ] );
+		Output::i()->json( [ 'ok' => true ] );
 	}
 
 	protected function embed(): void

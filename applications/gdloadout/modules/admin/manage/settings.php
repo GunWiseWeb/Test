@@ -57,6 +57,35 @@ class _settings extends \IPS\Dispatcher\Controller
 			$form->addMessage( 'gdloadout_forums_not_configured' );
 		}
 
+		$suggestMode = 'anyone';
+		try { $suggestMode = (string) ( \IPS\Settings::i()->gdloadout_suggest_mode ?: 'anyone' ); } catch ( \Throwable ) {}
+
+		$form->add( new \IPS\Helpers\Form\Select(
+			'gdloadout_suggest_mode',
+			$suggestMode,
+			FALSE,
+			[
+				'options' => [
+					'anyone'       => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_suggest_mode_anyone' ),
+					'group'        => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_suggest_mode_group' ),
+					'threshold'    => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_suggest_mode_threshold' ),
+					'owner_toggle' => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_suggest_mode_owner_toggle' ),
+				],
+			]
+		) );
+
+		$suggestGroups = '';
+		try { $suggestGroups = (string) \IPS\Settings::i()->gdloadout_suggest_groups; } catch ( \Throwable ) {}
+		$form->add( new \IPS\Helpers\Form\Text( 'gdloadout_suggest_groups', $suggestGroups, FALSE ) );
+
+		$suggestMinPosts = 0;
+		try { $suggestMinPosts = (int) \IPS\Settings::i()->gdloadout_suggest_min_posts; } catch ( \Throwable ) {}
+		$form->add( new \IPS\Helpers\Form\Number( 'gdloadout_suggest_min_posts', $suggestMinPosts, FALSE, [ 'min' => 0 ] ) );
+
+		$suggestMinRep = 0;
+		try { $suggestMinRep = (int) \IPS\Settings::i()->gdloadout_suggest_min_rep; } catch ( \Throwable ) {}
+		$form->add( new \IPS\Helpers\Form\Number( 'gdloadout_suggest_min_rep', $suggestMinRep, FALSE, [ 'min' => 0 ] ) );
+
 		if ( $values = $form->values() )
 		{
 			$forumId = 0;
@@ -65,23 +94,34 @@ class _settings extends \IPS\Dispatcher\Controller
 				$forumId = (int) $values['gdloadout_share_forum']->_id;
 			}
 
+			$settingsToSave = [
+				'gdloadout_share_forum'        => $forumId,
+				'gdloadout_suggest_mode'       => $values['gdloadout_suggest_mode'] ?? 'anyone',
+				'gdloadout_suggest_groups'     => trim( (string) ( $values['gdloadout_suggest_groups'] ?? '' ) ),
+				'gdloadout_suggest_min_posts'  => (int) ( $values['gdloadout_suggest_min_posts'] ?? 0 ),
+				'gdloadout_suggest_min_rep'    => (int) ( $values['gdloadout_suggest_min_rep'] ?? 0 ),
+			];
+
 			try
 			{
-				\IPS\Settings::i()->changeValues( [ 'gdloadout_share_forum' => $forumId ] );
+				\IPS\Settings::i()->changeValues( $settingsToSave );
 			}
 			catch ( \Throwable )
 			{
-				try
+				foreach ( $settingsToSave as $confKey => $confVal )
 				{
-					Db::i()->replace( 'core_sys_conf_settings', [
-						'conf_key'     => 'gdloadout_share_forum',
-						'conf_value'   => $forumId,
-						'conf_default' => '0',
-						'conf_app'     => 'gdloadout',
-					] );
-					unset( \IPS\Data\Store::i()->settings );
+					try
+					{
+						Db::i()->replace( 'core_sys_conf_settings', [
+							'conf_key'     => $confKey,
+							'conf_value'   => (string) $confVal,
+							'conf_default' => $confKey === 'gdloadout_share_forum' ? '0' : ( $confKey === 'gdloadout_suggest_mode' ? 'anyone' : '0' ),
+							'conf_app'     => 'gdloadout',
+						] );
+					}
+					catch ( \Throwable ) {}
 				}
-				catch ( \Throwable ) {}
+				try { unset( \IPS\Data\Store::i()->settings ); } catch ( \Throwable ) {}
 			}
 
 			Output::i()->redirect(

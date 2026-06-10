@@ -3,5 +3,25 @@
         "key": "gdloadout_share_forum",
         "default": "0",
         "report": "none"
+    },
+    {
+        "key": "gdloadout_suggest_mode",
+        "default": "anyone",
+        "report": "none"
+    },
+    {
+        "key": "gdloadout_suggest_groups",
+        "default": "",
+        "report": "none"
+    },
+    {
+        "key": "gdloadout_suggest_min_posts",
+        "default": "0",
+        "report": "none"
+    },
+    {
+        "key": "gdloadout_suggest_min_rep",
+        "default": "0",
+        "report": "none"
     }
 ]
