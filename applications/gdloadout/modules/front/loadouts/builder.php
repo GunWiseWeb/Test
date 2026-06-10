@@ -61,10 +61,51 @@ class _builder extends \IPS\Dispatcher\Controller
 	{
 		$member = Member::loggedIn();
 		$editId = (int) ( Request::i()->loadout_id ?? Request::i()->id ?? 0 );
+		$suggestMode = (bool) ( Request::i()->suggest ?? 0 );
 		$loadout = NULL;
 		$items   = [];
 
-		if ( $editId )
+		if ( $editId && $suggestMode )
+		{
+			try
+			{
+				$loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', $editId ] )->first();
+			}
+			catch ( \Throwable )
+			{
+				Output::i()->error( 'gdloadout_err_not_found', '2GL02/2', 404 );
+				return;
+			}
+
+			$isOwner = (int) $member->member_id === (int) $loadout['member_id'];
+			if ( $isOwner || !\IPS\gdloadout\Loadout\Loadout::canSuggest( $member, $loadout ) )
+			{
+				Output::i()->error( 'gdloadout_suggest_not_eligible', '2GL02/4', 403 );
+				return;
+			}
+
+			foreach ( Db::i()->select( '*', 'gd_loadout_items', [ 'loadout_id=?', $editId ], 'sort_order ASC' ) as $item )
+			{
+				if ( !empty( $item['upc'] ) )
+				{
+					try
+					{
+						$cat = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $item['upc'] ] )->first();
+						$item['title'] = $cat['title'] ?? '';
+						$item['brand'] = $cat['brand'] ?? '';
+						$item['image_url'] = $cat['image_url'] ?? '';
+					}
+					catch ( \UnderflowException ) { $item['title'] = ''; }
+					try
+					{
+						$item['price_snapshot'] = (float) Db::i()->select( 'MIN(dealer_price)', 'gd_dealer_listings', [ 'upc=? AND listing_status=?', $item['upc'], 'active' ] )->first();
+					}
+					catch ( \Throwable ) { $item['price_snapshot'] = null; }
+				}
+				$items[] = $item;
+			}
+		}
+		elseif ( $editId )
 		{
 			try
 			{
@@ -111,6 +152,7 @@ class _builder extends \IPS\Dispatcher\Controller
 		$saveUrl   = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=save', 'front', 'gdloadout_builder' );
 		$deleteUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=delete', 'front', 'gdloadout_builder' );
 		$searchUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=search', 'front', 'gdloadout_builder' );
+		$submitSuggestionUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=submitSuggestion', 'front' );
 		$csrfKey   = Session::i()->csrfKey;
 
 		$initData = json_encode( [
@@ -127,6 +169,8 @@ class _builder extends \IPS\Dispatcher\Controller
 			'deleteUrl'          => $deleteUrl,
 			'searchUrl'          => $searchUrl,
 			'csrfKey'            => $csrfKey,
+			'suggestMode'        => $suggestMode,
+			'submitSuggestionUrl' => $submitSuggestionUrl,
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );

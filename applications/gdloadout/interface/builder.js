@@ -14,6 +14,9 @@
 	var isVip     = !!init.isVip;
 	var maxSlots  = (init.limits && init.limits.max_slots) ? parseInt(init.limits.max_slots, 10) : 0;
 	var loadoutId = (init.loadout && init.loadout.id) ? parseInt(init.loadout.id, 10) : 0;
+	var suggestMode = !!init.suggestMode;
+	var submitSuggestionUrl = init.submitSuggestionUrl || '';
+	var originalSlots = {};
 
 	var completeFirearmCore = init.completeFirearmCore || {};
 	var componentCore       = init.componentCore || {};
@@ -56,7 +59,22 @@
 		if (init.loadout.platform)   platform  = init.loadout.platform;
 	}
 
-	if (loadoutId > 0 && deleteBtn) deleteBtn.style.display = '';
+	var submitSugBtn = document.getElementById('gdSubmitSugBtn');
+	var suggestNoteWrap = document.getElementById('gdSuggestNoteWrap');
+	var suggestNoteInput = document.getElementById('gdSuggestNote');
+
+	if (suggestMode) {
+		if (nameInput)  nameInput.disabled = true;
+		if (descInput)  descInput.disabled = true;
+		if (useCaseSel) useCaseSel.disabled = true;
+		if (visSel)     visSel.disabled = true;
+		if (saveBtn) saveBtn.style.display = 'none';
+		if (deleteBtn) deleteBtn.style.display = 'none';
+		if (submitSugBtn) submitSugBtn.style.display = '';
+		if (suggestNoteWrap) suggestNoteWrap.style.display = '';
+	} else {
+		if (loadoutId > 0 && deleteBtn) deleteBtn.style.display = '';
+	}
 
 	for (var i = 0; i < items.length; i++) {
 		if (items[i].notes) {
@@ -227,6 +245,7 @@
 		ensureSlot(key);
 		var card = document.createElement('div');
 		card.className = 'gdlo-card';
+		if (isSlotChanged(key)) card.classList.add('gdlo-card--suggested');
 		card.dataset.slotKey = key;
 		var slot = slots[key];
 
@@ -281,6 +300,7 @@
 		if (!slot) return null;
 		var card = document.createElement('div');
 		card.className = 'gdlo-card';
+		if (isSlotChanged(key)) card.classList.add('gdlo-card--suggested');
 		card.dataset.slotKey = key;
 		var label = slot.custom_label || 'Extra';
 
@@ -1071,9 +1091,100 @@
 	initPlatformChips();
 	initFromExisting();
 
+	if (suggestMode) {
+		Object.keys(slots).forEach(function(k) {
+			if (slots[k] && slots[k].upc) {
+				originalSlots[k] = { upc: slots[k].upc, title: slots[k].title || '' };
+			}
+		});
+
+		var bar = document.createElement('div');
+		bar.className = 'gdlo-suggest-mode-bar';
+		bar.innerHTML = '<i class="fa-solid fa-lightbulb" aria-hidden="true"></i> You are suggesting changes to this loadout. Swap any slots, then submit your suggestion.';
+		var wiz = document.getElementById('gdLoadoutBuilder');
+		if (wiz) wiz.insertBefore(bar, wiz.firstChild);
+
+		var modeCards = document.querySelectorAll('#gdModeGrid .gdlo-mode-card');
+		for (var mc = 0; mc < modeCards.length; mc++) {
+			modeCards[mc].classList.add('gdlo-mode-locked');
+			modeCards[mc].setAttribute('aria-disabled', 'true');
+		}
+	}
+
+	function isSlotChanged(key) {
+		if (!suggestMode) return false;
+		var orig = originalSlots[key];
+		var cur = slots[key];
+		if (!orig && cur && cur.upc) return true;
+		if (orig && (!cur || !cur.upc)) return true;
+		if (orig && cur && orig.upc !== cur.upc) return true;
+		return false;
+	}
+
+	function getChangedSlots() {
+		var changes = [];
+		Object.keys(slots).forEach(function(k) {
+			if (isSlotChanged(k) && slots[k] && slots[k].upc) {
+				changes.push({ slot: slots[k].type || k, upc: slots[k].upc });
+			}
+		});
+		return changes;
+	}
+
 	/* ===== Apply Suggestion ===== */
 	(function applySuggestion() {
 		var params = new URLSearchParams(window.location.search);
+
+		var applyChangesRaw = params.get('apply_changes');
+		if (applyChangesRaw && loadoutId) {
+			var applyChanges;
+			try { applyChanges = JSON.parse(applyChangesRaw); } catch(e) { applyChanges = null; }
+			if (Array.isArray(applyChanges) && applyChanges.length > 0) {
+				var upcsToFetch = [];
+				for (var ci = 0; ci < applyChanges.length; ci++) {
+					var ch = applyChanges[ci];
+					if (ch.slot && ch.upc) {
+						ensureSlot(ch.slot);
+						slots[ch.slot].upc = ch.upc;
+						slots[ch.slot].title = 'Loading...';
+						slots[ch.slot].price = null;
+						slots[ch.slot].image = '';
+						upcsToFetch.push(ch.upc);
+					}
+				}
+				if (upcsToFetch.length > 0) {
+					var fetchPromises = upcsToFetch.map(function(upc) {
+						var sep = searchUrl.indexOf('?') === -1 ? '?' : '&';
+						return fetch(searchUrl + sep + 'q=' + encodeURIComponent(upc), { credentials: 'same-origin' })
+							.then(function(r) { return r.json(); })
+							.then(function(data) {
+								var results = data.results || [];
+								for (var ri = 0; ri < results.length; ri++) {
+									if (results[ri].upc === upc) {
+										Object.keys(slots).forEach(function(sk) {
+											if (slots[sk] && slots[sk].upc === upc) {
+												slots[sk].title = results[ri].title || upc;
+												slots[sk].price = results[ri].best_price || null;
+												slots[sk].image = results[ri].image_url || '';
+											}
+										});
+										break;
+									}
+								}
+							})
+							.catch(function() {});
+					});
+					Promise.all(fetchPromises).then(function() {
+						renderCoreGrid();
+						renderAccGrid();
+						renderExtraGrid();
+						updateAllSummaries();
+					});
+				}
+				return;
+			}
+		}
+
 		var applySlot = params.get('apply_slot');
 		var applyUpc = params.get('apply_upc');
 		if (!applySlot || !applyUpc || !loadoutId) return;
@@ -1104,6 +1215,46 @@
 			})
 			.catch(function() {});
 	})();
+
+	/* ===== Submit Suggestion ===== */
+	if (submitSugBtn && suggestMode) {
+		submitSugBtn.addEventListener('click', function() {
+			var changes = getChangedSlots();
+			if (changes.length === 0) {
+				alert('Make at least one change before submitting.');
+				return;
+			}
+
+			submitSugBtn.disabled = true;
+			submitSugBtn.textContent = 'Submitting...';
+
+			var body = new FormData();
+			body.append('csrfKey', csrfKey);
+			body.append('loadout_id', loadoutId);
+			body.append('changes', JSON.stringify(changes));
+			body.append('message', suggestNoteInput ? suggestNoteInput.value : '');
+
+			fetch(submitSuggestionUrl, {
+				method: 'POST', body: body,
+				headers: { 'X-Requested-With': 'XMLHttpRequest' }
+			})
+			.then(function(resp) { return resp.json(); })
+			.then(function(data) {
+				submitSugBtn.disabled = false;
+				submitSugBtn.textContent = 'Submit Suggestion';
+				if (data.error) { alert(data.error); return; }
+				if (data.ok) {
+					alert('Suggestion sent! The owner will be notified.');
+					window.history.back();
+				}
+			})
+			.catch(function() {
+				submitSugBtn.disabled = false;
+				submitSugBtn.textContent = 'Submit Suggestion';
+				alert('Failed — please try again.');
+			});
+		});
+	}
 
 	updateModeLock();
 	goToStep(1);

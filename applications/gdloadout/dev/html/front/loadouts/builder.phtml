@@ -139,6 +139,10 @@
         <div class="gdlo-panel-head">{lang="gdloadout_vip_notes"}</div>
         <div id="gdNotesBody" class="gdlo-panel-body"></div>
       </div>
+      <div id="gdSuggestNoteWrap" class="gdlo-suggest-note-field" style="display:none">
+        <label for="gdSuggestNote">{lang="gdloadout_suggest_note"}</label>
+        <textarea id="gdSuggestNote" rows="2" maxlength="500"></textarea>
+      </div>
     </div>
     <div class="gdlo-wiz-side">
       <div class="gdlo-panel">
@@ -151,6 +155,7 @@
       </div>
       <div class="gdlo-actions">
         <button type="button" id="gdSaveBtn" class="ipsButton ipsButton--primary gdlo-save-btn">{lang="gdloadout_builder_save"}</button>
+        <button type="button" id="gdSubmitSugBtn" class="ipsButton ipsButton--primary gdlo-save-btn" style="display:none">{lang="gdloadout_submit_suggestion"}</button>
         <button type="button" id="gdDeleteBtn" class="ipsButton ipsButton--negative" style="display:none">{lang="gdloadout_builder_delete"}</button>
       </div>
     </div>

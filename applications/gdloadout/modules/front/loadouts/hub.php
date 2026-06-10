@@ -511,31 +511,76 @@ class _hub extends \IPS\Dispatcher\Controller
 				{
 					$sugFromName = 'Unknown';
 					try { $sugFromName = Member::load( (int) $sug['from_member'] )->name; } catch ( \Throwable ) {}
+					$sug['from_name'] = $sugFromName;
 
-					$sugProduct = [];
-					try { $sugProduct = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $sug['suggested_upc'] ] )->first(); } catch ( \Throwable ) {}
+					$changesJson = $sug['changes'] ?? null;
+					$changes = $changesJson ? json_decode( $changesJson, true ) : null;
 
-					$sugPrice = null;
-					try
+					if ( \is_array( $changes ) && !empty( $changes ) )
 					{
-						$p = Db::i()->select( 'MIN(dealer_price) AS best_price', 'gd_dealer_listings', [ 'upc=? AND listing_status=?', $sug['suggested_upc'], 'active' ] )->first();
-						if ( $p['best_price'] !== null && (float) $p['best_price'] > 0 ) $sugPrice = (float) $p['best_price'];
+						$enrichedChanges = [];
+						foreach ( $changes as $ch )
+						{
+							$slot = $ch['slot'] ?? '';
+							$newUpc = $ch['upc'] ?? '';
+
+							$newProduct = [];
+							try { $newProduct = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $newUpc ] )->first(); } catch ( \Throwable ) {}
+							$newPrice = null;
+							try
+							{
+								$p = Db::i()->select( 'MIN(dealer_price) AS best_price', 'gd_dealer_listings', [ 'upc=? AND listing_status=?', $newUpc, 'active' ] )->first();
+								if ( $p['best_price'] !== null && (float) $p['best_price'] > 0 ) $newPrice = (float) $p['best_price'];
+							}
+							catch ( \Throwable ) {}
+
+							$curUpc = '';
+							$curProduct = [];
+							try { $curUpc = (string) Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=? AND slot_type=?', (int) $loadout['id'], $slot ] )->first(); } catch ( \Throwable ) {}
+							if ( $curUpc ) { try { $curProduct = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $curUpc ] )->first(); } catch ( \Throwable ) {} }
+
+							$enrichedChanges[] = [
+								'slot'          => $slot,
+								'new_upc'       => $newUpc,
+								'new_title'     => $newProduct['title'] ?? $newUpc,
+								'new_image'     => $newProduct['image_url'] ?? '',
+								'new_price'     => $newPrice,
+								'current_upc'   => $curUpc,
+								'current_title' => $curProduct['title'] ?? $curUpc,
+								'current_image' => $curProduct['image_url'] ?? '',
+							];
+						}
+						$sug['enriched_changes'] = $enrichedChanges;
+						$sug['is_multi'] = true;
 					}
-					catch ( \Throwable ) {}
+					else
+					{
+						$sugProduct = [];
+						try { $sugProduct = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $sug['suggested_upc'] ] )->first(); } catch ( \Throwable ) {}
 
-					$currentUpc = '';
-					$currentProduct = [];
-					try { $currentUpc = (string) Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=? AND slot_type=?', (int) $loadout['id'], $sug['slot_type'] ] )->first(); } catch ( \Throwable ) {}
-					if ( $currentUpc ) { try { $currentProduct = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $currentUpc ] )->first(); } catch ( \Throwable ) {} }
+						$sugPrice = null;
+						try
+						{
+							$p = Db::i()->select( 'MIN(dealer_price) AS best_price', 'gd_dealer_listings', [ 'upc=? AND listing_status=?', $sug['suggested_upc'], 'active' ] )->first();
+							if ( $p['best_price'] !== null && (float) $p['best_price'] > 0 ) $sugPrice = (float) $p['best_price'];
+						}
+						catch ( \Throwable ) {}
 
-					$sug['from_name']       = $sugFromName;
-					$sug['sug_title']       = $sugProduct['title'] ?? $sug['suggested_upc'];
-					$sug['sug_brand']       = $sugProduct['brand'] ?? '';
-					$sug['sug_image']       = $sugProduct['image_url'] ?? '';
-					$sug['sug_price']       = $sugPrice;
-					$sug['current_upc']     = $currentUpc;
-					$sug['current_title']   = $currentProduct['title'] ?? $currentUpc;
-					$sug['current_image']   = $currentProduct['image_url'] ?? '';
+						$currentUpc = '';
+						$currentProduct = [];
+						try { $currentUpc = (string) Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=? AND slot_type=?', (int) $loadout['id'], $sug['slot_type'] ] )->first(); } catch ( \Throwable ) {}
+						if ( $currentUpc ) { try { $currentProduct = Db::i()->select( 'title, brand, image_url', 'gd_catalog', [ 'upc=?', $currentUpc ] )->first(); } catch ( \Throwable ) {} }
+
+						$sug['sug_title']       = $sugProduct['title'] ?? $sug['suggested_upc'];
+						$sug['sug_brand']       = $sugProduct['brand'] ?? '';
+						$sug['sug_image']       = $sugProduct['image_url'] ?? '';
+						$sug['sug_price']       = $sugPrice;
+						$sug['current_upc']     = $currentUpc;
+						$sug['current_title']   = $currentProduct['title'] ?? $currentUpc;
+						$sug['current_image']   = $currentProduct['image_url'] ?? '';
+						$sug['is_multi'] = false;
+					}
+
 					$suggestions[] = $sug;
 				}
 				$pendingSuggestionCount = \count( $suggestions );
@@ -577,6 +622,9 @@ class _hub extends \IPS\Dispatcher\Controller
 		$canCopy = ( (int) $member->member_id && !$isOwner );
 		$copyUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=copy&loadout_id=' . (int) $loadout['id'], 'front' );
 		$startDiscussionUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=startDiscussion&loadout_id=' . (int) $loadout['id'], 'front' );
+		$suggestBuilderUrl = $canSuggest
+			? (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $loadout['id'] . '&suggest=1', 'front', 'gdloadout_builder_edit' )
+			: '';
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
 		Output::i()->jsFiles  = array_merge( Output::i()->jsFiles, Output::i()->js( 'loadout.js', 'gdloadout', 'interface' ) );
@@ -586,7 +634,7 @@ class _hub extends \IPS\Dispatcher\Controller
 			$canCopy, $copyUrl, $csrfKey,
 			$canSuggest, $suggestions, $pendingSuggestionCount,
 			$acceptSugUrl, $rejectSugUrl,
-			$startDiscussionUrl
+			$startDiscussionUrl, $suggestBuilderUrl
 		);
 	}
 
@@ -1067,6 +1115,96 @@ class _hub extends \IPS\Dispatcher\Controller
 		Output::i()->json( [ 'ok' => true ] );
 	}
 
+	protected function submitSuggestion(): void
+	{
+		Session::i()->csrfCheck();
+		$member = Member::loggedIn();
+		if ( !$member->member_id ) { Output::i()->json( [ 'error' => 'Login required' ], 403 ); return; }
+
+		$loadoutId = (int) ( Request::i()->loadout_id ?? 0 );
+		if ( !$loadoutId ) { Output::i()->json( [ 'error' => 'Invalid' ], 400 ); return; }
+
+		$loadout = null;
+		try { $loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first(); } catch ( \Throwable ) {}
+		if ( !$loadout ) { Output::i()->json( [ 'error' => 'Not found' ], 404 ); return; }
+
+		if ( !\IPS\gdloadout\Loadout\Loadout::canSuggest( $member, $loadout ) )
+		{
+			Output::i()->json( [ 'error' => 'Not eligible to suggest' ], 403 );
+			return;
+		}
+
+		$changesRaw = Request::i()->changes ?? '[]';
+		$changes = json_decode( $changesRaw, true );
+		if ( !\is_array( $changes ) || empty( $changes ) )
+		{
+			Output::i()->json( [ 'error' => 'No changes provided' ], 400 );
+			return;
+		}
+
+		$completeSlots  = [ 'base_firearm', 'optic', 'weapon_light', 'laser', 'suppressor', 'sling', 'rail_mount', 'scope_rings' ];
+		$componentSlots = [ 'lower_receiver', 'upper_receiver', 'barrel', 'handguard', 'muzzle', 'bcg', 'buffer', 'trigger', 'stock', 'grip', 'optic', 'scope_rings', 'rail_mount', 'weapon_light', 'laser', 'suppressor', 'sling' ];
+		$extraSlots     = [ 'magazine', 'holster', 'ear_eye_pro', 'cleaning', 'bipod' ];
+		$validForMode   = array_merge(
+			( ( $loadout['build_mode'] ?? 'complete_firearm' ) === 'component_build' ) ? $componentSlots : $completeSlots,
+			$extraSlots
+		);
+
+		$cleanChanges = [];
+		foreach ( $changes as $ch )
+		{
+			$slot = trim( (string) ( $ch['slot'] ?? '' ) );
+			$upc  = trim( (string) ( $ch['upc'] ?? '' ) );
+			if ( $slot === '' || $upc === '' ) continue;
+			if ( !\in_array( $slot, $validForMode, true ) ) continue;
+
+			$catalogExists = false;
+			try { Db::i()->select( 'upc', 'gd_catalog', [ 'upc=? AND record_status=?', $upc, 'active' ] )->first(); $catalogExists = true; } catch ( \Throwable ) {}
+			if ( !$catalogExists ) continue;
+
+			$cleanChanges[] = [ 'slot' => $slot, 'upc' => $upc ];
+		}
+
+		if ( empty( $cleanChanges ) )
+		{
+			Output::i()->json( [ 'error' => 'No valid changes' ], 400 );
+			return;
+		}
+
+		$message = trim( (string) ( Request::i()->message ?? '' ) );
+		if ( mb_strlen( $message ) > 500 ) $message = mb_substr( $message, 0, 500 );
+
+		Db::i()->insert( 'gd_loadout_suggestions', [
+			'loadout_id'    => $loadoutId,
+			'from_member'   => (int) $member->member_id,
+			'slot_type'     => $cleanChanges[0]['slot'],
+			'suggested_upc' => $cleanChanges[0]['upc'],
+			'message'       => $message ?: null,
+			'status'        => 'pending',
+			'created_at'    => time(),
+			'resolved_at'   => null,
+			'changes'       => json_encode( $cleanChanges ),
+		] );
+
+		try
+		{
+			$ownerId = (int) ( $loadout['member_id'] ?? 0 );
+			if ( $ownerId && $ownerId !== (int) $member->member_id )
+			{
+				$owner = Member::load( $ownerId );
+				$notification = new \IPS\Notification(
+					\IPS\Application::load( 'gdloadout' ), 'suggestion_received', $owner, [ $owner ],
+					[ 'loadout_name' => $loadout['name'] ?? '', 'suggester_name' => $member->name, 'username' => $owner->name ?? '', 'slug' => $loadout['slug'] ?? '' ]
+				);
+				$notification->recipients->attach( $owner );
+				$notification->send();
+			}
+		}
+		catch ( \Throwable ) {}
+
+		Output::i()->json( [ 'ok' => true ] );
+	}
+
 	protected function acceptSuggestion(): void
 	{
 		Session::i()->csrfCheck();
@@ -1102,12 +1240,26 @@ class _hub extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
-		$builderUrl = (string) Url::internal(
-			'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $loadout['id']
-			. '&apply_slot=' . urlencode( $sug['slot_type'] )
-			. '&apply_upc=' . urlencode( $sug['suggested_upc'] ),
-			'front', 'gdloadout_builder_edit'
-		);
+		$changesJson = $sug['changes'] ?? null;
+		$changes = $changesJson ? json_decode( $changesJson, true ) : null;
+
+		if ( \is_array( $changes ) && !empty( $changes ) )
+		{
+			$builderUrl = (string) Url::internal(
+				'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $loadout['id']
+				. '&apply_changes=' . urlencode( json_encode( $changes ) ),
+				'front', 'gdloadout_builder_edit'
+			);
+		}
+		else
+		{
+			$builderUrl = (string) Url::internal(
+				'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $loadout['id']
+				. '&apply_slot=' . urlencode( $sug['slot_type'] )
+				. '&apply_upc=' . urlencode( $sug['suggested_upc'] ),
+				'front', 'gdloadout_builder_edit'
+			);
+		}
 
 		Output::i()->redirect( Url::external( $builderUrl ) );
 	}

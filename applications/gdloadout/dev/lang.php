@@ -183,4 +183,9 @@ $lang = array(
     'gdloadout_start_discussion' => 'Start Discussion',
     'gdloadout_discussion_no_forum' => 'Set a target forum in ACP → Loadouts → Settings to enable discussions.',
     'gdloadout_discussion_started' => 'Discussion started — your loadout topic is live.',
+    'gdloadout_suggest_an_edit' => 'Suggest an Edit',
+    'gdloadout_submit_suggestion' => 'Submit Suggestion',
+    'gdloadout_suggest_note' => 'Note (optional)',
+    'gdloadout_suggest_submitted' => 'Suggestion sent! The owner will be notified.',
+    'gdloadout_suggest_changes_required' => 'Make at least one change before submitting.',
 );

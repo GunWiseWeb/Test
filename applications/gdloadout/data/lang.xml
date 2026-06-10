@@ -183,5 +183,10 @@
 <word key="gdloadout_start_discussion" js="0"><![CDATA[Start Discussion]]></word>
 <word key="gdloadout_discussion_no_forum" js="0"><![CDATA[Set a target forum in ACP → Loadouts → Settings to enable discussions.]]></word>
 <word key="gdloadout_discussion_started" js="0"><![CDATA[Discussion started — your loadout topic is live.]]></word>
+<word key="gdloadout_suggest_an_edit" js="0"><![CDATA[Suggest an Edit]]></word>
+<word key="gdloadout_submit_suggestion" js="0"><![CDATA[Submit Suggestion]]></word>
+<word key="gdloadout_suggest_note" js="0"><![CDATA[Note (optional)]]></word>
+<word key="gdloadout_suggest_submitted" js="0"><![CDATA[Suggestion sent! The owner will be notified.]]></word>
+<word key="gdloadout_suggest_changes_required" js="0"><![CDATA[Make at least one change before submitting.]]></word>
 </app>
 </language>

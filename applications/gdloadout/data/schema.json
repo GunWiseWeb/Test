@@ -672,6 +672,13 @@
                 "allow_null": true,
                 "default": null,
                 "name": "resolved_at"
+            },
+            "changes": {
+                "type": "TEXT",
+                "length": 0,
+                "allow_null": true,
+                "default": null,
+                "name": "changes"
             }
         },
         "indexes": {

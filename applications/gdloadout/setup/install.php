@@ -122,7 +122,7 @@ $templates[] = [
 	'template_location' => 'front',
 	'template_group' => 'loadouts',
 	'template_name' => 'view',
-	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl, $startDiscussionUrl',
+	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl, $startDiscussionUrl, $suggestBuilderUrl',
 	'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
 
@@ -210,7 +210,26 @@ $templates[] = [
                 <h3 class="gdlo-suggest-panel-title"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> {lang="gdloadout_suggestions_pending"} ({$pendingSuggestionCount})</h3>
                 {{foreach $suggestions as $sug}}
                 <div class="gdlo-suggestion-card">
-                    <div class="gdlo-suggestion-from"><i class="fa-solid fa-user" aria-hidden="true"></i> {$sug['from_name']} &mdash; {$sug['slot_type']}</div>
+                    <div class="gdlo-suggestion-from"><i class="fa-solid fa-user" aria-hidden="true"></i> {$sug['from_name']} &mdash; {{if isset($sug['is_multi']) && $sug['is_multi']}}{expression="count($sug['enriched_changes'])"} slot(s){{else}}{$sug['slot_type']}{{endif}}</div>
+                    {{if isset($sug['is_multi']) && $sug['is_multi']}}
+                    <div class="gdlo-suggestion-changes">
+                        {{foreach $sug['enriched_changes'] as $ch}}
+                        <div class="gdlo-suggestion-change">
+                            <span class="gdlo-suggestion-change-slot">{$ch['slot']}</span>
+                            <div class="gdlo-suggestion-part">
+                                {{if $ch['current_image']}}<img src="{$ch['current_image']}" alt="" class="gdlo-suggestion-img" />{{else}}<div class="gdlo-suggestion-img-ph"><i class="fa-solid fa-cube"></i></div>{{endif}}
+                                <span class="gdlo-suggestion-part-title">{$ch['current_title']}</span>
+                            </div>
+                            <span class="gdlo-suggestion-arrow"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                            <div class="gdlo-suggestion-part">
+                                {{if $ch['new_image']}}<img src="{$ch['new_image']}" alt="" class="gdlo-suggestion-img" />{{else}}<div class="gdlo-suggestion-img-ph"><i class="fa-solid fa-cube"></i></div>{{endif}}
+                                <span class="gdlo-suggestion-part-title">{$ch['new_title']}</span>
+                                {{if $ch['new_price']}}<span class="gdlo-suggestion-price">{expression="'$' . number_format((float)$ch['new_price'], 2)"}</span>{{endif}}
+                            </div>
+                        </div>
+                        {{endforeach}}
+                    </div>
+                    {{else}}
                     <div class="gdlo-suggestion-swap">
                         <div class="gdlo-suggestion-part">
                             {{if $sug['current_image']}}<img src="{$sug['current_image']}" alt="" class="gdlo-suggestion-img" />{{else}}<div class="gdlo-suggestion-img-ph"><i class="fa-solid fa-cube"></i></div>{{endif}}
@@ -223,6 +242,7 @@ $templates[] = [
                             {{if $sug['sug_price']}}<span class="gdlo-suggestion-price">{expression="'$' . number_format((float)$sug['sug_price'], 2)"}</span>{{endif}}
                         </div>
                     </div>
+                    {{endif}}
                     {{if $sug['message']}}<div class="gdlo-suggestion-msg">{$sug['message']}</div>{{endif}}
                     <div class="gdlo-suggestion-actions">
                         <form method="post" action="{$acceptSugUrl}" style="display:inline"><input type="hidden" name="csrfKey" value="{$csrfKey}" /><input type="hidden" name="suggestion_id" value="{$sug['id']}" /><button type="submit" class="gdlo-btn gdlo-btn--primary gdlo-btn--sm"><i class="fa-solid fa-check"></i> {lang="gdloadout_suggestion_accept"}</button></form>
@@ -232,30 +252,6 @@ $templates[] = [
                 {{endforeach}}
             </div>
             {{endif}}
-            {{endif}}
-
-            {{if $canSuggest}}
-            <div class="gdlo-suggest-panel" id="gdloSuggestForm">
-                <h3 class="gdlo-suggest-panel-title"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> {lang="gdloadout_suggest_swap"}</h3>
-                <div class="gdlo-suggest-form">
-                    <div class="gdlo-suggest-field">
-                        <label class="gdlo-suggest-label">{lang="gdloadout_suggest_pick_slot"}</label>
-                        <select id="gdloSuggestSlot" class="gdlo-select"></select>
-                    </div>
-                    <div class="gdlo-suggest-field">
-                        <label class="gdlo-suggest-label">{lang="gdloadout_suggest_pick_product"}</label>
-                        <input type="text" id="gdloSuggestSearch" class="gdlo-input" placeholder="{lang="gdloadout_modal_search"}" autocomplete="off" />
-                        <div id="gdloSuggestResults" class="gdlo-suggest-results" style="display:none"></div>
-                        <div id="gdloSuggestSelected" class="gdlo-suggest-selected" style="display:none"></div>
-                    </div>
-                    <div class="gdlo-suggest-field">
-                        <label class="gdlo-suggest-label">{lang="gdloadout_suggest_message"}</label>
-                        <textarea id="gdloSuggestMessage" class="gdlo-input" rows="2" maxlength="500"></textarea>
-                    </div>
-                    <button type="button" id="gdloSuggestSubmit" class="gdlo-btn gdlo-btn--primary"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> {lang="gdloadout_suggest_submit"}</button>
-                    <div id="gdloSuggestStatus" class="gdlo-suggest-status" style="display:none"></div>
-                </div>
-            </div>
             {{endif}}
 
         </div>
@@ -303,6 +299,12 @@ $templates[] = [
                 </form>
                 {{endif}}
 
+                {{if $canSuggest}}
+                <a href="{$suggestBuilderUrl}" class="gdlo-action-btn gdlo-action-btn--suggest">
+                    <i class="fa-solid fa-lightbulb" aria-hidden="true"></i> {lang="gdloadout_suggest_an_edit"}
+                </a>
+                {{endif}}
+
                 {{if $forumTopicUrl}}
                 <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" target="_blank" rel="noopener">
                     <i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_join_discussion"}{{if $loadout['comment_count'] > 0}} ({$loadout['comment_count']}){{endif}}
@@ -336,7 +338,7 @@ $templates[] = [
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.35',
+	'template_version' => '1.0.38',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];
@@ -562,6 +564,10 @@ $templates[] = [
         <div class="gdlo-panel-head">{lang="gdloadout_vip_notes"}</div>
         <div id="gdNotesBody" class="gdlo-panel-body"></div>
       </div>
+      <div id="gdSuggestNoteWrap" class="gdlo-suggest-note-field" style="display:none">
+        <label for="gdSuggestNote">{lang="gdloadout_suggest_note"}</label>
+        <textarea id="gdSuggestNote" rows="2" maxlength="500"></textarea>
+      </div>
     </div>
     <div class="gdlo-wiz-side">
       <div class="gdlo-panel">
@@ -574,6 +580,7 @@ $templates[] = [
       </div>
       <div class="gdlo-actions">
         <button type="button" id="gdSaveBtn" class="ipsButton ipsButton--primary gdlo-save-btn">{lang="gdloadout_builder_save"}</button>
+        <button type="button" id="gdSubmitSugBtn" class="ipsButton ipsButton--primary gdlo-save-btn" style="display:none">{lang="gdloadout_submit_suggestion"}</button>
         <button type="button" id="gdDeleteBtn" class="ipsButton ipsButton--negative" style="display:none">{lang="gdloadout_builder_delete"}</button>
       </div>
     </div>
@@ -589,7 +596,7 @@ $templates[] = [
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.28',
+	'template_version' => '1.0.38',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];
