@@ -140,4 +140,9 @@ $lang = array(
     'gdloadout_extra_placeholder' => 'Custom slot name...',
     'gdloadout_upvote_loadout' => 'Upvote this loadout',
     'gdloadout_follow_loadout' => 'Follow for updates',
+    'gdloadout_copy_build' => 'Copy Build',
+    'gdloadout_view_build' => 'View',
+    'gdloadout_parts' => 'parts',
+    'gdloadout_no_price_yet' => 'No price yet',
+    'gdloadout_copy_private' => 'Private loadouts cannot be copied',
 );

@@ -26,6 +26,40 @@ class _hub extends \IPS\Dispatcher\Controller
 		parent::execute();
 	}
 
+	protected function enrichLoadout( array &$row ): void
+	{
+		$ownerName = 'Unknown';
+		try { $ownerName = Member::load( (int) $row['member_id'] )->name; } catch ( \Throwable ) {}
+		$row['owner_name'] = $ownerName;
+		$row['view_url']   = (string) Url::internal(
+			'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $row['slug'] ),
+			'front', 'gdloadout_view'
+		);
+
+		$baseUpc = null;
+		try { $baseUpc = (string) Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=? AND slot_type=?', (int) $row['id'], 'base_firearm' ], 'sort_order ASC', 1 )->first(); } catch ( \Throwable ) {}
+		if ( !$baseUpc ) { try { $baseUpc = (string) Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=? AND slot_type=?', (int) $row['id'], 'lower_receiver' ], 'sort_order ASC', 1 )->first(); } catch ( \Throwable ) {} }
+		if ( !$baseUpc ) { try { $baseUpc = (string) Db::i()->select( 'upc', 'gd_loadout_items', [ 'loadout_id=?', (int) $row['id'] ], 'sort_order ASC', 1 )->first(); } catch ( \Throwable ) {} }
+		$row['base_image'] = null;
+		$row['base_title'] = null;
+		if ( $baseUpc )
+		{
+			try
+			{
+				$cat = Db::i()->select( 'image_url, title', 'gd_catalog', [ 'upc=?', $baseUpc ] )->first();
+				$row['base_image'] = $cat['image_url'] ?? null;
+				$row['base_title'] = $cat['title'] ?? null;
+			}
+			catch ( \Throwable ) {}
+		}
+
+		$row['mode_label'] = match( $row['build_mode'] ?? '' ) {
+			'complete_firearm' => 'Complete',
+			'component_build'  => 'Component',
+			default            => '',
+		};
+	}
+
 	protected function manage(): void
 	{
 		$member      = Member::loggedIn();
@@ -52,14 +86,7 @@ class _hub extends \IPS\Dispatcher\Controller
 		{
 			foreach ( Db::i()->select( '*', 'gd_loadouts', [ 'visibility=? AND featured=?', 'public', 1 ], 'featured_position ASC', [ 0, 6 ] ) as $row )
 			{
-				$ownerName = 'Unknown';
-				try { $ownerName = Member::load( (int) $row['member_id'] )->name; } catch ( \Throwable ) {}
-				$row['owner_name'] = $ownerName;
-				$row['view_url']   = (string) Url::internal(
-					'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $row['slug'] ),
-					'front',
-					'gdloadout_view'
-				);
+				$this->enrichLoadout( $row );
 				$featured[] = $row;
 			}
 		}
@@ -99,14 +126,7 @@ class _hub extends \IPS\Dispatcher\Controller
 				);
 				foreach ( Db::i()->select( '*', 'gd_loadouts', $where ) as $row )
 				{
-					$ownerName = 'Unknown';
-					try { $ownerName = Member::load( (int) $row['member_id'] )->name; } catch ( \Throwable ) {}
-					$row['owner_name'] = $ownerName;
-					$row['view_url']   = (string) Url::internal(
-						'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $row['slug'] ),
-						'front',
-						'gdloadout_view'
-					);
+					$this->enrichLoadout( $row );
 					$trending[] = $row;
 				}
 
@@ -129,14 +149,7 @@ class _hub extends \IPS\Dispatcher\Controller
 			);
 			foreach ( Db::i()->select( '*', 'gd_loadouts', $where, 'upvotes DESC', [ 0, 8 ] ) as $row )
 			{
-				$ownerName = 'Unknown';
-				try { $ownerName = Member::load( (int) $row['member_id'] )->name; } catch ( \Throwable ) {}
-				$row['owner_name'] = $ownerName;
-				$row['view_url']   = (string) Url::internal(
-					'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $row['slug'] ),
-					'front',
-					'gdloadout_view'
-				);
+				$this->enrichLoadout( $row );
 				$topRated[] = $row;
 			}
 		}
@@ -153,14 +166,7 @@ class _hub extends \IPS\Dispatcher\Controller
 			);
 			foreach ( Db::i()->select( '*', 'gd_loadouts', $where, 'COALESCE(updated_at, created_at) DESC', [ 0, 8 ] ) as $row )
 			{
-				$ownerName = 'Unknown';
-				try { $ownerName = Member::load( (int) $row['member_id'] )->name; } catch ( \Throwable ) {}
-				$row['owner_name'] = $ownerName;
-				$row['view_url']   = (string) Url::internal(
-					'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $row['slug'] ),
-					'front',
-					'gdloadout_view'
-				);
+				$this->enrichLoadout( $row );
 				$recent[] = $row;
 			}
 		}
@@ -177,27 +183,22 @@ class _hub extends \IPS\Dispatcher\Controller
 			);
 			foreach ( Db::i()->select( '*', 'gd_loadouts', $where, 'total_min_price ASC', [ 0, 8 ] ) as $row )
 			{
-				$ownerName = 'Unknown';
-				try { $ownerName = Member::load( (int) $row['member_id'] )->name; } catch ( \Throwable ) {}
-				$row['owner_name'] = $ownerName;
-				$row['view_url']   = (string) Url::internal(
-					'app=gdloadout&module=loadouts&controller=hub&do=view&username=' . urlencode( $ownerName ) . '&slug=' . urlencode( $row['slug'] ),
-					'front',
-					'gdloadout_view'
-				);
+				$this->enrichLoadout( $row );
 				$budget[] = $row;
 			}
 		}
 		catch ( \Throwable ) {}
 		$sections['budget'] = $budget;
 
-		$canCreate  = $member->member_id ? \IPS\gdloadout\Loadout\Limits::canCreateLoadout( $member ) : false;
-		$builderUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder', 'front', 'gdloadout_builder' );
+		$canCreate     = $member->member_id ? \IPS\gdloadout\Loadout\Limits::canCreateLoadout( $member ) : false;
+		$builderUrl    = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder', 'front', 'gdloadout_builder' );
 		$myLoadoutsUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=mine', 'front', 'gdloadout_mine' );
+		$copyUrl       = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=copy', 'front' );
+		$csrfKey       = Session::i()->csrfKey;
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
 		Output::i()->title    = Member::loggedIn()->language()->addToStack( 'gdloadout_hub_title' );
-		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->hub( $sections, $canCreate, $builderUrl, $activeUseCase, $useCases, $myLoadoutsUrl );
+		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->hub( $sections, $canCreate, $builderUrl, $activeUseCase, $useCases, $myLoadoutsUrl, $copyUrl, $csrfKey );
 	}
 
 	protected function view(): void
@@ -748,6 +749,95 @@ class _hub extends \IPS\Dispatcher\Controller
 		{
 			Output::i()->json( [ 'error' => 'Failed to create forum topic' ], 500 );
 		}
+	}
+
+	protected function copy(): void
+	{
+		Session::i()->csrfCheck();
+		$member = Member::loggedIn();
+		if ( !$member->member_id )
+		{
+			Output::i()->redirect( Url::internal( 'app=core&module=system&controller=login', 'front', 'login' ) );
+			return;
+		}
+
+		$loadoutId = (int) ( Request::i()->loadout_id ?? 0 );
+		if ( !$loadoutId )
+		{
+			Output::i()->error( 'gdloadout_err_not_found', '2GDL/3', 404 );
+			return;
+		}
+
+		$source = null;
+		try { $source = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first(); } catch ( \Throwable ) {}
+		if ( !$source )
+		{
+			Output::i()->error( 'gdloadout_err_not_found', '2GDL/3', 404 );
+			return;
+		}
+
+		if ( $source['visibility'] === 'private' && (int) $source['member_id'] !== (int) $member->member_id )
+		{
+			Output::i()->error( 'gdloadout_copy_private', '2GDL/4', 403 );
+			return;
+		}
+
+		$newName  = 'Copy of ' . $source['name'];
+		$slug     = \IPS\gdloadout\Loadout\Loadout::slugify( $newName );
+		$slugBase = $slug;
+		$counter  = 1;
+		while ( true )
+		{
+			try
+			{
+				Db::i()->select( 'id', 'gd_loadouts', [ 'member_id=? AND slug=?', (int) $member->member_id, $slug ] )->first();
+				$slug = $slugBase . '-' . ( ++$counter );
+			}
+			catch ( \Throwable ) { break; }
+		}
+
+		$newId = Db::i()->insert( 'gd_loadouts', [
+			'member_id'         => (int) $member->member_id,
+			'name'              => $newName,
+			'slug'              => $slug,
+			'description'       => $source['description'] ?? '',
+			'build_mode'        => $source['build_mode'] ?? 'complete_firearm',
+			'platform'          => $source['platform'] ?? '',
+			'use_case'          => $source['use_case'] ?? '',
+			'visibility'        => 'unlisted',
+			'total_items'       => (int) ( $source['total_items'] ?? 0 ),
+			'total_min_price'   => (float) ( $source['total_min_price'] ?? 0 ),
+			'upvotes'           => 0,
+			'view_count'        => 0,
+			'follow_count'      => 0,
+			'comment_count'     => 0,
+			'featured'          => 0,
+			'featured_position' => 0,
+			'created_at'        => time(),
+			'updated_at'        => null,
+		] );
+
+		try
+		{
+			foreach ( Db::i()->select( '*', 'gd_loadout_items', [ 'loadout_id=?', $loadoutId ], 'sort_order ASC' ) as $item )
+			{
+				try
+				{
+					Db::i()->insert( 'gd_loadout_items', [
+						'loadout_id'   => (int) $newId,
+						'upc'          => $item['upc'] ?? '',
+						'slot_type'    => $item['slot_type'] ?? 'extra',
+						'custom_label' => $item['custom_label'] ?? null,
+						'sort_order'   => (int) ( $item['sort_order'] ?? 0 ),
+						'notes'        => $item['notes'] ?? null,
+					] );
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		Output::i()->redirect( Url::internal( 'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $newId, 'front', 'gdloadout_builder_edit' ) );
 	}
 
 	protected function embed(): void

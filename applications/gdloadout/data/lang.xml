@@ -140,5 +140,10 @@
 <word key="gdloadout_extra_placeholder" js="0"><![CDATA[Custom slot name...]]></word>
 <word key="gdloadout_upvote_loadout" js="0"><![CDATA[Upvote this loadout]]></word>
 <word key="gdloadout_follow_loadout" js="0"><![CDATA[Follow for updates]]></word>
+<word key="gdloadout_copy_build" js="0"><![CDATA[Copy Build]]></word>
+<word key="gdloadout_view_build" js="0"><![CDATA[View]]></word>
+<word key="gdloadout_parts" js="0"><![CDATA[parts]]></word>
+<word key="gdloadout_no_price_yet" js="0"><![CDATA[No price yet]]></word>
+<word key="gdloadout_copy_private" js="0"><![CDATA[Private loadouts cannot be copied]]></word>
 </app>
 </language>
