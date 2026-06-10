@@ -60,11 +60,7 @@ class _builder extends \IPS\Dispatcher\Controller
 	protected function manage(): void
 	{
 		$member = Member::loggedIn();
-		$editId = (int) ( Request::i()->id ?? 0 );
-		if ( !$editId )
-		{
-			$editId = (int) ( Request::i()->loadout_id ?? 0 );
-		}
+		$editId = (int) ( Request::i()->loadout_id ?? Request::i()->id ?? 0 );
 		$loadout = NULL;
 		$items   = [];
 

@@ -14,7 +14,7 @@
             "real": "app=gdloadout&module=loadouts&controller=builder"
         },
         "gdloadout_builder_edit": {
-            "friendly": "builder/edit/{#id}",
+            "friendly": "builder/edit/{#loadout_id}",
             "real": "app=gdloadout&module=loadouts&controller=builder"
         },
         "gdloadout_view": {

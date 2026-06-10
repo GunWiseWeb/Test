@@ -125,47 +125,93 @@ $templates[] = [
 	'template_data' => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $comments, $initData, $canShareForum, $forumTopicUrl',
 	'template_content' => <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
+
     <div class="gdlo-view-header">
         <div class="gdlo-view-header-info">
             <h1 class="gdlo-view-title">{$loadout['name']}</h1>
             <div class="gdlo-view-meta">
                 <span class="gdlo-view-author"><i class="fa-solid fa-user"></i> {$ownerName}</span>
-                {{if $loadout['use_case']}}<span class="gdlo-view-uc">{$loadout['use_case']}</span>{{endif}}
-                {{if $loadout['visibility'] === 'private'}}<span class="gdlo-view-badge gdlo-view-badge--private"><i class="fa-solid fa-lock"></i> Private</span>{{endif}}
-                {{if $loadout['visibility'] === 'unlisted'}}<span class="gdlo-view-badge gdlo-view-badge--unlisted"><i class="fa-solid fa-eye-slash"></i> Unlisted</span>{{endif}}
+                {{if $loadout['use_case']}}
+                <span class="gdlo-view-uc">{$loadout['use_case']}</span>
+                {{endif}}
+                {{if $loadout['visibility'] === 'private'}}
+                <span class="gdlo-view-badge gdlo-view-badge--private"><i class="fa-solid fa-lock"></i> Private</span>
+                {{endif}}
+                {{if $loadout['visibility'] === 'unlisted'}}
+                <span class="gdlo-view-badge gdlo-view-badge--unlisted"><i class="fa-solid fa-eye-slash"></i> Unlisted</span>
+                {{endif}}
+                <span class="gdlo-view-views"><i class="fa-solid fa-eye"></i> {$loadout['view_count']} views</span>
             </div>
-            {{if $loadout['description']}}<p class="gdlo-view-desc">{$loadout['description']}</p>{{endif}}
+            {{if $loadout['description']}}
+            <p class="gdlo-view-desc">{$loadout['description']}</p>
+            {{endif}}
         </div>
         <div class="gdlo-view-header-actions">
-            {{if $isOwner}}<a href="{$editUrl}" class="gdlo-btn gdlo-btn--secondary"><i class="fa-solid fa-pen"></i> Edit</a>{{endif}}
+            {{if $isOwner}}
+            <a href="{$editUrl}" class="gdlo-btn gdlo-btn--secondary"><i class="fa-solid fa-pen"></i> Edit</a>
+            {{endif}}
         </div>
     </div>
+
     <div class="gdlo-view-2col">
         <div class="gdlo-view-main">
-            <div class="gdlo-view-items">
+
+            <div class="gdlo-view-item-grid">
                 {{if count($items) === 0}}
-                <div class="gdlo-view-empty"><i class="fa-solid fa-box-open"></i><p>{lang="gdloadout_no_items"}</p></div>
+                <div class="gdlo-view-empty">
+                    <i class="fa-solid fa-box-open"></i>
+                    <p>{lang="gdloadout_no_items"}</p>
+                </div>
                 {{endif}}
                 {{foreach $items as $item}}
-                <div class="gdlo-view-item">
-                    <div class="gdlo-view-item-icon">{{if $item['image_url']}}<img src="{$item['image_url']}" alt="" class="gdlo-view-item-img" loading="lazy" />{{else}}<i class="fa-solid fa-cube"></i>{{endif}}</div>
-                    <div class="gdlo-view-item-info">
-                        <div class="gdlo-view-item-title">{{if $item['product_title']}}{$item['product_title']}{{else}}{$item['upc']}{{endif}}</div>
-                        <div class="gdlo-view-item-sub"><span class="gdlo-view-item-slot">{$item['slot_type']}</span>{{if $item['brand']}}<span class="gdlo-view-item-brand">{$item['brand']}</span>{{endif}}{{if $item['caliber']}}<span class="gdlo-view-item-caliber">{$item['caliber']}</span>{{endif}}</div>
-                        {{if $item['custom_label']}}<div class="gdlo-view-item-label">{$item['custom_label']}</div>{{endif}}
-                        {{if $item['notes']}}<div class="gdlo-view-item-notes">{$item['notes']}</div>{{endif}}
+                <div class="gdlo-view-card">
+                    <div class="gdlo-view-item-thumb">
+                        {{if $item['image_url']}}
+                        <img src="{$item['image_url']}" alt="{$item['product_title']}" class="gdlo-view-item-img" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+                        <div class="gdlo-view-item-img-ph" style="display:none"><i class="fa-solid fa-cube"></i></div>
+                        {{else}}
+                        <div class="gdlo-view-item-img-ph"><i class="fa-solid fa-cube"></i></div>
+                        {{endif}}
                     </div>
-                    <div class="gdlo-view-item-price">
-                        {{if $item['live_price']}}<span class="gdlo-view-item-price-val">{expression="'$' . number_format((float)$item['live_price'], 2)"}</span><span class="gdlo-view-item-dealers">{expression="(int)$item['active_dealer_count']"} {lang="gdloadout_dealers"}</span>{{else}}<span class="gdlo-view-item-price-na">{lang="gdloadout_no_price"}</span>{{endif}}
+                    <div class="gdlo-view-card-body">
+                        <span class="gdlo-view-card-slot">{$item['slot_type']}</span>
+                        <div class="gdlo-view-card-title">
+                            {{if $item['product_title']}}
+                            {$item['product_title']}
+                            {{else}}
+                            {$item['upc']}
+                            {{endif}}
+                        </div>
+                        {{if $item['brand']}}
+                        <div class="gdlo-view-card-brand">{$item['brand']}</div>
+                        {{endif}}
+                        {{if $item['custom_label']}}
+                        <div class="gdlo-view-card-label">{$item['custom_label']}</div>
+                        {{endif}}
+                        {{if $item['notes']}}
+                        <div class="gdlo-view-card-notes">{$item['notes']}</div>
+                        {{endif}}
+                    </div>
+                    <div class="gdlo-view-card-footer">
+                        {{if $item['live_price']}}
+                        <span class="gdlo-view-card-price">{expression="'$' . number_format((float)$item['live_price'], 2)"}</span>
+                        <span class="gdlo-view-card-dealers">{expression="(int)$item['active_dealer_count']"} {lang="gdloadout_dealers"}</span>
+                        {{else}}
+                        <span class="gdlo-view-card-noprice">{lang="gdloadout_no_price"}</span>
+                        {{endif}}
                     </div>
                 </div>
                 {{endforeach}}
             </div>
+
             <div class="gdlo-view-comments" id="gdloComments">
                 <h3 class="gdlo-view-comments-title"><i class="fa-solid fa-comments"></i> {lang="gdloadout_comments"} ({$loadout['comment_count']})</h3>
                 <div class="gdlo-view-comments-list" id="gdloCommentList">
                     {{foreach $comments as $c}}
-                    <div class="gdlo-view-comment"><strong class="gdlo-view-comment-author">{$c['member_name']}</strong><p class="gdlo-view-comment-body">{$c['comment']}</p></div>
+                    <div class="gdlo-view-comment">
+                        <strong class="gdlo-view-comment-author">{$c['member_name']}</strong>
+                        <p class="gdlo-view-comment-body">{$c['comment']}</p>
+                    </div>
                     {{endforeach}}
                 </div>
                 <div class="gdlo-view-comment-form" id="gdloCommentForm">
@@ -174,43 +220,72 @@ $templates[] = [
                 </div>
             </div>
         </div>
+
         <div class="gdlo-view-sidebar">
             <div class="gdlo-view-summary">
                 <h3 class="gdlo-view-summary-title">{lang="gdloadout_build_summary"}</h3>
                 <div class="gdlo-view-summary-stats">
-                    <div class="gdlo-view-summary-stat"><span class="gdlo-view-summary-stat-val">{$loadout['total_items']}</span><span class="gdlo-view-summary-stat-lbl">{lang="gdloadout_items"}</span></div>
-                    {{if $loadout['total_min_price'] > 0}}<div class="gdlo-view-summary-stat"><span class="gdlo-view-summary-stat-val">{expression="'$' . number_format((float)$loadout['total_min_price'], 2)"}</span><span class="gdlo-view-summary-stat-lbl">{lang="gdloadout_est_cost"}</span></div>{{endif}}
+                    <div class="gdlo-view-summary-stat">
+                        <span class="gdlo-view-summary-stat-lbl">{lang="gdloadout_items"}</span>
+                        <span class="gdlo-view-summary-stat-val">{$loadout['total_items']}</span>
+                    </div>
+                    {{if $loadout['total_min_price'] > 0}}
+                    <div class="gdlo-view-summary-stat gdlo-view-summary-stat--total">
+                        <span class="gdlo-view-summary-stat-lbl">{lang="gdloadout_est_cost"}</span>
+                        <span class="gdlo-view-summary-stat-val gdlo-total">{expression="'$' . number_format((float)$loadout['total_min_price'], 2)"}</span>
+                    </div>
+                    {{endif}}
                 </div>
+
                 <div class="gdlo-view-summary-actions">
-                    <button type="button" class="gdlo-btn gdlo-btn--vote{{if $hasVoted}} gdlo-btn--voted{{endif}}" id="gdloUpvoteBtn"><i class="fa-solid fa-heart"></i> <span id="gdloUpvoteCount">{$loadout['upvotes']}</span></button>
-                    <button type="button" class="gdlo-btn gdlo-btn--follow{{if $hasFollowed}} gdlo-btn--followed{{endif}}" id="gdloFollowBtn"><i class="fa-solid fa-bell"></i> <span id="gdloFollowCount">{$loadout['follow_count']}</span></button>
+                    <button type="button" class="gdlo-btn gdlo-btn--vote{{if $hasVoted}} gdlo-btn--voted{{endif}}" id="gdloUpvoteBtn" aria-label="{lang="gdloadout_upvote_loadout"}" title="{lang="gdloadout_upvote_loadout"}">
+                        <i class="fa-solid fa-heart" aria-hidden="true"></i> <span id="gdloUpvoteCount">{$loadout['upvotes']}</span>
+                    </button>
+                    <button type="button" class="gdlo-btn gdlo-btn--follow{{if $hasFollowed}} gdlo-btn--followed{{endif}}" id="gdloFollowBtn" aria-label="{lang="gdloadout_follow_loadout"}" title="{lang="gdloadout_follow_loadout"}">
+                        <i class="fa-solid fa-bell" aria-hidden="true"></i> <span id="gdloFollowCount">{$loadout['follow_count']}</span>
+                    </button>
                 </div>
+
+                <div class="gdlo-action-row">
+                    <button type="button" id="gdloWishlistBtn" class="gdlo-action-btn gdlo-action-btn--wishlist" aria-label="{lang="gdloadout_add_all_wishlist"}" title="{lang="gdloadout_add_all_wishlist"}">
+                        <i class="fa-solid fa-bookmark" aria-hidden="true"></i> {lang="gdloadout_add_all_wishlist"}
+                    </button>
+                    <button type="button" id="gdloAlertBtn" class="gdlo-action-btn gdlo-action-btn--alert" aria-label="{lang="gdloadout_alert_all"}" title="{lang="gdloadout_alert_all"}">
+                        <i class="fa-solid fa-bell" aria-hidden="true"></i> {lang="gdloadout_alert_all"}
+                    </button>
+                </div>
+
                 <div class="gdlo-view-summary-extras">
-                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloWishlistBtn"><i class="fa-solid fa-bookmark"></i> {lang="gdloadout_add_all_wishlist"}</button>
-                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloAlertBtn"><i class="fa-solid fa-bell"></i> {lang="gdloadout_alert_all"}</button>
                     {{if $forumTopicUrl}}
-                    <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" target="_blank"><i class="fa-solid fa-comments"></i> {lang="gdloadout_view_discussion"}</a>
+                    <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" target="_blank"><i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_view_discussion"}</a>
                     {{else}}
                         {{if $canShareForum}}
-                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloShareForumBtn"><i class="fa-solid fa-share"></i> {lang="gdloadout_share_to_forum"}</button>
+                    <button type="button" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" id="gdloShareForumBtn"><i class="fa-solid fa-share" aria-hidden="true"></i> {lang="gdloadout_share_to_forum"}</button>
                         {{endif}}
                     {{endif}}
                 </div>
+
                 {{if $compliance['has_issues']}}
-                <div class="gdlo-view-compliance">
-                    <h4><i class="fa-solid fa-triangle-exclamation"></i> {lang="gdloadout_compliance"}</h4>
-                    {{if $compliance['nfa_count'] > 0}}<p>{expression="(int)$compliance['nfa_count']"} NFA item(s) — requires tax stamp</p>{{endif}}
-                    {{if $compliance['ffl_count'] > 0}}<p>{expression="(int)$compliance['ffl_count']"} item(s) require FFL transfer</p>{{endif}}
+                <div class="gdlo-view-compliance gdlo-compliance--warn">
+                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                    <div>
+                        <strong>{lang="gdloadout_compliance"}</strong>
+                        {{if $compliance['nfa_count'] > 0}}
+                        <p>{expression="(int)$compliance['nfa_count']"} NFA item(s) — requires tax stamp</p>
+                        {{endif}}
+                        {{if $compliance['ffl_count'] > 0}}
+                        <p>{expression="(int)$compliance['ffl_count']"} item(s) require FFL transfer</p>
+                        {{endif}}
+                    </div>
                 </div>
                 {{endif}}
-                <div class="gdlo-view-summary-share"><span class="gdlo-view-views"><i class="fa-solid fa-eye"></i> {$loadout['view_count']} views</span></div>
             </div>
         </div>
     </div>
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.10',
+	'template_version' => '1.0.29',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];

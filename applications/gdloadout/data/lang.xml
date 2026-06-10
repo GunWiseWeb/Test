@@ -138,5 +138,7 @@
 <word key="gdloadout_builder_prev" js="0"><![CDATA[Previous]]></word>
 <word key="gdloadout_builder_next" js="0"><![CDATA[Next]]></word>
 <word key="gdloadout_extra_placeholder" js="0"><![CDATA[Custom slot name...]]></word>
+<word key="gdloadout_upvote_loadout" js="0"><![CDATA[Upvote this loadout]]></word>
+<word key="gdloadout_follow_loadout" js="0"><![CDATA[Follow for updates]]></word>
 </app>
 </language>

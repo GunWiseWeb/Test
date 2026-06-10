@@ -138,4 +138,6 @@ $lang = array(
     'gdloadout_builder_prev' => 'Previous',
     'gdloadout_builder_next' => 'Next',
     'gdloadout_extra_placeholder' => 'Custom slot name...',
+    'gdloadout_upvote_loadout' => 'Upvote this loadout',
+    'gdloadout_follow_loadout' => 'Follow for updates',
 );
