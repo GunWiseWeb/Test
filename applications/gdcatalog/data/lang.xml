@@ -222,6 +222,7 @@
     <word key="gdcatalog_product_tube_diameter" js="0"><![CDATA[Tube Diameter]]></word>
     <word key="gdcatalog_product_eye_relief" js="0"><![CDATA[Eye Relief]]></word>
     <word key="gdcatalog_product_features" js="0"><![CDATA[Features]]></word>
+    <word key="gdcatalog_product_category_id" js="0"><![CDATA[Category]]></word>
     <word key="gdcatalog_product_type_group" js="0"><![CDATA[Product Type]]></word>
     <word key="gdcatalog_product_type_firearm" js="0"><![CDATA[Firearm]]></word>
     <word key="gdcatalog_product_type_shotgun" js="0"><![CDATA[Shotgun]]></word>

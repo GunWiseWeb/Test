@@ -250,6 +250,7 @@ $lang = array(
 	'gdcatalog_product_eye_relief'             => "Eye Relief",
 	'gdcatalog_product_features'               => "Features",
 	'gdcatalog_product_weight_oz'              => "Weight (oz)",
+	'gdcatalog_product_category_id'            => "Category",
 	'gdcatalog_product_type_group'             => "Product Type",
 	'gdcatalog_product_type_firearm'           => "Firearm",
 	'gdcatalog_product_type_shotgun'           => "Shotgun",

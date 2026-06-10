@@ -1154,6 +1154,32 @@ class _products extends \IPS\Dispatcher\Controller
 			],
 		] ) );
 
+		$catOptions = [];
+		try
+		{
+			$parents = [];
+			foreach ( \IPS\Db::i()->select( '*', 'gd_categories', [ 'parent_id=?', 0 ], 'name ASC' ) as $p )
+			{
+				$parents[ (int) $p['id'] ] = $p['name'];
+			}
+			foreach ( $parents as $pid => $pname )
+			{
+				$catOptions[ $pname ] = [];
+				$catOptions[ $pname ][ $pid ] = $pname . ' (top level)';
+				foreach ( \IPS\Db::i()->select( '*', 'gd_categories', [ 'parent_id=?', $pid ], 'name ASC' ) as $c )
+				{
+					$catOptions[ $pname ][ (int) $c['id'] ] = "\xE2\x80\x94 " . $c['name'];
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$currentCatId = (int) ( $product->category_id ?? 0 );
+		$form->add( new \IPS\Helpers\Form\Select( 'gdcatalog_product_category_id', $currentCatId, FALSE, [
+			'options' => $catOptions,
+			'parse'   => 'normal',
+		] ) );
+
 		foreach ( $editableFields as $field => $config )
 		{
 			$isLocked = $product->isFieldLocked( $field );
@@ -1209,6 +1235,7 @@ class _products extends \IPS\Dispatcher\Controller
 				$product->requires_ffl  = (int) $values['gdcatalog_product_requires_ffl'];
 				$product->is_ammo       = (int) $values['gdcatalog_product_is_ammo'];
 				$product->record_status = $values['gdcatalog_product_status'];
+				$product->category_id   = (int) ( $values['gdcatalog_product_category_id'] ?? $product->category_id );
 				$product->last_updated  = date( 'Y-m-d H:i:s' );
 
 				$intColumns   = [ 'rounds_per_box', 'boxes_per_case', 'nfa_item', 'requires_ffl', 'is_ammo' ];
@@ -1244,6 +1271,7 @@ class _products extends \IPS\Dispatcher\Controller
 				$allData['requires_ffl']  = $product->requires_ffl;
 				$allData['is_ammo']       = $product->is_ammo;
 				$allData['record_status'] = $product->record_status;
+				$allData['category_id']   = $product->category_id;
 				$allData['last_updated']  = $product->last_updated;
 
 				try
@@ -1274,6 +1302,7 @@ class _products extends \IPS\Dispatcher\Controller
 			$product->requires_ffl  = (int) $values['gdcatalog_product_requires_ffl'];
 			$product->is_ammo       = (int) $values['gdcatalog_product_is_ammo'];
 			$product->record_status = $values['gdcatalog_product_status'];
+			$product->category_id   = (int) ( $values['gdcatalog_product_category_id'] ?? $product->category_id );
 			$product->last_updated  = date( 'Y-m-d H:i:s' );
 
 			$intColumns   = [ 'rounds_per_box', 'boxes_per_case', 'nfa_item', 'requires_ffl', 'is_ammo' ];
@@ -1289,7 +1318,7 @@ class _products extends \IPS\Dispatcher\Controller
 
 			$product->save();
 
-			/* Reindex */
+			/* Reindex (picks up changed category_id → new subcategory in index) */
 			OpenSearchIndexer::i()->indexProduct( $product );
 
 			\IPS\Output::i()->redirect(
