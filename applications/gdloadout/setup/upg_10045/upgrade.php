@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10044;
+namespace IPS\gdloadout\setup\upg_10045;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
