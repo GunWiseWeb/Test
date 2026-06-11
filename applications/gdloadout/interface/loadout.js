@@ -88,4 +88,14 @@
         });
     }
 
+    var sugToggle = document.getElementById('gdloSugBannerToggle');
+    var sugBody = document.getElementById('gdloSugBannerBody');
+    if (sugToggle && sugBody) {
+        sugToggle.addEventListener('click', function() {
+            var expanded = sugToggle.getAttribute('aria-expanded') === 'true';
+            sugToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            sugBody.hidden = expanded;
+        });
+    }
+
 })();

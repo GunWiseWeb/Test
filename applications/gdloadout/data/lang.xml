@@ -191,5 +191,9 @@
 <word key="gdloadout_suggest_submitted_title" js="0"><![CDATA[Suggestion Submitted!]]></word>
 <word key="gdloadout_suggest_submitted_desc" js="0"><![CDATA[The loadout owner will be notified of your suggested changes.]]></word>
 <word key="frontnavigation_gdloadout_loadouts" js="0"><![CDATA[Loadouts]]></word>
+<word key="gdloadout_sug_banner_lead" js="0"><![CDATA[You have]]></word>
+<word key="gdloadout_sug_banner_pending" js="0"><![CDATA[pending suggestion(s) — tap to review]]></word>
+<word key="gdloadout_sug_accept" js="0"><![CDATA[Accept]]></word>
+<word key="gdloadout_sug_reject" js="0"><![CDATA[Reject]]></word>
 </app>
 </language>

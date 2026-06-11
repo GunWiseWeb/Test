@@ -153,6 +153,57 @@ $templates[] = [
         </div>
     </div>
 
+    {{if $isOwner}}
+    {{if $pendingSuggestionCount > 0}}
+    <div class="gdlo-sug-banner" id="gdloSugBanner" data-count="{$pendingSuggestionCount}">
+        <button type="button" class="gdlo-sug-banner-head" id="gdloSugBannerToggle" aria-expanded="false">
+            <span class="gdlo-sug-banner-icon"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></span>
+            <span class="gdlo-sug-banner-text">
+                {lang="gdloadout_sug_banner_lead"} <strong>{$pendingSuggestionCount}</strong> {lang="gdloadout_sug_banner_pending"}
+            </span>
+            <span class="gdlo-sug-banner-chevron"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></span>
+        </button>
+        <div class="gdlo-sug-banner-body" id="gdloSugBannerBody" hidden>
+            {{foreach $suggestions as $sug}}
+            <div class="gdlo-sug-card" data-sug-id="{$sug['id']}">
+                <div class="gdlo-sug-card-head">
+                    <span class="gdlo-sug-from"><i class="fa-solid fa-user" aria-hidden="true"></i> {$sug['from_name']}</span>
+                    {{if $sug['message']}}<span class="gdlo-sug-msg">{$sug['message']}</span>{{endif}}
+                </div>
+                <div class="gdlo-sug-changes">
+                    {{if isset($sug['is_multi']) && $sug['is_multi']}}
+                        {{foreach $sug['enriched_changes'] as $ch}}
+                        <div class="gdlo-sug-change">
+                            <span class="gdlo-sug-slot">{$ch['slot']}</span>
+                            <div class="gdlo-sug-diff">
+                                <div class="gdlo-sug-from-part">{{if $ch['current_image']}}<img src="{$ch['current_image']}" alt="" loading="lazy">{{endif}}<span>{$ch['current_title']}</span></div>
+                                <i class="fa-solid fa-arrow-right gdlo-sug-arrow" aria-hidden="true"></i>
+                                <div class="gdlo-sug-to-part">{{if $ch['new_image']}}<img src="{$ch['new_image']}" alt="" loading="lazy">{{endif}}<span>{$ch['new_title']}</span>{{if $ch['new_price']}}<span class="gdlo-sug-price">{expression="'$' . number_format((float)$ch['new_price'], 2)"}</span>{{endif}}</div>
+                            </div>
+                        </div>
+                        {{endforeach}}
+                    {{else}}
+                        <div class="gdlo-sug-change">
+                            <span class="gdlo-sug-slot">{$sug['slot_type']}</span>
+                            <div class="gdlo-sug-diff">
+                                <div class="gdlo-sug-from-part">{{if $sug['current_image']}}<img src="{$sug['current_image']}" alt="" loading="lazy">{{endif}}<span>{$sug['current_title']}</span></div>
+                                <i class="fa-solid fa-arrow-right gdlo-sug-arrow" aria-hidden="true"></i>
+                                <div class="gdlo-sug-to-part">{{if $sug['sug_image']}}<img src="{$sug['sug_image']}" alt="" loading="lazy">{{endif}}<span>{$sug['sug_title']}</span>{{if $sug['sug_price']}}<span class="gdlo-sug-price">{expression="'$' . number_format((float)$sug['sug_price'], 2)"}</span>{{endif}}</div>
+                            </div>
+                        </div>
+                    {{endif}}
+                </div>
+                <div class="gdlo-sug-actions">
+                    <form method="post" action="{$acceptSugUrl}" style="display:inline"><input type="hidden" name="csrfKey" value="{$csrfKey}" /><input type="hidden" name="suggestion_id" value="{$sug['id']}" /><button type="submit" class="gdlo-btn gdlo-btn--positive gdlo-sug-accept">{lang="gdloadout_sug_accept"}</button></form>
+                    <form method="post" action="{$rejectSugUrl}" style="display:inline"><input type="hidden" name="csrfKey" value="{$csrfKey}" /><input type="hidden" name="suggestion_id" value="{$sug['id']}" /><button type="submit" class="gdlo-btn gdlo-btn--negative gdlo-sug-reject">{lang="gdloadout_sug_reject"}</button></form>
+                </div>
+            </div>
+            {{endforeach}}
+        </div>
+    </div>
+    {{endif}}
+    {{endif}}
+
     <div class="gdlo-view-2col">
         <div class="gdlo-view-main">
 
@@ -203,56 +254,6 @@ $templates[] = [
                 </div>
                 {{endforeach}}
             </div>
-
-            {{if $isOwner}}
-            {{if $pendingSuggestionCount > 0}}
-            <div class="gdlo-suggest-panel" id="gdloSuggestionsPanel">
-                <h3 class="gdlo-suggest-panel-title"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> {lang="gdloadout_suggestions_pending"} ({$pendingSuggestionCount})</h3>
-                {{foreach $suggestions as $sug}}
-                <div class="gdlo-suggestion-card">
-                    <div class="gdlo-suggestion-from"><i class="fa-solid fa-user" aria-hidden="true"></i> {$sug['from_name']} &mdash; {{if isset($sug['is_multi']) && $sug['is_multi']}}{expression="count($sug['enriched_changes'])"} slot(s){{else}}{$sug['slot_type']}{{endif}}</div>
-                    {{if isset($sug['is_multi']) && $sug['is_multi']}}
-                    <div class="gdlo-suggestion-changes">
-                        {{foreach $sug['enriched_changes'] as $ch}}
-                        <div class="gdlo-suggestion-change">
-                            <span class="gdlo-suggestion-change-slot">{$ch['slot']}</span>
-                            <div class="gdlo-suggestion-part">
-                                {{if $ch['current_image']}}<img src="{$ch['current_image']}" alt="" class="gdlo-suggestion-img" />{{else}}<div class="gdlo-suggestion-img-ph"><i class="fa-solid fa-cube"></i></div>{{endif}}
-                                <span class="gdlo-suggestion-part-title">{$ch['current_title']}</span>
-                            </div>
-                            <span class="gdlo-suggestion-arrow"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
-                            <div class="gdlo-suggestion-part">
-                                {{if $ch['new_image']}}<img src="{$ch['new_image']}" alt="" class="gdlo-suggestion-img" />{{else}}<div class="gdlo-suggestion-img-ph"><i class="fa-solid fa-cube"></i></div>{{endif}}
-                                <span class="gdlo-suggestion-part-title">{$ch['new_title']}</span>
-                                {{if $ch['new_price']}}<span class="gdlo-suggestion-price">{expression="'$' . number_format((float)$ch['new_price'], 2)"}</span>{{endif}}
-                            </div>
-                        </div>
-                        {{endforeach}}
-                    </div>
-                    {{else}}
-                    <div class="gdlo-suggestion-swap">
-                        <div class="gdlo-suggestion-part">
-                            {{if $sug['current_image']}}<img src="{$sug['current_image']}" alt="" class="gdlo-suggestion-img" />{{else}}<div class="gdlo-suggestion-img-ph"><i class="fa-solid fa-cube"></i></div>{{endif}}
-                            <span class="gdlo-suggestion-part-title">{$sug['current_title']}</span>
-                        </div>
-                        <span class="gdlo-suggestion-arrow"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
-                        <div class="gdlo-suggestion-part">
-                            {{if $sug['sug_image']}}<img src="{$sug['sug_image']}" alt="" class="gdlo-suggestion-img" />{{else}}<div class="gdlo-suggestion-img-ph"><i class="fa-solid fa-cube"></i></div>{{endif}}
-                            <span class="gdlo-suggestion-part-title">{$sug['sug_title']}</span>
-                            {{if $sug['sug_price']}}<span class="gdlo-suggestion-price">{expression="'$' . number_format((float)$sug['sug_price'], 2)"}</span>{{endif}}
-                        </div>
-                    </div>
-                    {{endif}}
-                    {{if $sug['message']}}<div class="gdlo-suggestion-msg">{$sug['message']}</div>{{endif}}
-                    <div class="gdlo-suggestion-actions">
-                        <form method="post" action="{$acceptSugUrl}" style="display:inline"><input type="hidden" name="csrfKey" value="{$csrfKey}" /><input type="hidden" name="suggestion_id" value="{$sug['id']}" /><button type="submit" class="gdlo-btn gdlo-btn--primary gdlo-btn--sm"><i class="fa-solid fa-check"></i> {lang="gdloadout_suggestion_accept"}</button></form>
-                        <form method="post" action="{$rejectSugUrl}" style="display:inline"><input type="hidden" name="csrfKey" value="{$csrfKey}" /><input type="hidden" name="suggestion_id" value="{$sug['id']}" /><button type="submit" class="gdlo-btn gdlo-btn--sm"><i class="fa-solid fa-xmark"></i> {lang="gdloadout_suggestion_reject"}</button></form>
-                    </div>
-                </div>
-                {{endforeach}}
-            </div>
-            {{endif}}
-            {{endif}}
 
         </div>
 

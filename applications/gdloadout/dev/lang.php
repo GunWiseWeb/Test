@@ -191,4 +191,8 @@ $lang = array(
     'gdloadout_suggest_submitted_title' => 'Suggestion Submitted!',
     'gdloadout_suggest_submitted_desc' => 'The loadout owner will be notified of your suggested changes.',
     'frontnavigation_gdloadout_loadouts' => 'Loadouts',
+    'gdloadout_sug_banner_lead' => 'You have',
+    'gdloadout_sug_banner_pending' => 'pending suggestion(s) — tap to review',
+    'gdloadout_sug_accept' => 'Accept',
+    'gdloadout_sug_reject' => 'Reject',
 );

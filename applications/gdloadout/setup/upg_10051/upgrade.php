@@ -1,4 +1,18 @@
-<ips:template parameters="$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl, $startDiscussionUrl, $suggestBuilderUrl" />
+<?php
+
+namespace IPS\gdloadout\setup\upg_10051;
+
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$viewContent = <<<'TEMPLATE_EOT'
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
 
     <div class="gdlo-view-header">
@@ -209,3 +223,63 @@
         </div>
     </div>
 </div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 1,
+				'template_app'     => 'gdloadout',
+				'template_location'=> 'front',
+				'template_group'   => 'loadouts',
+				'template_name'    => 'view',
+				'template_data'    => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl, $startDiscussionUrl, $suggestBuilderUrl',
+				'template_content' => $viewContent,
+				'template_updated' => time(),
+				'template_version' => '1.0.51',
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		$newStrings = [
+			'gdloadout_sug_banner_lead'    => 'You have',
+			'gdloadout_sug_banner_pending' => 'pending suggestion(s)',
+			'gdloadout_sug_accept'         => 'Accept',
+			'gdloadout_sug_reject'         => 'Reject',
+		];
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gdloadout',
+							'word_key'     => $key,
+							'word_default' => $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		try { \IPS\Db::i()->delete( 'core_cache' ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
+		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}
