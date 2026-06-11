@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10043;
+namespace IPS\gdloadout\setup\upg_10044;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -15,6 +15,7 @@ class _upgrade
 		try { \IPS\Db::i()->delete( 'core_cache' ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
 
 		return TRUE;

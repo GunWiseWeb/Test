@@ -126,6 +126,8 @@
 .gdlo-action-btn--wishlist:hover{filter:brightness(.92)}
 .gdlo-action-btn--alert{background:#fff;color:var(--gr-accent,#1f6feb);border-color:var(--gr-accent,#1f6feb)}
 .gdlo-action-btn--alert:hover{background:var(--gr-surface,#f6f7f9)}
+.gdlo-action-stack .gdlo-action-btn--block{min-height:0;padding:9px 14px;font-size:.85em;width:100%;justify-content:center;box-sizing:border-box}
+.gdlo-action-stack .gdlo-action-btn--block i{font-size:14px}
 .gdlo-view-summary-extras{margin-top:4px}
 .gdlo-view-summary-extras .gdlo-btn{margin-bottom:8px}
 .gdlo-view-compliance{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:10px;font-size:.85em;margin:16px 0}
