@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10048;
+namespace IPS\gdloadout\setup\upg_10049;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -17,6 +17,7 @@ class _upgrade
 		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
+		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
 
 		return TRUE;
 	}

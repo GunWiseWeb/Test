@@ -1232,8 +1232,8 @@
 		var box = document.createElement('div');
 		box.className = 'gdlo-success-box';
 		box.innerHTML = '<div class="gdlo-success-icon"><i class="fa-solid fa-circle-check"></i></div>'
-			+ '<div class="gdlo-success-title">' + (initData.lang_suggest_submitted_title || 'Suggestion Submitted!') + '</div>'
-			+ '<div class="gdlo-success-desc">' + (initData.lang_suggest_submitted_desc || 'The loadout owner will be notified of your suggested changes.') + '</div>'
+			+ '<div class="gdlo-success-title">' + (init.lang_suggest_submitted_title || 'Suggestion Submitted!') + '</div>'
+			+ '<div class="gdlo-success-desc">' + (init.lang_suggest_submitted_desc || 'The loadout owner will be notified of your suggested changes.') + '</div>'
 			+ '<button type="button" class="gdlo-btn gdlo-btn--primary gdlo-success-ok">OK</button>';
 
 		backdrop.appendChild(box);
@@ -1274,10 +1274,13 @@
 			.then(function(data) {
 				submitSugBtn.disabled = false;
 				submitSugBtn.textContent = 'Submit Suggestion';
-				if (data.error) { alert(data.error); return; }
-				if (data.ok) {
-					showSuccessModal();
+				if (data && data.error) { alert(data.error); return; }
+				if (data && data.ok) {
+					try { showSuccessModal(); }
+					catch (e) { alert('Suggestion submitted.'); window.history.back(); }
+					return;
 				}
+				alert('Suggestion submitted.');
 			})
 			.catch(function() {
 				submitSugBtn.disabled = false;
