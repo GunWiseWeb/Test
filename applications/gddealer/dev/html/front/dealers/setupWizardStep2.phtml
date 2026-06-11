@@ -1,0 +1,228 @@
+<ips:template parameters="$wizardData,$values" />
+<div class="gdSetupWizard">
+
+	<header class="gdSetupWizard__header">
+		<div class="gdSetupWizard__heading">
+			<h2>Feed Setup Wizard</h2>
+			<p>Walk through 5 steps to connect your product feed. We'll auto-suggest field mappings and validate a sample so you know it'll import cleanly before you go live.</p>
+		</div>
+	</header>
+
+	<nav class="gdSetupWizard__progress" aria-label="Wizard progress">
+		<ol class="gdSetupWizard__steps">
+			{{foreach $wizardData['steps'] as $s}}
+				{{if $s['num'] < $wizardData['currentStep']}}
+					{{$cls = 'is-done';}}
+				{{elseif $s['num'] === $wizardData['currentStep']}}
+					{{$cls = 'is-current';}}
+				{{else}}
+					{{$cls = 'is-upcoming';}}
+				{{endif}}
+				<li class="gdSetupWizard__step {$cls}">
+					<span class="gdSetupWizard__stepNum">{$s['num']}</span>
+					<span class="gdSetupWizard__stepLabel">{$s['label']}</span>
+					<span class="gdSetupWizard__stepDesc">{$s['desc']}</span>
+				</li>
+			{{endforeach}}
+		</ol>
+	</nav>
+
+	{{if $wizardData['savedFlash']}}
+	<div class="gdSetupWizard__flash gdSetupWizard__flash--success">
+		<strong>Step 2 saved!</strong> Your feed parses correctly. Steps 3-5 (field mapping, validation, preview) ship in upcoming releases.
+	</div>
+	{{endif}}
+
+	<section class="gdSetupWizard__card">
+		<h3>Step 2 of {$wizardData['totalSteps']}: Test &amp; Parse</h3>
+		<p>We attempted to fetch and parse your feed. Below are the fetch metadata, parse results, and discovered field names. If anything looks wrong, head back to step 1 and update your settings, then return here and click Re-fetch.</p>
+		<div class="gdSetupWizard__step2Meta">
+			<span class="gdSetupWizard__pill"><strong>Mode:</strong> {{if $values['mode'] === 'paste'}}Paste{{else}}URL{{endif}}</span>
+			{{if $values['mode'] === 'url' && $values['feed_url']}}
+				<span class="gdSetupWizard__pill gdSetupWizard__pill--mono">{$values['feed_url']}</span>
+			{{endif}}
+			<span class="gdSetupWizard__pill"><strong>Format:</strong> {$values['feed_format_label']}</span>
+		</div>
+	</section>
+
+	{{if $values['fetch'] === null}}
+		<section class="gdSetupWizard__card gdSetupWizard__card--warning">
+			<p>No fetch results yet. <a href="{$values['urls']['step2_refetch']}">Click here to fetch your feed now.</a></p>
+		</section>
+	{{else}}
+
+		{{$f = $values['fetch'];}}
+
+		{{if $f['ok'] && !$values['parse_error']}}
+			<section class="gdSetupWizard__card gdSetupWizard__card--success">
+				<div class="gdSetupWizard__resultRow">
+					<span class="gdSetupWizard__resultIcon">&#10003;</span>
+					<div>
+						<h4>Fetch &amp; parse successful</h4>
+						<p>Your feed responded successfully and parsed cleanly. Field discovery picked up <strong>{$values['field_count']}</strong> unique fields across <strong>{$values['sample_count']}</strong> sample records.</p>
+					</div>
+				</div>
+			</section>
+		{{elseif !$f['ok']}}
+			<section class="gdSetupWizard__card gdSetupWizard__card--error">
+				<div class="gdSetupWizard__resultRow">
+					<span class="gdSetupWizard__resultIcon">&#10007;</span>
+					<div>
+						<h4>Fetch failed</h4>
+						<p>{{if $f['error']}}{$f['error']}{{else}}Could not fetch your feed.{{endif}}</p>
+						<p class="gdSetupWizard__resultHint">Common fixes: check the URL is publicly reachable, verify auth credentials, and confirm your server isn't returning a 4xx/5xx error. Then click Re-fetch.</p>
+					</div>
+				</div>
+			</section>
+		{{elseif $values['parse_error']}}
+			<section class="gdSetupWizard__card gdSetupWizard__card--error">
+				<div class="gdSetupWizard__resultRow">
+					<span class="gdSetupWizard__resultIcon">&#10007;</span>
+					<div>
+						<h4>Fetch worked, but parsing failed</h4>
+						<p><strong>{$values['feed_format_label']} parser error:</strong> {$values['parse_error']}</p>
+						<p class="gdSetupWizard__resultHint">Either your feed format is wrong (verify XML/JSON/CSV in step 1 matches your actual feed) or your feed body has a syntax error. Use the body preview below to inspect what we received.</p>
+					</div>
+				</div>
+			</section>
+		{{endif}}
+
+		<section class="gdSetupWizard__card">
+			<h4>Fetch metadata</h4>
+			<table class="gdSetupWizard__metaTable">
+				<tr><th>HTTP status</th><td>{{if $f['http_status']}}<code>{$f['http_status']}</code>{{else}}<em>n/a (paste mode)</em>{{endif}}</td></tr>
+				<tr><th>Content-Type</th><td>{{if $f['content_type']}}<code>{$f['content_type']}</code>{{else}}<em>(empty)</em>{{endif}}</td></tr>
+				<tr><th>Body size</th><td><code>{$values['body_bytes_fmt']}</code> bytes{{if $f['truncated']}} <span class="gdSetupWizard__warnInline">(truncated at 10 MB)</span>{{endif}}</td></tr>
+				<tr><th>Fetch time</th><td>{{if $f['duration_ms']}}<code>{$f['duration_ms']}</code> ms{{else}}<em>n/a</em>{{endif}}</td></tr>
+			</table>
+
+			<h4>Body preview (first 800 chars)</h4>
+			<pre class="gdSetupWizard__preview">{$f['preview']}</pre>
+		</section>
+
+		{{if $values['fields']}}
+			<section class="gdSetupWizard__card">
+				<h4>Discovered fields</h4>
+				<p>Below are the unique field names found in your feed, sorted by how often they appear. In step 3 you'll map each of these to one of our canonical fields.</p>
+				<table class="gdSetupWizard__fieldsTable">
+					<thead>
+						<tr><th>Field name</th><th>Records with value</th><th>Sample value</th></tr>
+					</thead>
+					<tbody>
+						{{foreach $values['fields'] as $field}}
+							<tr>
+								<td><code>{$field['field']}</code></td>
+								<td><span class="gdSetupWizard__count">{$field['count']}</span></td>
+								<td>{{if $field['sample']}}<code class="gdSetupWizard__sample">{$field['sample']}</code>{{else}}<em>(no value in first {$field['count']} records)</em>{{endif}}</td>
+							</tr>
+						{{endforeach}}
+					</tbody>
+				</table>
+			</section>
+		{{endif}}
+	{{endif}}
+
+	<form method="post" action="{$values['urls']['save_step2']}" class="gdSetupWizard__form" data-step="2">
+		<input type="hidden" name="csrfKey" value="{$values['csrfKey']}">
+
+		<div class="gdSetupWizard__actions">
+			<a href="{$values['urls']['step1']}" class="gdSetupWizard__btn gdSetupWizard__btn--ghost">&larr; Back to Step 1</a>
+			<a href="{$values['urls']['step2_refetch']}" class="gdSetupWizard__btn gdSetupWizard__btn--ghost">&#8635; Re-fetch</a>
+			{{if $values['fetch'] && $values['fetch']['ok'] && !$values['parse_error']}}
+				<button type="submit" class="gdSetupWizard__btn gdSetupWizard__btn--primary">Continue to Step 3 &rarr;</button>
+			{{else}}
+				<button type="submit" class="gdSetupWizard__btn gdSetupWizard__btn--disabled" disabled title="Resolve the fetch or parse error before continuing">Continue to Step 3 &rarr;</button>
+			{{endif}}
+		</div>
+	</form>
+
+</div>
+
+<style>
+.gdSetupWizard {
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+	color: #0f172a;
+	max-width: 1100px;
+	margin: 0 auto;
+	padding: 24px 16px 80px;
+}
+.gdSetupWizard *, .gdSetupWizard *::before, .gdSetupWizard *::after { box-sizing: border-box; }
+
+.gdSetupWizard__header { margin-bottom: 24px; }
+.gdSetupWizard__header h2 { margin: 0 0 8px; font-size: 1.65em; font-weight: 700; }
+.gdSetupWizard__header p { margin: 0; color: #64748b; max-width: 700px; }
+
+.gdSetupWizard__progress { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 24px; }
+.gdSetupWizard__steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.gdSetupWizard__step { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 8px; background: #fff; border: 1px solid #e2e8f0; }
+.gdSetupWizard__step.is-current { background: #eff6ff; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+.gdSetupWizard__step.is-done { background: #f0fdf4; border-color: #86efac; }
+.gdSetupWizard__step.is-upcoming { opacity: 0.65; }
+.gdSetupWizard__stepNum { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #cbd5e1; color: #fff; font-size: 11px; font-weight: 700; }
+.gdSetupWizard__step.is-current .gdSetupWizard__stepNum { background: #2563eb; }
+.gdSetupWizard__step.is-done .gdSetupWizard__stepNum { background: #16a34a; }
+.gdSetupWizard__stepLabel { font-size: 13px; font-weight: 600; }
+.gdSetupWizard__stepDesc { font-size: 11.5px; color: #64748b; }
+
+.gdSetupWizard__flash { border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; font-size: 14px; }
+.gdSetupWizard__flash strong { display: block; margin-bottom: 4px; }
+.gdSetupWizard__flash--success { background: #f0fdf4; border: 1px solid #86efac; color: #14532d; }
+
+.gdSetupWizard__card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.gdSetupWizard__card h3 { margin: 0 0 8px; font-size: 1.1em; font-weight: 700; }
+.gdSetupWizard__card h4 { margin: 16px 0 8px; font-size: 1em; font-weight: 600; }
+.gdSetupWizard__card h4:first-child { margin-top: 0; }
+.gdSetupWizard__card p { margin: 0 0 12px; color: #475569; font-size: 14px; }
+.gdSetupWizard__card p:last-child { margin-bottom: 0; }
+
+.gdSetupWizard__card--success { background: #f0fdf4; border-color: #86efac; }
+.gdSetupWizard__card--success h4 { color: #14532d; }
+.gdSetupWizard__card--success p { color: #166534; }
+.gdSetupWizard__card--error { background: #fef2f2; border-color: #fca5a5; }
+.gdSetupWizard__card--error h4 { color: #7f1d1d; }
+.gdSetupWizard__card--error p { color: #991b1b; }
+.gdSetupWizard__card--warning { background: #fffbeb; border-color: #fcd34d; }
+
+.gdSetupWizard__resultRow { display: flex; gap: 14px; align-items: flex-start; }
+.gdSetupWizard__resultIcon { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+.gdSetupWizard__card--success .gdSetupWizard__resultIcon { background: #16a34a; color: #fff; }
+.gdSetupWizard__card--error .gdSetupWizard__resultIcon { background: #dc2626; color: #fff; }
+.gdSetupWizard__resultHint { font-size: 12.5px; font-style: italic; }
+
+.gdSetupWizard__step2Meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.gdSetupWizard__pill { background: #f1f5f9; color: #334155; padding: 4px 10px; border-radius: 14px; font-size: 12.5px; }
+.gdSetupWizard__pill strong { color: #0f172a; }
+.gdSetupWizard__pill--mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.gdSetupWizard__metaTable, .gdSetupWizard__fieldsTable { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 8px 0 12px; }
+.gdSetupWizard__metaTable th, .gdSetupWizard__metaTable td, .gdSetupWizard__fieldsTable th, .gdSetupWizard__fieldsTable td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+.gdSetupWizard__metaTable th { background: #f8fafc; font-weight: 600; color: #334155; width: 160px; }
+.gdSetupWizard__fieldsTable th { background: #f8fafc; font-weight: 600; color: #334155; }
+.gdSetupWizard__metaTable tr:last-child td, .gdSetupWizard__metaTable tr:last-child th, .gdSetupWizard__fieldsTable tbody tr:last-child td { border-bottom: none; }
+
+.gdSetupWizard__metaTable code, .gdSetupWizard__fieldsTable code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; background: #f1f5f9; color: #1e40af; padding: 1px 6px; border-radius: 3px; }
+.gdSetupWizard__sample { color: #475569 !important; max-width: 360px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.gdSetupWizard__count { display: inline-block; min-width: 30px; background: #1e40af; color: #fff; padding: 2px 8px; border-radius: 11px; font-size: 11.5px; font-weight: 600; text-align: center; }
+.gdSetupWizard__warnInline { color: #b45309; font-size: 12px; }
+
+.gdSetupWizard__preview { background: #0f172a; color: #e2e8f0; padding: 14px 16px; border-radius: 8px; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11.5px; line-height: 1.5; max-height: 240px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin: 0; }
+
+.gdSetupWizard__form { margin-top: 8px; }
+.gdSetupWizard__actions { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.gdSetupWizard__btn { padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; border: 1px solid transparent; text-decoration: none; cursor: pointer; transition: all 0.15s; }
+.gdSetupWizard__btn--primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.gdSetupWizard__btn--primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+.gdSetupWizard__btn--ghost { background: #fff; color: #475569; border-color: #cbd5e1; }
+.gdSetupWizard__btn--ghost:hover { background: #f8fafc; color: #0f172a; }
+.gdSetupWizard__btn--disabled { background: #e2e8f0; color: #94a3b8; border-color: #e2e8f0; cursor: not-allowed; }
+
+@media (max-width: 720px) {
+	.gdSetupWizard { padding: 16px 12px 60px; }
+	.gdSetupWizard__steps { grid-template-columns: 1fr 1fr; }
+	.gdSetupWizard__metaTable th { width: auto; }
+	.gdSetupWizard__sample { max-width: 200px; }
+	.gdSetupWizard__actions { flex-direction: column-reverse; align-items: stretch; }
+	.gdSetupWizard__actions .gdSetupWizard__btn { width: 100%; text-align: center; }
+}
+@media (max-width: 480px) { .gdSetupWizard__steps { grid-template-columns: 1fr; } }
+</style>

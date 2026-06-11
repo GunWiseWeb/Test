@@ -600,6 +600,8 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
     if [ "$INTAR" -ne 1 ]; then echo "ABORT: built tar has $INTAR upg dirs, must be 1"; exit 1; fi
     ```
 
+80. **IPS template bare `{…}` is ONLY valid for plain `$variable['key']` access** — any function call, cast, or compound expression (`count()`, `number_format()`, `strtoupper()`, `(int)…`, ternaries, concatenation) MUST use `{expression="…"}`. Bare `{func(...)}` or `{(int)...}` compiles to broken PHP (`syntax error, unexpected string content ""`) and fatals the whole template. Examples: `{count($arr)}` → `{expression="count($arr)"}`, `{strtoupper($s)}` → `{expression="strtoupper($s)"}`, `{number_format($n)}` → `{expression="number_format($n)"}`, `{(int)($x)}` → `{expression="(int)($x)"}`. Plain `{$var}`, `{$arr['key']}`, `{$obj}` are fine — those are simple variable interpolation. When in doubt, use `{expression="…"}` or pre-compute in the controller and pass as a scalar.
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38
