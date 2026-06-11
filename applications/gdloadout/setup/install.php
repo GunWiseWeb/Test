@@ -537,7 +537,8 @@ $templates[] = [
   </div>
 </div>
 
-<div id="gdPickerPanel" class="gdlo-pick" style="display:none">
+<div class="gdlo-pick-backdrop" id="gdPickBackdrop"></div>
+<div id="gdPickerPanel" class="gdlo-pick">
   <div class="gdlo-pick-head">
     <h3 id="gdPickTitle" class="gdlo-pick-title"></h3>
     <button type="button" class="gdlo-pick-close" id="gdPickClose" aria-label="Close">&times;</button>
@@ -596,7 +597,7 @@ $templates[] = [
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.38',
+	'template_version' => '1.0.39',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];

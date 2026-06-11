@@ -150,8 +150,9 @@
 @media(max-width:900px){.gdlo-wiz-body{grid-template-columns:1fr}}
 .gdlo-wiz-main{min-width:0}
 .gdlo-wiz-side{position:sticky;top:80px}
-.gdlo-pick-open .gdlo-wiz-side{display:none}
-.gdlo-pick-open .gdlo-wiz-body{grid-template-columns:1fr}
+.gdlo-pick-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.5);display:none;animation:gdloPickFade .2s ease}
+.gdlo-pick-backdrop.is-open{display:block}
+@keyframes gdloPickFade{from{opacity:0}to{opacity:1}}
 
 /* ===== Wizard Nav ===== */
 .gdlo-wiz-nav{display:flex;align-items:center;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid #e2e8f0}
@@ -199,12 +200,13 @@
 .gdlo-progress-fill{height:100%;background:#2563eb;border-radius:999px;transition:width .3s ease;width:0}
 .gdlo-progress-text{font-size:.82em;color:#64748b;text-align:center}
 
-/* ===== Inline Picker ===== */
-.gdlo-pick{background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 4px 20px rgba(15,23,42,.1);margin-bottom:20px;overflow:hidden}
+/* ===== Slot Picker Drawer ===== */
+.gdlo-pick{position:fixed;top:0;right:0;bottom:0;width:480px;max-width:100vw;z-index:1001;background:#fff;border-radius:14px 0 0 14px;box-shadow:-8px 0 30px rgba(0,0,0,.15);overflow:hidden;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s ease}
 .gdlo-pick-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc}
 .gdlo-pick-title{margin:0;font-size:1.1em;font-weight:700;color:#0f172a}
 .gdlo-pick-close{background:none;border:none;font-size:1.8em;line-height:1;color:#64748b;cursor:pointer;padding:0 4px}
 .gdlo-pick-close:hover{color:#dc2626}
+.gdlo-pick.is-open{transform:translateX(0)}
 .gdlo-pick-types{display:flex;gap:8px;flex-wrap:wrap;padding:14px 20px 0}
 .gdlo-pick-types:empty{display:none;padding:0}
 .gdlo-pick-type-btn{padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;cursor:pointer;font-size:.9em;font-weight:600;transition:all .12s}
@@ -216,11 +218,11 @@
 .gdlo-pick-sort-btn{padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;cursor:pointer;font-size:.82em;font-weight:600;transition:all .12s}
 .gdlo-pick-sort-btn:hover{background:#f1f5f9}
 .gdlo-pick-sort-btn.active{background:#0f172a;border-color:#0f172a;color:#fff}
-.gdlo-pick-results{padding:8px 20px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start;max-height:420px;overflow-y:auto}
-.gdlo-pick-card{display:flex;flex-direction:row;align-items:center;gap:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;overflow:hidden;padding:10px;min-height:84px;transition:border-color .12s,box-shadow .12s}
+.gdlo-pick-results{padding:8px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1 1 auto;overflow-y:auto}
+.gdlo-pick-card{display:flex;flex-direction:row;align-items:center;gap:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;overflow:hidden;padding:10px;min-height:84px;transition:border-color .12s,box-shadow .12s;flex-shrink:0}
 .gdlo-pick-card:hover{border-color:#2563eb;box-shadow:0 4px 14px rgba(37,99,235,.12)}
-.gdlo-pick-card-img{flex:0 0 auto;width:68px;height:68px;object-fit:contain;background:#f8fafc;border:1px solid #eef2f7;border-radius:8px;display:block}
-.gdlo-pick-card-ph{flex:0 0 auto;width:68px;height:68px;background:#f1f5f9;border:1px solid #eef2f7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.8em;color:#cbd5e1}
+.gdlo-pick-card-img{flex:0 0 96px;width:96px;height:96px;object-fit:contain;background:#f8fafc;border:1px solid #eef2f7;border-radius:8px;display:block}
+.gdlo-pick-card-ph{flex:0 0 96px;width:96px;height:96px;background:#f1f5f9;border:1px solid #eef2f7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2em;color:#cbd5e1}
 .gdlo-pick-card-body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
 .gdlo-pick-card-title{font-weight:600;font-size:.85em;line-height:1.3;color:#0f172a;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .gdlo-pick-card-brand{font-size:.78em;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -242,6 +244,14 @@
 .gdlo-pick-facet-clear{padding:6px 20px 0;font-size:.8em;color:#2563eb;cursor:pointer;background:none;border:none;text-align:left}
 .gdlo-pick-facet-clear:hover{text-decoration:underline}
 .gdlo-pick-empty{padding:30px 20px;text-align:center;color:#64748b}
+
+/* ===== Success Modal ===== */
+.gdlo-success-modal{position:fixed;inset:0;z-index:10002;display:flex;align-items:center;justify-content:center;animation:gdloPickFade .2s ease}
+.gdlo-success-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.5)}
+.gdlo-success-box{position:relative;background:#fff;border-radius:14px;padding:32px;max-width:400px;width:calc(100% - 32px);text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.gdlo-success-icon{font-size:3em;color:#16a34a;margin-bottom:16px}
+.gdlo-success-title{font-size:1.3em;font-weight:700;color:#0f172a;margin-bottom:8px}
+.gdlo-success-desc{font-size:.92em;color:#64748b;line-height:1.5;margin-bottom:20px}
 
 /* ===== Extras ===== */
 .gdlo-extra-add{display:flex;gap:8px;align-items:center;margin-bottom:20px}
@@ -319,7 +329,7 @@
 /* ===== Responsive ===== */
 @media(max-width:640px){
   .gdlo-stepper{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .gdlo-pick-results{grid-template-columns:1fr;gap:10px}
+  .gdlo-pick{width:100vw;max-width:100vw;border-radius:0}
   .gdlo-card-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
   .gdlo-mode-grid{grid-template-columns:1fr}
   .gdlo-view-item-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}

@@ -171,6 +171,8 @@ class _builder extends \IPS\Dispatcher\Controller
 			'csrfKey'            => $csrfKey,
 			'suggestMode'        => $suggestMode,
 			'submitSuggestionUrl' => $submitSuggestionUrl,
+			'lang_suggest_submitted_title' => Member::loggedIn()->language()->addToStack( 'gdloadout_suggest_submitted_title' ),
+			'lang_suggest_submitted_desc'  => Member::loggedIn()->language()->addToStack( 'gdloadout_suggest_submitted_desc' ),
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );

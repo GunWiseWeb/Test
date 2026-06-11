@@ -594,7 +594,7 @@
 		if (!panel) return;
 
 		activeSlotKey = key;
-		document.getElementById('gdLoadoutBuilder').classList.add('gdlo-pick-open');
+		var backdrop = document.getElementById('gdPickBackdrop');
 
 		var title = document.getElementById('gdPickTitle');
 		if (title) title.textContent = slotDef.label || key;
@@ -658,22 +658,26 @@
 		}
 
 		renderPickerSort();
-		panel.style.display = '';
+		panel.classList.add('is-open');
+		if (backdrop) backdrop.classList.add('is-open');
 		loadPickerResults(false);
 		if (searchInput) setTimeout(function () { searchInput.focus(); }, 100);
 	}
 
 	function closePicker() {
 		var panel = document.getElementById('gdPickerPanel');
-		if (panel) panel.style.display = 'none';
-		var builder = document.getElementById('gdLoadoutBuilder');
-		if (builder) builder.classList.remove('gdlo-pick-open');
+		if (panel) panel.classList.remove('is-open');
+		var backdrop = document.getElementById('gdPickBackdrop');
+		if (backdrop) backdrop.classList.remove('is-open');
 		activeSlotKey = null;
 		highlightCards();
 	}
 
 	var pickCloseBtn = document.getElementById('gdPickClose');
 	if (pickCloseBtn) pickCloseBtn.addEventListener('click', closePicker);
+
+	var pickBackdrop = document.getElementById('gdPickBackdrop');
+	if (pickBackdrop) pickBackdrop.addEventListener('click', closePicker);
 
 	document.addEventListener('keydown', function (e) {
 		if (e.key === 'Escape') closePicker();
@@ -1216,6 +1220,34 @@
 			.catch(function() {});
 	})();
 
+	/* ===== Success Modal ===== */
+	function showSuccessModal() {
+		var existing = document.getElementById('gdSuccessBackdrop');
+		if (existing) existing.remove();
+
+		var backdrop = document.createElement('div');
+		backdrop.className = 'gdlo-success-backdrop';
+		backdrop.id = 'gdSuccessBackdrop';
+
+		var box = document.createElement('div');
+		box.className = 'gdlo-success-box';
+		box.innerHTML = '<div class="gdlo-success-icon"><i class="fa-solid fa-circle-check"></i></div>'
+			+ '<div class="gdlo-success-title">' + (initData.lang_suggest_submitted_title || 'Suggestion Submitted!') + '</div>'
+			+ '<div class="gdlo-success-desc">' + (initData.lang_suggest_submitted_desc || 'The loadout owner will be notified of your suggested changes.') + '</div>'
+			+ '<button type="button" class="gdlo-btn gdlo-btn--primary gdlo-success-ok">OK</button>';
+
+		backdrop.appendChild(box);
+		document.body.appendChild(backdrop);
+		requestAnimationFrame(function() { backdrop.classList.add('is-open'); });
+
+		function dismiss() {
+			backdrop.classList.remove('is-open');
+			setTimeout(function() { backdrop.remove(); window.history.back(); }, 300);
+		}
+		box.querySelector('.gdlo-success-ok').addEventListener('click', dismiss);
+		backdrop.addEventListener('click', function(e) { if (e.target === backdrop) dismiss(); });
+	}
+
 	/* ===== Submit Suggestion ===== */
 	if (submitSugBtn && suggestMode) {
 		submitSugBtn.addEventListener('click', function() {
@@ -1244,8 +1276,7 @@
 				submitSugBtn.textContent = 'Submit Suggestion';
 				if (data.error) { alert(data.error); return; }
 				if (data.ok) {
-					alert('Suggestion sent! The owner will be notified.');
-					window.history.back();
+					showSuccessModal();
 				}
 			})
 			.catch(function() {

@@ -1,3 +1,18 @@
+<?php
+
+namespace IPS\gdloadout\setup\upg_10039;
+
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$builderBody = <<<'TEMPLATE_EOT'
 <ips:template parameters="$initData" />
 <script type="application/json" id="gdlo-init">{$initData|raw}</script>
 <div id="gdLoadoutBuilder" class="gdlo-wiz">
@@ -170,3 +185,61 @@
 </div>
 
 </div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'        => 1,
+				'template_app'           => 'gdloadout',
+				'template_location'      => 'front',
+				'template_group'         => 'loadouts',
+				'template_name'          => 'builder',
+				'template_data'          => '$initData',
+				'template_content'       => $builderBody,
+				'template_updated'       => time(),
+				'template_version'       => '1.0.39',
+				'template_master_key'    => '',
+				'template_has_hookpoints' => 0,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		$newStrings = [
+			'gdloadout_suggest_submitted_title' => 'Suggestion Submitted!',
+			'gdloadout_suggest_submitted_desc'  => 'The loadout owner will be notified of your suggested changes.',
+		];
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gdloadout',
+							'word_key'     => $key,
+							'word_default' => $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		try { \IPS\Db::i()->delete( 'core_cache' ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

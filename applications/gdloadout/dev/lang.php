@@ -188,4 +188,6 @@ $lang = array(
     'gdloadout_suggest_note' => 'Note (optional)',
     'gdloadout_suggest_submitted' => 'Suggestion sent! The owner will be notified.',
     'gdloadout_suggest_changes_required' => 'Make at least one change before submitting.',
+    'gdloadout_suggest_submitted_title' => 'Suggestion Submitted!',
+    'gdloadout_suggest_submitted_desc' => 'The loadout owner will be notified of your suggested changes.',
 );
