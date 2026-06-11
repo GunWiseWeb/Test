@@ -1145,10 +1145,7 @@ class _hub extends \IPS\Dispatcher\Controller
 		$completeSlots  = [ 'base_firearm', 'optic', 'weapon_light', 'laser', 'suppressor', 'sling', 'rail_mount', 'scope_rings' ];
 		$componentSlots = [ 'lower_receiver', 'upper_receiver', 'barrel', 'handguard', 'muzzle', 'bcg', 'buffer', 'trigger', 'stock', 'grip', 'optic', 'scope_rings', 'rail_mount', 'weapon_light', 'laser', 'suppressor', 'sling' ];
 		$extraSlots     = [ 'magazine', 'holster', 'ear_eye_pro', 'cleaning', 'bipod' ];
-		$validForMode   = array_merge(
-			( ( $loadout['build_mode'] ?? 'complete_firearm' ) === 'component_build' ) ? $componentSlots : $completeSlots,
-			$extraSlots
-		);
+		$validForMode   = array_values( array_unique( array_merge( $completeSlots, $componentSlots, $extraSlots ) ) );
 
 		$cleanChanges = [];
 		foreach ( $changes as $ch )
