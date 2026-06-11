@@ -40,8 +40,11 @@ class _Loadouts
 			'front',
 			'gdloadout_view'
 		);
+		$lang  = \IPS\Member::loggedIn()->language();
+		$title = $lang->addToStack( 'gdloadout_notify_loadout_updated' );
+		$lang->parseOutputForDisplay( $title );
 		return [
-			'title'   => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_notify_loadout_updated' ),
+			'title'   => $title,
 			'content' => htmlspecialchars( $loadoutName ) . ' was updated',
 			'url'     => $url,
 		];
@@ -58,8 +61,11 @@ class _Loadouts
 			'front',
 			'gdloadout_view'
 		);
+		$lang  = \IPS\Member::loggedIn()->language();
+		$title = $lang->addToStack( 'gdloadout_notify_loadout_upvoted' );
+		$lang->parseOutputForDisplay( $title );
 		return [
-			'title'   => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_notify_loadout_upvoted' ),
+			'title'   => $title,
 			'content' => htmlspecialchars( $voterName ) . ' upvoted your loadout "' . htmlspecialchars( $loadoutName ) . '"',
 			'url'     => $url,
 		];
@@ -76,12 +82,16 @@ class _Loadouts
 			'front',
 			'gdloadout_view'
 		);
+		$lang  = \IPS\Member::loggedIn()->language();
+		$title = $lang->addToStack( 'gdloadout_notify_loadout_followed' );
+		$lang->parseOutputForDisplay( $title );
 		return [
-			'title'   => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_notify_loadout_followed' ),
+			'title'   => $title,
 			'content' => htmlspecialchars( $followerName ) . ' is now following "' . htmlspecialchars( $loadoutName ) . '"',
 			'url'     => $url,
 		];
 	}
+
 	public function parse_suggestion_received( \IPS\Notification\Inline $notification, $extra ): array
 	{
 		$loadoutName   = $extra['loadout_name'] ?? '';
@@ -93,8 +103,11 @@ class _Loadouts
 			'front',
 			'gdloadout_view'
 		);
+		$lang  = \IPS\Member::loggedIn()->language();
+		$title = $lang->addToStack( 'gdloadout_notify_suggestion_received' );
+		$lang->parseOutputForDisplay( $title );
 		return [
-			'title'   => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_notify_suggestion_received' ),
+			'title'   => $title,
 			'content' => htmlspecialchars( $suggesterName ) . ' suggested a swap on "' . htmlspecialchars( $loadoutName ) . '"',
 			'url'     => $url,
 		];
@@ -112,8 +125,11 @@ class _Loadouts
 			'gdloadout_view'
 		);
 		$verb = $action === 'accepted' ? 'accepted' : 'declined';
+		$lang  = \IPS\Member::loggedIn()->language();
+		$title = $lang->addToStack( 'gdloadout_notify_suggestion_resolved' );
+		$lang->parseOutputForDisplay( $title );
 		return [
-			'title'   => \IPS\Member::loggedIn()->language()->addToStack( 'gdloadout_notify_suggestion_resolved' ),
+			'title'   => $title,
 			'content' => 'Your suggestion on "' . htmlspecialchars( $loadoutName ) . '" was ' . $verb,
 			'url'     => $url,
 		];
