@@ -858,7 +858,7 @@ class _hub extends \IPS\Dispatcher\Controller
 						if ( $p['best_price'] !== NULL && (float) $p['best_price'] > 0 ) $bestPrice = (float) $p['best_price'];
 					}
 					catch ( \Throwable ) {}
-					if ( $bestPrice === NULL ) { $noPrice++; continue; }
+					if ( $bestPrice === NULL ) { $noPrice++; }
 					Db::i()->replace( 'gd_price_alerts', [ 'member_id' => (int) $member->member_id, 'upc' => $upc, 'threshold' => $bestPrice, 'created' => time() ] );
 					$set++;
 				}

@@ -81,7 +81,11 @@
         alertBtn.addEventListener('click', function() {
             postAction(alertUrl, null, function(data) {
                 if (data.ok) {
-                    alertBtn.textContent = 'Alerts set for ' + data.set + ' items';
+                    var msg = 'Price alert set for ' + data.set + ' item' + (data.set === 1 ? '' : 's');
+                    if (data.no_price && data.no_price > 0) {
+                        msg += ' (' + data.no_price + ' ha' + (data.no_price === 1 ? 's' : 've') + ' no current price — you\'ll be alerted when one appears)';
+                    }
+                    alertBtn.textContent = msg;
                     alertBtn.disabled = true;
                 }
             });
