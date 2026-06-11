@@ -225,7 +225,7 @@
 .gdlo-pick-sort-btn{padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;cursor:pointer;font-size:.82em;font-weight:600;transition:all .12s}
 .gdlo-pick-sort-btn:hover{background:#f1f5f9}
 .gdlo-pick-sort-btn.active{background:#0f172a;border-color:#0f172a;color:#fff}
-.gdlo-pick-results{padding:8px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1 1 auto;overflow-y:auto}
+.gdlo-pick-results{padding:8px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1 1 auto;min-height:0;overflow-y:auto}
 .gdlo-pick-card{display:flex;flex-direction:row;align-items:center;gap:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;cursor:pointer;overflow:hidden;padding:10px;min-height:84px;transition:border-color .12s,box-shadow .12s;flex-shrink:0}
 .gdlo-pick-card:hover{border-color:#2563eb;box-shadow:0 4px 14px rgba(37,99,235,.12)}
 .gdlo-pick-card-img{flex:0 0 96px;width:96px;height:96px;object-fit:contain;background:#f8fafc;border:1px solid #eef2f7;border-radius:8px;display:block}
@@ -251,6 +251,7 @@
 .gdlo-pick-facet-clear{padding:6px 20px 0;font-size:.8em;color:#2563eb;cursor:pointer;background:none;border:none;text-align:left}
 .gdlo-pick-facet-clear:hover{text-decoration:underline}
 .gdlo-pick-empty{padding:30px 20px;text-align:center;color:#64748b}
+.gdlo-pick-head,.gdlo-pick-types,.gdlo-pick-search,.gdlo-pick-sort,.gdlo-pick-facets,.gdlo-pick-facet-bar,.gdlo-pick-facet-clear,#gdPickLoadMore,.gdlo-pick-empty{flex-shrink:0}
 
 /* ===== Success Modal ===== */
 .gdlo-success-modal{position:fixed;inset:0;z-index:10002;display:flex;align-items:center;justify-content:center;animation:gdloPickFade .2s ease}
