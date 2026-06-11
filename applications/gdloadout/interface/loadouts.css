@@ -116,9 +116,10 @@
 .gdlo-vote-row .gdlo-btn--vote,.gdlo-vote-row .gdlo-btn--follow{flex:0 0 auto}
 .gdlo-copy-form--inline{flex:1 1 auto;margin:0;display:flex}
 .gdlo-copy-fill{width:100%;justify-content:center}
-.gdlo-action-stack{display:flex;flex-direction:column;gap:10px;margin:14px 0 0}
+.gdlo-action-stack{display:flex;flex-direction:column;gap:8px;margin:14px 0 0}
 .gdlo-action-stack form{margin:0}
-.gdlo-action-btn--block{width:100%;justify-content:center;box-sizing:border-box}
+.gdlo-action-btn--block{width:100%;justify-content:center;box-sizing:border-box;min-height:0;padding:9px 14px;font-size:.85em}
+.gdlo-action-btn--block i{font-size:14px}
 .gdlo-action-btn{flex:1 1 180px;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:12px 18px;border-radius:10px;font-weight:600;font-size:.9em;cursor:pointer;border:1px solid transparent;transition:all .15s;text-decoration:none;line-height:1.2}
 .gdlo-action-btn i{font-size:17px}
 .gdlo-action-btn--wishlist{background:var(--gr-accent,#1f6feb);color:#fff}
