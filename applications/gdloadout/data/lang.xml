@@ -190,5 +190,6 @@
 <word key="gdloadout_suggest_changes_required" js="0"><![CDATA[Make at least one change before submitting.]]></word>
 <word key="gdloadout_suggest_submitted_title" js="0"><![CDATA[Suggestion Submitted!]]></word>
 <word key="gdloadout_suggest_submitted_desc" js="0"><![CDATA[The loadout owner will be notified of your suggested changes.]]></word>
+<word key="frontnavigation_gdloadout_loadouts" js="0"><![CDATA[Loadouts]]></word>
 </app>
 </language>
