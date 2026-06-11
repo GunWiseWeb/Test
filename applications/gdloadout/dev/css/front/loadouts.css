@@ -112,7 +112,13 @@
 .gdlo-view-summary-stat-val{font-weight:700;color:#0f172a}
 .gdlo-view-summary-stat-val.gdlo-total,.gdlo-view-summary-stat--total .gdlo-view-summary-stat-val{font-size:1.6em;color:#16a34a}
 .gdlo-view-summary-actions{display:flex;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #f1f5f9}
-.gdlo-action-row{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+.gdlo-vote-row{display:flex;align-items:stretch;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid #f1f5f9}
+.gdlo-vote-row .gdlo-btn--vote,.gdlo-vote-row .gdlo-btn--follow{flex:0 0 auto}
+.gdlo-copy-form--inline{flex:1 1 auto;margin:0;display:flex}
+.gdlo-copy-fill{width:100%;justify-content:center}
+.gdlo-action-stack{display:flex;flex-direction:column;gap:10px;margin:14px 0 0}
+.gdlo-action-stack form{margin:0}
+.gdlo-action-btn--block{width:100%;justify-content:center;box-sizing:border-box}
 .gdlo-action-btn{flex:1 1 180px;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:12px 18px;border-radius:10px;font-weight:600;font-size:.9em;cursor:pointer;border:1px solid transparent;transition:all .15s;text-decoration:none;line-height:1.2}
 .gdlo-action-btn i{font-size:17px}
 .gdlo-action-btn--wishlist{background:var(--gr-accent,#1f6feb);color:#fff}
@@ -333,7 +339,7 @@
   .gdlo-card-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
   .gdlo-mode-grid{grid-template-columns:1fr}
   .gdlo-view-item-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
-  .gdlo-action-row{flex-direction:column}
+  .gdlo-vote-row{flex-wrap:wrap}
   .gdlo-action-btn{flex:1 1 auto}
   .gdlo-suggestion-swap{flex-direction:column;align-items:flex-start}
   .gdlo-suggestion-arrow{transform:rotate(90deg)}

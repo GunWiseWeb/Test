@@ -1,3 +1,18 @@
+<?php
+
+namespace IPS\gdloadout\setup\upg_10040;
+
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$viewBody = <<<'TEMPLATE_EOT'
 <ips:template parameters="$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl, $startDiscussionUrl, $suggestBuilderUrl" />
 <div class="gdlo-view" id="gdloView" data-init='{$initData}'>
 
@@ -208,3 +223,33 @@
         </div>
     </div>
 </div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'        => 1,
+				'template_app'           => 'gdloadout',
+				'template_location'      => 'front',
+				'template_group'         => 'loadouts',
+				'template_name'          => 'view',
+				'template_data'          => '$loadout, $items, $ownerName, $isOwner, $editUrl, $compliance, $hasVoted, $hasFollowed, $initData, $forumTopicUrl, $canCopy, $copyUrl, $csrfKey, $canSuggest, $suggestions, $pendingSuggestionCount, $acceptSugUrl, $rejectSugUrl, $startDiscussionUrl, $suggestBuilderUrl',
+				'template_content'       => $viewBody,
+				'template_updated'       => time(),
+				'template_version'       => '1.0.40',
+				'template_master_key'    => '',
+				'template_has_hookpoints' => 0,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		try { \IPS\Db::i()->delete( 'core_cache' ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

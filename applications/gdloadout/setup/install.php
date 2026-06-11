@@ -272,51 +272,48 @@ $templates[] = [
                     {{endif}}
                 </div>
 
-                <div class="gdlo-view-summary-actions">
+                <div class="gdlo-vote-row">
                     <button type="button" class="gdlo-btn gdlo-btn--vote{{if $hasVoted}} gdlo-btn--voted{{endif}}" id="gdloUpvoteBtn" aria-label="{lang="gdloadout_upvote_loadout"}" title="{lang="gdloadout_upvote_loadout"}">
                         <i class="fa-solid fa-heart" aria-hidden="true"></i> <span id="gdloUpvoteCount">{$loadout['upvotes']}</span>
                     </button>
                     <button type="button" class="gdlo-btn gdlo-btn--follow{{if $hasFollowed}} gdlo-btn--followed{{endif}}" id="gdloFollowBtn" aria-label="{lang="gdloadout_follow_loadout"}" title="{lang="gdloadout_follow_loadout"}">
                         <i class="fa-solid fa-bell" aria-hidden="true"></i> <span id="gdloFollowCount">{$loadout['follow_count']}</span>
                     </button>
+                    {{if $canCopy}}
+                    <form method="post" action="{$copyUrl}" class="gdlo-copy-form gdlo-copy-form--inline">
+                        <input type="hidden" name="csrfKey" value="{$csrfKey}">
+                        <button type="submit" class="gdlo-action-btn gdlo-action-btn--copy gdlo-copy-fill" aria-label="Copy this build to my account" title="Copy this build to my account">
+                            <i class="fa-solid fa-copy" aria-hidden="true"></i> {lang="gdloadout_copy_build"}
+                        </button>
+                    </form>
+                    {{endif}}
                 </div>
 
-                <div class="gdlo-action-row">
-                    <button type="button" id="gdloWishlistBtn" class="gdlo-action-btn gdlo-action-btn--wishlist" aria-label="{lang="gdloadout_add_all_wishlist"}" title="{lang="gdloadout_add_all_wishlist"}">
+                <div class="gdlo-action-stack">
+                    <button type="button" id="gdloWishlistBtn" class="gdlo-action-btn gdlo-action-btn--wishlist gdlo-action-btn--block" aria-label="{lang="gdloadout_add_all_wishlist"}" title="{lang="gdloadout_add_all_wishlist"}">
                         <i class="fa-solid fa-bookmark" aria-hidden="true"></i> {lang="gdloadout_add_all_wishlist"}
                     </button>
-                    <button type="button" id="gdloAlertBtn" class="gdlo-action-btn gdlo-action-btn--alert" aria-label="{lang="gdloadout_alert_all"}" title="{lang="gdloadout_alert_all"}">
+                    <button type="button" id="gdloAlertBtn" class="gdlo-action-btn gdlo-action-btn--alert gdlo-action-btn--block" aria-label="{lang="gdloadout_alert_all"}" title="{lang="gdloadout_alert_all"}">
                         <i class="fa-solid fa-bell" aria-hidden="true"></i> {lang="gdloadout_alert_all"}
                     </button>
+                    {{if $canSuggest}}
+                    <a href="{$suggestBuilderUrl}" class="gdlo-action-btn gdlo-action-btn--suggest gdlo-action-btn--block">
+                        <i class="fa-solid fa-lightbulb" aria-hidden="true"></i> {lang="gdloadout_suggest_an_edit"}
+                    </a>
+                    {{endif}}
+                    {{if $forumTopicUrl}}
+                    <a href="{$forumTopicUrl}" class="gdlo-action-btn gdlo-action-btn--block gdlo-btn--secondary" target="_blank" rel="noopener">
+                        <i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_join_discussion"}{{if $loadout['comment_count'] > 0}} ({$loadout['comment_count']}){{endif}}
+                    </a>
+                    {{elseif $isOwner}}
+                    <form method="post" action="{$startDiscussionUrl}" style="margin:0;">
+                        <input type="hidden" name="csrfKey" value="{$csrfKey}">
+                        <button type="submit" class="gdlo-action-btn gdlo-action-btn--block gdlo-btn--secondary" style="width:100%;">
+                            <i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_start_discussion"}
+                        </button>
+                    </form>
+                    {{endif}}
                 </div>
-
-                {{if $canCopy}}
-                <form method="post" action="{$copyUrl}" class="gdlo-copy-form">
-                    <input type="hidden" name="csrfKey" value="{$csrfKey}">
-                    <button type="submit" class="gdlo-action-btn gdlo-action-btn--copy" aria-label="Copy this build to my account" title="Copy this build to my account">
-                        <i class="fa-solid fa-copy" aria-hidden="true"></i> {lang="gdloadout_copy_build"}
-                    </button>
-                </form>
-                {{endif}}
-
-                {{if $canSuggest}}
-                <a href="{$suggestBuilderUrl}" class="gdlo-action-btn gdlo-action-btn--suggest">
-                    <i class="fa-solid fa-lightbulb" aria-hidden="true"></i> {lang="gdloadout_suggest_an_edit"}
-                </a>
-                {{endif}}
-
-                {{if $forumTopicUrl}}
-                <a href="{$forumTopicUrl}" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full" target="_blank" rel="noopener">
-                    <i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_join_discussion"}{{if $loadout['comment_count'] > 0}} ({$loadout['comment_count']}){{endif}}
-                </a>
-                {{elseif $isOwner}}
-                <form method="post" action="{$startDiscussionUrl}" class="gdlo-startdisc-form" style="margin:0;">
-                    <input type="hidden" name="csrfKey" value="{$csrfKey}">
-                    <button type="submit" class="gdlo-btn gdlo-btn--secondary gdlo-btn--full">
-                        <i class="fa-solid fa-comments" aria-hidden="true"></i> {lang="gdloadout_start_discussion"}
-                    </button>
-                </form>
-                {{endif}}
 
                 {{if $compliance['has_issues']}}
                 <div class="gdlo-view-compliance gdlo-compliance--warn">
@@ -338,7 +335,7 @@ $templates[] = [
 </div>
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.38',
+	'template_version' => '1.0.40',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];
