@@ -1222,12 +1222,15 @@
 
 	/* ===== Success Modal ===== */
 	function showSuccessModal() {
-		var existing = document.getElementById('gdSuccessBackdrop');
+		var existing = document.getElementById('gdSuccessModal');
 		if (existing) existing.remove();
+
+		var modal = document.createElement('div');
+		modal.className = 'gdlo-success-modal';
+		modal.id = 'gdSuccessModal';
 
 		var backdrop = document.createElement('div');
 		backdrop.className = 'gdlo-success-backdrop';
-		backdrop.id = 'gdSuccessBackdrop';
 
 		var box = document.createElement('div');
 		box.className = 'gdlo-success-box';
@@ -1236,16 +1239,16 @@
 			+ '<div class="gdlo-success-desc">' + (init.lang_suggest_submitted_desc || 'The loadout owner will be notified of your suggested changes.') + '</div>'
 			+ '<button type="button" class="gdlo-btn gdlo-btn--primary gdlo-success-ok">OK</button>';
 
-		backdrop.appendChild(box);
-		document.body.appendChild(backdrop);
-		requestAnimationFrame(function() { backdrop.classList.add('is-open'); });
+		modal.appendChild(backdrop);
+		modal.appendChild(box);
+		document.body.appendChild(modal);
 
 		function dismiss() {
-			backdrop.classList.remove('is-open');
-			setTimeout(function() { backdrop.remove(); window.history.back(); }, 300);
+			modal.remove();
+			window.history.back();
 		}
 		box.querySelector('.gdlo-success-ok').addEventListener('click', dismiss);
-		backdrop.addEventListener('click', function(e) { if (e.target === backdrop) dismiss(); });
+		backdrop.addEventListener('click', dismiss);
 	}
 
 	/* ===== Submit Suggestion ===== */
