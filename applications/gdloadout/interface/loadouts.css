@@ -218,7 +218,7 @@
 .gdlo-pick-type-btn{padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;cursor:pointer;font-size:.9em;font-weight:600;transition:all .12s}
 .gdlo-pick-type-btn:hover{background:#f1f5f9;border-color:#94a3b8}
 .gdlo-pick-type-btn.active{background:#2563eb;border-color:#2563eb;color:#fff}
-.gdlo-pick-search{padding:14px 20px 12px}
+.gdlo-pick-search{padding:16px 20px 8px}
 .gdlo-pick-sort{display:flex;gap:8px;flex-wrap:wrap;padding:0 20px 10px}
 .gdlo-pick-sort:empty{display:none;padding:0}
 .gdlo-pick-sort-btn{padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;cursor:pointer;font-size:.82em;font-weight:600;transition:all .12s}
@@ -243,10 +243,10 @@
 .gdlo-pick-facet-opts{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px}
 .gdlo-pick-facet-opt{display:flex;align-items:center;gap:4px;font-size:.82em;color:#475569;white-space:nowrap;cursor:pointer}
 .gdlo-pick-facet-doc{color:#94a3b8;font-style:normal;font-size:.9em}
-.gdlo-pick-facet-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 20px 0}
-.gdlo-pick-facet-price{display:flex;gap:8px;align-items:center}
-.gdlo-pick-facet-price input{width:84px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;font-size:.85em}
-.gdlo-pick-facet-instock{display:flex;align-items:center;gap:6px;font-size:.82em;color:#475569;white-space:nowrap;cursor:pointer}
+.gdlo-pick-facet-bar{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:6px 20px 14px}
+.gdlo-pick-facet-price{display:flex;gap:10px;align-items:center}
+.gdlo-pick-facet-price input{width:auto;flex:1 1 0;min-width:0;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;font-size:.85em}
+.gdlo-pick-facet-instock{display:flex;align-items:center;gap:6px;font-size:.82em;color:#475569;white-space:nowrap;cursor:pointer;margin-top:2px}
 .gdlo-pick-facet-clear{padding:6px 20px 0;font-size:.8em;color:#2563eb;cursor:pointer;background:none;border:none;text-align:left}
 .gdlo-pick-facet-clear:hover{text-decoration:underline}
 .gdlo-pick-empty{padding:30px 20px;text-align:center;color:#64748b}
