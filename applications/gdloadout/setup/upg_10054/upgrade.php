@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10053;
+namespace IPS\gdloadout\setup\upg_10054;
 
 if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 {
@@ -20,9 +20,9 @@ class _upgrade
 
 		foreach ( $words as $key => $val )
 		{
-			$exists = false;
-			try { \IPS\Db::i()->select( 'word_key', 'core_sys_lang_words', [ 'word_key=? AND word_app=?', $key, 'gdloadout' ] )->first(); $exists = true; } catch ( \Throwable ) {}
-			if ( !$exists )
+			$has = false;
+			try { \IPS\Db::i()->select( 'word_key', 'core_sys_lang_words', [ 'word_key=? AND word_app=?', $key, 'gdloadout' ] )->first(); $has = true; } catch ( \Throwable ) {}
+			if ( !$has )
 			{
 				try
 				{
