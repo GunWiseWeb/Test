@@ -245,7 +245,7 @@
 		ensureSlot(key);
 		var card = document.createElement('div');
 		card.className = 'gdlo-card';
-		if (isSlotChanged(key)) card.classList.add('gdlo-card--suggested');
+		if (isSlotChanged(key) || (slots[key] && slots[key].suggested)) card.classList.add('gdlo-card--suggested');
 		card.dataset.slotKey = key;
 		var slot = slots[key];
 
@@ -300,7 +300,7 @@
 		if (!slot) return null;
 		var card = document.createElement('div');
 		card.className = 'gdlo-card';
-		if (isSlotChanged(key)) card.classList.add('gdlo-card--suggested');
+		if (isSlotChanged(key) || (slots[key] && slots[key].suggested)) card.classList.add('gdlo-card--suggested');
 		card.dataset.slotKey = key;
 		var label = slot.custom_label || 'Extra';
 
@@ -1004,6 +1004,7 @@
 			body.append('loadout_build_mode', buildMode);
 			body.append('loadout_platform', platform);
 			body.append('loadout_slots', JSON.stringify(slotArr));
+			if (acceptSuggestionId) body.append('accept_suggestion_id', acceptSuggestionId);
 
 			saveBtn.disabled = true;
 			saveBtn.textContent = 'Saving...';
@@ -1136,8 +1137,11 @@
 	}
 
 	/* ===== Apply Suggestion ===== */
+	var acceptSuggestionId = null;
 	(function applySuggestion() {
 		var params = new URLSearchParams(window.location.search);
+		var rawAcceptId = params.get('accept_suggestion_id');
+		if (rawAcceptId) acceptSuggestionId = rawAcceptId;
 
 		var applyChangesRaw = params.get('apply_changes');
 		if (applyChangesRaw && loadoutId) {
@@ -1153,6 +1157,7 @@
 						slots[ch.slot].title = 'Loading...';
 						slots[ch.slot].price = null;
 						slots[ch.slot].image = '';
+						slots[ch.slot].suggested = true;
 						upcsToFetch.push(ch.upc);
 					}
 				}
@@ -1198,6 +1203,7 @@
 		slots[applySlot].title = 'Loading...';
 		slots[applySlot].price = null;
 		slots[applySlot].image = '';
+		slots[applySlot].suggested = true;
 
 		var sep = searchUrl.indexOf('?') === -1 ? '?' : '&';
 		fetch(searchUrl + sep + 'q=' + encodeURIComponent(applyUpc), { credentials: 'same-origin' })

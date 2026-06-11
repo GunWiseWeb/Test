@@ -378,6 +378,39 @@ class _builder extends \IPS\Dispatcher\Controller
 			catch ( \Throwable ) {}
 		}
 
+		$acceptSugId = (int) ( Request::i()->accept_suggestion_id ?? 0 );
+		if ( $acceptSugId > 0 )
+		{
+			try
+			{
+				$sug = Db::i()->select( '*', 'gd_loadout_suggestions', [ 'id=? AND loadout_id=? AND status=?', $acceptSugId, (int) $loadoutId, 'pending' ] )->first();
+				Db::i()->update( 'gd_loadout_suggestions', [ 'status' => 'accepted', 'resolved_at' => time() ], [ 'id=?', $acceptSugId ] );
+
+				try
+				{
+					$suggester = Member::load( (int) $sug['from_member'] );
+					if ( $suggester->member_id )
+					{
+						$savedLoadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=?', (int) $loadoutId ] )->first();
+						ob_start();
+						try
+						{
+							$notification = new \IPS\Notification(
+								\IPS\Application::load( 'gdloadout' ), 'suggestion_resolved', $suggester, [ $suggester ],
+								[ 'loadout_name' => $savedLoadout['name'] ?? '', 'action' => 'accepted', 'username' => $member->name ?? 'Unknown', 'slug' => $savedLoadout['slug'] ?? '' ]
+							);
+							$notification->recipients->attach( $suggester );
+							$notification->send();
+						}
+						catch ( \Throwable ) {}
+						ob_end_clean();
+					}
+				}
+				catch ( \Throwable ) {}
+			}
+			catch ( \Throwable ) {}
+		}
+
 		$ownerName = $member->name ?? 'user';
 		$loadoutSlug = $uniqueSlug ?? $slug;
 		$viewUrl = (string) Url::internal(

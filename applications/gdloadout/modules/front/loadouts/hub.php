@@ -1219,24 +1219,6 @@ class _hub extends \IPS\Dispatcher\Controller
 		try { $loadout = Db::i()->select( '*', 'gd_loadouts', [ 'id=? AND member_id=?', (int) $sug['loadout_id'], (int) $member->member_id ] )->first(); } catch ( \Throwable ) {}
 		if ( !$loadout ) { Output::i()->json( [ 'error' => 'Not your loadout' ], 403 ); return; }
 
-		Db::i()->update( 'gd_loadout_suggestions', [ 'status' => 'accepted', 'resolved_at' => time() ], [ 'id=?', $sugId ] );
-
-		try
-		{
-			$suggester = Member::load( (int) $sug['from_member'] );
-			if ( $suggester->member_id )
-			{
-				$ownerName = $member->name ?? 'Unknown';
-				$notification = new \IPS\Notification(
-					\IPS\Application::load( 'gdloadout' ), 'suggestion_resolved', $suggester, [ $suggester ],
-					[ 'loadout_name' => $loadout['name'] ?? '', 'action' => 'accepted', 'username' => $ownerName, 'slug' => $loadout['slug'] ?? '' ]
-				);
-				$notification->recipients->attach( $suggester );
-				$notification->send();
-			}
-		}
-		catch ( \Throwable ) {}
-
 		$changesJson = $sug['changes'] ?? null;
 		$changes = $changesJson ? json_decode( $changesJson, true ) : null;
 
@@ -1244,7 +1226,8 @@ class _hub extends \IPS\Dispatcher\Controller
 		{
 			$builderUrl = (string) Url::internal(
 				'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $loadout['id']
-				. '&apply_changes=' . urlencode( json_encode( $changes ) ),
+				. '&apply_changes=' . urlencode( json_encode( $changes ) )
+				. '&accept_suggestion_id=' . $sugId,
 				'front', 'gdloadout_builder_edit'
 			);
 		}
@@ -1253,7 +1236,8 @@ class _hub extends \IPS\Dispatcher\Controller
 			$builderUrl = (string) Url::internal(
 				'app=gdloadout&module=loadouts&controller=builder&loadout_id=' . (int) $loadout['id']
 				. '&apply_slot=' . urlencode( $sug['slot_type'] )
-				. '&apply_upc=' . urlencode( $sug['suggested_upc'] ),
+				. '&apply_upc=' . urlencode( $sug['suggested_upc'] )
+				. '&accept_suggestion_id=' . $sugId,
 				'front', 'gdloadout_builder_edit'
 			);
 		}
