@@ -1,0 +1,99 @@
+<ips:template parameters="$listings, $formUrl, $cancelUrl, $csrfKey, $errors=array(), $deal=null" />
+<div class="gdDeals">
+	<div class="gdDeals__header">
+		<h2>{{if $deal}}{lang="gddealer_deals_edit_title"}{{else}}{lang="gddealer_deals_create_title"}{{endif}}</h2>
+		<a href="{$cancelUrl}" class="gdDeals__btn">&larr; Back to Deals</a>
+	</div>
+
+	{{if $errors}}
+		<div class="gdDeals__alert gdDeals__alert--error">
+			{{foreach $errors as $err}}
+				<p>{$err}</p>
+			{{endforeach}}
+		</div>
+	{{endif}}
+
+	<form method="post" action="{$formUrl}" class="gdDeals__form">
+		<input type="hidden" name="csrfKey" value="{$csrfKey}">
+
+		<div class="gdDeals__field">
+			<label>Product</label>
+			<select name="upc" required>
+				<option value="">-- Select a product --</option>
+				{{foreach $listings as $l}}
+					<option value="{$l['upc']}" {{if isset($deal['upc']) && $deal['upc'] === $l['upc']}}selected{{endif}}>{$l['title']} &mdash; {expression="'$' . number_format((float)$l['dealer_price'], 2)"}</option>
+				{{endforeach}}
+			</select>
+		</div>
+
+		<div class="gdDeals__field">
+			<label>Deal Type</label>
+			<div class="gdDeals__radios">
+				<label><input type="radio" name="deal_type" value="price" {{if !isset($deal['deal_type']) || $deal['deal_type'] === 'price'}}checked{{endif}}> Sale Price</label>
+				<label><input type="radio" name="deal_type" value="percent" {{if isset($deal['deal_type']) && $deal['deal_type'] === 'percent'}}checked{{endif}}> Percent Off</label>
+			</div>
+		</div>
+
+		<div class="gdDeals__field" id="gdDealPriceField">
+			<label>Sale Price ($)</label>
+			<input type="number" name="deal_price" step="0.01" min="0.01" value="{{if isset($deal['deal_price'])}}{$deal['deal_price']}{{endif}}" placeholder="e.g. 299.99">
+			<small>Must be lower than the product's current listing price.</small>
+		</div>
+
+		<div class="gdDeals__field" id="gdDealPercentField" style="display:none">
+			<label>Percent Off (%)</label>
+			<input type="number" name="deal_percent" step="0.01" min="1" max="90" value="{{if isset($deal['deal_percent'])}}{$deal['deal_percent']}{{endif}}" placeholder="e.g. 15">
+			<small>Between 1% and 90%.</small>
+		</div>
+
+		<div class="gdDeals__field">
+			<label>Title (optional)</label>
+			<input type="text" name="title" maxlength="150" value="{{if isset($deal['title'])}}{$deal['title']}{{endif}}" placeholder="e.g. Summer Sale">
+		</div>
+
+		<div class="gdDeals__field">
+			<label>Blurb (optional)</label>
+			<textarea name="blurb" maxlength="500" rows="2" placeholder="Short description of the deal">{{if isset($deal['blurb'])}}{$deal['blurb']}{{endif}}</textarea>
+		</div>
+
+		<div class="gdDeals__fieldRow">
+			<div class="gdDeals__field">
+				<label>Start Date (optional)</label>
+				<input type="datetime-local" name="start_date" value="{{if $deal !== null && isset($deal['start_date']) && $deal['start_date']}}{expression="date('Y-m-d\\TH:i', (int)$deal['start_date'])"}{{endif}}">
+				<small>Leave blank to start immediately.</small>
+			</div>
+			<div class="gdDeals__field">
+				<label>End Date (optional)</label>
+				<input type="datetime-local" name="end_date" value="{{if $deal !== null && isset($deal['end_date']) && $deal['end_date']}}{expression="date('Y-m-d\\TH:i', (int)$deal['end_date'])"}{{endif}}">
+				<small>Leave blank for no auto-expiry.</small>
+			</div>
+		</div>
+
+		<div class="gdDeals__field">
+			<label><input type="checkbox" name="is_active" value="1" {{if !isset($deal['is_active']) || $deal['is_active']}}checked{{endif}}> Active</label>
+		</div>
+
+		<div class="gdDeals__formActions">
+			<button type="submit" class="gdDeals__btn gdDeals__btn--primary">{{if $deal}}Save Changes{{else}}Create Deal{{endif}}</button>
+		</div>
+	</form>
+</div>
+
+<style>
+.gdDeals { max-width: 700px; margin: 0 auto; }
+.gdDeals__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.gdDeals__header h2 { margin: 0; font-size: 1.4em; font-weight: 700; }
+.gdDeals__btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: 1px solid #cbd5e1; background: #fff; color: #475569; cursor: pointer; }
+.gdDeals__btn--primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.gdDeals__btn--primary:hover { background: #1d4ed8; }
+.gdDeals__alert--error { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #991b1b; }
+.gdDeals__form { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; }
+.gdDeals__field { margin-bottom: 16px; }
+.gdDeals__field label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; color: #334155; }
+.gdDeals__field input[type="text"], .gdDeals__field input[type="number"], .gdDeals__field input[type="datetime-local"], .gdDeals__field select, .gdDeals__field textarea { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+.gdDeals__field small { display: block; color: #94a3b8; font-size: 12px; margin-top: 2px; }
+.gdDeals__radios { display: flex; gap: 16px; }
+.gdDeals__radios label { font-weight: 400; display: flex; align-items: center; gap: 4px; }
+.gdDeals__fieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.gdDeals__formActions { margin-top: 20px; }
+</style>

@@ -3857,5 +3857,435 @@
                 "columns": [ "status" ]
             }
         }
+    },
+    "gd_deals": {
+        "name": "gd_deals",
+        "columns": {
+            "deal_id": {
+                "name": "deal_id",
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "dealer_id": {
+                "name": "dealer_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "upc": {
+                "name": "upc",
+                "type": "VARCHAR",
+                "length": 20,
+                "decimals": null,
+                "allow_null": false,
+                "default": "",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "deal_type": {
+                "name": "deal_type",
+                "type": "VARCHAR",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": "price",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "deal_price": {
+                "name": "deal_price",
+                "type": "DECIMAL",
+                "length": 10,
+                "decimals": 2,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "deal_percent": {
+                "name": "deal_percent",
+                "type": "DECIMAL",
+                "length": 5,
+                "decimals": 2,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "title": {
+                "name": "title",
+                "type": "VARCHAR",
+                "length": 150,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "blurb": {
+                "name": "blurb",
+                "type": "VARCHAR",
+                "length": 500,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "start_date": {
+                "name": "start_date",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "end_date": {
+                "name": "end_date",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "is_active": {
+                "name": "is_active",
+                "type": "TINYINT",
+                "length": 1,
+                "decimals": null,
+                "allow_null": false,
+                "default": 1,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "source": {
+                "name": "source",
+                "type": "VARCHAR",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": "dealer",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created": {
+                "name": "created",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "updated": {
+                "name": "updated",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "deal_id" ]
+            },
+            "idx_dealer_id": {
+                "type": "key",
+                "name": "idx_dealer_id",
+                "length": [ null ],
+                "columns": [ "dealer_id" ]
+            },
+            "idx_upc": {
+                "type": "key",
+                "name": "idx_upc",
+                "length": [ null ],
+                "columns": [ "upc" ]
+            },
+            "idx_is_active": {
+                "type": "key",
+                "name": "idx_is_active",
+                "length": [ null ],
+                "columns": [ "is_active" ]
+            },
+            "idx_source": {
+                "type": "key",
+                "name": "idx_source",
+                "length": [ null ],
+                "columns": [ "source" ]
+            },
+            "idx_start_date": {
+                "type": "key",
+                "name": "idx_start_date",
+                "length": [ null ],
+                "columns": [ "start_date" ]
+            },
+            "idx_end_date": {
+                "type": "key",
+                "name": "idx_end_date",
+                "length": [ null ],
+                "columns": [ "end_date" ]
+            }
+        }
+    },
+    "gd_dealer_coupons": {
+        "name": "gd_dealer_coupons",
+        "columns": {
+            "coupon_id": {
+                "name": "coupon_id",
+                "type": "BIGINT",
+                "length": 20,
+                "decimals": null,
+                "allow_null": false,
+                "default": null,
+                "auto_increment": true,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "dealer_id": {
+                "name": "dealer_id",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "code": {
+                "name": "code",
+                "type": "VARCHAR",
+                "length": 40,
+                "decimals": null,
+                "allow_null": false,
+                "default": "",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "description": {
+                "name": "description",
+                "type": "VARCHAR",
+                "length": 255,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "discount_type": {
+                "name": "discount_type",
+                "type": "VARCHAR",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": "percent",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "discount_value": {
+                "name": "discount_value",
+                "type": "DECIMAL",
+                "length": 10,
+                "decimals": 2,
+                "allow_null": false,
+                "default": "0.00",
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "min_purchase": {
+                "name": "min_purchase",
+                "type": "DECIMAL",
+                "length": 10,
+                "decimals": 2,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "terms": {
+                "name": "terms",
+                "type": "VARCHAR",
+                "length": 500,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": false,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "expiry": {
+                "name": "expiry",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": true,
+                "default": null,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "is_active": {
+                "name": "is_active",
+                "type": "TINYINT",
+                "length": 1,
+                "decimals": null,
+                "allow_null": false,
+                "default": 1,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            },
+            "created": {
+                "name": "created",
+                "type": "INT",
+                "length": 10,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "coupon_id" ]
+            },
+            "idx_dealer_id": {
+                "type": "key",
+                "name": "idx_dealer_id",
+                "length": [ null ],
+                "columns": [ "dealer_id" ]
+            },
+            "idx_is_active": {
+                "type": "key",
+                "name": "idx_is_active",
+                "length": [ null ],
+                "columns": [ "is_active" ]
+            },
+            "idx_expiry": {
+                "type": "key",
+                "name": "idx_expiry",
+                "length": [ null ],
+                "columns": [ "expiry" ]
+            }
+        }
     }
 }

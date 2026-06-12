@@ -245,6 +245,8 @@ HTML;
 			'categories'    => (string) \IPS\Http\Url::internal( $base . 'categories' ),
 			'analytics'     => (string) \IPS\Http\Url::internal( $base . 'analytics' ),
 			'reviews'       => (string) \IPS\Http\Url::internal( $base . 'reviews' ),
+			'deals'         => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=deals', 'front', 'dealers_deals' ),
+			'coupons'       => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=coupons', 'front', 'dealers_coupons' ),
 			'subscription'  => (string) \IPS\Http\Url::internal( $base . 'subscription' ),
 			'customize'     => (string) \IPS\Http\Url::internal( $base . 'customize' ),
 			'help'          => (string) \IPS\Http\Url::internal( $base . 'help' ),
@@ -342,6 +344,10 @@ HTML;
 				'items' => [
 					[ 'key' => 'analytics', 'label' => $lang->addToStack('gddealer_front_tab_analytics'),
 					  'url' => $urls['analytics'], 'icon' => 'analytics', 'badge' => null ],
+					[ 'key' => 'deals', 'label' => $lang->addToStack('gddealer_front_tab_deals'),
+					  'url' => $urls['deals'], 'icon' => 'deals', 'badge' => null ],
+					[ 'key' => 'coupons', 'label' => $lang->addToStack('gddealer_front_tab_coupons'),
+					  'url' => $urls['coupons'], 'icon' => 'coupons', 'badge' => null ],
 				]
 			],
 			'account' => [

@@ -60,6 +60,22 @@
         "gddealer_admin_flagged_upcs": {
             "friendly": "gddealer/flagged-upcs",
             "real": "app=gddealer&module=dealers&controller=flaggedUpcs"
+        },
+        "dealers_deals": {
+            "friendly": "deals",
+            "real": "app=gddealer&module=dealers&controller=deals"
+        },
+        "dealers_deals_action": {
+            "friendly": "deals/{@do}",
+            "real": "app=gddealer&module=dealers&controller=deals"
+        },
+        "dealers_coupons": {
+            "friendly": "coupons",
+            "real": "app=gddealer&module=dealers&controller=coupons"
+        },
+        "dealers_coupons_action": {
+            "friendly": "coupons/{@do}",
+            "real": "app=gddealer&module=dealers&controller=coupons"
         }
     }
 }

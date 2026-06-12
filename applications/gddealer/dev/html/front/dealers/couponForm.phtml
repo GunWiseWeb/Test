@@ -1,0 +1,86 @@
+<ips:template parameters="$mode, $formUrl, $cancelUrl, $csrfKey, $errors=array(), $coupon=array()" />
+<div class="gdCoupons">
+	<div class="gdCoupons__header">
+		<h2>{{if $mode === 'edit'}}{lang="gddealer_coupons_edit_title"}{{else}}{lang="gddealer_coupons_create_title"}{{endif}}</h2>
+		<a href="{$cancelUrl}" class="gdCoupons__btn">&larr; Back to Coupons</a>
+	</div>
+
+	{{if $errors}}
+		<div class="gdCoupons__alert gdCoupons__alert--error">
+			{{foreach $errors as $err}}
+				<p>{$err}</p>
+			{{endforeach}}
+		</div>
+	{{endif}}
+
+	<form method="post" action="{$formUrl}" class="gdCoupons__form">
+		<input type="hidden" name="csrfKey" value="{$csrfKey}">
+
+		<div class="gdCoupons__field">
+			<label>Coupon Code</label>
+			<input type="text" name="code" maxlength="40" required value="{{if isset($coupon['code'])}}{$coupon['code']}{{endif}}" placeholder="e.g. SAVE10" style="text-transform:uppercase">
+			<small>Will be displayed as uppercase.</small>
+		</div>
+
+		<div class="gdCoupons__field">
+			<label>Description (optional)</label>
+			<input type="text" name="description" maxlength="255" value="{{if isset($coupon['description'])}}{$coupon['description']}{{endif}}" placeholder="e.g. 10% off all handguns">
+		</div>
+
+		<div class="gdCoupons__field">
+			<label>Discount Type</label>
+			<div class="gdCoupons__radios">
+				<label><input type="radio" name="discount_type" value="percent" {{if !isset($coupon['discount_type']) || $coupon['discount_type'] === 'percent'}}checked{{endif}}> Percent Off</label>
+				<label><input type="radio" name="discount_type" value="amount" {{if isset($coupon['discount_type']) && $coupon['discount_type'] === 'amount'}}checked{{endif}}> Fixed Amount</label>
+			</div>
+		</div>
+
+		<div class="gdCoupons__field">
+			<label>Discount Value</label>
+			<input type="number" name="discount_value" step="0.01" min="0.01" required value="{{if isset($coupon['discount_value'])}}{$coupon['discount_value']}{{endif}}" placeholder="e.g. 10">
+			<small>For percent: enter 1-90. For amount: enter dollar value.</small>
+		</div>
+
+		<div class="gdCoupons__field">
+			<label>Minimum Purchase (optional)</label>
+			<input type="number" name="min_purchase" step="0.01" min="0.01" value="{{if isset($coupon['min_purchase'])}}{$coupon['min_purchase']}{{endif}}" placeholder="e.g. 100.00">
+		</div>
+
+		<div class="gdCoupons__field">
+			<label>Terms / Fine Print (optional)</label>
+			<textarea name="terms" maxlength="500" rows="2" placeholder="e.g. Valid on orders over $100. Cannot be combined.">{{if isset($coupon['terms'])}}{$coupon['terms']}{{endif}}</textarea>
+		</div>
+
+		<div class="gdCoupons__field">
+			<label>Expiry Date (optional)</label>
+			<input type="datetime-local" name="expiry" value="{{if isset($coupon['expiry']) && $coupon['expiry']}}{expression="date('Y-m-d\\TH:i', (int)$coupon['expiry'])"}{{endif}}">
+			<small>Leave blank for no expiry.</small>
+		</div>
+
+		<div class="gdCoupons__field">
+			<label><input type="checkbox" name="is_active" value="1" {{if !isset($coupon['is_active']) || $coupon['is_active']}}checked{{endif}}> Active</label>
+		</div>
+
+		<div class="gdCoupons__formActions">
+			<button type="submit" class="gdCoupons__btn gdCoupons__btn--primary">{{if $mode === 'edit'}}Save Changes{{else}}Create Coupon{{endif}}</button>
+		</div>
+	</form>
+</div>
+
+<style>
+.gdCoupons { max-width: 700px; margin: 0 auto; }
+.gdCoupons__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.gdCoupons__header h2 { margin: 0; font-size: 1.4em; font-weight: 700; }
+.gdCoupons__btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: 1px solid #cbd5e1; background: #fff; color: #475569; cursor: pointer; }
+.gdCoupons__btn--primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.gdCoupons__btn--primary:hover { background: #1d4ed8; }
+.gdCoupons__alert--error { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #991b1b; }
+.gdCoupons__form { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; }
+.gdCoupons__field { margin-bottom: 16px; }
+.gdCoupons__field label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; color: #334155; }
+.gdCoupons__field input[type="text"], .gdCoupons__field input[type="number"], .gdCoupons__field input[type="datetime-local"], .gdCoupons__field textarea { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+.gdCoupons__field small { display: block; color: #94a3b8; font-size: 12px; margin-top: 2px; }
+.gdCoupons__radios { display: flex; gap: 16px; }
+.gdCoupons__radios label { font-weight: 400; display: flex; align-items: center; gap: 4px; }
+.gdCoupons__formActions { margin-top: 20px; }
+</style>

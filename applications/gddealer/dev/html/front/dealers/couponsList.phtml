@@ -1,0 +1,98 @@
+<ips:template parameters="$coupons, $createUrl, $csrfKey" />
+<div class="gdCoupons">
+	<div class="gdCoupons__header">
+		<h2>Your Coupons</h2>
+		<a href="{$createUrl}" class="gdCoupons__btn gdCoupons__btn--primary">+ New Coupon</a>
+	</div>
+
+	{{if $coupons}}
+		<table class="gdCoupons__table">
+			<thead>
+				<tr>
+					<th>Code</th>
+					<th>Discount</th>
+					<th>Min. Purchase</th>
+					<th>Expiry</th>
+					<th>Status</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $coupons as $c}}
+					<tr>
+						<td>
+							<code class="gdCoupons__code">{$c['code']}</code>
+							{{if $c['description']}}
+								<span class="gdCoupons__desc">{$c['description']}</span>
+							{{endif}}
+						</td>
+						<td>
+							{{if $c['discount_type'] === 'percent'}}
+								<strong>{expression="number_format((float)$c['discount_value'], 0)"}% off</strong>
+							{{else}}
+								<strong>{expression="'$' . number_format((float)$c['discount_value'], 2)"} off</strong>
+							{{endif}}
+						</td>
+						<td>
+							{{if $c['min_purchase']}}
+								{expression="'$' . number_format((float)$c['min_purchase'], 2)"}
+							{{else}}
+								<em>None</em>
+							{{endif}}
+						</td>
+						<td>
+							{{if $c['expiry']}}
+								{expression="date('M j, Y', (int)$c['expiry'])"}
+							{{else}}
+								<em>No expiry</em>
+							{{endif}}
+						</td>
+						<td>
+							{{$sCls = strtolower($c['status']);}}
+							<span class="gdCoupons__status gdCoupons__status--{$sCls}">{$c['status']}</span>
+						</td>
+						<td class="gdCoupons__actions">
+							<a href="{$c['edit_url']}" class="gdCoupons__link">Edit</a>
+							<form method="post" action="{$c['toggle_url']}" style="display:inline">
+								<input type="hidden" name="csrfKey" value="{$csrfKey}">
+								<button type="submit" class="gdCoupons__link">{expression="$c['is_active'] ? 'Deactivate' : 'Activate'"}</button>
+							</form>
+							<form method="post" action="{$c['delete_url']}" style="display:inline" onsubmit="return confirm('Delete this coupon?')">
+								<input type="hidden" name="csrfKey" value="{$csrfKey}">
+								<button type="submit" class="gdCoupons__link gdCoupons__link--danger">Delete</button>
+							</form>
+						</td>
+					</tr>
+				{{endforeach}}
+			</tbody>
+		</table>
+	{{else}}
+		<div class="gdCoupons__empty">
+			<p>You haven't added any coupons yet. Click <strong>+ New Coupon</strong> to create one.</p>
+		</div>
+	{{endif}}
+</div>
+
+<style>
+.gdCoupons { max-width: 1100px; margin: 0 auto; }
+.gdCoupons__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.gdCoupons__header h2 { margin: 0; font-size: 1.4em; font-weight: 700; }
+.gdCoupons__btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: 1px solid transparent; cursor: pointer; }
+.gdCoupons__btn--primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.gdCoupons__btn--primary:hover { background: #1d4ed8; }
+.gdCoupons__empty { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; text-align: center; color: #64748b; }
+.gdCoupons__alert--error { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #991b1b; }
+.gdCoupons__table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.gdCoupons__table th { background: #f8fafc; font-weight: 600; color: #334155; padding: 10px 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+.gdCoupons__table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+.gdCoupons__code { background: #f1f5f9; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-size: 13px; font-weight: 700; }
+.gdCoupons__desc { display: block; font-size: 12px; color: #64748b; margin-top: 2px; }
+.gdCoupons__status { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.gdCoupons__status--active { background: #dcfce7; color: #166534; }
+.gdCoupons__status--expired { background: #f1f5f9; color: #64748b; }
+.gdCoupons__status--off { background: #fee2e2; color: #991b1b; }
+.gdCoupons__actions { white-space: nowrap; }
+.gdCoupons__link { background: none; border: none; color: #2563eb; cursor: pointer; font-size: 13px; padding: 2px 6px; text-decoration: none; }
+.gdCoupons__link:hover { text-decoration: underline; }
+.gdCoupons__link--danger { color: #dc2626; }
+</style>

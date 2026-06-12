@@ -592,5 +592,11 @@
     <word key="gddealer_unmatched_category"><![CDATA[Category]]></word>
     <word key="gddealer_unmatched_added_to_catalog"><![CDATA[Product added to catalog successfully.]]></word>
     <word key="gddealer_unmatched_already_exists"><![CDATA[This UPC already exists in the catalog.]]></word>
+    <word key="gddealer_front_tab_deals"><![CDATA[Deals]]></word>
+    <word key="gddealer_front_tab_coupons"><![CDATA[Coupons]]></word>
+    <word key="gddealer_deals_create_title"><![CDATA[Create Deal]]></word>
+    <word key="gddealer_deals_edit_title"><![CDATA[Edit Deal]]></word>
+    <word key="gddealer_coupons_create_title"><![CDATA[Create Coupon]]></word>
+    <word key="gddealer_coupons_edit_title"><![CDATA[Edit Coupon]]></word>
   </app>
 </language>

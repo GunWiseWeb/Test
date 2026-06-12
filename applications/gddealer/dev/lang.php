@@ -567,4 +567,11 @@ $lang = [
     'task__DealerImportFeeds'                                     => 'Import Dealer Feeds',
     'task__ExpireTrials'                                          => 'Expire dealer trials and suspend listings',
     'task__ResolveExpiredDisputes'                                 => 'Auto-resolve dealer review contests past deadline',
+
+    'gddealer_front_tab_deals'                                    => 'Deals',
+    'gddealer_front_tab_coupons'                                  => 'Coupons',
+    'gddealer_deals_create_title'                                 => 'Create Deal',
+    'gddealer_deals_edit_title'                                   => 'Edit Deal',
+    'gddealer_coupons_create_title'                                => 'Create Coupon',
+    'gddealer_coupons_edit_title'                                  => 'Edit Coupon',
 ];

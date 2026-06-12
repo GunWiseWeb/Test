@@ -1,0 +1,123 @@
+<ips:template parameters="$deals, $canCreate, $createUrl, $csrfKey, $errors=array()" />
+<div class="gdDeals">
+	<div class="gdDeals__header">
+		<h2>Your Deals</h2>
+		{{if $canCreate}}
+			<a href="{$createUrl}" class="gdDeals__btn gdDeals__btn--primary">+ New Deal</a>
+		{{endif}}
+	</div>
+
+	{{if !$canCreate}}
+		<div class="gdDeals__empty">
+			<p>You have no active listings yet &mdash; deals can be set once your feed has live products.</p>
+		</div>
+	{{endif}}
+
+	{{if $errors}}
+		<div class="gdDeals__alert gdDeals__alert--error">
+			{{foreach $errors as $err}}
+				<p>{$err}</p>
+			{{endforeach}}
+		</div>
+	{{endif}}
+
+	{{if $deals}}
+		<table class="gdDeals__table">
+			<thead>
+				<tr>
+					<th>Product</th>
+					<th>Deal</th>
+					<th>List Price</th>
+					<th>Dates</th>
+					<th>Status</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $deals as $d}}
+					{{$statusCls = strtolower($d['status']);}}
+					<tr class="gdDeals__row gdDeals__row--{$statusCls}">
+						<td class="gdDeals__product">
+							<strong>{$d['product_title']}</strong>
+							<span class="gdDeals__upc">{$d['upc']}</span>
+						</td>
+						<td>
+							{{if $d['deal_type'] === 'price'}}
+								<span class="gdDeals__value">{expression="'$' . number_format((float)$d['deal_price'], 2)"}</span>
+							{{else}}
+								<span class="gdDeals__value">{expression="number_format((float)$d['deal_percent'], 0)"}% off</span>
+							{{endif}}
+							{{if $d['title']}}
+								<span class="gdDeals__title">{$d['title']}</span>
+							{{endif}}
+						</td>
+						<td>
+							{{if $d['current_dealer_price'] !== null}}
+								{expression="'$' . number_format((float)$d['current_dealer_price'], 2)"}
+							{{else}}
+								<em>N/A</em>
+							{{endif}}
+						</td>
+						<td class="gdDeals__dates">
+							{{if $d['start_date']}}
+								<span>Start: {expression="date('M j, Y g:ia', (int)$d['start_date'])"}</span>
+							{{endif}}
+							{{if $d['end_date']}}
+								<span>End: {expression="date('M j, Y g:ia', (int)$d['end_date'])"}</span>
+							{{endif}}
+							{{if !$d['start_date'] && !$d['end_date']}}
+								<em>No dates set</em>
+							{{endif}}
+						</td>
+						<td>
+							<span class="gdDeals__status gdDeals__status--{$statusCls}">{$d['status']}</span>
+						</td>
+						<td class="gdDeals__actions">
+							<a href="{$d['edit_url']}" class="gdDeals__link">Edit</a>
+							<form method="post" action="{$d['toggle_url']}" style="display:inline">
+								<input type="hidden" name="csrfKey" value="{$csrfKey}">
+								<button type="submit" class="gdDeals__link">{expression="$d['is_active'] ? 'Deactivate' : 'Activate'"}</button>
+							</form>
+							<form method="post" action="{$d['delete_url']}" style="display:inline" onsubmit="return confirm('Delete this deal?')">
+								<input type="hidden" name="csrfKey" value="{$csrfKey}">
+								<button type="submit" class="gdDeals__link gdDeals__link--danger">Delete</button>
+							</form>
+						</td>
+					</tr>
+				{{endforeach}}
+			</tbody>
+		</table>
+	{{elseif $canCreate}}
+		<div class="gdDeals__empty">
+			<p>You haven't created any deals yet. Click <strong>+ New Deal</strong> to get started.</p>
+		</div>
+	{{endif}}
+</div>
+
+<style>
+.gdDeals { max-width: 1100px; margin: 0 auto; }
+.gdDeals__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.gdDeals__header h2 { margin: 0; font-size: 1.4em; font-weight: 700; }
+.gdDeals__btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; border: 1px solid transparent; cursor: pointer; }
+.gdDeals__btn--primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.gdDeals__btn--primary:hover { background: #1d4ed8; }
+.gdDeals__empty { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; text-align: center; color: #64748b; }
+.gdDeals__alert--error { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; color: #991b1b; }
+.gdDeals__table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.gdDeals__table th { background: #f8fafc; font-weight: 600; color: #334155; padding: 10px 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+.gdDeals__table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+.gdDeals__product strong { display: block; }
+.gdDeals__upc { font-size: 12px; color: #94a3b8; font-family: monospace; }
+.gdDeals__value { font-weight: 700; color: #16a34a; }
+.gdDeals__title { display: block; font-size: 12px; color: #64748b; margin-top: 2px; }
+.gdDeals__dates span { display: block; font-size: 12px; }
+.gdDeals__status { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.gdDeals__status--live { background: #dcfce7; color: #166534; }
+.gdDeals__status--scheduled { background: #dbeafe; color: #1e40af; }
+.gdDeals__status--ended { background: #f1f5f9; color: #64748b; }
+.gdDeals__status--off { background: #fee2e2; color: #991b1b; }
+.gdDeals__actions { white-space: nowrap; }
+.gdDeals__link { background: none; border: none; color: #2563eb; cursor: pointer; font-size: 13px; padding: 2px 6px; text-decoration: none; }
+.gdDeals__link:hover { text-decoration: underline; }
+.gdDeals__link--danger { color: #dc2626; }
+</style>
