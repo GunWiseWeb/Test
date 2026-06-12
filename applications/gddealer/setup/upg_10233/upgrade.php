@@ -16,7 +16,7 @@ class _upgrade
 	{
 		$prefix = \IPS\Db::i()->prefix;
 
-		/* --- Carried forward from v1.0.228/229/230 --- */
+		/* --- Carried forward from v1.0.228/229/230/232 --- */
 
 		if ( !\IPS\Db::i()->checkForTable( 'gd_deals' ) )
 		{
@@ -97,7 +97,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Re-seed dealerProfile template — v1.0.233 storefront layout */
+		/* Re-seed dealerProfile template — v1.0.233 */
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10233.php';
