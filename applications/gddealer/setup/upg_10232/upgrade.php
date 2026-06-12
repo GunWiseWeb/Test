@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10231;
+namespace IPS\gddealer\setup\upg_10232;
 
 use function defined;
 
@@ -48,7 +48,7 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10231 gd_deals create failed: ' . $e->getMessage(), 'gddealer_upg_10231' ); }
+				try { \IPS\Log::log( 'upg_10232 gd_deals create failed: ' . $e->getMessage(), 'gddealer_upg_10232' ); }
 				catch ( \Throwable ) {}
 			}
 		}
@@ -77,7 +77,7 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10231 gd_dealer_coupons create failed: ' . $e->getMessage(), 'gddealer_upg_10231' ); }
+				try { \IPS\Log::log( 'upg_10232 gd_dealer_coupons create failed: ' . $e->getMessage(), 'gddealer_upg_10232' ); }
 				catch ( \Throwable ) {}
 			}
 		}
@@ -97,10 +97,10 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Re-seed dealerProfile template — v1.0.231 tabbed rebuild */
+		/* Re-seed dealerProfile template — v1.0.232 widen + Info tab */
 		try
 		{
-			require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10231.php';
+			require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10232.php';
 		}
 		catch ( \Throwable ) {}
 
@@ -116,6 +116,7 @@ class _upgrade
 		$strings = [
 			'gddealer_front_tab_deals'         => 'Deals',
 			'gddealer_front_tab_coupons'       => 'Coupons',
+			'gddealer_front_tab_info'          => 'Info',
 			'gddealer_deals_create_title'      => 'Create Deal',
 			'gddealer_deals_edit_title'        => 'Edit Deal',
 			'gddealer_coupons_create_title'    => 'Create Coupon',

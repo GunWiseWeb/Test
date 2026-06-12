@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	var params = new URLSearchParams(window.location.search);
 	var hash = window.location.hash.replace('#', '');
 
-	var tabMap = {deals: 'gdTabDeals', coupons: 'gdTabCoupons', listings: 'gdTabListings', reviews: 'gdTabReviews'};
+	var tabMap = {deals: 'gdTabDeals', coupons: 'gdTabCoupons', listings: 'gdTabListings', reviews: 'gdTabReviews', info: 'gdTabInfo'};
 	var target = null;
 
 	if (tabMap[hash]) {
