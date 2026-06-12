@@ -645,6 +645,78 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		}
 	}
 
+	protected function submitFfl(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		if ( !$this->dealer )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard' ),
+				'dealer_not_found'
+			);
+			return;
+		}
+
+		$newFflNumber     = substr( trim( (string) ( \IPS\Request::i()->ffl_number ?? '' ) ), 0, 32 );
+		$newFflLicenseUrl = substr( trim( (string) ( \IPS\Request::i()->ffl_license_url ?? '' ) ), 0, 500 );
+
+		if ( $newFflNumber === '' || $newFflLicenseUrl === '' )
+		{
+			\IPS\Output::i()->error(
+				'Both the FFL number and a license URL are required.',
+				'3GDD237/1', 400, ''
+			);
+			return;
+		}
+
+		if ( !preg_match( '/^\d-\d{2}-\d{5}$/', $newFflNumber ) )
+		{
+			\IPS\Output::i()->error(
+				'FFL number must match the format X-XX-XXXXX (for example, 3-37-06855).',
+				'3GDD237/2', 400, ''
+			);
+			return;
+		}
+
+		if ( (int) ( $this->dealer->ffl_rejection_count ?? 0 ) >= 3 )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard' ),
+				'FFL verification is blocked after 3 rejections — contact support.'
+			);
+			return;
+		}
+
+		try
+		{
+			\IPS\Db::i()->update( 'gd_dealer_feed_config', [
+				'ffl_number'           => $newFflNumber,
+				'ffl_license_url'      => $newFflLicenseUrl,
+				'ffl_submitted_at'     => time(),
+				'ffl_verified_at'      => null,
+				'ffl_verified_by'      => null,
+				'ffl_rejection_reason' => null,
+			], [ 'dealer_id=?', (int) $this->dealer->dealer_id ] );
+		}
+		catch ( \Throwable )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard' ),
+				'Something went wrong saving your FFL. Please try again.'
+			);
+			return;
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) ( $this->dealer->dealer_slug ?? '' ) ),
+				'front', 'dealers_profile', (string) ( $this->dealer->dealer_slug ?? '' )
+			),
+			'Your FFL was submitted for verification.'
+		);
+	}
+
 	/**
 	 * Load dashboard preferences for the current dealer. Returns the
 	 * stored JSON merged over the defaults so missing keys never break

@@ -94,6 +94,9 @@ trait DealerShellTrait
 			$customizeUrl = (string) \IPS\Http\Url::internal(
 				'app=gddealer&module=dealers&controller=dashboard&do=customize'
 			);
+			$submitFflUrl = (string) \IPS\Http\Url::internal(
+				'app=gddealer&module=dealers&controller=dashboard&do=submitFfl'
+			);
 
 			$bannerHtml = <<<HTML
 <div id="gdFflBanner" style="background:#fef3c7;border-bottom:1px solid #fde68a;color:#92400e;padding:10px 20px;display:flex;align-items:center;gap:12px;font-size:13px;">
@@ -119,7 +122,7 @@ HTML;
 		</div>
 		<p style="margin:0 0 18px 0;font-size:13px;color:#64748b;line-height:1.5;">Get the green verified badge on your public profile to build customer trust. Admin reviews submissions within 24 hours.</p>
 
-		<form method="post" action="{$customizeUrl}" id="gdFflModalForm" style="margin-bottom:0;">
+		<form method="post" action="{$submitFflUrl}" id="gdFflModalForm" style="margin-bottom:0;">
 			<input type="hidden" name="csrfKey" value="{$me->csrfKey}">
 			<input type="hidden" name="MAX_FILE_SIZE" value="0">
 
