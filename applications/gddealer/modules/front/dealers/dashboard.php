@@ -283,11 +283,10 @@ class _dashboard extends \IPS\Dispatcher\Controller
 				'height' => (int) $badgeSizes[ $bid ][1],
 			];
 		}
-		$dealerProfileUrl = (string) \IPS\Http\Url::external(
-			rtrim( (string) \IPS\Settings::i()->base_url, '/' )
-			. '/dealers/' . urlencode( (string) ( $this->dealer->dealer_slug ?? '' ) )
-			. '/?utm_source=verified_badge'
-		);
+		$dealerProfileUrl = (string) \IPS\Http\Url::internal(
+			'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) ( $this->dealer->dealer_slug ?? '' ) ),
+			'front', 'dealers_profile', (string) ( $this->dealer->dealer_slug ?? '' )
+		)->setQueryString( 'utm_source', 'verified_badge' );
 		/* Pre-encode the badge map as JSON so the template can drop it directly
 		   into a data-badges='{...|raw}' attribute. IPS template parser handles
 		   the {var|raw} pattern inside single-quoted attributes specifically
