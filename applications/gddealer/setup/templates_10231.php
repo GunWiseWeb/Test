@@ -1,4 +1,9 @@
-<ips:template parameters="$data" />
+<?php
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) ) { header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' ); exit; }
+
+$masterKey = md5( 'gddealer;front;dealers;dealerProfile' );
+
+$dealerProfileTpl = <<<'TEMPLATE_EOT'
 <style>
 #ipsLayout_mainArea { max-width: 100% !important; }
 #ipsLayout_main { max-width: 100% !important; }
@@ -450,3 +455,25 @@
 	</div>
 
 </div>
+TEMPLATE_EOT;
+
+try
+{
+	\IPS\Db::i()->replace( 'core_theme_templates', [
+		'template_set_id'      => 1,
+		'template_app'         => 'gddealer',
+		'template_location'    => 'front',
+		'template_group'       => 'dealers',
+		'template_name'        => 'dealerProfile',
+		'template_data'        => '$data',
+		'template_content'     => $dealerProfileTpl,
+		'template_updated'     => time(),
+		'template_version'     => '1.0.231',
+		'template_master_key'  => $masterKey,
+	] );
+}
+catch ( \Throwable $e )
+{
+	try { \IPS\Log::log( 'templates_10231 dealerProfile replace failed: ' . $e->getMessage(), 'gddealer_upg_10231' ); }
+	catch ( \Throwable ) {}
+}

@@ -999,6 +999,13 @@ class _profile extends \IPS\Dispatcher\Controller
 			);
 		} catch ( \Throwable ) {}
 
+		try {
+			\IPS\Output::i()->jsFiles = array_merge(
+				\IPS\Output::i()->jsFiles,
+				\IPS\Output::i()->js( 'profileTabs.js', 'gddealer', 'interface' )
+			);
+		} catch ( \Throwable ) {}
+
 		\IPS\Output::i()->title  = $dealer['dealer_name'];
 		\IPS\Output::i()->output = $this->themeVars() . \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )
 			->dealerProfile( $data );

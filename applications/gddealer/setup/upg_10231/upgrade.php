@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10230;
+namespace IPS\gddealer\setup\upg_10231;
 
 use function defined;
 
@@ -16,7 +16,7 @@ class _upgrade
 	{
 		$prefix = \IPS\Db::i()->prefix;
 
-		/* --- Carried forward from v1.0.228/229 --- */
+		/* --- Carried forward from v1.0.228/229/230 --- */
 
 		if ( !\IPS\Db::i()->checkForTable( 'gd_deals' ) )
 		{
@@ -48,7 +48,7 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10230 gd_deals create failed: ' . $e->getMessage(), 'gddealer_upg_10230' ); }
+				try { \IPS\Log::log( 'upg_10231 gd_deals create failed: ' . $e->getMessage(), 'gddealer_upg_10231' ); }
 				catch ( \Throwable ) {}
 			}
 		}
@@ -77,12 +77,12 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10230 gd_dealer_coupons create failed: ' . $e->getMessage(), 'gddealer_upg_10230' ); }
+				try { \IPS\Log::log( 'upg_10231 gd_dealer_coupons create failed: ' . $e->getMessage(), 'gddealer_upg_10231' ); }
 				catch ( \Throwable ) {}
 			}
 		}
 
-		/* --- v1.0.230: widen discount_type from VARCHAR(10) to VARCHAR(20) for free_shipping --- */
+		/* v1.0.230: widen discount_type from VARCHAR(10) to VARCHAR(20) */
 		try
 		{
 			\IPS\Db::i()->query( "ALTER TABLE `{$prefix}gd_dealer_coupons` MODIFY `discount_type` VARCHAR(20) NOT NULL DEFAULT 'percent'" );
@@ -97,14 +97,14 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Re-seed dealerProfile template with deals/coupons/listings + free_shipping support */
+		/* Re-seed dealerProfile template — v1.0.231 tabbed rebuild */
 		try
 		{
-			require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10229.php';
+			require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10231.php';
 		}
 		catch ( \Throwable ) {}
 
-		/* Run canonical templates ensure to verify all 12 managed templates */
+		/* Run canonical templates ensure to verify all managed templates */
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
