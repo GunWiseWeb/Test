@@ -1,4 +1,57 @@
-<ips:template parameters="$dealer, $logs, $listings, $backUrl, $editUrl, $importUrl, $suspendUrl, $invoiceUrl, $disputeSuspendUrl, $reviews, $transferUrl, $deleteUrl" />
+<?php
+
+namespace IPS\gddealer\setup\upg_10235;
+
+use function defined;
+
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		/* --- Seed new lang strings (rule #39, #43, #44) --- */
+		$newStrings = [
+			'gddealer_permanent_delete'             => 'Permanently Delete',
+			'gddealer_confirm_permanent_delete'      => 'This will PERMANENTLY delete ALL data for this dealer — listings, imports, reviews, support tickets, ratings, click logs, and all other dealer-owned records. The IPS member account will be kept but the dealer role will be removed. This cannot be undone. Continue?',
+			'gddealer_dealer_permanently_deleted'     => 'Dealer and all associated data have been permanently deleted.',
+			'gddealer_transfer_ownership'             => 'Transfer Ownership',
+			'gddealer_transfer_ownership_title'       => 'Transfer Dealer Ownership',
+			'gddealer_transfer_target'                => 'New Owner (IPS Member)',
+			'gddealer_transfer_complete'              => 'Dealer ownership has been transferred successfully.',
+			'gddealer_transfer_collision'              => 'The selected member already has a dealer account. Remove their existing dealer account first, or choose a different member.',
+			'gddealer_transfer_same_member'           => 'Cannot transfer a dealer to the same member who already owns it.',
+		];
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gddealer',
+							'word_key'     => $key,
+							'word_default' => $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* --- Re-seed dealerDetail admin template with new params (rule #19, #28, #45) --- */
+$dealerDetailBody = <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body">
 
@@ -205,3 +258,40 @@
 
 	</div>
 </div>
+TEMPLATE_EOT;
+
+		try
+		{
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 0,
+				'template_app'     => 'gddealer',
+				'template_location'=> 'admin',
+				'template_group'   => 'dealers',
+				'template_name'    => 'dealerDetail',
+				'template_data'    => '$dealer, $logs, $listings, $backUrl, $editUrl, $importUrl, $suspendUrl, $invoiceUrl, $disputeSuspendUrl, $reviews, $transferUrl, $deleteUrl',
+				'template_content' => $dealerDetailBody,
+				'template_updated' => time(),
+				'template_version' => '1.0.235',
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		/* --- Run CanonicalTemplates for managed templates (rule #59) --- */
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
+			\IPS\gddealer\Setup\CanonicalTemplates::ensure();
+			\IPS\gddealer\Setup\CanonicalTemplates::clearCaches();
+		}
+		catch ( \Throwable ) {}
+
+		/* --- Clear caches (rule #40) --- */
+		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
+		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

@@ -194,7 +194,7 @@ TEMPLATE_EOT,
 		'location'      => 'admin',
 		'group'         => 'dealers',
 		'template_name' => 'dealerDetail',
-		'template_data' => '$dealer, $logs, $listings, $backUrl, $editUrl, $importUrl, $suspendUrl, $invoiceUrl, $disputeSuspendUrl, $reviews',
+		'template_data' => '$dealer, $logs, $listings, $backUrl, $editUrl, $importUrl, $suspendUrl, $invoiceUrl, $disputeSuspendUrl, $reviews, $transferUrl, $deleteUrl',
 		'template_content' => <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body">
@@ -276,6 +276,8 @@ TEMPLATE_EOT,
 			<a href="{$invoiceUrl}" class="ipsButton ipsButton--normal ipsButton--small">View in Commerce</a>
 			<a href="{$suspendUrl}" class="ipsButton ipsButton--negative ipsButton--small">{{if $dealer['suspended']}}Unsuspend Dealer{{else}}Suspend Dealer{{endif}}</a>
 			<a href="{$disputeSuspendUrl}" class="ipsButton ipsButton--small {{if $dealer['disputes_suspended']}}ipsButton--positive{{else}}ipsButton--warning{{endif}}">{{if $dealer['disputes_suspended']}}Unsuspend Disputes{{else}}Suspend Disputes{{endif}}</a>
+			<a href="{$transferUrl}" class="ipsButton ipsButton--normal ipsButton--small">{lang="gddealer_transfer_ownership"}</a>
+			<a href="{$deleteUrl}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="{lang="gddealer_confirm_permanent_delete"}">{lang="gddealer_permanent_delete"}</a>
 		</div>
 
 		<div style="padding:12px 20px;font-weight:700;font-size:0.9em;text-transform:uppercase;letter-spacing:0.05em;color:#666;border-bottom:1px solid var(--i-border-color,#e0e0e0)">Recent Import Log</div>

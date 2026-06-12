@@ -574,4 +574,13 @@ $lang = [
     'gddealer_deals_edit_title'                                   => 'Edit Deal',
     'gddealer_coupons_create_title'                                => 'Create Coupon',
     'gddealer_coupons_edit_title'                                  => 'Edit Coupon',
+    'gddealer_permanent_delete'                                    => 'Permanently Delete',
+    'gddealer_confirm_permanent_delete'                            => 'This will PERMANENTLY delete ALL data for this dealer — listings, imports, reviews, support tickets, ratings, click logs, and all other dealer-owned records. The IPS member account will be kept but the dealer role will be removed. This cannot be undone. Continue?',
+    'gddealer_dealer_permanently_deleted'                          => 'Dealer and all associated data have been permanently deleted.',
+    'gddealer_transfer_ownership'                                  => 'Transfer Ownership',
+    'gddealer_transfer_ownership_title'                            => 'Transfer Dealer Ownership',
+    'gddealer_transfer_target'                                     => 'New Owner (IPS Member)',
+    'gddealer_transfer_complete'                                   => 'Dealer ownership has been transferred successfully.',
+    'gddealer_transfer_collision'                                  => 'The selected member already has a dealer account. Remove their existing dealer account first, or choose a different member.',
+    'gddealer_transfer_same_member'                                => 'Cannot transfer a dealer to the same member who already owns it.',
 ];

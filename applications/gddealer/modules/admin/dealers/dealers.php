@@ -29,6 +29,26 @@ class _dealers extends \IPS\Dispatcher\Controller
 {
 	public static bool $csrfProtected = TRUE;
 
+	protected const DEALER_ID_TABLES = [
+		'gd_dealer_listings',
+		'gd_dealer_import_log',
+		'gd_dealer_feed_uploads',
+		'gd_dealer_category_map',
+		'gd_dealer_slug_history',
+		'gd_dealer_rank_snapshot',
+		'gd_dealer_dispute_counts',
+		'gd_dealer_reset_backups',
+		'gd_dealer_data_flags',
+		'gd_dealer_ratings',
+		'gd_dealer_support_tickets',
+		'gd_unmatched_upcs',
+		'gd_price_history',
+		'gd_click_log',
+		'gd_click_daily',
+		'gd_deals',
+		'gd_dealer_coupons',
+	];
+
 	public function execute(): void
 	{
 		\IPS\Dispatcher::i()->checkAcpPermission( 'dealer_manage' );
@@ -209,6 +229,8 @@ class _dealers extends \IPS\Dispatcher\Controller
 		$importUrl  = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=forceImport&id=' . (int) $dealer->dealer_id )->csrf();
 		$suspendUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=toggleSuspend&id=' . (int) $dealer->dealer_id )->csrf();
 		$disputeSuspendUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=toggleDisputeSuspend&id=' . (int) $dealer->dealer_id )->csrf();
+		$transferUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=transferOwnership&id=' . (int) $dealer->dealer_id );
+		$deleteUrl   = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=permanentDelete&id=' . (int) $dealer->dealer_id )->csrf();
 
 		$reviews = [];
 		try
@@ -247,7 +269,7 @@ class _dealers extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title  = $dealerData['dealer_name'];
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'admin' )->dealerDetail(
-			$dealerData, $logs, $listings, $backUrl, $editUrl, $importUrl, $suspendUrl, $invoiceUrl, $disputeSuspendUrl, $reviews
+			$dealerData, $logs, $listings, $backUrl, $editUrl, $importUrl, $suspendUrl, $invoiceUrl, $disputeSuspendUrl, $reviews, $transferUrl, $deleteUrl
 		);
 	}
 
@@ -598,6 +620,30 @@ class _dealers extends \IPS\Dispatcher\Controller
 		{
 			$current[] = $groupId;
 			$member->mgroup_others = implode( ',', $current );
+			$member->save();
+		}
+	}
+
+	protected function removeDealersGroup( \IPS\Member $member ): void
+	{
+		$allTiers = [ 'basic', 'pro', 'founding', 'enterprise' ];
+		$current  = $member->mgroup_others ? explode( ',', (string) $member->mgroup_others ) : [];
+		$current  = array_filter( array_map( 'intval', $current ) );
+		$changed  = false;
+
+		foreach ( $allTiers as $tier )
+		{
+			$groupId = Dealer::groupIdForTier( $tier );
+			if ( $groupId > 0 && in_array( $groupId, $current, true ) )
+			{
+				$current = array_diff( $current, [ $groupId ] );
+				$changed = true;
+			}
+		}
+
+		if ( $changed )
+		{
+			$member->mgroup_others = implode( ',', array_values( $current ) );
 			$member->save();
 		}
 	}
@@ -1859,6 +1905,172 @@ class _dealers extends \IPS\Dispatcher\Controller
 			'Rejection attempts reset for ' . (string) $dealer['dealer_name'] . '. They can now re-submit.'
 		);
 	}
+	protected function permanentDelete(): void
+	{
+		\IPS\Dispatcher::i()->checkAcpPermission( 'dealer_manage' );
+		\IPS\Session::i()->csrfCheck();
+
+		$dealerId = (int) ( \IPS\Request::i()->id ?? 0 );
+		if ( $dealerId <= 0 )
+		{
+			\IPS\Output::i()->error( 'Invalid dealer ID', '2GDD235/1', 400 );
+			return;
+		}
+
+		try
+		{
+			$dealer = \IPS\Db::i()->select( '*', 'gd_dealer_feed_config', [ 'dealer_id=?', $dealerId ] )->first();
+		}
+		catch ( \Throwable )
+		{
+			\IPS\Output::i()->error( 'Dealer not found', '2GDD235/2', 404 );
+			return;
+		}
+
+		$dealerName = (string) $dealer['dealer_name'];
+
+		try
+		{
+			\IPS\Db::i()->preparedQuery( 'START TRANSACTION', [] );
+
+			\IPS\Db::i()->preparedQuery(
+				'DELETE r FROM `' . \IPS\Db::i()->prefix . 'gd_dealer_support_replies` r'
+				. ' INNER JOIN `' . \IPS\Db::i()->prefix . 'gd_dealer_support_tickets` t'
+				. ' ON r.ticket_id = t.id'
+				. ' WHERE t.dealer_id = ?',
+				[ $dealerId ]
+			);
+
+			foreach ( self::DEALER_ID_TABLES as $table )
+			{
+				\IPS\Db::i()->delete( $table, [ 'dealer_id=?', $dealerId ] );
+			}
+
+			\IPS\Db::i()->delete( 'gd_dealer_feed_config', [ 'dealer_id=?', $dealerId ] );
+
+			\IPS\Db::i()->preparedQuery( 'COMMIT', [] );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Db::i()->preparedQuery( 'ROLLBACK', [] ); } catch ( \Throwable ) {}
+			\IPS\Output::i()->error( 'Delete failed: ' . $e->getMessage(), '2GDD235/3', 500 );
+			return;
+		}
+
+		try
+		{
+			$member = \IPS\Member::load( $dealerId );
+			if ( $member->member_id )
+			{
+				$this->removeDealersGroup( $member );
+			}
+		}
+		catch ( \Throwable ) {}
+
+		\IPS\Session::i()->log( 'acplog__gddealer_permanent_delete', [ $dealerName => FALSE ] );
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers' ),
+			'gddealer_dealer_permanently_deleted'
+		);
+	}
+
+	protected function transferOwnership(): void
+	{
+		\IPS\Dispatcher::i()->checkAcpPermission( 'dealer_manage' );
+
+		$oldDealerId = (int) ( \IPS\Request::i()->id ?? 0 );
+		if ( $oldDealerId <= 0 )
+		{
+			\IPS\Output::i()->error( 'Invalid dealer ID', '2GDD235/4', 400 );
+			return;
+		}
+
+		try
+		{
+			$dealer = \IPS\Db::i()->select( '*', 'gd_dealer_feed_config', [ 'dealer_id=?', $oldDealerId ] )->first();
+		}
+		catch ( \Throwable )
+		{
+			\IPS\Output::i()->error( 'Dealer not found', '2GDD235/5', 404 );
+			return;
+		}
+
+		$dealerName = (string) $dealer['dealer_name'];
+		$dealerTier = (string) ( $dealer['subscription_tier'] ?? 'basic' );
+
+		$form = new \IPS\Helpers\Form;
+		$form->add( new \IPS\Helpers\Form\Member( 'gddealer_transfer_target', NULL, TRUE, [], NULL, NULL, NULL, 'gddealer_transfer_target' ) );
+
+		if ( $values = $form->values() )
+		{
+			$newMember = $values['gddealer_transfer_target'];
+			$newDealerId = (int) $newMember->member_id;
+
+			if ( $newDealerId === $oldDealerId )
+			{
+				\IPS\Output::i()->error( 'gddealer_transfer_same_member', '2GDD235/6', 400 );
+				return;
+			}
+
+			$existing = 0;
+			try
+			{
+				$existing = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_feed_config', [ 'dealer_id=?', $newDealerId ] )->first();
+			}
+			catch ( \Throwable ) {}
+
+			if ( $existing > 0 )
+			{
+				\IPS\Output::i()->error( 'gddealer_transfer_collision', '2GDD235/7', 400 );
+				return;
+			}
+
+			try
+			{
+				\IPS\Db::i()->preparedQuery( 'START TRANSACTION', [] );
+
+				\IPS\Db::i()->update( 'gd_dealer_feed_config', [ 'dealer_id' => $newDealerId ], [ 'dealer_id=?', $oldDealerId ] );
+
+				foreach ( self::DEALER_ID_TABLES as $table )
+				{
+					\IPS\Db::i()->update( $table, [ 'dealer_id' => $newDealerId ], [ 'dealer_id=?', $oldDealerId ] );
+				}
+
+				\IPS\Db::i()->preparedQuery( 'COMMIT', [] );
+			}
+			catch ( \Throwable $e )
+			{
+				try { \IPS\Db::i()->preparedQuery( 'ROLLBACK', [] ); } catch ( \Throwable ) {}
+				\IPS\Output::i()->error( 'Transfer failed: ' . $e->getMessage(), '2GDD235/8', 500 );
+				return;
+			}
+
+			try
+			{
+				$oldMember = \IPS\Member::load( $oldDealerId );
+				if ( $oldMember->member_id )
+				{
+					$this->removeDealersGroup( $oldMember );
+				}
+			}
+			catch ( \Throwable ) {}
+
+			$this->assignDealersGroup( $newMember, $dealerTier );
+
+			\IPS\Session::i()->log( 'acplog__gddealer_transfer_ownership', [ $dealerName => FALSE ] );
+
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=view&id=' . $newDealerId ),
+				'gddealer_transfer_complete'
+			);
+			return;
+		}
+
+		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_transfer_ownership_title' ) . ' — ' . $dealerName;
+		\IPS\Output::i()->output = $form;
+	}
+
 	protected function clearFailedLogs(): void
 	{
 		\IPS\Session::i()->csrfCheck();

@@ -598,5 +598,14 @@
     <word key="gddealer_deals_edit_title"><![CDATA[Edit Deal]]></word>
     <word key="gddealer_coupons_create_title"><![CDATA[Create Coupon]]></word>
     <word key="gddealer_coupons_edit_title"><![CDATA[Edit Coupon]]></word>
+    <word key="gddealer_permanent_delete"><![CDATA[Permanently Delete]]></word>
+    <word key="gddealer_confirm_permanent_delete"><![CDATA[This will PERMANENTLY delete ALL data for this dealer — listings, imports, reviews, support tickets, ratings, click logs, and all other dealer-owned records. The IPS member account will be kept but the dealer role will be removed. This cannot be undone. Continue?]]></word>
+    <word key="gddealer_dealer_permanently_deleted"><![CDATA[Dealer and all associated data have been permanently deleted.]]></word>
+    <word key="gddealer_transfer_ownership"><![CDATA[Transfer Ownership]]></word>
+    <word key="gddealer_transfer_ownership_title"><![CDATA[Transfer Dealer Ownership]]></word>
+    <word key="gddealer_transfer_target"><![CDATA[New Owner (IPS Member)]]></word>
+    <word key="gddealer_transfer_complete"><![CDATA[Dealer ownership has been transferred successfully.]]></word>
+    <word key="gddealer_transfer_collision"><![CDATA[The selected member already has a dealer account. Remove their existing dealer account first, or choose a different member.]]></word>
+    <word key="gddealer_transfer_same_member"><![CDATA[Cannot transfer a dealer to the same member who already owns it.]]></word>
   </app>
 </language>
