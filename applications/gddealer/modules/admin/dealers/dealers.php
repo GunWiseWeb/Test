@@ -78,7 +78,7 @@ class _dealers extends \IPS\Dispatcher\Controller
 			);
 			$editUrl = (string) \IPS\Http\Url::internal(
 				'app=gddealer&module=dealers&controller=dealers&do=edit&id=' . (int) $dealer->dealer_id
-			)->csrf();
+			);
 			$suspendUrl = (string) \IPS\Http\Url::internal(
 				'app=gddealer&module=dealers&controller=dealers&do=toggleSuspend&id=' . (int) $dealer->dealer_id
 			)->csrf();
@@ -225,7 +225,7 @@ class _dealers extends \IPS\Dispatcher\Controller
 		} catch ( \Throwable ) {}
 
 		$backUrl    = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers' );
-		$editUrl    = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=edit&id=' . (int) $dealer->dealer_id )->csrf();
+		$editUrl    = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=edit&id=' . (int) $dealer->dealer_id );
 		$importUrl  = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=forceImport&id=' . (int) $dealer->dealer_id )->csrf();
 		$suspendUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=toggleSuspend&id=' . (int) $dealer->dealer_id )->csrf();
 		$disputeSuspendUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=toggleDisputeSuspend&id=' . (int) $dealer->dealer_id )->csrf();

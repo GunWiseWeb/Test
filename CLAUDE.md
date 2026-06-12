@@ -602,6 +602,8 @@ Read `GunRack_Spec_v2.9.16.md` for complete specs on all 12 plugins, database sc
 
 80. **IPS template bare `{…}` is ONLY valid for plain `$variable['key']` access** — any function call, cast, or compound expression (`count()`, `number_format()`, `strtoupper()`, `(int)…`, ternaries, concatenation) MUST use `{expression="…"}`. Bare `{func(...)}` or `{(int)...}` compiles to broken PHP (`syntax error, unexpected string content ""`) and fatals the whole template. Examples: `{count($arr)}` → `{expression="count($arr)"}`, `{strtoupper($s)}` → `{expression="strtoupper($s)"}`, `{number_format($n)}` → `{expression="number_format($n)"}`, `{(int)($x)}` → `{expression="(int)($x)"}`. Plain `{$var}`, `{$arr['key']}`, `{$obj}` are fine — those are simple variable interpolation. When in doubt, use `{expression="…"}` or pre-compute in the controller and pass as a scalar.
 
+81. **IN_DEV forbids `csrfKey` in the URL of any rendered 2xx page** — NEVER put `->csrf()` on a URL that RENDERS a page (edit forms, view pages, list pages). Only put `->csrf()` on action URLs that DO work and immediately `->redirect()` (toggle, delete, reset) — the post-redirect URL has no key. Form pages get CSRF from `\IPS\Helpers\Form` on POST (`csrfCheck()` on POST only). A `->csrf()` link pointing at a form-rendering GET action will fatal in IN_DEV with `"CSRF keys should be sent via POST or the request should be redirected to a URL not containing a CSRF key once finished."` This check lives in `system/Output/Output.php` and fires on any non-AJAX 2xx HTML response where `$_GET['csrfKey']` is set.
+
 ## Server details
 - Primary IP: 108.160.146.199
 - Secondary IP: 162.255.160.38
