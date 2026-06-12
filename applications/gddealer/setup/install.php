@@ -5418,6 +5418,7 @@ require_once __DIR__ . '/templates_10090a.php';
 require_once __DIR__ . '/templates_10147_help.php';
 require_once __DIR__ . '/templates_10149_part3.php';
 require_once __DIR__ . '/templates_10213_supportTicketView.php';
+require_once __DIR__ . '/templates_10229.php';
 
 /* v1.0.213 — Canonical pass: re-runs all overlay files referenced by
  * CanonicalTemplates::SOURCES to guarantee the 12 managed templates

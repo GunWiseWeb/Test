@@ -845,6 +845,122 @@ class _profile extends \IPS\Dispatcher\Controller
 
 		$totalInFilter = (int) ( $starCounts[ $starKey ] ?? $starCounts['all'] );
 
+		$profileListings = [];
+		try
+		{
+			$prefix = \IPS\Db::i()->prefix;
+			$listingsResult = \IPS\Db::i()->preparedQuery(
+				"SELECT l.upc, l.dealer_price, l.listing_status, l.product_url,
+						c.title AS product_title, c.brand, c.image_url
+				 FROM {$prefix}gd_dealer_listings l
+				 LEFT JOIN {$prefix}gd_catalog c ON c.upc = l.upc
+				 WHERE l.dealer_id = ? AND l.listing_status = ?
+				 ORDER BY c.title ASC
+				 LIMIT 50",
+				[ $dealerId, 'active' ]
+			);
+			while ( $row = $listingsResult->fetch_assoc() )
+			{
+				$profileListings[] = [
+					'upc'           => (string) $row['upc'],
+					'title'         => (string) ( $row['product_title'] ?? 'Unknown Product' ),
+					'brand'         => (string) ( $row['brand'] ?? '' ),
+					'image_url'     => (string) ( $row['image_url'] ?? '' ),
+					'price_display' => '$' . number_format( (float) ( $row['dealer_price'] ?? 0 ), 2 ),
+					'product_url'   => (string) ( $row['product_url'] ?? '' ),
+				];
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$profileDeals = [];
+		try
+		{
+			$now = time();
+			$prefix = \IPS\Db::i()->prefix;
+			$dealsResult = \IPS\Db::i()->preparedQuery(
+				"SELECT d.deal_id, d.upc, d.deal_type, d.deal_price, d.deal_percent,
+						d.title, d.blurb, d.end_date,
+						c.title AS product_title, c.image_url, c.brand,
+						l.dealer_price AS current_price
+				 FROM {$prefix}gd_deals d
+				 LEFT JOIN {$prefix}gd_catalog c ON c.upc = d.upc
+				 LEFT JOIN {$prefix}gd_dealer_listings l ON l.dealer_id = d.dealer_id AND l.upc = d.upc
+				 WHERE d.dealer_id = ? AND d.is_active = 1
+				   AND (d.start_date IS NULL OR d.start_date <= ?)
+				   AND (d.end_date IS NULL OR d.end_date >= ?)
+				 ORDER BY d.created DESC
+				 LIMIT 20",
+				[ $dealerId, $now, $now ]
+			);
+			while ( $row = $dealsResult->fetch_assoc() )
+			{
+				$regularPrice = (float) ( $row['current_price'] ?? 0 );
+				$dealPriceDisplay = '';
+				$pctOff = '';
+
+				if ( $row['deal_type'] === 'price' )
+				{
+					$dealPriceDisplay = '$' . number_format( (float) $row['deal_price'], 2 );
+				}
+				else
+				{
+					$pct = (float) $row['deal_percent'];
+					$pctOff = number_format( $pct, 0 ) . '% off';
+					if ( $regularPrice > 0 )
+					{
+						$dealPriceDisplay = '$' . number_format( round( $regularPrice * ( 1 - $pct / 100 ), 2 ), 2 );
+					}
+				}
+
+				$profileDeals[] = [
+					'id'             => (int) $row['deal_id'],
+					'product_title'  => (string) ( $row['product_title'] ?? 'Unknown Product' ),
+					'image_url'      => (string) ( $row['image_url'] ?? '' ),
+					'brand'          => (string) ( $row['brand'] ?? '' ),
+					'deal_price'     => $dealPriceDisplay,
+					'regular_price'  => $regularPrice > 0 ? '$' . number_format( $regularPrice, 2 ) : '',
+					'pct_off'        => $pctOff,
+					'title'          => (string) ( $row['title'] ?? '' ),
+					'blurb'          => (string) ( $row['blurb'] ?? '' ),
+					'end_date'       => (int) ( $row['end_date'] ?? 0 ) > 0 ? date( 'M j, Y', (int) $row['end_date'] ) : '',
+				];
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$profileCoupons = [];
+		try
+		{
+			$now = time();
+			foreach ( \IPS\Db::i()->select( '*', 'gd_dealer_coupons',
+				[ 'dealer_id=? AND is_active=1 AND (expiry IS NULL OR expiry = 0 OR expiry >= ?)', $dealerId, $now ],
+				'created DESC', [ 0, 20 ]
+			) as $row )
+			{
+				$discountDisplay = '';
+				if ( $row['discount_type'] === 'percent' )
+				{
+					$discountDisplay = number_format( (float) $row['discount_value'], 0 ) . '% off';
+				}
+				else
+				{
+					$discountDisplay = '$' . number_format( (float) $row['discount_value'], 2 ) . ' off';
+				}
+
+				$profileCoupons[] = [
+					'id'               => (int) $row['coupon_id'],
+					'code'             => strtoupper( (string) $row['code'] ),
+					'description'      => (string) ( $row['description'] ?? '' ),
+					'discount_display' => $discountDisplay,
+					'min_purchase'     => (float) ( $row['min_purchase'] ?? 0 ) > 0 ? '$' . number_format( (float) $row['min_purchase'], 2 ) : '',
+					'terms'            => (string) ( $row['terms'] ?? '' ),
+					'expiry'           => (int) ( $row['expiry'] ?? 0 ) > 0 ? date( 'M j, Y', (int) $row['expiry'] ) : '',
+				];
+			}
+		}
+		catch ( \Throwable ) {}
+
 		$data = [
 			'dealer'                  => $dealer,
 			'stats'                   => $stats,
@@ -865,6 +981,9 @@ class _profile extends \IPS\Dispatcher\Controller
 			'sort_options'            => $sortOptions,
 			'clear_filters_url'       => $clearFiltersUrl,
 			'total_in_filter'         => $totalInFilter,
+			'listings'                => $profileListings,
+			'deals'                   => $profileDeals,
+			'coupons'                 => $profileCoupons,
 		];
 
 		try {

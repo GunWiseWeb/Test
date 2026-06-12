@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10228;
+namespace IPS\gddealer\setup\upg_10229;
 
 use function defined;
 
@@ -46,7 +46,7 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10228 gd_deals create failed: ' . $e->getMessage(), 'gddealer_upg_10228' ); }
+				try { \IPS\Log::log( 'upg_10229 gd_deals create failed: ' . $e->getMessage(), 'gddealer_upg_10229' ); }
 				catch ( \Throwable ) {}
 			}
 		}
@@ -75,7 +75,7 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10228 gd_dealer_coupons create failed: ' . $e->getMessage(), 'gddealer_upg_10228' ); }
+				try { \IPS\Log::log( 'upg_10229 gd_dealer_coupons create failed: ' . $e->getMessage(), 'gddealer_upg_10229' ); }
 				catch ( \Throwable ) {}
 			}
 		}
@@ -88,7 +88,22 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Seed new lang strings */
+		/* Re-seed dealerProfile template with new deals/coupons/listings sections */
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10229.php';
+		}
+		catch ( \Throwable ) {}
+
+		/* Run canonical templates ensure to verify all 12 managed templates */
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
+			\IPS\gddealer\Setup\CanonicalTemplates::ensure();
+		}
+		catch ( \Throwable ) {}
+
+		/* Seed lang strings (carried forward + new) */
 		$strings = [
 			'gddealer_front_tab_deals'         => 'Deals',
 			'gddealer_front_tab_coupons'       => 'Coupons',
@@ -132,6 +147,13 @@ class _upgrade
 		}
 
 		/* Clear compiled templates + all caches */
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
+			\IPS\gddealer\Setup\CanonicalTemplates::clearCaches();
+		}
+		catch ( \Throwable ) {}
+
 		try
 		{
 			foreach ( \IPS\Theme::themes() as $theme )
