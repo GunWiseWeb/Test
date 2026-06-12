@@ -4165,7 +4165,7 @@
             "discount_type": {
                 "name": "discount_type",
                 "type": "VARCHAR",
-                "length": 10,
+                "length": 20,
                 "decimals": null,
                 "allow_null": false,
                 "default": "percent",

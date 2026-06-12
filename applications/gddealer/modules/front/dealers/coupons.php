@@ -70,6 +70,11 @@ class _coupons extends \IPS\Dispatcher\Controller
 			return;
 		}
 
+		\IPS\Output::i()->jsFiles = array_merge(
+			\IPS\Output::i()->jsFiles,
+			\IPS\Output::i()->js( 'couponForm.js', 'gddealer', 'interface' )
+		);
+
 		parent::execute();
 	}
 
@@ -165,20 +170,24 @@ class _coupons extends \IPS\Dispatcher\Controller
 
 			/* discount_type */
 			$discountType = (string) ( $req->discount_type ?? 'percent' );
-			if ( !in_array( $discountType, [ 'percent', 'amount' ], true ) )
+			if ( !in_array( $discountType, [ 'percent', 'amount', 'free_shipping' ], true ) )
 			{
 				$discountType = 'percent';
 			}
 
 			/* discount_value */
 			$discountValue = (float) ( $req->discount_value ?? 0 );
-			if ( $discountValue <= 0 )
+			if ( $discountType === 'free_shipping' )
 			{
-				$errors[] = 'Discount value must be greater than zero.';
+				$discountValue = 0;
 			}
-			if ( $discountType === 'percent' && ( $discountValue < 1 || $discountValue > 90 ) )
+			elseif ( $discountType === 'percent' && ( $discountValue < 1 || $discountValue > 90 ) )
 			{
 				$errors[] = 'Percent discount must be between 1 and 90.';
+			}
+			elseif ( $discountType === 'amount' && $discountValue <= 0 )
+			{
+				$errors[] = 'Amount discount must be greater than 0.';
 			}
 
 			/* min_purchase */
@@ -344,20 +353,24 @@ class _coupons extends \IPS\Dispatcher\Controller
 
 			/* discount_type */
 			$discountType = (string) ( $req->discount_type ?? 'percent' );
-			if ( !in_array( $discountType, [ 'percent', 'amount' ], true ) )
+			if ( !in_array( $discountType, [ 'percent', 'amount', 'free_shipping' ], true ) )
 			{
 				$discountType = 'percent';
 			}
 
 			/* discount_value */
 			$discountValue = (float) ( $req->discount_value ?? 0 );
-			if ( $discountValue <= 0 )
+			if ( $discountType === 'free_shipping' )
 			{
-				$errors[] = 'Discount value must be greater than zero.';
+				$discountValue = 0;
 			}
-			if ( $discountType === 'percent' && ( $discountValue < 1 || $discountValue > 90 ) )
+			elseif ( $discountType === 'percent' && ( $discountValue < 1 || $discountValue > 90 ) )
 			{
 				$errors[] = 'Percent discount must be between 1 and 90.';
+			}
+			elseif ( $discountType === 'amount' && $discountValue <= 0 )
+			{
+				$errors[] = 'Amount discount must be greater than 0.';
 			}
 
 			/* min_purchase */

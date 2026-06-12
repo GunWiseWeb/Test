@@ -32,10 +32,11 @@
 			<div class="gdCoupons__radios">
 				<label><input type="radio" name="discount_type" value="percent" {{if !isset($coupon['discount_type']) || $coupon['discount_type'] === 'percent'}}checked{{endif}}> Percent Off</label>
 				<label><input type="radio" name="discount_type" value="amount" {{if isset($coupon['discount_type']) && $coupon['discount_type'] === 'amount'}}checked{{endif}}> Fixed Amount</label>
+				<label><input type="radio" name="discount_type" value="free_shipping" {{if isset($coupon['discount_type']) && $coupon['discount_type'] === 'free_shipping'}}checked{{endif}}> Free Shipping</label>
 			</div>
 		</div>
 
-		<div class="gdCoupons__field">
+		<div class="gdCoupons__field" id="gdCouponValueField">
 			<label>Discount Value</label>
 			<input type="number" name="discount_value" step="0.01" min="0.01" required value="{{if isset($coupon['discount_value'])}}{$coupon['discount_value']}{{endif}}" placeholder="e.g. 10">
 			<small>For percent: enter 1-90. For amount: enter dollar value.</small>

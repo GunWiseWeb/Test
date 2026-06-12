@@ -27,7 +27,12 @@
 							{{endif}}
 						</td>
 						<td>
-							{{if $c['discount_type'] === 'percent'}}
+							{{if $c['discount_type'] === 'free_shipping'}}
+								<strong>Free shipping</strong>
+								{{if $c['min_purchase']}}
+									<span class="gdCoupons__desc">on orders {expression="'$' . number_format((float)$c['min_purchase'], 2)"}+</span>
+								{{endif}}
+							{{elseif $c['discount_type'] === 'percent'}}
 								<strong>{expression="number_format((float)$c['discount_value'], 0)"}% off</strong>
 							{{else}}
 								<strong>{expression="'$' . number_format((float)$c['discount_value'], 2)"} off</strong>

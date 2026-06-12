@@ -297,7 +297,9 @@
 							{{if $coupon['description']}}
 							<div style="font-size:0.85em;color:#374151;margin-bottom:4px">{$coupon['description']}</div>
 							{{endif}}
-							{{if $coupon['min_purchase']}}
+							{{if isset($coupon['discount_type']) && $coupon['discount_type'] === 'free_shipping' && $coupon['min_purchase']}}
+							<div style="font-size:0.75em;color:#6b7280">On orders {$coupon['min_purchase']}+</div>
+							{{elseif $coupon['min_purchase']}}
 							<div style="font-size:0.75em;color:#6b7280">Min. purchase: {$coupon['min_purchase']}</div>
 							{{endif}}
 							{{if $coupon['terms']}}

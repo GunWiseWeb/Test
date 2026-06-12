@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10229;
+namespace IPS\gddealer\setup\upg_10230;
 
 use function defined;
 
@@ -15,6 +15,8 @@ class _upgrade
 	public function step1(): bool
 	{
 		$prefix = \IPS\Db::i()->prefix;
+
+		/* --- Carried forward from v1.0.228/229 --- */
 
 		if ( !\IPS\Db::i()->checkForTable( 'gd_deals' ) )
 		{
@@ -46,7 +48,7 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10229 gd_deals create failed: ' . $e->getMessage(), 'gddealer_upg_10229' ); }
+				try { \IPS\Log::log( 'upg_10230 gd_deals create failed: ' . $e->getMessage(), 'gddealer_upg_10230' ); }
 				catch ( \Throwable ) {}
 			}
 		}
@@ -60,7 +62,7 @@ class _upgrade
 					`dealer_id`      INT UNSIGNED NOT NULL DEFAULT 0,
 					`code`           VARCHAR(40) NOT NULL DEFAULT '',
 					`description`    VARCHAR(255) NULL DEFAULT NULL,
-					`discount_type`  VARCHAR(10) NOT NULL DEFAULT 'percent',
+					`discount_type`  VARCHAR(20) NOT NULL DEFAULT 'percent',
 					`discount_value` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
 					`min_purchase`   DECIMAL(10,2) NULL DEFAULT NULL,
 					`terms`          VARCHAR(500) NULL DEFAULT NULL,
@@ -75,10 +77,17 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10229 gd_dealer_coupons create failed: ' . $e->getMessage(), 'gddealer_upg_10229' ); }
+				try { \IPS\Log::log( 'upg_10230 gd_dealer_coupons create failed: ' . $e->getMessage(), 'gddealer_upg_10230' ); }
 				catch ( \Throwable ) {}
 			}
 		}
+
+		/* --- v1.0.230: widen discount_type from VARCHAR(10) to VARCHAR(20) for free_shipping --- */
+		try
+		{
+			\IPS\Db::i()->query( "ALTER TABLE `{$prefix}gd_dealer_coupons` MODIFY `discount_type` VARCHAR(20) NOT NULL DEFAULT 'percent'" );
+		}
+		catch ( \Throwable ) {}
 
 		/* Re-seed setupWizardStep2 template (carried forward from v1.0.227) */
 		try
@@ -88,7 +97,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Re-seed dealerProfile template with new deals/coupons/listings sections */
+		/* Re-seed dealerProfile template with deals/coupons/listings + free_shipping support */
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10229.php';

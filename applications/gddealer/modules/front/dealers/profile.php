@@ -938,8 +938,13 @@ class _profile extends \IPS\Dispatcher\Controller
 				'created DESC', [ 0, 20 ]
 			) as $row )
 			{
+				$dtype = (string) ( $row['discount_type'] ?? 'percent' );
 				$discountDisplay = '';
-				if ( $row['discount_type'] === 'percent' )
+				if ( $dtype === 'free_shipping' )
+				{
+					$discountDisplay = 'Free shipping';
+				}
+				elseif ( $dtype === 'percent' )
 				{
 					$discountDisplay = number_format( (float) $row['discount_value'], 0 ) . '% off';
 				}
@@ -952,6 +957,7 @@ class _profile extends \IPS\Dispatcher\Controller
 					'id'               => (int) $row['coupon_id'],
 					'code'             => strtoupper( (string) $row['code'] ),
 					'description'      => (string) ( $row['description'] ?? '' ),
+					'discount_type'    => $dtype,
 					'discount_display' => $discountDisplay,
 					'min_purchase'     => (float) ( $row['min_purchase'] ?? 0 ) > 0 ? '$' . number_format( (float) $row['min_purchase'], 2 ) : '',
 					'terms'            => (string) ( $row['terms'] ?? '' ),
