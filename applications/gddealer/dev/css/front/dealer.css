@@ -3870,36 +3870,57 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 .gdProfile__dealerResponseBody p:last-child { margin-bottom: 0; }
 
 /* ====================================================================
-   INFO PANEL
+   INFO PANEL — storefront layout (sidebar facts + main prose)
    ==================================================================== */
-.gdProfile__infoGrid {
+.gdProfile__infoLayout {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    align-items: start;
+}
+.gdProfile__infoLayout > :only-child { grid-column: 1 / -1; }
+.gdProfile__infoSidebar {
+    display: flex;
+    flex-direction: column;
     gap: 16px;
+    position: sticky;
+    top: 16px;
+}
+.gdProfile__infoMain {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
 }
 .gdProfile__infoCard {
-    background: var(--gd-surface-muted, #F8FAFC);
-    border: 1px solid var(--gd-border-subtle, #F1F5F9);
-    border-radius: var(--gd-r-md, 6px);
-    padding: 20px;
+    background: var(--gd-card-bg, #fff);
+    border: 1px solid var(--gd-border, #E2E8F0);
+    border-radius: 12px;
+    padding: 18px 20px;
 }
+.gdProfile__infoMain .gdProfile__infoCard { padding: 20px 24px; }
 .gdProfile__infoCardTitle {
     margin: 0 0 12px;
-    font-size: 0.9em;
+    font-size: 0.8em;
     font-weight: 700;
-    color: var(--gd-text, #0F172A);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gd-text-soft, #64748B);
     display: flex;
     align-items: center;
     gap: 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--gd-border-subtle, #F1F5F9);
 }
 .gdProfile__infoCardTitle i {
     color: var(--gd-text-subtle, #64748B);
     font-size: 1em;
 }
 .gdProfile__infoCardBody {
-    font-size: 0.88em;
-    color: var(--gd-text-muted, #475569);
+    font-size: 0.95em;
     line-height: 1.6;
+    color: var(--gd-text, #0F172A);
+    white-space: pre-line;
 }
 .gdProfile__hoursTable {
     width: 100%;
@@ -3963,8 +3984,8 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
     display: inline-flex;
     align-items: center;
     padding: 5px 14px;
-    background: var(--gd-surface, #fff);
-    border: 1px solid var(--gd-border, #E5E7EB);
+    background: var(--gd-surface-muted, #F8FAFC);
+    border: 1px solid var(--gd-border-subtle, #F1F5F9);
     border-radius: var(--gd-r-pill, 999px);
     font-size: 0.82em;
     font-weight: 600;
@@ -4015,7 +4036,11 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
     .gdProfile__grid--deals { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
     .gdProfile__grid--coupons { grid-template-columns: 1fr; }
     .gdProfile__grid--listings { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-    .gdProfile__infoGrid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 880px) {
+    .gdProfile__infoLayout { grid-template-columns: 1fr; }
+    .gdProfile__infoSidebar { position: static; }
 }
 
 @media (max-width: 480px) {

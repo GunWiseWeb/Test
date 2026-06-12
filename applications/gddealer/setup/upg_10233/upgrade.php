@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10232;
+namespace IPS\gddealer\setup\upg_10233;
 
 use function defined;
 
@@ -48,7 +48,7 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10232 gd_deals create failed: ' . $e->getMessage(), 'gddealer_upg_10232' ); }
+				try { \IPS\Log::log( 'upg_10233 gd_deals create failed: ' . $e->getMessage(), 'gddealer_upg_10233' ); }
 				catch ( \Throwable ) {}
 			}
 		}
@@ -77,7 +77,7 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10232 gd_dealer_coupons create failed: ' . $e->getMessage(), 'gddealer_upg_10232' ); }
+				try { \IPS\Log::log( 'upg_10233 gd_dealer_coupons create failed: ' . $e->getMessage(), 'gddealer_upg_10233' ); }
 				catch ( \Throwable ) {}
 			}
 		}
@@ -97,10 +97,10 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Re-seed dealerProfile template — v1.0.232 widen + Info tab */
+		/* Re-seed dealerProfile template — v1.0.233 storefront layout */
 		try
 		{
-			require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10232.php';
+			require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10233.php';
 		}
 		catch ( \Throwable ) {}
 
