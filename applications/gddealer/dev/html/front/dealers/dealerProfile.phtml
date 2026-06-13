@@ -114,9 +114,9 @@
 	{{endif}}
 
 	<div class="gdProfile__tabContainer">
-		<input type="radio" name="gdProfileTab" id="gdTabDeals" class="gdProfile__tabInput" checked>
+		<input type="radio" name="gdProfileTab" id="gdTabDeals" class="gdProfile__tabInput" {{if !$data['open_listings_tab']}}checked{{endif}}>
 		<input type="radio" name="gdProfileTab" id="gdTabCoupons" class="gdProfile__tabInput">
-		<input type="radio" name="gdProfileTab" id="gdTabListings" class="gdProfile__tabInput">
+		<input type="radio" name="gdProfileTab" id="gdTabListings" class="gdProfile__tabInput" {{if $data['open_listings_tab']}}checked{{endif}}>
 		<input type="radio" name="gdProfileTab" id="gdTabReviews" class="gdProfile__tabInput">
 		<input type="radio" name="gdProfileTab" id="gdTabInfo" class="gdProfile__tabInput">
 

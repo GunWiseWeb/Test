@@ -17,6 +17,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var debounceTimer = null;
 
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            var rows = results.querySelectorAll('.gdDealsPicker__resultRow');
+            if (rows.length === 1) {
+                rows[0].click();
+            }
+        }
+    });
+
     input.addEventListener('input', function() {
         clearTimeout(debounceTimer);
         var val = input.value.trim();

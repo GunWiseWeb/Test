@@ -1009,6 +1009,7 @@ class _profile extends \IPS\Dispatcher\Controller
 			'listings_pages'          => $listPages,
 			'listings_per_page'       => $listPerPage,
 			'listings_search'         => $listSearch,
+			'open_listings_tab'       => ( $listSearch !== '' || $listPage > 1 ),
 			'deals'                   => $profileDeals,
 			'coupons'                 => $profileCoupons,
 		];

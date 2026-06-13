@@ -1,6 +1,6 @@
 <?php
 /**
- * v1.0.245 — dealerProfile overlay: storefront layout with listings pagination
+ * v1.0.246 — dealerProfile overlay: storefront layout with listings pagination + tab memory
  */
 
 namespace IPS\gddealer\setup;
@@ -127,9 +127,9 @@ $dealerProfileTpl = <<<'TEMPLATE_EOT'
 	{{endif}}
 
 	<div class="gdProfile__tabContainer">
-		<input type="radio" name="gdProfileTab" id="gdTabDeals" class="gdProfile__tabInput" checked>
+		<input type="radio" name="gdProfileTab" id="gdTabDeals" class="gdProfile__tabInput" {{if !$data['open_listings_tab']}}checked{{endif}}>
 		<input type="radio" name="gdProfileTab" id="gdTabCoupons" class="gdProfile__tabInput">
-		<input type="radio" name="gdProfileTab" id="gdTabListings" class="gdProfile__tabInput">
+		<input type="radio" name="gdProfileTab" id="gdTabListings" class="gdProfile__tabInput" {{if $data['open_listings_tab']}}checked{{endif}}>
 		<input type="radio" name="gdProfileTab" id="gdTabReviews" class="gdProfile__tabInput">
 		<input type="radio" name="gdProfileTab" id="gdTabInfo" class="gdProfile__tabInput">
 
@@ -604,11 +604,11 @@ try
         'template_data'     => '$data',
         'template_content'  => $dealerProfileTpl,
         'template_updated'  => time(),
-        'template_version'  => '1.0.245',
+        'template_version'  => '1.0.246',
     ] );
 }
 catch ( \Throwable $e )
 {
-    try { \IPS\Log::log( 'templates_10233 dealerProfile replace failed: ' . $e->getMessage(), 'gddealer_upg_10245' ); }
+    try { \IPS\Log::log( 'templates_10233 dealerProfile replace failed: ' . $e->getMessage(), 'gddealer_upg_10246' ); }
     catch ( \Throwable ) {}
 }
