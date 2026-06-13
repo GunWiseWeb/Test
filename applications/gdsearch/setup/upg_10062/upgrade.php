@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdsearch\setup\upg_10061;
+namespace IPS\gdsearch\setup\upg_10062;
 
 use function defined;
 

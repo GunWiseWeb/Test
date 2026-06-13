@@ -223,10 +223,12 @@
 						<div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.1em;color:{{if $i === 0}}#16a34a{{else}}#0f172a{{endif}}">${expression="number_format((float)$listing['price'],2)"}</div>
 					</td>
 					<td style="padding:14px 16px;text-align:center;font-size:0.85em">
-						{{if $listing['free_shipping']}}
-						<span style="color:#16a34a;font-weight:600">{lang="gdsearch_free_shipping"}</span>
-						{{elseif $listing['shipping_cost']}}
-						<span style="color:#64748b">${expression="number_format((float)$listing['shipping_cost'],2)"}</span>
+						{{if isset($listing['shipping_info']) && $listing['shipping_info'] !== ''}}
+							{{if $listing['shipping_info'] === 'Free shipping'}}
+							<span style="color:#16a34a;font-weight:600">{$listing['shipping_info']}</span>
+							{{else}}
+							<span style="color:#64748b">{$listing['shipping_info']}</span>
+							{{endif}}
 						{{else}}
 						<span style="color:#cbd5e1">&mdash;</span>
 						{{endif}}

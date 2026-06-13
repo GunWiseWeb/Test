@@ -421,8 +421,7 @@ class Searcher
                     'stock_qty'    => (int) ( $row['stock_qty'] ?? 0 ),
                     'condition'    => (string) ( $row['condition'] ?? 'new' ),
                     'listing_url'  => (string) ( $row['listing_url'] ?? '' ),
-                    'free_shipping'=> (bool) ( $row['free_shipping'] ?? false ),
-                    'shipping_cost'=> ( $row['shipping_cost'] ?? null ) !== null ? (float) $row['shipping_cost'] : null,
+                    'shipping_info'=> (string) ( $row['shipping_info'] ?? '' ),
                 ];
             }
         } catch ( \Throwable $e ) {
