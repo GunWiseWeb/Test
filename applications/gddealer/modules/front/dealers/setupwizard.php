@@ -1287,6 +1287,7 @@ class _setupwizard extends \IPS\Dispatcher\Controller
         $update = [
             'wizard_step'         => 5,
             'wizard_completed_at' => date( 'Y-m-d H:i:s' ),
+            'active'              => 1,
         ];
 
         try

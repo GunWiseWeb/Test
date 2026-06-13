@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10240;
+namespace IPS\gddealer\setup\upg_10241;
 
 use function defined;
 

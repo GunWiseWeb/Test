@@ -854,7 +854,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			foreach ( ImportLog::loadForDealer( (int) $dealer->dealer_id, 15 ) as $log )
 			{
 				$importLog[] = [
-					'when'      => (string) $log->run_start,
+					'when'      => date( 'M j, Y g:i A', strtotime( (string) $log->run_start ) ),
 					'when_ago'  => \IPS\DateTime::ts( strtotime( (string) $log->run_start ) )->relative(),
 					'status'    => (string) $log->status,
 					'records'   => (int) $log->records_total,
@@ -885,7 +885,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 				/* State 3: file uploaded, awaiting next scheduler tick. */
 				$syncHealth = 'warn';
 				$syncTitle  = 'Feed pending first import';
-				$syncSub    = 'Your uploaded file is queued. The scheduler runs every 15 minutes - your data will appear shortly.';
+				$syncSub    = 'Your uploaded file is queued and will be processed on the next scheduled run. You can also trigger an import now from the Feed Settings page.';
 			} elseif ( $currentMode === 'manual' ) {
 				/* State 2a: manual mode but no uploads yet. */
 				$syncHealth = 'warn';
@@ -895,7 +895,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 				/* State 2b: URL mode, awaiting first scheduled fetch. */
 				$syncHealth = 'warn';
 				$syncTitle  = 'Feed configured, awaiting first sync';
-				$syncSub    = 'The scheduler runs every 15 minutes - your first import will happen shortly.';
+				$syncSub    = 'Feed configured. Your first import will run on the next scheduled sync. You can also trigger an import now from the Feed Settings page.';
 			}
 		} elseif ( $latest['status'] === 'failed' ) {
 			/* State 5: last import failed. */
@@ -932,7 +932,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'mapped_count'        => $mappedCount,
 			'default_count'       => $defaultCount,
 			'wizard_url'          => $wizardUrl,
-			'wizard_completed_at' => isset( $wizardCfg['wizard_completed_at'] ) ? (string) $wizardCfg['wizard_completed_at'] : '',
+			'wizard_completed_at' => !empty( $wizardCfg['wizard_completed_at'] ) ? date( 'M j, Y g:i A', strtotime( (string) $wizardCfg['wizard_completed_at'] ) ) : '',
 			'wizard_done_flash'   => $wizardDoneFlash,
 			'import_log'          => $importLog,
 			'recent_uploads'      => $recentUploads,
