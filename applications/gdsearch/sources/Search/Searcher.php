@@ -422,10 +422,12 @@ class Searcher
                     'condition'    => (string) ( $row['condition'] ?? 'new' ),
                     'listing_url'  => (string) ( $row['listing_url'] ?? '' ),
                     'free_shipping'=> (bool) ( $row['free_shipping'] ?? false ),
-                    'shipping_cost'=> $row['shipping_cost'] !== null ? (float) $row['shipping_cost'] : null,
+                    'shipping_cost'=> ( $row['shipping_cost'] ?? null ) !== null ? (float) $row['shipping_cost'] : null,
                 ];
             }
-        } catch ( \Throwable ) {}
+        } catch ( \Throwable $e ) {
+            try { \IPS\Log::log( $e, 'gdsearch_listings' ); } catch ( \Throwable ) {}
+        }
         return $listings;
     }
 }
