@@ -1,28 +1,4 @@
-<?php
-if ( !defined( '\\IPS\\SUITE_UNIQUE_KEY' ) ) { header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' ); exit; }
-
-/**
- * v1.0.160 PART 1 of 1 - Update setupWizardStep5 template body to
- * adapt framing based on $values['is_completed']:
- *
- *   First-time finish (is_completed = false):
- *     - "You're almost done!" intro text
- *     - "Step 5 of 5: Preview & Save" heading
- *     - "Finish Setup" green button
- *
- *   Revisit after completion (is_completed = true):
- *     - Top banner: "You completed this wizard on [date]. Make changes
- *       and Save Changes, or click any earlier step to edit."
- *     - "Step 5 of 5: Current Configuration" heading
- *     - "Save Changes" button (does the same thing as Finish; also
- *       updates wizard_completed_at to now)
- *
- * v1.0.239: CSS is now embedded directly (was previously read from DB
- * via preg_match which was fragile). max-width fixed to 1100px to match
- * other wizard steps.
- */
-
-$step5Tpl = <<<'TEMPLATE_EOT'
+<ips:template parameters="$wizardData,$values" />
 <div class="gdSetupWizard">
 
 	<header class="gdSetupWizard__header">
@@ -225,6 +201,7 @@ $step5Tpl = <<<'TEMPLATE_EOT'
 	</form>
 
 </div>
+
 <style>
 .gdSetupWizard {
 	font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -368,22 +345,3 @@ $step5Tpl = <<<'TEMPLATE_EOT'
 }
 @media (max-width: 480px) { .gdSetupWizard__steps { grid-template-columns: 1fr; } }
 </style>
-TEMPLATE_EOT;
-
-try
-{
-    \IPS\Db::i()->update( 'core_theme_templates',
-        [
-            'template_data'    => '$wizardData,$values',
-            'template_content' => $step5Tpl,
-            'template_updated' => time(),
-        ],
-        [ 'template_app=? AND template_location=? AND template_group=? AND template_name=?',
-          'gddealer', 'front', 'dealers', 'setupWizardStep5' ]
-    );
-}
-catch ( \Throwable $e )
-{
-    try { \IPS\Log::log( 'templates_10160_part1.php update failed: ' . $e->getMessage(), 'gddealer_upg_10160' ); }
-    catch ( \Throwable ) {}
-}

@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10238;
+namespace IPS\gddealer\setup\upg_10239;
 
 use function defined;
 
@@ -14,12 +14,9 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10155_part1.php';
-		require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10155_part2.php';
-
-		require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
-		\IPS\gddealer\Setup\CanonicalTemplates::ensure();
-		\IPS\gddealer\Setup\CanonicalTemplates::clearCaches();
+		require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10158_part1.php';
+		require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10158_part2.php';
+		require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10160_part1.php';
 
 		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
