@@ -2108,7 +2108,6 @@ class _dealers extends \IPS\Dispatcher\Controller
 				'last_run'            => null,
 				'last_run_status'     => null,
 				'last_record_count'   => 0,
-				'uploaded_feed_path'  => null,
 			], [ 'dealer_id=?', $dealerId ] );
 		} catch ( \Throwable ) {}
 
