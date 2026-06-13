@@ -174,7 +174,7 @@ class _deals extends \IPS\Dispatcher\Controller
 					$listings[] = [
 						'upc'           => (string) $row['upc'],
 						'dealer_price'  => (float) $row['dealer_price'],
-						'product_title' => htmlspecialchars( (string) ( $row['product_title'] ?? $row['upc'] ), ENT_QUOTES, 'UTF-8' ),
+						'title'         => htmlspecialchars( (string) ( $row['product_title'] ?? $row['upc'] ), ENT_QUOTES, 'UTF-8' ),
 					];
 				}
 			}
@@ -279,7 +279,7 @@ class _deals extends \IPS\Dispatcher\Controller
 					$listings[] = [
 						'upc'           => (string) $row['upc'],
 						'dealer_price'  => (float) $row['dealer_price'],
-						'product_title' => htmlspecialchars( (string) ( $row['product_title'] ?? $row['upc'] ), ENT_QUOTES, 'UTF-8' ),
+						'title'         => htmlspecialchars( (string) ( $row['product_title'] ?? $row['upc'] ), ENT_QUOTES, 'UTF-8' ),
 					];
 				}
 			}
