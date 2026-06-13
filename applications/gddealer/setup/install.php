@@ -5143,6 +5143,7 @@ $notificationDefaults = [
 	'support_reply_to_admin'     => [ 'default' => 'inline,email', 'disabled' => '' ],
 	'gddealer_ffl_verified'      => [ 'default' => 'inline,email', 'disabled' => '' ],
 	'gddealer_ffl_rejected'      => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'listing_reported'           => [ 'default' => 'inline,email', 'disabled' => '' ],
 ];
 
 foreach ( $notificationDefaults as $key => $data )

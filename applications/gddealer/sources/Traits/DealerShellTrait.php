@@ -248,6 +248,7 @@ HTML;
 			'categories'    => (string) \IPS\Http\Url::internal( $base . 'categories' ),
 			'analytics'     => (string) \IPS\Http\Url::internal( $base . 'analytics' ),
 			'reviews'       => (string) \IPS\Http\Url::internal( $base . 'reviews' ),
+			'reportedListings' => (string) \IPS\Http\Url::internal( $base . 'reportedListings' ),
 			'deals'         => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=deals', 'front', 'dealers_deals' ),
 			'coupons'       => (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=coupons', 'front', 'dealers_coupons' ),
 			'subscription'  => (string) \IPS\Http\Url::internal( $base . 'subscription' ),
@@ -294,6 +295,13 @@ HTML;
 		}
 		catch ( \Throwable ) {}
 
+		$reportCount = 0;
+		try
+		{
+			$reportCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_listing_reports', [ 'dealer_id=? AND status=?', (int) $this->dealer->dealer_id, 'new' ] )->first();
+		}
+		catch ( \Throwable ) {}
+
 		/* Setup wizard completion check - powers the warning badge on
 		 * the Setup Wizard nav item until the dealer finishes the wizard. */
 		$wizardComplete = false;
@@ -319,6 +327,9 @@ HTML;
 					[ 'key' => 'reviews',   'label' => $lang->addToStack('gddealer_front_tab_reviews'),
 					  'url' => $urls['reviews'],   'icon' => 'reviews',
 					  'badge' => $summary['new_reviews'] > 0 ? [ 'count' => $summary['new_reviews'], 'variant' => 'warn' ] : null ],
+					[ 'key' => 'reportedListings', 'label' => $lang->addToStack('gddealer_front_tab_reported_listings'),
+					  'url' => $urls['reportedListings'], 'icon' => 'flag',
+					  'badge' => $reportCount > 0 ? [ 'count' => $reportCount, 'variant' => 'warn' ] : null ],
 				]
 			],
 			'catalog' => [

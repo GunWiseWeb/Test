@@ -478,6 +478,10 @@
     <word key="gddealer_notif_ffl_verified_desc"><![CDATA[When your FFL license is verified by GunRack staff]]></word>
     <word key="gddealer_notif_ffl_rejected"><![CDATA[FFL Submission Rejected]]></word>
     <word key="gddealer_notif_ffl_rejected_desc"><![CDATA[When your FFL submission is rejected and needs re-submission]]></word>
+    <word key="gddealer_notif_listing_reported"><![CDATA[A listing was reported]]></word>
+    <word key="gddealer_notif_listing_reported_desc"><![CDATA[When a user reports one of your listings (wrong price, dead link, etc.)]]></word>
+    <word key="mailani__gddealer_notification_listing_reported"><![CDATA[{member} reported one of your listings.]]></word>
+    <word key="gddealer_front_tab_reported_listings"><![CDATA[Reported Listings]]></word>
     <word key="mailsub__gddealer_notification_gddealer_ffl_verified"><![CDATA[Your FFL license has been verified]]></word>
     <word key="mailsub__gddealer_notification_gddealer_ffl_rejected"><![CDATA[Your FFL submission was rejected]]></word>
     <word key="mailani__gddealer_notification_gddealer_ffl_verified"><![CDATA[Your FFL license has been verified by GunRack Deals staff. The FFL Verified badge now appears on your profile.]]></word>

@@ -4287,5 +4287,115 @@
                 "columns": [ "expiry" ]
             }
         }
+    },
+    "gd_listing_reports": {
+        "name": "gd_listing_reports",
+        "columns": {
+            "id": {
+                "name": "id",
+                "type": "INT",
+                "length": 11,
+                "allow_null": false,
+                "auto_increment": true,
+                "unsigned": true
+            },
+            "upc": {
+                "name": "upc",
+                "type": "VARCHAR",
+                "length": 20,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "dealer_id": {
+                "name": "dealer_id",
+                "type": "INT",
+                "length": 11,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": true
+            },
+            "reporter_member_id": {
+                "name": "reporter_member_id",
+                "type": "INT",
+                "length": 11,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": true
+            },
+            "reason": {
+                "name": "reason",
+                "type": "VARCHAR",
+                "length": 32,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "note": {
+                "name": "note",
+                "type": "TEXT",
+                "length": null,
+                "allow_null": true,
+                "auto_increment": false,
+                "unsigned": false
+            },
+            "status": {
+                "name": "status",
+                "type": "VARCHAR",
+                "length": 20,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": false,
+                "default": "new"
+            },
+            "created_at": {
+                "name": "created_at",
+                "type": "INT",
+                "length": 11,
+                "allow_null": false,
+                "auto_increment": false,
+                "unsigned": true
+            },
+            "updated_at": {
+                "name": "updated_at",
+                "type": "INT",
+                "length": 11,
+                "allow_null": true,
+                "auto_increment": false,
+                "unsigned": true
+            }
+        },
+        "indexes": {
+            "PRIMARY": {
+                "type": "primary",
+                "name": "PRIMARY",
+                "length": [ null ],
+                "columns": [ "id" ]
+            },
+            "idx_dealer_id": {
+                "type": "key",
+                "name": "idx_dealer_id",
+                "length": [ null ],
+                "columns": [ "dealer_id" ]
+            },
+            "idx_upc": {
+                "type": "key",
+                "name": "idx_upc",
+                "length": [ null ],
+                "columns": [ "upc" ]
+            },
+            "idx_status": {
+                "type": "key",
+                "name": "idx_status",
+                "length": [ null ],
+                "columns": [ "status" ]
+            },
+            "uniq_open": {
+                "type": "unique",
+                "name": "uniq_open",
+                "length": [ null, null, null, null ],
+                "columns": [ "dealer_id", "upc", "reporter_member_id", "status" ]
+            }
+        }
     }
 }

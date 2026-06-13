@@ -161,6 +161,15 @@ class DealerNotifications extends NotificationsAbstract
 				'default'           => [ 'inline', 'email' ],
 				'disabled'          => [],
 			],
+			'listing_reported' => [
+				'type'              => 'standard',
+				'notificationTypes' => [ 'listing_reported' ],
+				'title'             => 'gddealer_notif_listing_reported',
+				'showTitle'         => true,
+				'description'       => 'gddealer_notif_listing_reported_desc',
+				'default'           => [ 'inline', 'email' ],
+				'disabled'          => [],
+			],
 		];
 	}
 
@@ -367,6 +376,32 @@ class DealerNotifications extends NotificationsAbstract
 			'title'   => (string) ( $extra['dealer_name'] ?? 'A dealer' ) . ' replied on ticket: ' . (string) ( $extra['subject'] ?? '' ),
 			'url'     => $url,
 			'content' => 'Click to view the reply.',
+			'author'  => NULL,
+		];
+	}
+
+	public function parse_listing_reported( Inline $notification, bool $htmlEscape = TRUE ): array
+	{
+		$extra       = $notification->extra ?: [];
+		$upc         = (string) ( $extra['upc'] ?? '' );
+		$reasonLabel = (string) ( $extra['reason_label'] ?? $extra['reason'] ?? 'an issue' );
+		$reporter    = (string) ( $extra['reporter_name'] ?? 'A user' );
+		$title       = (string) ( $extra['product_title'] ?? '' );
+
+		$content = $reporter . ' reported your listing for ' . $reasonLabel;
+		if ( $upc !== '' )
+		{
+			$content .= ' (UPC ' . $upc . ')';
+		}
+		if ( $title !== '' )
+		{
+			$content .= ' — ' . $title;
+		}
+
+		return [
+			'title'   => 'A listing was reported',
+			'url'     => \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=reportedListings' ),
+			'content' => $content,
 			'author'  => NULL,
 		];
 	}

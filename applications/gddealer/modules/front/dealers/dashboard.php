@@ -3136,6 +3136,147 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			);
 		}
 	}
+
+	protected function reportedListings(): void
+	{
+		$dealerId = (int) $this->dealer->dealer_id;
+
+		$statusFilter = (string) ( \IPS\Request::i()->report_status ?? '' );
+		$validStatuses = [ 'new', 'reviewed', 'resolved', 'dismissed', '' ];
+		if ( !in_array( $statusFilter, $validStatuses, true ) )
+		{
+			$statusFilter = '';
+		}
+
+		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
+		$perPage = 25;
+		$offset  = ( $page - 1 ) * $perPage;
+
+		$where = [ [ 'r.dealer_id=?', $dealerId ] ];
+		if ( $statusFilter !== '' )
+		{
+			$where[] = [ 'r.status=?', $statusFilter ];
+		}
+
+		$total   = 0;
+		$reports = [];
+
+		try
+		{
+			$total = (int) \IPS\Db::i()->select(
+				'COUNT(*)',
+				[ 'gd_listing_reports', 'r' ],
+				$where
+			)->first();
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( $e, 'gddealer_reported_listings' ); } catch ( \Throwable ) {}
+		}
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select(
+				'r.*, c.title AS product_title, c.image_url',
+				[ 'gd_listing_reports', 'r' ],
+				$where,
+				'r.created_at DESC',
+				[ $offset, $perPage ]
+			)->join(
+				[ 'gd_catalog', 'c' ],
+				'c.upc = r.upc',
+				'LEFT'
+			) as $row )
+			{
+				$reasonLabels = \IPS\gddealer\Reports\ListingReport::REASON_LABELS;
+
+				$reporterName = '';
+				try
+				{
+					$m = \IPS\Member::load( (int) $row['reporter_member_id'] );
+					$reporterName = $m->member_id ? $m->name : '';
+				}
+				catch ( \Throwable ) {}
+
+				$reports[] = [
+					'id'             => (int) $row['id'],
+					'upc'            => (string) $row['upc'],
+					'product_title'  => (string) ( $row['product_title'] ?? '' ),
+					'image_url'      => (string) ( $row['image_url'] ?? '' ),
+					'reason'         => (string) $row['reason'],
+					'reason_label'   => $reasonLabels[ $row['reason'] ] ?? (string) $row['reason'],
+					'note'           => (string) ( $row['note'] ?? '' ),
+					'reporter_name'  => $reporterName ?: 'A user',
+					'status'         => (string) $row['status'],
+					'created_at'     => date( 'M j, Y g:i A', (int) $row['created_at'] ),
+					'updated_at'     => $row['updated_at'] ? date( 'M j, Y g:i A', (int) $row['updated_at'] ) : '',
+				];
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( $e, 'gddealer_reported_listings' ); } catch ( \Throwable ) {}
+		}
+
+		$pagination = '';
+		if ( $total > $perPage )
+		{
+			$pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=reportedListings' ),
+				(int) ceil( $total / $perPage ),
+				$page,
+				$perPage
+			);
+		}
+
+		$csrfKey = \IPS\Session::i()->csrfKey;
+
+		$data = [
+			'reports'       => $reports,
+			'total'         => $total,
+			'pagination'    => $pagination,
+			'statusFilter'  => $statusFilter,
+			'csrfKey'       => $csrfKey,
+		];
+
+		$this->output( 'reportedListings',
+			\IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->reportedListings( $data )
+		);
+	}
+
+	protected function resolveReport(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		$dealerId = (int) $this->dealer->dealer_id;
+
+		$reportId  = (int) \IPS\Request::i()->report_id;
+		$newStatus = (string) ( \IPS\Request::i()->new_status ?? '' );
+
+		$validStatuses = [ 'reviewed', 'resolved', 'dismissed' ];
+		if ( !in_array( $newStatus, $validStatuses, true ) )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=reportedListings' )
+			);
+			return;
+		}
+
+		try
+		{
+			\IPS\Db::i()->update( 'gd_listing_reports', [
+				'status'     => $newStatus,
+				'updated_at' => time(),
+			], [ 'id=? AND dealer_id=?', $reportId, $dealerId ] );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( $e, 'gddealer_resolve_report' ); } catch ( \Throwable ) {}
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=reportedListings' )
+		);
+	}
 }
 
 class dashboard extends _dashboard {}
