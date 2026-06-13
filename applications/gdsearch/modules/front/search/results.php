@@ -395,12 +395,19 @@ class _results extends \IPS\Dispatcher\Controller
         $reportCsrfKey  = \IPS\Session::i()->csrfKey;
         try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'report.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
 
+        $listingReportUrl      = (string) \IPS\Http\Url::internal( 'app=gdsearch&module=search&controller=results&do=reportListing', 'front' );
+        $listingReportLoggedIn = (bool) $member->member_id;
+        $listingReportCsrfKey  = (string) \IPS\Session::i()->csrfKey;
+        $listingReportLoginUrl = (string) \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' );
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'reportlisting.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
+
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
             $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow,
             $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl,
             $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey,
-            $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey
+            $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey,
+            $listingReportUrl, $listingReportLoggedIn, $listingReportCsrfKey, $listingReportLoginUrl
         );
     }
 
@@ -702,6 +709,44 @@ class _results extends \IPS\Dispatcher\Controller
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->myWishlist(
             $rows, $removeUrl, $csrfKey
         );
+    }
+
+    protected function reportListing(): void
+    {
+        $member = \IPS\Member::loggedIn();
+        if ( !$member->member_id )
+        {
+            \IPS\Output::i()->json( [ 'ok' => false, 'error' => 'login' ] );
+            return;
+        }
+
+        \IPS\Session::i()->csrfCheck();
+
+        $upc      = trim( (string) ( \IPS\Request::i()->upc ?? '' ) );
+        $dealerId = (int) ( \IPS\Request::i()->dealer_id ?? 0 );
+        $reason   = (string) ( \IPS\Request::i()->reason ?? '' );
+        $note     = mb_substr( trim( (string) ( \IPS\Request::i()->note ?? '' ) ), 0, 1000 );
+
+        $valid = [ 'wrong_price', 'dead_link', 'false_in_stock', 'wrong_product', 'other' ];
+
+        if ( $upc === '' || $dealerId <= 0 || !in_array( $reason, $valid, true ) )
+        {
+            \IPS\Output::i()->json( [ 'ok' => false ] );
+            return;
+        }
+
+        try
+        {
+            \IPS\gddealer\Reports\ListingReport::fileListingReport(
+                $dealerId, $upc, (int) $member->member_id, $reason, $note
+            );
+        }
+        catch ( \Throwable $e )
+        {
+            try { \IPS\Log::log( $e, 'gdsearch_report_listing' ); } catch ( \Throwable ) {}
+        }
+
+        \IPS\Output::i()->json( [ 'ok' => true ] );
     }
 }
 class results extends _results {}

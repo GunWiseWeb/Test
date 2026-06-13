@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl=''" />
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 .gdsp-wrap{width:100%;margin:0;padding:18px;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#0f172a}
@@ -249,6 +249,9 @@
 						{{else}}
 						<a href="{url="app=gddealer&module=dealers&controller=profile&dealer_slug={$listing['dealer_slug']}"}" class="ipsButton ipsButton--secondary ipsButton--small">{lang="gdsearch_view_dealer"}</a>
 						{{endif}}
+						<div style="margin-top:6px">
+							<button type="button" class="gd-listing-report-trigger" data-upc="{$product['upc']}" data-dealer-id="{$listing['dealer_id']}" data-dealer-name="{$listing['dealer_name']}" data-logged-in="{{if $listingReportLoggedIn}}1{{else}}0{{endif}}" style="border:none;background:none;color:#cbd5e1;font-size:.74em;cursor:pointer;padding:0">&#9873; Report</button>
+						</div>
 					</td>
 				</tr>
 				{{endforeach}}
@@ -299,6 +302,28 @@
 			<p class="gd-report-msg" style="color:#15803d;font-size:.9em;margin:10px 0 0"></p>
 			<div style="margin-top:16px;text-align:right">
 				<button type="button" class="gd-report-submit ipsButton ipsButton--primary">Submit report</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="gd-listing-report-modal" id="gdListingReportModal" style="display:none;position:fixed;inset:0;z-index:1100;background:rgba(15,23,42,.5);align-items:center;justify-content:center;padding:16px">
+		<div style="background:#fff;border-radius:14px;max-width:460px;width:100%;padding:24px;box-shadow:0 20px 50px -12px rgba(0,0,0,.4)" data-report-url="{$listingReportUrl}" data-csrf="{$listingReportCsrfKey}" data-login-url="{$listingReportLoginUrl}">
+			<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+				<strong style="font-size:1.1em;color:#0f172a">Report this listing</strong>
+				<button type="button" class="gd-listing-report-close" style="border:none;background:none;font-size:1.4em;cursor:pointer;color:#94a3b8;line-height:1">&times;</button>
+			</div>
+			<p class="gd-listing-report-dealer" style="color:#64748b;font-size:.85em;margin:0 0 12px"></p>
+			<div class="gd-listing-report-form">
+				<label style="display:block;margin-bottom:8px;cursor:pointer"><input type="radio" name="gd_listing_reason" value="wrong_price" checked> Wrong price</label>
+				<label style="display:block;margin-bottom:8px;cursor:pointer"><input type="radio" name="gd_listing_reason" value="dead_link"> Dead / broken link</label>
+				<label style="display:block;margin-bottom:8px;cursor:pointer"><input type="radio" name="gd_listing_reason" value="false_in_stock"> Out of stock (listed as in stock)</label>
+				<label style="display:block;margin-bottom:8px;cursor:pointer"><input type="radio" name="gd_listing_reason" value="wrong_product"> Wrong product / UPC mismatch</label>
+				<label style="display:block;margin-bottom:10px;cursor:pointer"><input type="radio" name="gd_listing_reason" value="other"> Other</label>
+				<textarea class="gd-listing-report-note ipsInput ipsInput--text" rows="3" placeholder="Add any details (optional)" style="width:100%;box-sizing:border-box"></textarea>
+			</div>
+			<p class="gd-listing-report-msg" style="color:#15803d;font-size:.9em;margin:10px 0 0"></p>
+			<div style="margin-top:16px;text-align:right">
+				<button type="button" class="gd-listing-report-submit ipsButton ipsButton--primary">Submit report</button>
 			</div>
 		</div>
 	</div>
