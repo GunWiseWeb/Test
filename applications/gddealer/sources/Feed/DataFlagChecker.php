@@ -13,6 +13,79 @@ class _DataFlagChecker
 		'brand' => 'brand',
 	];
 
+	const BRAND_SUFFIXES = [
+		'INC', 'LLC', 'LTD', 'CO', 'CORP', 'CORPORATION', 'COMPANY',
+		'ARMS', 'FIREARMS', 'MFG', 'MANUFACTURING', 'USA', 'INDUSTRIES',
+		'INTERNATIONAL', 'INTL', 'GROUP', 'ENTERPRISES', 'TACTICAL',
+	];
+
+	public static function normBasic( string $val ): string
+	{
+		$val = mb_strtoupper( $val );
+		$val = preg_replace( '/[^A-Z0-9\s]/', ' ', $val );
+		return trim( preg_replace( '/\s+/', ' ', $val ) );
+	}
+
+	public static function brandTokens( string $brand ): array
+	{
+		$tokens = preg_split( '/\s+/', self::normBasic( $brand ) );
+		$tokens = array_diff( $tokens, self::BRAND_SUFFIXES );
+		return array_values( array_unique( $tokens ) );
+	}
+
+	public static function brandsMatch( string $a, string $b ): bool
+	{
+		if ( self::normBasic( $a ) === self::normBasic( $b ) ) {
+			return true;
+		}
+		$ta = self::brandTokens( $a );
+		$tb = self::brandTokens( $b );
+		if ( empty( $ta ) || empty( $tb ) ) {
+			return false;
+		}
+		$shared = array_intersect( $ta, $tb );
+		return count( $shared ) > 0;
+	}
+
+	public static function normMpn( string $mpn ): string
+	{
+		return preg_replace( '/[^A-Z0-9]/', '', mb_strtoupper( $mpn ) );
+	}
+
+	public static function titlesMatch( string $a, string $b ): bool
+	{
+		$na = self::normBasic( $a );
+		$nb = self::normBasic( $b );
+		if ( $na === $nb ) {
+			return true;
+		}
+		if ( mb_strpos( $na, $nb ) !== false || mb_strpos( $nb, $na ) !== false ) {
+			return true;
+		}
+		$ta = preg_split( '/\s+/', $na );
+		$tb = preg_split( '/\s+/', $nb );
+		$max = max( count( $ta ), count( $tb ) );
+		if ( $max === 0 ) {
+			return true;
+		}
+		$shared = count( array_intersect( $ta, $tb ) );
+		return ( $shared / $max ) >= 0.6;
+	}
+
+	public static function isMismatch( string $field, string $dealerVal, string $catalogVal ): bool
+	{
+		switch ( $field ) {
+			case 'brand':
+				return !self::brandsMatch( $dealerVal, $catalogVal );
+			case 'mpn':
+				return self::normMpn( $dealerVal ) !== self::normMpn( $catalogVal );
+			case 'title':
+				return !self::titlesMatch( $dealerVal, $catalogVal );
+			default:
+				return mb_strtolower( $dealerVal ) !== mb_strtolower( $catalogVal );
+		}
+	}
+
 	public static function check( int $dealerId, string $upc, array $canonical ): void
 	{
 		try {
@@ -35,7 +108,7 @@ class _DataFlagChecker
 				continue;
 			}
 
-			$mismatch = ( strtolower( $dealerVal ) !== strtolower( $catalogVal ) );
+			$mismatch = self::isMismatch( $feedField, $dealerVal, $catalogVal );
 
 			if ( $mismatch ) {
 				try {

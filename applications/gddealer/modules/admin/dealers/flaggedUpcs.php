@@ -110,9 +110,16 @@ class _flaggedUpcs extends \IPS\Dispatcher\Controller
             }
         } catch ( \Throwable ) {}
 
+        $reEvalUrl = (string) \IPS\Http\Url::internal(
+            'app=gddealer&module=dealers&controller=flaggedUpcs&do=reEvaluate'
+        )->csrf();
+        $clearAllUrl = (string) \IPS\Http\Url::internal(
+            'app=gddealer&module=dealers&controller=flaggedUpcs&do=clearAll'
+        )->csrf();
+
         \IPS\Output::i()->title = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_flagged_upcs_title' );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'admin' )->flaggedUpcs(
-            $flags, $total, $pagination, $statusFilter, $dealerFilter, $typeFilter, $counts
+            $flags, $total, $pagination, $statusFilter, $dealerFilter, $typeFilter, $counts, $reEvalUrl, $clearAllUrl
         );
     }
 
@@ -240,6 +247,55 @@ class _flaggedUpcs extends \IPS\Dispatcher\Controller
         \IPS\Output::i()->redirect(
             \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=flaggedUpcs&do=detail&flag_id=' . $flagId ),
             'gddealer_flag_note_saved'
+        );
+    }
+
+    protected function reEvaluate(): void
+    {
+        \IPS\Session::i()->csrfCheck();
+        \IPS\Dispatcher::i()->checkAcpPermission( 'gddealer_dealer_manage' );
+
+        $resolved = 0;
+        $now = date( 'Y-m-d H:i:s' );
+
+        try {
+            foreach ( \IPS\Db::i()->select( '*', 'gd_dealer_data_flags', [ 'status IN(?,?)', 'new', 'submitted' ] ) as $row ) {
+                try {
+                    $field      = (string) $row['flag_type'];
+                    $dealerVal  = trim( (string) $row['dealer_value'] );
+                    $catalogVal = trim( (string) $row['catalog_value'] );
+
+                    if ( $dealerVal === '' || $catalogVal === '' || !\IPS\gddealer\Feed\DataFlagChecker::isMismatch( $field, $dealerVal, $catalogVal ) ) {
+                        \IPS\Db::i()->update( 'gd_dealer_data_flags', [
+                            'status'      => 'resolved',
+                            'admin_note'  => 'Auto-resolved by re-evaluation',
+                            'resolved_at' => $now,
+                            'updated_at'  => $now,
+                        ], [ 'id=?', (int) $row['id'] ] );
+                        $resolved++;
+                    }
+                } catch ( \Throwable ) {}
+            }
+        } catch ( \Throwable ) {}
+
+        \IPS\Output::i()->redirect(
+            \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=flaggedUpcs' ),
+            'gddealer_flags_reevaluated'
+        );
+    }
+
+    protected function clearAll(): void
+    {
+        \IPS\Session::i()->csrfCheck();
+        \IPS\Dispatcher::i()->checkAcpPermission( 'gddealer_dealer_manage' );
+
+        try {
+            \IPS\Db::i()->delete( 'gd_dealer_data_flags' );
+        } catch ( \Throwable ) {}
+
+        \IPS\Output::i()->redirect(
+            \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=flaggedUpcs' ),
+            'gddealer_flags_cleared'
         );
     }
 }

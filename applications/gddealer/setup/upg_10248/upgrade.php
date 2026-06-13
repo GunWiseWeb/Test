@@ -1,3 +1,48 @@
+<?php
+
+namespace IPS\gddealer\setup\upg_10248;
+
+use function defined;
+
+if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
+{
+	header( ( $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0' ) . ' 403 Forbidden' );
+	exit;
+}
+
+class _upgrade
+{
+	public function step1(): bool
+	{
+		$newStrings = [
+			'gddealer_flags_reevaluate'  => 'Re-evaluate Flags',
+			'gddealer_flags_clear_all'   => 'Clear All Flags',
+			'gddealer_flags_reevaluated' => 'Flags re-evaluated. False positives auto-resolved.',
+			'gddealer_flags_cleared'     => 'All flags cleared.',
+		];
+
+		try {
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gddealer',
+							'word_key'     => $key,
+							'word_default' => $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		} catch ( \Throwable ) {}
+
+		$templateContent = <<<'TEMPLATE_EOT'
 <ips:template parameters="$flags, $total, $pagination, $statusFilter, $dealerFilter, $typeFilter, $counts, $reEvalUrl='', $clearAllUrl=''" />
 <div class="ipsBox">
 	<div class="ipsBox__header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -72,3 +117,32 @@
 		{{endif}}
 	</div>
 </div>
+TEMPLATE_EOT;
+
+		try {
+			\IPS\Db::i()->replace( 'core_theme_templates', [
+				'template_set_id'  => 0,
+				'template_app'     => 'gddealer',
+				'template_location' => 'admin',
+				'template_group'   => 'dealers',
+				'template_name'    => 'flaggedUpcs',
+				'template_data'    => '$flags, $total, $pagination, $statusFilter, $dealerFilter, $typeFilter, $counts, $reEvalUrl=\'\', $clearAllUrl=\'\'',
+				'template_content' => $templateContent,
+				'template_updated' => time(),
+				'template_version' => '1.0.248',
+			] );
+		} catch ( \Throwable ) {}
+
+		require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
+		\IPS\gddealer\Setup\CanonicalTemplates::ensure();
+		\IPS\gddealer\Setup\CanonicalTemplates::clearCaches();
+
+		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
+		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
+
+		return TRUE;
+	}
+}
+
+class upgrade extends _upgrade {}

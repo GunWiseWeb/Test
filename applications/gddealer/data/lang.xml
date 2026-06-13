@@ -577,6 +577,10 @@
     <word key="gddealer_flag_resolved"><![CDATA[Flag resolved.]]></word>
     <word key="gddealer_flag_dismissed_acp"><![CDATA[Flag dismissed.]]></word>
     <word key="gddealer_flag_note_saved"><![CDATA[Note saved.]]></word>
+    <word key="gddealer_flags_reevaluate"><![CDATA[Re-evaluate Flags]]></word>
+    <word key="gddealer_flags_clear_all"><![CDATA[Clear All Flags]]></word>
+    <word key="gddealer_flags_reevaluated"><![CDATA[Flags re-evaluated. False positives auto-resolved.]]></word>
+    <word key="gddealer_flags_cleared"><![CDATA[All flags cleared.]]></word>
     <word key="menu__gddealer_dealers_flaggedUpcs"><![CDATA[Flagged UPCs]]></word>
     <word key="gddealer_clear_failed_logs"><![CDATA[Clear Failed Logs]]></word>
     <word key="gddealer_confirm_clear_logs"><![CDATA[Delete all failed import log entries for this dealer?]]></word>
