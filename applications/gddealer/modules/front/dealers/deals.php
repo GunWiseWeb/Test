@@ -85,20 +85,14 @@ class _deals extends \IPS\Dispatcher\Controller
 		$deals = [];
 		try
 		{
-			$prefix = \IPS\Db::i()->prefix;
-			$query = \IPS\Db::i()->preparedQuery(
-				"SELECT d.*, c.title AS product_title, c.image_url AS product_image_url,
-				        l.dealer_price AS current_dealer_price
-				 FROM {$prefix}gd_deals d
-				 LEFT JOIN {$prefix}gd_catalog c ON c.upc = d.upc
-				 LEFT JOIN {$prefix}gd_dealer_listings l ON l.upc = d.upc AND l.dealer_id = d.dealer_id
-				 WHERE d.dealer_id = ? AND d.source = ?
-				 ORDER BY d.created DESC",
-				[ $dealerId, 'dealer' ]
-			);
-
 			$now = time();
-			while ( $row = $query->fetch_assoc() )
+			foreach ( \IPS\Db::i()->select(
+				'd.*, c.title AS product_title, c.image_url AS product_image_url, l.dealer_price AS current_dealer_price',
+				[ 'gd_deals', 'd' ],
+				[ 'd.dealer_id=? AND d.source=?', $dealerId, 'dealer' ],
+				'd.created DESC'
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc = d.upc', 'LEFT' )
+			 ->join( [ 'gd_dealer_listings', 'l' ], 'l.upc = d.upc AND l.dealer_id = d.dealer_id', 'LEFT' ) as $row )
 			{
 				$dealId    = (int) $row['deal_id'];
 				$isActive  = (int) $row['is_active'];
@@ -148,7 +142,9 @@ class _deals extends \IPS\Dispatcher\Controller
 				];
 			}
 		}
-		catch ( \Throwable ) {}
+		catch ( \Throwable $e ) {
+			try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
+		}
 
 		$csrfKey = (string) \IPS\Session::i()->csrfKey;
 
@@ -168,26 +164,12 @@ class _deals extends \IPS\Dispatcher\Controller
 			$listings = [];
 			try
 			{
-				foreach ( \IPS\Db::i()->select( 'l.upc, l.dealer_price, c.title AS product_title', 'gd_dealer_listings AS l', [ 'l.dealer_id=? AND l.listing_status=?', $dealerId, 'active' ], 'c.title ASC', null, null, null, \IPS\Db::SELECT_SQL_CALC_FOUND_ROWS ) as $r )
-				{
-					// Fallback: the join might not work via select() — use preparedQuery instead
-				}
-			}
-			catch ( \Throwable ) {}
-
-			$listings = [];
-			try
-			{
-				$prefix = \IPS\Db::i()->prefix;
-				$q = \IPS\Db::i()->preparedQuery(
-					"SELECT l.upc, l.dealer_price, c.title AS product_title
-					 FROM {$prefix}gd_dealer_listings l
-					 LEFT JOIN {$prefix}gd_catalog c ON c.upc = l.upc
-					 WHERE l.dealer_id = ? AND l.listing_status = ?
-					 ORDER BY c.title ASC",
-					[ $dealerId, 'active' ]
-				);
-				while ( $row = $q->fetch_assoc() )
+				foreach ( \IPS\Db::i()->select(
+					'l.upc, l.dealer_price, c.title AS product_title',
+					[ 'gd_dealer_listings', 'l' ],
+					[ 'l.dealer_id=? AND l.listing_status=?', $dealerId, 'active' ],
+					'c.title ASC'
+				)->join( [ 'gd_catalog', 'c' ], 'c.upc = l.upc', 'LEFT' ) as $row )
 				{
 					$listings[] = [
 						'upc'           => (string) $row['upc'],
@@ -196,7 +178,9 @@ class _deals extends \IPS\Dispatcher\Controller
 					];
 				}
 			}
-			catch ( \Throwable ) {}
+			catch ( \Throwable $e ) {
+				try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
+			}
 
 			$submitUrl = (string) \IPS\Http\Url::internal( $baseUrl . '&do=create', 'front', 'dealers_deals_action' );
 			$cancelUrl = (string) \IPS\Http\Url::internal( $baseUrl, 'front', 'dealers_deals' );
@@ -285,16 +269,12 @@ class _deals extends \IPS\Dispatcher\Controller
 			$listings = [];
 			try
 			{
-				$prefix = \IPS\Db::i()->prefix;
-				$q = \IPS\Db::i()->preparedQuery(
-					"SELECT l.upc, l.dealer_price, c.title AS product_title
-					 FROM {$prefix}gd_dealer_listings l
-					 LEFT JOIN {$prefix}gd_catalog c ON c.upc = l.upc
-					 WHERE l.dealer_id = ? AND l.listing_status = ?
-					 ORDER BY c.title ASC",
-					[ $dealerId, 'active' ]
-				);
-				while ( $row = $q->fetch_assoc() )
+				foreach ( \IPS\Db::i()->select(
+					'l.upc, l.dealer_price, c.title AS product_title',
+					[ 'gd_dealer_listings', 'l' ],
+					[ 'l.dealer_id=? AND l.listing_status=?', $dealerId, 'active' ],
+					'c.title ASC'
+				)->join( [ 'gd_catalog', 'c' ], 'c.upc = l.upc', 'LEFT' ) as $row )
 				{
 					$listings[] = [
 						'upc'           => (string) $row['upc'],
@@ -303,7 +283,9 @@ class _deals extends \IPS\Dispatcher\Controller
 					];
 				}
 			}
-			catch ( \Throwable ) {}
+			catch ( \Throwable $e ) {
+				try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
+			}
 
 			$submitUrl = (string) \IPS\Http\Url::internal( $baseUrl . '&do=edit&deal_id=' . $dealId, 'front', 'dealers_deals_action' );
 			$cancelUrl = (string) \IPS\Http\Url::internal( $baseUrl, 'front', 'dealers_deals' );

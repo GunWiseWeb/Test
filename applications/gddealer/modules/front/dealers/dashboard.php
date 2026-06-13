@@ -1553,31 +1553,30 @@ class _dashboard extends \IPS\Dispatcher\Controller
 
 		$priceDrops = 0;
 		try {
-			$prefix = \IPS\Db::i()->prefix;
 			$rangeStart = $startDate . ' 00:00:00';
 			$rangeEnd   = $endDate . ' 23:59:59';
-			$stmt = \IPS\Db::i()->preparedQuery(
-				"SELECT COUNT(*) AS cnt FROM (
-					SELECT ph.upc,
-						( SELECT h1.price FROM {$prefix}gd_price_history h1
-						  WHERE h1.dealer_id = ph.dealer_id AND h1.upc = ph.upc
-							AND h1.recorded_at >= ? AND h1.recorded_at <= ?
-						  ORDER BY h1.recorded_at ASC LIMIT 1 ) AS first_price,
-						( SELECT h2.price FROM {$prefix}gd_price_history h2
-						  WHERE h2.dealer_id = ph.dealer_id AND h2.upc = ph.upc
-							AND h2.recorded_at >= ? AND h2.recorded_at <= ?
-						  ORDER BY h2.recorded_at DESC LIMIT 1 ) AS last_price
-					FROM {$prefix}gd_price_history ph
-					WHERE ph.dealer_id = ? AND ph.recorded_at >= ? AND ph.recorded_at <= ?
-					GROUP BY ph.upc
-					HAVING last_price < first_price
-				) sub",
-				[ $rangeStart, $rangeEnd, $rangeStart, $rangeEnd, $dealerId, $rangeStart, $rangeEnd ]
-			);
-			if ( $stmt && $r = $stmt->fetch_assoc() ) {
-				$priceDrops = (int) $r['cnt'];
+			$firstPrices = [];
+			$lastPrices  = [];
+			foreach ( \IPS\Db::i()->select(
+				'upc, price',
+				'gd_price_history',
+				[ 'dealer_id=? AND recorded_at >= ? AND recorded_at <= ?', $dealerId, $rangeStart, $rangeEnd ],
+				'recorded_at ASC'
+			) as $row ) {
+				$u = (string) $row['upc'];
+				if ( !isset( $firstPrices[ $u ] ) ) {
+					$firstPrices[ $u ] = (float) $row['price'];
+				}
+				$lastPrices[ $u ] = (float) $row['price'];
 			}
-		} catch ( \Throwable ) {}
+			foreach ( $firstPrices as $u => $first ) {
+				if ( $lastPrices[ $u ] < $first ) {
+					$priceDrops++;
+				}
+			}
+		} catch ( \Throwable $e ) {
+			try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
+		}
 
 		$days = [];
 		for ( $i = 0; $i < $rangeDays; $i++ ) {
@@ -1634,18 +1633,15 @@ class _dashboard extends \IPS\Dispatcher\Controller
 
 		$topListings = [];
 		try {
-			$prefix = \IPS\Db::i()->prefix;
-			$stmt = \IPS\Db::i()->preparedQuery(
-				"SELECT cl.upc, COUNT(*) AS clicks
-				 FROM {$prefix}gd_click_log cl
-				 WHERE cl.dealer_id = ? AND cl.clicked_at >= ? AND cl.clicked_at <= ?
-				 GROUP BY cl.upc
-				 ORDER BY clicks DESC
-				 LIMIT 10",
-				[ $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59' ]
-			);
 			$i = 0;
-			while ( $stmt && $row = $stmt->fetch_assoc() ) {
+			foreach ( \IPS\Db::i()->select(
+				'upc, COUNT(*) AS clicks',
+				'gd_click_log',
+				[ 'dealer_id=? AND clicked_at >= ? AND clicked_at <= ?', $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59' ],
+				'clicks DESC',
+				[ 0, 10 ],
+				'upc'
+			) as $row ) {
 				$productName = '';
 				try {
 					$productName = (string) \IPS\Db::i()->select( 'title', 'gd_catalog',
@@ -1659,23 +1655,21 @@ class _dashboard extends \IPS\Dispatcher\Controller
 					'clicks' => (int) $row['clicks'],
 				];
 			}
-		} catch ( \Throwable ) {}
+		} catch ( \Throwable $e ) {
+			try { \IPS\Log::log( $e, 'gddealer_analytics' ); } catch ( \Throwable ) {}
+		}
 
 		$geoDistribution = [];
 		$geoTotal = 0;
 		try {
-			$prefix = \IPS\Db::i()->prefix;
-			$stmt = \IPS\Db::i()->preparedQuery(
-				"SELECT user_state, COUNT(*) AS clicks
-				 FROM {$prefix}gd_click_log
-				 WHERE dealer_id = ? AND clicked_at >= ? AND clicked_at <= ?
-				   AND user_state IS NOT NULL AND user_state != ''
-				 GROUP BY user_state
-				 ORDER BY clicks DESC
-				 LIMIT 10",
-				[ $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59' ]
-			);
-			while ( $stmt && $row = $stmt->fetch_assoc() ) {
+			foreach ( \IPS\Db::i()->select(
+				'user_state, COUNT(*) AS clicks',
+				'gd_click_log',
+				[ 'dealer_id=? AND clicked_at >= ? AND clicked_at <= ? AND user_state IS NOT NULL AND user_state != ?', $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59', '' ],
+				'clicks DESC',
+				[ 0, 10 ],
+				'user_state'
+			) as $row ) {
 				$geoTotal += (int) $row['clicks'];
 				$geoDistribution[] = [
 					'state'  => (string) $row['user_state'],
@@ -1689,7 +1683,9 @@ class _dashboard extends \IPS\Dispatcher\Controller
 				}
 				unset( $g );
 			}
-		} catch ( \Throwable ) {}
+		} catch ( \Throwable $e ) {
+			try { \IPS\Log::log( $e, 'gddealer_analytics' ); } catch ( \Throwable ) {}
+		}
 
 		$rangeUrls = [];
 		foreach ( [ '7', '30', '90', 'ytd' ] as $r ) {

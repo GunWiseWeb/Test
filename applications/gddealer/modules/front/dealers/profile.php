@@ -848,18 +848,13 @@ class _profile extends \IPS\Dispatcher\Controller
 		$profileListings = [];
 		try
 		{
-			$prefix = \IPS\Db::i()->prefix;
-			$listingsResult = \IPS\Db::i()->preparedQuery(
-				"SELECT l.upc, l.dealer_price, l.listing_status, l.product_url,
-						c.title AS product_title, c.brand, c.image_url
-				 FROM {$prefix}gd_dealer_listings l
-				 LEFT JOIN {$prefix}gd_catalog c ON c.upc = l.upc
-				 WHERE l.dealer_id = ? AND l.listing_status = ?
-				 ORDER BY c.title ASC
-				 LIMIT 50",
-				[ $dealerId, 'active' ]
-			);
-			while ( $row = $listingsResult->fetch_assoc() )
+			foreach ( \IPS\Db::i()->select(
+				'l.upc, l.dealer_price, l.listing_status, l.listing_url, c.title AS product_title, c.brand, c.image_url',
+				[ 'gd_dealer_listings', 'l' ],
+				[ 'l.dealer_id=? AND l.listing_status=?', $dealerId, 'active' ],
+				'c.title ASC',
+				[ 0, 50 ]
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc = l.upc', 'LEFT' ) as $row )
 			{
 				$profileListings[] = [
 					'upc'           => (string) $row['upc'],
@@ -867,33 +862,26 @@ class _profile extends \IPS\Dispatcher\Controller
 					'brand'         => (string) ( $row['brand'] ?? '' ),
 					'image_url'     => (string) ( $row['image_url'] ?? '' ),
 					'price_display' => '$' . number_format( (float) ( $row['dealer_price'] ?? 0 ), 2 ),
-					'product_url'   => (string) ( $row['product_url'] ?? '' ),
+					'product_url'   => (string) ( $row['listing_url'] ?? '' ),
 				];
 			}
 		}
-		catch ( \Throwable ) {}
+		catch ( \Throwable $e ) {
+			try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
+		}
 
 		$profileDeals = [];
 		try
 		{
 			$now = time();
-			$prefix = \IPS\Db::i()->prefix;
-			$dealsResult = \IPS\Db::i()->preparedQuery(
-				"SELECT d.deal_id, d.upc, d.deal_type, d.deal_price, d.deal_percent,
-						d.title, d.blurb, d.end_date,
-						c.title AS product_title, c.image_url, c.brand,
-						l.dealer_price AS current_price
-				 FROM {$prefix}gd_deals d
-				 LEFT JOIN {$prefix}gd_catalog c ON c.upc = d.upc
-				 LEFT JOIN {$prefix}gd_dealer_listings l ON l.dealer_id = d.dealer_id AND l.upc = d.upc
-				 WHERE d.dealer_id = ? AND d.is_active = 1
-				   AND (d.start_date IS NULL OR d.start_date <= ?)
-				   AND (d.end_date IS NULL OR d.end_date >= ?)
-				 ORDER BY d.created DESC
-				 LIMIT 20",
-				[ $dealerId, $now, $now ]
-			);
-			while ( $row = $dealsResult->fetch_assoc() )
+			foreach ( \IPS\Db::i()->select(
+				'd.deal_id, d.upc, d.deal_type, d.deal_price, d.deal_percent, d.title, d.blurb, d.end_date, c.title AS product_title, c.image_url, c.brand, l.dealer_price AS current_price',
+				[ 'gd_deals', 'd' ],
+				[ 'd.dealer_id=? AND d.is_active=1 AND (d.start_date IS NULL OR d.start_date <= ?) AND (d.end_date IS NULL OR d.end_date >= ?)', $dealerId, $now, $now ],
+				'd.created DESC',
+				[ 0, 20 ]
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc = d.upc', 'LEFT' )
+			 ->join( [ 'gd_dealer_listings', 'l' ], 'l.dealer_id = d.dealer_id AND l.upc = d.upc', 'LEFT' ) as $row )
 			{
 				$regularPrice = (float) ( $row['current_price'] ?? 0 );
 				$dealPriceDisplay = '';
@@ -927,7 +915,9 @@ class _profile extends \IPS\Dispatcher\Controller
 				];
 			}
 		}
-		catch ( \Throwable ) {}
+		catch ( \Throwable $e ) {
+			try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
+		}
 
 		$profileCoupons = [];
 		try
