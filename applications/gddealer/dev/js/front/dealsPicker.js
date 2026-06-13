@@ -36,7 +36,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         debounceTimer = setTimeout(function() {
-            fetch(searchUrl + '&q=' + encodeURIComponent(val), {
+            var sep = searchUrl.indexOf('?') === -1 ? '?' : '&';
+            fetch(searchUrl + sep + 'q=' + encodeURIComponent(val), {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(function(r) { return r.json(); })
