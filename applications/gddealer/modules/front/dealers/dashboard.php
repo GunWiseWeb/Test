@@ -1383,7 +1383,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 
 		$pagination = '';
 		if ( $total > $perPage ) {
-			$pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'front' )->pagination(
+			$pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
 				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=dataFlags', 'front', 'dealers_dashboard' ),
 				(int) ceil( $total / $perPage ),
 				$page,
