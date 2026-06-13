@@ -4054,3 +4054,22 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
     .gdProfile__grid--listings { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
     .gdProfile__ratingScore { font-size: 1.4em; }
 }
+
+/* Listings toolbar — search + count */
+.gdProfile__listingsToolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+.gdProfile__listingsSearch { display: flex; align-items: center; gap: 0; position: relative; flex: 1; max-width: 400px; }
+.gdProfile__listingsSearchInput { flex: 1; padding: 7px 12px; border: 1px solid #cbd5e1; border-radius: 6px 0 0 6px; font-size: 13px; outline: none; }
+.gdProfile__listingsSearchInput:focus { border-color: #2563eb; }
+.gdProfile__listingsSearchBtn { padding: 7px 12px; border: 1px solid #cbd5e1; border-left: none; border-radius: 0 6px 6px 0; background: #f8fafc; cursor: pointer; color: #64748b; font-size: 13px; }
+.gdProfile__listingsSearchBtn:hover { background: #e2e8f0; }
+.gdProfile__listingsSearchClear { margin-left: 6px; font-size: 18px; color: #94a3b8; text-decoration: none; font-weight: 700; line-height: 1; }
+.gdProfile__listingsSearchClear:hover { color: #ef4444; }
+.gdProfile__listingsCount { font-size: 13px; color: #64748b; font-weight: 500; white-space: nowrap; }
+
+/* Listings pagination */
+.gdProfile__pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 12px 0; border-top: 1px solid #e2e8f0; flex-wrap: wrap; gap: 8px; }
+.gdProfile__pageInfo { font-size: 13px; color: #64748b; }
+.gdProfile__pageNav { display: flex; align-items: center; gap: 8px; }
+.gdProfile__pageBtn { padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: 600; color: #2563eb; text-decoration: none; background: #fff; }
+.gdProfile__pageBtn:hover { background: #eff6ff; border-color: #93c5fd; }
+.gdProfile__pageCurrent { font-size: 13px; color: #475569; font-weight: 500; }

@@ -128,7 +128,7 @@
 				<i class="fa-solid fa-ticket" aria-hidden="true"></i> <span class="gdProfile__tabLabel">Coupons</span> <span class="gdProfile__tabBadge">{expression="count($data['coupons'])"}</span>
 			</label>
 			<label for="gdTabListings" class="gdProfile__tab gdProfile__tab--listings">
-				<i class="fa-solid fa-box-open" aria-hidden="true"></i> <span class="gdProfile__tabLabel">Listings</span> <span class="gdProfile__tabBadge">{expression="count($data['listings'])"}</span>
+				<i class="fa-solid fa-box-open" aria-hidden="true"></i> <span class="gdProfile__tabLabel">Listings</span> <span class="gdProfile__tabBadge">{expression="number_format($data['listings_total'])"}</span>
 			</label>
 			<label for="gdTabReviews" class="gdProfile__tab gdProfile__tab--reviews">
 				<i class="fa-solid fa-star" aria-hidden="true"></i> <span class="gdProfile__tabLabel">Reviews</span> <span class="gdProfile__tabBadge">{expression="number_format($data['stats']['total'])"}</span>
@@ -221,6 +221,22 @@
 		</div>
 
 		<div class="gdProfile__panel gdProfile__panel--listings">
+			<div class="gdProfile__listingsToolbar">
+				<form method="get" class="gdProfile__listingsSearch">
+					<input type="hidden" name="app" value="gddealer">
+					<input type="hidden" name="module" value="dealers">
+					<input type="hidden" name="controller" value="profile">
+					{{if $data['dealer']['dealer_slug']}}
+					<input type="hidden" name="dealer_slug" value="{$data['dealer']['dealer_slug']}">
+					{{endif}}
+					<input type="text" name="lq" value="{$data['listings_search']}" placeholder="Search listings by name or UPC" class="gdProfile__listingsSearchInput">
+					<button type="submit" class="gdProfile__listingsSearchBtn"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
+					{{if $data['listings_search']}}
+					<a href="?app=gddealer&amp;module=dealers&amp;controller=profile{{if $data['dealer']['dealer_slug']}}&amp;dealer_slug={$data['dealer']['dealer_slug']}{{endif}}" class="gdProfile__listingsSearchClear" title="Clear search">&times;</a>
+					{{endif}}
+				</form>
+				<div class="gdProfile__listingsCount">{expression="number_format($data['listings_total'])"} listings</div>
+			</div>
 			{{if count($data['listings']) > 0}}
 			<div class="gdProfile__grid gdProfile__grid--listings">
 				{{foreach $data['listings'] as $listing}}
@@ -246,10 +262,28 @@
 				</div>
 				{{endforeach}}
 			</div>
+			{{if $data['listings_pages'] > 1}}
+			<div class="gdProfile__pagination">
+				<span class="gdProfile__pageInfo">Showing {expression="number_format(($data['listings_page']-1) * $data['listings_per_page'] + 1)"}&ndash;{expression="number_format(min($data['listings_page'] * $data['listings_per_page'], $data['listings_total']))"} of {expression="number_format($data['listings_total'])"}</span>
+				<div class="gdProfile__pageNav">
+					{{if $data['listings_page'] > 1}}
+					<a href="?app=gddealer&amp;module=dealers&amp;controller=profile{{if $data['dealer']['dealer_slug']}}&amp;dealer_slug={$data['dealer']['dealer_slug']}{{endif}}&amp;lpage={expression="$data['listings_page'] - 1"}{{if $data['listings_search']}}&amp;lq={$data['listings_search']}{{endif}}" class="gdProfile__pageBtn">&laquo; Prev</a>
+					{{endif}}
+					<span class="gdProfile__pageCurrent">Page {$data['listings_page']} of {$data['listings_pages']}</span>
+					{{if $data['listings_page'] < $data['listings_pages']}}
+					<a href="?app=gddealer&amp;module=dealers&amp;controller=profile{{if $data['dealer']['dealer_slug']}}&amp;dealer_slug={$data['dealer']['dealer_slug']}{{endif}}&amp;lpage={expression="$data['listings_page'] + 1"}{{if $data['listings_search']}}&amp;lq={$data['listings_search']}{{endif}}" class="gdProfile__pageBtn">Next &raquo;</a>
+					{{endif}}
+				</div>
+			</div>
+			{{endif}}
 			{{else}}
 			<div class="gdProfile__empty">
 				<i class="fa-solid fa-box-open" aria-hidden="true"></i>
+				{{if $data['listings_search']}}
+				<p>No listings match &ldquo;{$data['listings_search']}&rdquo;.</p>
+				{{else}}
 				<p>This dealer has no active listings yet.</p>
+				{{endif}}
 			</div>
 			{{endif}}
 		</div>

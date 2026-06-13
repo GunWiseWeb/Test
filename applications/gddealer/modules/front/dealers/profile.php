@@ -845,15 +845,41 @@ class _profile extends \IPS\Dispatcher\Controller
 
 		$totalInFilter = (int) ( $starCounts[ $starKey ] ?? $starCounts['all'] );
 
+		$listPage    = max( 1, (int) ( \IPS\Request::i()->lpage ?? 1 ) );
+		$listSearch  = trim( (string) ( \IPS\Request::i()->lq ?? '' ) );
+		$listPerPage = 50;
+
+		$listWhere = [ 'l.dealer_id=? AND l.listing_status=?', $dealerId, 'active' ];
+		if ( $listSearch !== '' )
+		{
+			$like = '%' . $listSearch . '%';
+			$listWhere = [ 'l.dealer_id=? AND l.listing_status=? AND ( l.upc LIKE ? OR c.title LIKE ? )', $dealerId, 'active', $like, $like ];
+		}
+
+		$listTotal = 0;
+		try
+		{
+			$listTotal = (int) \IPS\Db::i()->select(
+				'COUNT(*)',
+				[ 'gd_dealer_listings', 'l' ],
+				$listWhere
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc = l.upc', 'LEFT' )->first();
+		}
+		catch ( \Throwable ) {}
+
+		$listPages = max( 1, (int) ceil( $listTotal / $listPerPage ) );
+		if ( $listPage > $listPages ) { $listPage = $listPages; }
+		$listOffset = ( $listPage - 1 ) * $listPerPage;
+
 		$profileListings = [];
 		try
 		{
 			foreach ( \IPS\Db::i()->select(
 				'l.upc, l.dealer_price, l.listing_status, l.listing_url, c.title AS product_title, c.brand, c.image_url',
 				[ 'gd_dealer_listings', 'l' ],
-				[ 'l.dealer_id=? AND l.listing_status=?', $dealerId, 'active' ],
+				$listWhere,
 				'c.title ASC',
-				[ 0, 50 ]
+				[ $listOffset, $listPerPage ]
 			)->join( [ 'gd_catalog', 'c' ], 'c.upc = l.upc', 'LEFT' ) as $row )
 			{
 				$profileListings[] = [
@@ -978,6 +1004,11 @@ class _profile extends \IPS\Dispatcher\Controller
 			'clear_filters_url'       => $clearFiltersUrl,
 			'total_in_filter'         => $totalInFilter,
 			'listings'                => $profileListings,
+			'listings_total'          => $listTotal,
+			'listings_page'           => $listPage,
+			'listings_pages'          => $listPages,
+			'listings_per_page'       => $listPerPage,
+			'listings_search'         => $listSearch,
 			'deals'                   => $profileDeals,
 			'coupons'                 => $profileCoupons,
 		];

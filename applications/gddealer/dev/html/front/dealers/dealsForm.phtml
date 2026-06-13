@@ -1,4 +1,4 @@
-<ips:template parameters="$listings, $formUrl, $cancelUrl, $csrfKey, $errors=array(), $deal=null" />
+<ips:template parameters="$searchUrl, $formUrl, $cancelUrl, $csrfKey, $errors=array(), $deal=null, $selectedProduct=null" />
 <div class="gdDeals">
 	<div class="gdDeals__header">
 		<h2>{{if $deal}}{lang="gddealer_deals_edit_title"}{{else}}{lang="gddealer_deals_create_title"}{{endif}}</h2>
@@ -18,12 +18,17 @@
 
 		<div class="gdDeals__field">
 			<label>Product</label>
-			<select name="upc" required>
-				<option value="">-- Select a product --</option>
-				{{foreach $listings as $l}}
-					<option value="{$l['upc']}" {{if isset($deal['upc']) && $deal['upc'] === $l['upc']}}selected{{endif}}>{$l['title']} &mdash; {expression="'$' . number_format((float)$l['dealer_price'], 2)"}</option>
-				{{endforeach}}
-			</select>
+			<div class="gdDealsPicker" data-search-url="{$searchUrl}">
+				<input type="hidden" name="upc" id="gdDealsPickerUpc" value="{{if $selectedProduct}}{$selectedProduct['upc']}{{elseif isset($deal['upc'])}}{$deal['upc']}{{endif}}" required>
+				<div class="gdDealsPicker__selected" id="gdDealsPickerSelected" {{if !$selectedProduct}}style="display:none"{{endif}}>
+					<span id="gdDealsPickerSelectedText">{{if $selectedProduct}}{$selectedProduct['title']} &mdash; {$selectedProduct['price']}{{endif}}</span>
+					<button type="button" class="gdDealsPicker__clear" id="gdDealsPickerClear">Change</button>
+				</div>
+				<div class="gdDealsPicker__searchWrap" id="gdDealsPickerSearchWrap" {{if $selectedProduct}}style="display:none"{{endif}}>
+					<input type="text" class="gdDealsPicker__input" id="gdDealsPickerInput" placeholder="Search by product name or paste a UPC" autocomplete="off">
+					<div class="gdDealsPicker__results" id="gdDealsPickerResults" style="display:none"></div>
+				</div>
+			</div>
 		</div>
 
 		<div class="gdDeals__field">
@@ -96,4 +101,17 @@
 .gdDeals__radios label { font-weight: 400; display: flex; align-items: center; gap: 4px; }
 .gdDeals__fieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .gdDeals__formActions { margin-top: 20px; }
+.gdDealsPicker { position: relative; }
+.gdDealsPicker__selected { display: flex; align-items: center; gap: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 8px 12px; font-size: 14px; color: #0c4a6e; }
+.gdDealsPicker__selected span { flex: 1; }
+.gdDealsPicker__clear { background: none; border: 1px solid #93c5fd; border-radius: 4px; padding: 2px 10px; font-size: 12px; font-weight: 600; color: #2563eb; cursor: pointer; }
+.gdDealsPicker__clear:hover { background: #dbeafe; }
+.gdDealsPicker__input { width: 100%; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+.gdDealsPicker__results { position: absolute; left: 0; right: 0; top: 100%; z-index: 50; background: #fff; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 280px; overflow-y: auto; }
+.gdDealsPicker__resultRow { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+.gdDealsPicker__resultRow:last-child { border-bottom: none; }
+.gdDealsPicker__resultRow:hover { background: #f0f9ff; }
+.gdDealsPicker__resultTitle { flex: 1; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; }
+.gdDealsPicker__resultPrice { font-weight: 600; color: #059669; white-space: nowrap; }
+.gdDealsPicker__noResults { padding: 10px 12px; font-size: 13px; color: #94a3b8; text-align: center; }
 </style>

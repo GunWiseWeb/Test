@@ -154,6 +154,43 @@ class _deals extends \IPS\Dispatcher\Controller
 		$this->output( 'deals', $body );
 	}
 
+	protected function searchListings(): void
+	{
+		$dealerId = (int) $this->dealer->dealer_id;
+		$q = trim( (string) ( \IPS\Request::i()->q ?? '' ) );
+
+		if ( mb_strlen( $q ) < 2 )
+		{
+			\IPS\Output::i()->json( [ 'results' => [] ] );
+			return;
+		}
+
+		$like    = '%' . $q . '%';
+		$results = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select(
+				'l.upc, l.dealer_price, c.title AS product_title',
+				[ 'gd_dealer_listings', 'l' ],
+				[ 'l.dealer_id=? AND l.listing_status=? AND ( l.upc LIKE ? OR c.title LIKE ? )', $dealerId, 'active', $like, $like ],
+				'c.title ASC',
+				[ 0, 20 ]
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc = l.upc', 'LEFT' ) as $row )
+			{
+				$results[] = [
+					'upc'   => (string) $row['upc'],
+					'title' => (string) ( $row['product_title'] ?? $row['upc'] ),
+					'price' => '$' . number_format( (float) ( $row['dealer_price'] ?? 0 ), 2 ),
+				];
+			}
+		}
+		catch ( \Throwable $e ) {
+			try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
+		}
+
+		\IPS\Output::i()->json( [ 'results' => $results ] );
+	}
+
 	protected function create(): void
 	{
 		$dealerId = (int) $this->dealer->dealer_id;
@@ -161,33 +198,20 @@ class _deals extends \IPS\Dispatcher\Controller
 
 		if ( \IPS\Request::i()->requestMethod() === 'GET' )
 		{
-			$listings = [];
-			try
-			{
-				foreach ( \IPS\Db::i()->select(
-					'l.upc, l.dealer_price, c.title AS product_title',
-					[ 'gd_dealer_listings', 'l' ],
-					[ 'l.dealer_id=? AND l.listing_status=?', $dealerId, 'active' ],
-					'c.title ASC'
-				)->join( [ 'gd_catalog', 'c' ], 'c.upc = l.upc', 'LEFT' ) as $row )
-				{
-					$listings[] = [
-						'upc'           => (string) $row['upc'],
-						'dealer_price'  => (float) $row['dealer_price'],
-						'title'         => htmlspecialchars( (string) ( $row['product_title'] ?? $row['upc'] ), ENT_QUOTES, 'UTF-8' ),
-					];
-				}
-			}
-			catch ( \Throwable $e ) {
-				try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
-			}
-
+			$searchUrl = (string) \IPS\Http\Url::internal( $baseUrl . '&do=searchListings', 'front', 'dealers_deals_action' );
 			$submitUrl = (string) \IPS\Http\Url::internal( $baseUrl . '&do=create', 'front', 'dealers_deals_action' );
 			$cancelUrl = (string) \IPS\Http\Url::internal( $baseUrl, 'front', 'dealers_deals' );
 			$csrfKey   = (string) \IPS\Session::i()->csrfKey;
 
+			try {
+				\IPS\Output::i()->jsFiles = array_merge(
+					\IPS\Output::i()->jsFiles,
+					\IPS\Output::i()->js( 'dealsPicker.js', 'gddealer', 'interface' )
+				);
+			} catch ( \Throwable ) {}
+
 			$body = (string) \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )
-				->dealsForm( $listings, $submitUrl, $cancelUrl, $csrfKey, [], null );
+				->dealsForm( $searchUrl, $submitUrl, $cancelUrl, $csrfKey, [], null, null );
 
 			$this->output( 'deals', $body );
 			return;
@@ -266,33 +290,41 @@ class _deals extends \IPS\Dispatcher\Controller
 
 		if ( \IPS\Request::i()->requestMethod() === 'GET' )
 		{
-			$listings = [];
-			try
+			$selectedProduct = null;
+			if ( !empty( $deal['upc'] ) )
 			{
-				foreach ( \IPS\Db::i()->select(
-					'l.upc, l.dealer_price, c.title AS product_title',
-					[ 'gd_dealer_listings', 'l' ],
-					[ 'l.dealer_id=? AND l.listing_status=?', $dealerId, 'active' ],
-					'c.title ASC'
-				)->join( [ 'gd_catalog', 'c' ], 'c.upc = l.upc', 'LEFT' ) as $row )
+				try
 				{
-					$listings[] = [
-						'upc'           => (string) $row['upc'],
-						'dealer_price'  => (float) $row['dealer_price'],
-						'title'         => htmlspecialchars( (string) ( $row['product_title'] ?? $row['upc'] ), ENT_QUOTES, 'UTF-8' ),
+					$row = \IPS\Db::i()->select(
+						'l.upc, l.dealer_price, c.title AS product_title',
+						[ 'gd_dealer_listings', 'l' ],
+						[ 'l.dealer_id=? AND l.upc=?', $dealerId, (string) $deal['upc'] ],
+						null, [ 0, 1 ]
+					)->join( [ 'gd_catalog', 'c' ], 'c.upc = l.upc', 'LEFT' )->first();
+
+					$selectedProduct = [
+						'upc'   => (string) $row['upc'],
+						'title' => (string) ( $row['product_title'] ?? $row['upc'] ),
+						'price' => '$' . number_format( (float) ( $row['dealer_price'] ?? 0 ), 2 ),
 					];
 				}
-			}
-			catch ( \Throwable $e ) {
-				try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
+				catch ( \Throwable ) {}
 			}
 
+			$searchUrl = (string) \IPS\Http\Url::internal( $baseUrl . '&do=searchListings', 'front', 'dealers_deals_action' );
 			$submitUrl = (string) \IPS\Http\Url::internal( $baseUrl . '&do=edit&deal_id=' . $dealId, 'front', 'dealers_deals_action' );
 			$cancelUrl = (string) \IPS\Http\Url::internal( $baseUrl, 'front', 'dealers_deals' );
 			$csrfKey   = (string) \IPS\Session::i()->csrfKey;
 
+			try {
+				\IPS\Output::i()->jsFiles = array_merge(
+					\IPS\Output::i()->jsFiles,
+					\IPS\Output::i()->js( 'dealsPicker.js', 'gddealer', 'interface' )
+				);
+			} catch ( \Throwable ) {}
+
 			$body = (string) \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )
-				->dealsForm( $listings, $submitUrl, $cancelUrl, $csrfKey, [], $deal );
+				->dealsForm( $searchUrl, $submitUrl, $cancelUrl, $csrfKey, [], $deal, $selectedProduct );
 
 			$this->output( 'deals', $body );
 			return;
