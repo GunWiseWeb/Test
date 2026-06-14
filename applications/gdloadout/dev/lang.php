@@ -174,6 +174,8 @@ $lang = array(
     'gdloadout_suggest_min_rep_desc' => 'Minimum reputation points to suggest (when mode = threshold)',
     'gdloadout_suggestions_open' => 'Accept Suggestions',
     'gdloadout_suggestions_open_desc' => 'Allow other users to suggest slot swaps on this loadout',
+    'gdloadout_notif_loadouts'         => 'Loadout notifications',
+    'gdloadout_notif_loadouts_desc'    => 'Updates, upvotes, follows, and suggestions on your loadouts.',
     'gdloadout_notify_loadout_updated' => 'A loadout you follow was updated',
     'gdloadout_notify_loadout_upvoted' => 'Someone upvoted your loadout',
     'gdloadout_notify_loadout_followed' => 'Someone followed your loadout',

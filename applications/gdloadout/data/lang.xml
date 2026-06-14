@@ -174,6 +174,8 @@
 <word key="gdloadout_suggest_min_rep_desc" js="0"><![CDATA[Minimum reputation points to suggest (when mode = threshold)]]></word>
 <word key="gdloadout_suggestions_open" js="0"><![CDATA[Accept Suggestions]]></word>
 <word key="gdloadout_suggestions_open_desc" js="0"><![CDATA[Allow other users to suggest slot swaps on this loadout]]></word>
+<word key="gdloadout_notif_loadouts" js="0"><![CDATA[Loadout notifications]]></word>
+<word key="gdloadout_notif_loadouts_desc" js="0"><![CDATA[Updates, upvotes, follows, and suggestions on your loadouts.]]></word>
 <word key="gdloadout_notify_loadout_updated" js="0"><![CDATA[A loadout you follow was updated]]></word>
 <word key="gdloadout_notify_loadout_upvoted" js="0"><![CDATA[Someone upvoted your loadout]]></word>
 <word key="gdloadout_notify_loadout_followed" js="0"><![CDATA[Someone followed your loadout]]></word>

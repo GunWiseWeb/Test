@@ -17,15 +17,19 @@ class _Loadouts
 	{
 		return [
 			'gdloadout_notifications' => [
-				'type'    => 'standard',
-				'default' => [ 'inline' ],
-				'options' => [
+				'type'              => 'standard',
+				'notificationTypes' => [
 					'loadout_updated',
 					'loadout_upvoted',
 					'loadout_followed',
 					'suggestion_received',
 					'suggestion_resolved',
 				],
+				'title'             => 'gdloadout_notif_loadouts',
+				'showTitle'         => true,
+				'description'       => 'gdloadout_notif_loadouts_desc',
+				'default'           => [ 'inline' ],
+				'disabled'          => [],
 			],
 		];
 	}
