@@ -105,19 +105,35 @@ class UnmatchedUpc
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public static function loadAll( int $offset = 0, int $limit = 100 ): array
+	public static function loadAll( int $offset = 0, int $limit = 100, bool $reportedOnly = false ): array
 	{
+		$where = [ [ 'admin_excluded=?', 0 ] ];
+		if ( $reportedOnly )
+		{
+			$where[] = [ 'dealer_reported_at IS NOT NULL' ];
+		}
+
 		$rows = [];
 		foreach ( \IPS\Db::i()->select(
 			'*', 'gd_unmatched_upcs',
-			[ 'admin_excluded=?', 0 ],
-			'occurrence_count DESC, last_seen DESC',
+			$where,
+			'( dealer_reported_at IS NOT NULL ) DESC, occurrence_count DESC, last_seen DESC',
 			[ $offset, $limit ]
 		) as $r )
 		{
 			$rows[] = $r;
 		}
 		return $rows;
+	}
+
+	public static function countDealerReported(): int
+	{
+		try
+		{
+			return (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_unmatched_upcs',
+				[ 'admin_excluded=? AND dealer_reported_at IS NOT NULL', 0 ] )->first();
+		}
+		catch ( \Throwable ) { return 0; }
 	}
 
 	/**

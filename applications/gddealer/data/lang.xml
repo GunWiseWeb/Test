@@ -592,6 +592,7 @@
     <word key="gddealer_reset_feed"><![CDATA[Reset Feed]]></word>
     <word key="gddealer_confirm_reset_feed"><![CDATA[This will wipe the feed configuration, all listings, all import logs, and all unmatched UPCs for this dealer. This cannot be undone. Continue?]]></word>
     <word key="gddealer_feed_reset_done"><![CDATA[Feed configuration and all related data has been reset.]]></word>
+    <word key="gddealer_unmatched_reported"><![CDATA[Dealer-reported]]></word>
     <word key="gddealer_unmatched_review"><![CDATA[Review]]></word>
     <word key="gddealer_unmatched_actions"><![CDATA[Actions]]></word>
     <word key="gddealer_unmatched_review_title"><![CDATA[Review Unmatched UPC]]></word>

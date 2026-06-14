@@ -33,11 +33,13 @@ class _unmatched extends \IPS\Dispatcher\Controller
 
 	protected function manage()
 	{
-		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
-		$perPage = 50;
-		$offset  = ( $page - 1 ) * $perPage;
+		$page         = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
+		$perPage      = 50;
+		$offset       = ( $page - 1 ) * $perPage;
+		$reportedOnly = ( (string) ( \IPS\Request::i()->reported ?? '' ) === '1' );
 
-		$rawRows = UnmatchedUpc::loadAll( $offset, $perPage );
+		$rawRows       = UnmatchedUpc::loadAll( $offset, $perPage, $reportedOnly );
+		$reportedCount = UnmatchedUpc::countDealerReported();
 
 		/* Build a dealer-id -> name lookup so we can display dealer names */
 		$dealerNames = [];
@@ -65,23 +67,38 @@ class _unmatched extends \IPS\Dispatcher\Controller
 			);
 
 			$rows[] = [
-				'id'               => (int) $r['id'],
-				'upc'              => (string) $r['upc'],
-				'dealer_name'      => $dealerNames[ (int) $r['dealer_id'] ] ?? ( 'Dealer #' . (int) $r['dealer_id'] ),
-				'first_seen'       => (string) $r['first_seen'],
-				'last_seen'        => (string) $r['last_seen'],
-				'occurrence_count' => (int) $r['occurrence_count'],
-				'exclude_url'      => $excludeUrl,
-				'add_url'          => $addUrl,
-				'review_url'       => $reviewUrl,
+				'id'                 => (int) $r['id'],
+				'upc'                => (string) $r['upc'],
+				'dealer_name'        => $dealerNames[ (int) $r['dealer_id'] ] ?? ( 'Dealer #' . (int) $r['dealer_id'] ),
+				'first_seen'         => (string) $r['first_seen'],
+				'last_seen'          => (string) $r['last_seen'],
+				'occurrence_count'   => (int) $r['occurrence_count'],
+				'dealer_reported'    => !empty( $r['dealer_reported_at'] ),
+				'dealer_reported_at' => !empty( $r['dealer_reported_at'] ) ? date( 'M j, Y g:i A', strtotime( (string) $r['dealer_reported_at'] ) ) : '',
+				'exclude_url'        => $excludeUrl,
+				'add_url'            => $addUrl,
+				'review_url'         => $reviewUrl,
 			];
 		}
 
 		$total = 0;
-		try { $total = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_unmatched_upcs', [ 'admin_excluded=?', 0 ] )->first(); } catch ( \Exception ) {}
+		if ( $reportedOnly )
+		{
+			$total = $reportedCount;
+		}
+		else
+		{
+			try { $total = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_unmatched_upcs', [ 'admin_excluded=?', 0 ] )->first(); } catch ( \Exception ) {}
+		}
+
+		$pageBase = \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' );
+		if ( $reportedOnly )
+		{
+			$pageBase = $pageBase->setQueryString( 'reported', '1' );
+		}
 
 		$pagination = \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
-			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' ),
+			$pageBase,
 			(int) ceil( max( 1, $total ) / $perPage ),
 			$page,
 			$perPage
@@ -89,7 +106,7 @@ class _unmatched extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_unmatched_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'admin' )->unmatchedList(
-			$rows, $total, $pagination
+			$rows, $total, $pagination, $reportedOnly, $reportedCount
 		);
 	}
 

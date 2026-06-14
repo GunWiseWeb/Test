@@ -1,8 +1,14 @@
-<ips:template parameters="$rows, $total, $pagination" />
+<ips:template parameters="$rows, $total, $pagination, $reportedOnly, $reportedCount" />
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body">
 
-		<div style="padding:12px 20px;color:#666;font-size:0.9em">{expression="number_format( $total )"} unmatched UPCs across all dealer feeds.</div>
+		<div style="padding:12px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+			<div style="color:#666;font-size:0.9em">{expression="number_format( $total )"} unmatched UPCs{{if $reportedOnly}} (dealer-reported only){{endif}} &middot; <strong>{expression="number_format( $reportedCount )"}</strong> dealer-reported</div>
+			<div style="display:flex;gap:6px">
+				<a href="{url="app=gddealer&module=dealers&controller=unmatched"}" class="ipsButton ipsButton--small {{if !$reportedOnly}}ipsButton--primary{{else}}ipsButton--secondary{{endif}}">All</a>
+				<a href="{url="app=gddealer&module=dealers&controller=unmatched&reported=1"}" class="ipsButton ipsButton--small {{if $reportedOnly}}ipsButton--primary{{else}}ipsButton--secondary{{endif}}">Dealer-reported{{if $reportedCount > 0}} ({expression="number_format( $reportedCount )"}){{endif}}</a>
+			</div>
+		</div>
 
 		<table class="ipsTable ipsTable_zebra" style="width:100%">
 			<thead>
@@ -12,17 +18,25 @@
 					<th>{lang="gddealer_unmatched_first_seen"}</th>
 					<th>{lang="gddealer_unmatched_last_seen"}</th>
 					<th>{lang="gddealer_unmatched_count"}</th>
+					<th>{lang="gddealer_unmatched_reported"}</th>
 					<th>{lang="gddealer_unmatched_actions"}</th>
 				</tr>
 			</thead>
 			<tbody>
 				{{foreach $rows as $r}}
-				<tr>
+				<tr{{if $r['dealer_reported']}} style="background:#fffbeb"{{endif}}>
 					<td><code>{$r['upc']}</code></td>
 					<td>{$r['dealer_name']}</td>
 					<td>{$r['first_seen']}</td>
 					<td>{$r['last_seen']}</td>
 					<td>{$r['occurrence_count']}</td>
+					<td>
+						{{if $r['dealer_reported']}}
+						<span class="ipsBadge ipsBadge--warning" title="{$r['dealer_reported_at']}">&#9873; Dealer-reported</span>
+						{{else}}
+						<span style="color:#cbd5e1">&mdash;</span>
+						{{endif}}
+					</td>
 					<td>
 						<a href="{$r['review_url']}" class="ipsButton ipsButton--small ipsButton--primary">{lang="gddealer_unmatched_review"}</a>
 						<a href="{$r['add_url']}" class="ipsButton ipsButton--small ipsButton--positive">{lang="gddealer_unmatched_add_to_catalog"}</a>
@@ -31,7 +45,7 @@
 				</tr>
 				{{endforeach}}
 				{{if count( $rows ) === 0}}
-				<tr><td colspan="6" style="text-align:center;color:#999;padding:24px">No unmatched UPCs.</td></tr>
+				<tr><td colspan="7" style="text-align:center;color:#999;padding:24px">No unmatched UPCs.</td></tr>
 				{{endif}}
 			</tbody>
 		</table>

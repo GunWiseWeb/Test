@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10251;
+namespace IPS\gddealer\setup\upg_10252;
 
 use function defined;
 
@@ -14,6 +14,22 @@ class _upgrade
 {
 	public function step1(): bool
 	{
+		foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+		{
+			try
+			{
+				\IPS\Db::i()->replace( 'core_sys_lang_words', [
+					'lang_id'      => (int) $langId,
+					'word_app'     => 'gddealer',
+					'word_key'     => 'gddealer_unmatched_reported',
+					'word_default' => 'Dealer-reported',
+					'word_js'      => 0,
+					'word_export'  => 1,
+				] );
+			}
+			catch ( \Throwable ) {}
+		}
+
 		require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
 		\IPS\gddealer\Setup\CanonicalTemplates::ensure();
 		\IPS\gddealer\Setup\CanonicalTemplates::clearCaches();

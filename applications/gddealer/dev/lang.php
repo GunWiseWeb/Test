@@ -521,6 +521,7 @@ $lang = [
     'gddealer_unmatched_exclude'                                  => 'Exclude',
     'gddealer_unmatched_first_seen'                               => 'First Seen',
     'gddealer_unmatched_last_seen'                                => 'Last Seen',
+    'gddealer_unmatched_reported'                                  => 'Dealer-reported',
     'gddealer_unmatched_review'                                   => 'Review',
     'gddealer_unmatched_review_title'                             => 'Review Unmatched UPC',
     'gddealer_unmatched_title'                                    => 'Unmatched UPCs',
