@@ -1793,9 +1793,16 @@ class _dashboard extends \IPS\Dispatcher\Controller
 					'enterprise' => 'gddealer_commerce_enterprise_id', 'max' => 'gddealer_commerce_max_id' ] as $tk => $setting )
 		{
 			$pid = (int) ( \IPS\Settings::i()->$setting ?? 0 );
-			$tierBuyUrls[ $tk ] = $pid
-				? (string) \IPS\Http\Url::internal( 'app=nexus&module=subscriptions&controller=subscriptions&id=' . $pid . '&do=purchase', 'front' )
-				: $manageUrl;
+			$url = $manageUrl;
+			if ( $pid )
+			{
+				try {
+					$pkg = \IPS\nexus\Subscription\Package::load( $pid );
+					$url = (string) $pkg->url()->setQueryString( 'do', 'purchase' )->csrf();
+				}
+				catch ( \Throwable ) { $url = $manageUrl; }
+			}
+			$tierBuyUrls[ $tk ] = $url;
 		}
 
 		$dashboardIsFoundingMember = $dealer->isFoundingMember();
