@@ -1794,7 +1794,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		{
 			$pid = (int) ( \IPS\Settings::i()->$setting ?? 0 );
 			$tierBuyUrls[ $tk ] = $pid
-				? (string) \IPS\Http\Url::internal( 'app=nexus&module=store&controller=store&do=add&p=' . $pid )
+				? (string) \IPS\Http\Url::internal( 'app=nexus&module=subscriptions&controller=subscriptions&id=' . $pid . '&do=purchase', 'front' )
 				: $manageUrl;
 		}
 

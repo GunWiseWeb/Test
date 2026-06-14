@@ -36,23 +36,41 @@ class _join extends \IPS\Dispatcher\Controller
 	 */
 	protected function manage()
 	{
-		if ( \IPS\Member::loggedIn()->member_id )
+		$member = \IPS\Member::loggedIn();
+
+		if ( $member->member_id )
 		{
 			try
 			{
-				Dealer::load( (int) \IPS\Member::loggedIn()->member_id );
+				Dealer::load( (int) $member->member_id );
 				\IPS\Output::i()->redirect(
 					\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard' )
 				);
 				return;
 			}
-			catch ( \OutOfRangeException )
+			catch ( \OutOfRangeException ) { /* not a dealer yet */ }
+
+			$dealerGroups = [
+				(int) \IPS\Settings::i()->gddealer_group_basic,
+				(int) \IPS\Settings::i()->gddealer_group_pro,
+				(int) \IPS\Settings::i()->gddealer_group_enterprise,
+				(int) \IPS\Settings::i()->gddealer_group_max,
+				(int) \IPS\Settings::i()->gddealer_group_founding,
+			];
+			$memberGroups = $member->mgroup_others
+				? array_filter( array_map( 'intval', explode( ',', (string) $member->mgroup_others ) ) )
+				: [];
+			$memberGroups[] = (int) $member->member_group_id;
+
+			if ( array_intersect( $dealerGroups, $memberGroups ) )
 			{
-				/* not a dealer yet — fall through to the membership-page redirect below */
+				\IPS\Output::i()->redirect(
+					\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=join&do=register' )
+				);
+				return;
 			}
 		}
 
-		/* Everyone without a dealer subscription is sent to the new membership page. */
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::external( 'https://gunrack.deals/dealer-memberships/' )
 		);
@@ -106,7 +124,11 @@ class _join extends \IPS\Dispatcher\Controller
 			: [];
 		$memberGroups[] = (int) $member->member_group_id;
 
-		if ( in_array( (int) \IPS\Settings::i()->gddealer_group_enterprise, $memberGroups, true ) )
+		if ( in_array( (int) \IPS\Settings::i()->gddealer_group_max, $memberGroups, true ) )
+		{
+			$tier = 'max';
+		}
+		elseif ( in_array( (int) \IPS\Settings::i()->gddealer_group_enterprise, $memberGroups, true ) )
 		{
 			$tier = 'enterprise';
 		}
