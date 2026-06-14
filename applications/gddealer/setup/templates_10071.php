@@ -70,6 +70,7 @@ $gddealerV10071Templates[] = [
     </div>
 </div>
 
+<div class="gdSidebar__nav">
 {{foreach $nav as $groupKey => $group}}
 <div class="gdNavGroup">
     <div class="gdNavGroup__label">{$group['label']}</div>
@@ -99,6 +100,7 @@ $gddealerV10071Templates[] = [
     {{endforeach}}
 </div>
 {{endforeach}}
+</div>
 
 <div class="gdSidebar__footer">
     <div class="gdSidebar__user">

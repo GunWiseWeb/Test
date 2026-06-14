@@ -85,13 +85,14 @@
   top: 0;
   align-self: start;
   height: 100vh;
-  overflow-y: auto;
+  overflow: hidden;
 }
 .gdSidebar__brand {
   padding: 0 20px 20px;
   border-bottom: 1px solid var(--gd-border-subtle);
   margin-bottom: 16px;
   display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
 }
 .gdSidebar__brandMark {
   width: 32px; height: 32px; border-radius: 8px;
@@ -101,6 +102,12 @@
 }
 .gdSidebar__brandText  { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
 .gdSidebar__brandSub   { font-size: 11px; color: var(--gd-text-faint); font-weight: 400; }
+
+.gdSidebar__nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+}
 
 .gdNavGroup       { padding: 0 12px; margin-bottom: 28px; }
 .gdNavGroup__label { font-size: 11px; font-weight: 600; color: var(--gd-text-faint);
@@ -157,7 +164,7 @@
 }
 .gdNavSub:hover { opacity: 1; background: var(--gd-surface-muted); color: var(--gd-text); }
 
-.gdSidebar__footer { margin-top: auto; flex-shrink: 0; padding: 16px 12px 0;
+.gdSidebar__footer { flex-shrink: 0; padding: 16px 12px 0;
                      border-top: 1px solid var(--gd-border-subtle);
                      background: var(--gd-surface); }
 .gdSidebar__user   { display: flex; align-items: center; gap: 10px;

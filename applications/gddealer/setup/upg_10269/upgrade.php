@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10268;
+namespace IPS\gddealer\setup\upg_10269;
 
 use function defined;
 
@@ -14,6 +14,9 @@ class _upgrade
 {
 	public function step1(): bool
 	{
+		require_once \IPS\ROOT_PATH . '/applications/gddealer/setup/templates_10071.php';
+
+		try { \IPS\Theme::deleteCompiledTemplate('gddealer'); } catch ( \Throwable ) {}
 		try { \IPS\Theme::deleteCompiledCss(); } catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
