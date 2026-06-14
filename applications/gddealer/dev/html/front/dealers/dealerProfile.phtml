@@ -509,7 +509,7 @@
 						<h3 class="gdProfile__infoCardTitle"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Contact &amp; Location</h3>
 						<ul class="gdProfile__infoList">
 							{{if $data['dealer']['address_public']}}
-							<li><i class="fa-solid fa-map-pin" aria-hidden="true"></i> {$data['dealer']['address_public']}</li>
+							<li><i class="fa-solid fa-map-pin" aria-hidden="true"></i> {$data['dealer']['address_line']}</li>
 							{{endif}}
 							{{if $data['dealer']['public_phone']}}
 							<li><i class="fa-solid fa-phone" aria-hidden="true"></i> <a href="tel:{$data['dealer']['public_phone']}">{$data['dealer']['public_phone']}</a></li>
