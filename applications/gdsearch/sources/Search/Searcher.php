@@ -127,6 +127,24 @@ class Searcher
         if ( !empty( $filters['requires_ffl'] ) ) { $filter[] = [ 'term' => [ 'requires_ffl' => true ] ]; }
         if ( !empty( $filters['is_ammo'] ) )      { $filter[] = [ 'term' => [ 'is_ammo' => true ] ]; }
 
+        if ( !empty( $filters['in_stock'] ) ) {
+            $inStockUpcs = [];
+            try {
+                foreach ( \IPS\Db::i()->select( 'DISTINCT upc', 'gd_dealer_listings',
+                    [ 'in_stock=? AND listing_status=?', 1, 'active' ], null, 65000 ) as $u ) {
+                    if ( $u !== null && $u !== '' ) { $inStockUpcs[] = (string) $u; }
+                }
+            } catch ( \Throwable $e ) {
+                try { \IPS\Log::log( $e, 'gdsearch_instock' ); } catch ( \Throwable $e2 ) {}
+            }
+
+            if ( empty( $inStockUpcs ) ) {
+                $filter[] = [ 'terms' => [ 'upc.keyword' => [ '__none__' ] ] ];
+            } else {
+                $filter[] = [ 'terms' => [ 'upc.keyword' => $inStockUpcs ] ];
+            }
+        }
+
         // Numeric range filters
         $range = function ( string $field, $min, $max ) use ( &$filter ) {
             $r = [];
@@ -323,11 +341,6 @@ class Searcher
                     'score'         => $hit['_score'] ?? 0,
                 ]
             );
-        }
-
-        // Filter out-of-stock if requested
-        if ( !empty( $filters['in_stock'] ) ) {
-            $results = array_values( array_filter( $results, fn($r) => $r['in_stock'] ) );
         }
 
         return [
