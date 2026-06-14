@@ -110,8 +110,9 @@ class _profile extends \IPS\Dispatcher\Controller
 		return match( $tier )
 		{
 			'founding'   => 'Founding dealer',
-			'enterprise' => 'Custom features',
-			'pro'        => 'Priority placement',
+			'max'        => 'Priority placement',
+			'enterprise' => 'Priority support',
+			'pro'        => 'Full analytics',
 			'basic'      => 'Standard listing',
 			default      => '',
 		};
