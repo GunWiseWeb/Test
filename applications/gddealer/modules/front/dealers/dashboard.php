@@ -177,7 +177,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			[
 				'key'   => 'logo',
 				'label' => 'Upload logo',
-				'done'  => !empty( $this->dealerSummary()['avatar_url'] ),
+				'done'  => !empty( trim( (string) ( $dealer->logo_url ?? '' ) ) ),
 				'hint'  => '',
 			],
 			[
