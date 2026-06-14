@@ -2,7 +2,6 @@
 
 namespace IPS\gddealer\extensions\core\MemberSync;
 
-use IPS\Extensions\MemberSyncAbstract;
 use IPS\Member;
 
 use function defined;
@@ -13,7 +12,7 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 	exit;
 }
 
-class _Dealer extends MemberSyncAbstract
+class _Dealer
 {
 	public function onProfileUpdate( Member $member, array $changes ): void
 	{

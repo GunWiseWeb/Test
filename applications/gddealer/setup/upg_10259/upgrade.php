@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10258;
+namespace IPS\gddealer\setup\upg_10259;
 
 use function defined;
 
@@ -115,7 +115,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* v258: register Max tier settings so they exist for the form */
+		/* v258 carry-forward: register Max tier settings */
 		foreach ( [ 'gddealer_group_max' => '0', 'gddealer_commerce_max_id' => '0' ] as $k => $v )
 		{
 			try
@@ -166,6 +166,7 @@ class _upgrade
 		\IPS\gddealer\Setup\CanonicalTemplates::ensure();
 		\IPS\gddealer\Setup\CanonicalTemplates::clearCaches();
 
+		/* v259: clear extension cache so fixed MemberSync class is loaded */
 		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
