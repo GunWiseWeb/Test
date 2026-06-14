@@ -2977,74 +2977,80 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 }
 
 /* ====================================================================
-   PUBLIC DEALER PROFILE — Tabbed layout (v1.0.231)
+   PUBLIC DEALER PROFILE — IPS-style cover+sidebar layout (v1.0.281)
    ==================================================================== */
 
 .gdProfile {
     width: 100%;
     max-width: 1446px;
     margin: 0 auto;
-    padding: 24px;
     box-sizing: border-box;
     font-family: var(--gd-font, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
     color: var(--gd-text, #0F172A);
 }
 .gdProfile *, .gdProfile *::before, .gdProfile *::after { box-sizing: border-box; }
 
-/* -- Header -- */
-.gdProfile__header {
-    background: var(--gd-surface, #fff);
-    border: 1px solid var(--gd-border, #E5E7EB);
-    border-radius: var(--gd-r-lg, 10px);
-    padding: 20px 24px 16px;
-    margin-bottom: 16px;
+/* -- Cover band -- */
+.gdProfile__cover {
+    position: relative;
+    height: 200px;
+    border-radius: var(--gd-r-lg, 10px) var(--gd-r-lg, 10px) 0 0;
+    overflow: hidden;
 }
-.gdProfile__headerTop {
+.gdProfile__coverGradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--gd-dealer-brand, #1E40AF) 0%, color-mix(in srgb, var(--gd-dealer-brand, #1E40AF) 70%, #000) 100%);
+}
+
+/* -- Hero (avatar overlap + name row) -- */
+.gdProfile__heroWrap {
+    position: relative;
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
+    align-items: flex-end;
     gap: 20px;
+    padding: 0 28px 20px;
+    margin-top: -48px;
     flex-wrap: wrap;
 }
-.gdProfile__identity {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex: 1;
-    min-width: 0;
-}
+.gdProfile__avatarWrap { flex-shrink: 0; }
 .gdProfile__logo {
-    width: 64px; height: 64px;
-    border-radius: 10px;
+    width: 110px; height: 110px;
+    border-radius: 14px;
     overflow: hidden;
-    background: #f8f9fa;
-    flex-shrink: 0;
-    border: 2px solid var(--gd-border, #E5E7EB);
+    background: #fff;
+    border: 4px solid #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
 }
 .gdProfile__logo img { width: 100%; height: 100%; object-fit: contain; }
 .gdProfile__avatar {
-    width: 64px; height: 64px;
+    width: 110px; height: 110px;
     border-radius: 50%;
     overflow: hidden;
-    background: #f8f9fa;
-    flex-shrink: 0;
-    border: 2px solid var(--gd-border, #E5E7EB);
+    background: #fff;
+    border: 4px solid #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
 }
 .gdProfile__avatar img { width: 100%; height: 100%; object-fit: cover; }
 .gdProfile__monogram {
-    width: 64px; height: 64px;
-    border-radius: 10px;
-    flex-shrink: 0;
+    width: 110px; height: 110px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 40px;
     font-weight: 800;
     color: #fff;
     text-transform: uppercase;
+    border: 4px solid #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.12);
 }
-.gdProfile__nameBlock { min-width: 0; }
-.gdProfile__nameRow {
+.gdProfile__heroInfo {
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 4px;
+}
+.gdProfile__heroNameRow {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -3052,7 +3058,7 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 }
 .gdProfile__name {
     margin: 0;
-    font-size: 1.5em;
+    font-size: 1.6em;
     font-weight: 800;
     line-height: 1.2;
     color: var(--gd-text, #0F172A);
@@ -3078,102 +3084,160 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
     font-weight: 700;
     white-space: nowrap;
 }
-.gdProfile__location {
-    margin-top: 4px;
-    font-size: 0.85em;
-    color: var(--gd-text-muted, #475569);
-}
-.gdProfile__location i { margin-right: 4px; opacity: 0.6; }
-
-.gdProfile__headerRight {
+.gdProfile__heroMeta {
     display: flex;
     align-items: center;
     gap: 16px;
-    flex-shrink: 0;
-}
-.gdProfile__ratingCompact {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-}
-.gdProfile__ratingScore {
-    font-size: 1.8em;
-    font-weight: 800;
-    line-height: 1;
-}
-.gdProfile__ratingStar {
-    font-size: 1.2em;
-}
-.gdProfile__ratingMeta {
-    font-size: 0.8em;
-    color: var(--gd-text-subtle, #64748B);
-    margin-left: 4px;
-}
-.gdProfile__statPill {
-    font-size: 0.82em;
-    color: var(--gd-text-muted, #475569);
-    background: var(--gd-surface-muted, #F8FAFC);
-    border: 1px solid var(--gd-border, #E5E7EB);
-    padding: 6px 12px;
-    border-radius: var(--gd-r-pill, 999px);
-    white-space: nowrap;
-}
-.gdProfile__statPill i { color: var(--gd-brand, #1E40AF); margin-right: 4px; }
-
-/* -- Contact row -- */
-.gdProfile__contactRow {
-    display: flex;
-    align-items: center;
-    gap: 6px;
     flex-wrap: wrap;
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid var(--gd-border-subtle, #F1F5F9);
+    margin-top: 6px;
 }
-.gdProfile__contactItem {
+.gdProfile__heroMetaItem {
+    font-size: 0.85em;
+    color: var(--gd-text-muted, #475569);
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-size: 0.8em;
+}
+.gdProfile__heroMetaItem i { opacity: 0.6; }
+.gdProfile__heroMetaItem--rating { font-weight: 600; }
+.gdProfile__heroRatingScore { font-size: 1.3em; font-weight: 800; }
+.gdProfile__heroRatingStar { font-size: 1.1em; }
+.gdProfile__heroRatingCount { font-size: 0.85em; color: var(--gd-text-subtle, #64748B); font-weight: 400; }
+
+/* -- Two-column body -- */
+.gdProfile__body {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 20px;
+    padding: 20px 28px 28px;
+}
+
+/* -- Left sidebar -- */
+.gdProfile__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: sticky;
+    top: 16px;
+    align-self: start;
+}
+.gdProfile__sidebarCard {
+    background: var(--gd-surface, #fff);
+    border: 1px solid var(--gd-border, #E5E7EB);
+    border-radius: var(--gd-r-lg, 10px);
+    padding: 18px 20px;
+}
+.gdProfile__sidebarCard--links {
+    padding: 12px 20px;
+    background: var(--gd-surface-muted, #F8FAFC);
+}
+.gdProfile__sidebarCardTitle {
+    margin: 0 0 12px;
+    font-size: 0.78em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gd-text-soft, #64748B);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--gd-border-subtle, #F1F5F9);
+}
+.gdProfile__sidebarCardTitle i { color: var(--gd-text-subtle, #64748B); font-size: 1em; }
+.gdProfile__sidebarCardBody {
+    font-size: 0.9em;
+    line-height: 1.6;
+    color: var(--gd-text, #0F172A);
+    white-space: pre-line;
+}
+.gdProfile__sidebarList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.gdProfile__sidebarList li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--gd-border-subtle, #F1F5F9);
+    font-size: 0.85em;
     color: var(--gd-text-muted, #475569);
+}
+.gdProfile__sidebarList li:last-child { border-bottom: none; }
+.gdProfile__sidebarList li i {
+    color: var(--gd-text-subtle, #64748B);
+    width: 16px;
+    text-align: center;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+.gdProfile__sidebarList a {
+    color: var(--gd-brand, #1E40AF);
     text-decoration: none;
-    padding: 4px 10px;
-    border-radius: var(--gd-r-sm, 5px);
+    word-break: break-all;
+}
+.gdProfile__sidebarList a:hover { text-decoration: underline; }
+.gdProfile__sidebarList--compact li { padding: 6px 0; font-size: 0.82em; }
+.gdProfile__sidebarStatus--verified {
+    color: #047857;
+    font-weight: 600;
+}
+.gdProfile__sidebarTierPill {
+    display: inline-block;
+    color: #fff;
+    padding: 1px 8px;
+    border-radius: var(--gd-r-pill, 999px);
+    font-size: 0.85em;
+    font-weight: 700;
+}
+.gdProfile__sidebarSocials {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--gd-border-subtle, #F1F5F9);
+}
+.gdProfile__sidebarSocialLink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--gd-surface-muted, #F8FAFC);
+    color: var(--gd-text-muted, #475569);
+    font-size: 0.95em;
+    text-decoration: none;
     transition: background 0.15s, color 0.15s;
 }
-.gdProfile__contactItem:hover {
+.gdProfile__sidebarSocialLink:hover {
     background: var(--gd-brand-light, #EFF6FF);
     color: var(--gd-brand, #1E40AF);
 }
-.gdProfile__contactItem--social {
-    font-size: 1.05em;
-    padding: 6px 8px;
-}
-.gdProfile__contactItem--guidelines {
-    margin-left: auto;
+.gdProfile__sidebarLink {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82em;
     color: var(--gd-text-subtle, #64748B);
-    font-size: 0.75em;
+    text-decoration: none;
+    transition: color 0.15s;
+}
+.gdProfile__sidebarLink:hover { color: var(--gd-brand, #1E40AF); }
+.gdProfile__sidebarLink i { font-size: 1em; }
+
+/* -- Main column -- */
+.gdProfile__main {
+    min-width: 0;
 }
 
-/* -- About -- */
-.gdProfile__about {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--gd-border-subtle, #F1F5F9);
-    font-size: 0.88em;
-    color: var(--gd-text-muted, #475569);
-    line-height: 1.55;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-/* -- Notices -- */
+/* -- Notices (between hero and body) -- */
 .gdProfile__notice {
     border-radius: var(--gd-r-lg, 10px);
     padding: 16px 20px;
-    margin-bottom: 16px;
+    margin: 0 28px 16px;
 }
 .gdProfile__notice p { margin: 4px 0 0; }
 .gdProfile__notice--inactive {
@@ -4067,6 +4131,16 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
    RESPONSIVE — Public Profile
    ==================================================================== */
 @media (max-width: 900px) {
+    .gdProfile__body {
+        grid-template-columns: 1fr;
+        padding: 16px;
+    }
+    .gdProfile__sidebar {
+        position: static;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+    }
     .gdProfile__reviewsLayout {
         grid-template-columns: 1fr;
     }
@@ -4089,19 +4163,20 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
         margin-bottom: 0;
         padding-bottom: 0;
     }
+    .gdProfile__cover { height: 140px; }
+    .gdProfile__heroWrap { padding: 0 16px 16px; margin-top: -36px; }
+    .gdProfile__notice { margin: 0 16px 12px; }
 }
 
 @media (max-width: 768px) {
-    .gdProfile { padding: 16px; }
-    .gdProfile__header { padding: 16px; }
-    .gdProfile__headerTop { flex-direction: column; gap: 12px; }
-    .gdProfile__headerRight { width: 100%; justify-content: flex-start; }
-    .gdProfile__identity { flex-wrap: wrap; }
     .gdProfile__tab { padding: 12px 14px; font-size: 0.82em; }
     .gdProfile__tabLabel { display: none; }
     .gdProfile__panel { padding: 16px; }
     .gdProfile__ratingSelects { flex-direction: column; }
     .gdProfile__reviewsSidebar {
+        grid-template-columns: 1fr;
+    }
+    .gdProfile__sidebar {
         grid-template-columns: 1fr;
     }
     .gdProfile__grid--deals { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
@@ -4115,15 +4190,14 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 }
 
 @media (max-width: 480px) {
-    .gdProfile__logo, .gdProfile__avatar, .gdProfile__monogram { width: 48px; height: 48px; }
-    .gdProfile__monogram { font-size: 18px; }
+    .gdProfile__cover { height: 100px; }
+    .gdProfile__heroWrap { margin-top: -30px; gap: 12px; }
+    .gdProfile__logo, .gdProfile__avatar, .gdProfile__monogram { width: 72px; height: 72px; }
+    .gdProfile__monogram { font-size: 28px; }
     .gdProfile__name { font-size: 1.2em; }
-    .gdProfile__contactRow { gap: 4px; }
-    .gdProfile__contactItem { font-size: 0.75em; padding: 3px 6px; }
-    .gdProfile__contactItem--guidelines { margin-left: 0; }
+    .gdProfile__heroMeta { gap: 8px; }
     .gdProfile__grid--deals { grid-template-columns: 1fr; }
     .gdProfile__grid--listings { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-    .gdProfile__ratingScore { font-size: 1.4em; }
 }
 
 /* Listings toolbar — search + count */
