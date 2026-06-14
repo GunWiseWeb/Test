@@ -2604,6 +2604,18 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
     .gdPlanHero__head { flex-direction: column; }
 }
 
+/* Trial notice banner */
+.gdTrialNotice {
+    background: #FFFBEB;
+    border: 1px solid #F59E0B;
+    border-radius: var(--gd-r-lg);
+    padding: 14px 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #92400E;
+    margin-bottom: 24px;
+}
+
 /* Tier comparison */
 .gdComparisonSection { margin-bottom: 24px; }
 .gdComparisonSection__title {

@@ -1786,9 +1786,19 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			$trialExpiresFormatted = date( 'F j, Y', $expiryTs );
 		}
 
-		$subscribeUrl = (string) ( \IPS\Settings::i()->gddealer_subscribe_url ?? '' );
+		$manageUrl = (string) \IPS\Http\Url::internal( 'app=nexus&module=clients&controller=purchases' );
 
-		$dashboardIsFoundingMember = !empty( $dealer->is_founding_member );
+		$tierBuyUrls = [];
+		foreach ( [ 'basic' => 'gddealer_commerce_basic_id', 'pro' => 'gddealer_commerce_pro_id',
+					'enterprise' => 'gddealer_commerce_enterprise_id', 'max' => 'gddealer_commerce_max_id' ] as $tk => $setting )
+		{
+			$pid = (int) ( \IPS\Settings::i()->$setting ?? 0 );
+			$tierBuyUrls[ $tk ] = $pid
+				? (string) \IPS\Http\Url::internal( 'app=nexus&module=store&controller=store&do=add&p=' . $pid )
+				: $manageUrl;
+		}
+
+		$dashboardIsFoundingMember = $dealer->isFoundingMember();
 		$dashboardTierLabel        = $dashboardIsFoundingMember ? 'Founder' : ucfirst( (string) $dealer->subscription_tier );
 		$dashboardTierKey          = $dashboardIsFoundingMember ? 'founding' : (string) $dealer->subscription_tier;
 
@@ -1823,7 +1833,8 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'trial_expires_formatted' => $trialExpiresFormatted,
 			'trial_days_left'         => $trialDaysLeft,
 			'trial_expiring_soon'     => $trialExpiringSoon,
-			'subscribe_url'           => $subscribeUrl ?: '#',
+			'manage_url'              => $manageUrl,
+			'tier_buy_urls'           => $tierBuyUrls,
 		];
 
 		$billingNote = (string) ( \IPS\Settings::i()->gddealer_subscription_billing_note ?? '' );

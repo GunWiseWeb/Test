@@ -69,12 +69,20 @@ $gddealerV10087Templates[] = [
     </div>
 
     <div class="gdPlanHero__actions">
-        <a href="{$sub['subscribe_url']}" class="gdBtn gdBtn--primary">
+        <a href="{$sub['manage_url']}" class="gdBtn gdBtn--primary">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
             Manage subscription
         </a>
     </div>
 </div>
+
+{{if $sub['is_founding'] and $sub['trial_expires_formatted']}}
+<div class="gdTrialNotice">
+    <strong>Founding member —</strong> you have enterprise-level sync and unlimited listings until
+    <strong>{$sub['trial_expires_formatted']}</strong>. After that, choose a paid plan to keep premium features. Your
+    Founder badge is permanent.
+</div>
+{{endif}}
 
 <div class="gdComparisonSection">
     <h2 class="gdComparisonSection__title">Change plan</h2>
@@ -97,9 +105,9 @@ $gddealerV10087Templates[] = [
             {{if $sub['tier'] === 'basic'}}
             <span class="gdTierCol__cta is-current">Current plan</span>
             {{elseif $sub['tier'] === 'pro' or $sub['tier'] === 'enterprise' or $sub['tier'] === 'max' or $sub['tier'] === 'founding'}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-downgrade">Downgrade to {$plans['basic']['name']}</a>
+            <a href="{$sub['tier_buy_urls']['basic']}" class="gdTierCol__cta is-downgrade">Downgrade to {$plans['basic']['name']}</a>
             {{else}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta">Choose {$plans['basic']['name']}</a>
+            <a href="{$sub['tier_buy_urls']['basic']}" class="gdTierCol__cta">Choose {$plans['basic']['name']}</a>
             {{endif}}
         </div>
 
@@ -118,9 +126,9 @@ $gddealerV10087Templates[] = [
             {{if $sub['tier'] === 'pro'}}
             <span class="gdTierCol__cta is-current">Current plan</span>
             {{elseif $sub['tier'] === 'enterprise' or $sub['tier'] === 'max' or $sub['tier'] === 'founding'}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-downgrade">Downgrade to {$plans['pro']['name']}</a>
+            <a href="{$sub['tier_buy_urls']['pro']}" class="gdTierCol__cta is-downgrade">Downgrade to {$plans['pro']['name']}</a>
             {{else}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-upgrade">Upgrade to {$plans['pro']['name']}</a>
+            <a href="{$sub['tier_buy_urls']['pro']}" class="gdTierCol__cta is-upgrade">Upgrade to {$plans['pro']['name']}</a>
             {{endif}}
         </div>
 
@@ -139,11 +147,11 @@ $gddealerV10087Templates[] = [
             {{if $sub['tier'] === 'enterprise'}}
             <span class="gdTierCol__cta is-current">Current plan</span>
             {{elseif $sub['tier'] === 'max'}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-downgrade">Downgrade to {$plans['enterprise']['name']}</a>
+            <a href="{$sub['tier_buy_urls']['enterprise']}" class="gdTierCol__cta is-downgrade">Downgrade to {$plans['enterprise']['name']}</a>
             {{elseif $sub['tier'] === 'founding'}}
             <span class="gdTierCol__cta is-current">Included in Founding</span>
             {{else}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-upgrade">Upgrade to {$plans['enterprise']['name']}</a>
+            <a href="{$sub['tier_buy_urls']['enterprise']}" class="gdTierCol__cta is-upgrade">Upgrade to {$plans['enterprise']['name']}</a>
             {{endif}}
         </div>
 
@@ -162,7 +170,7 @@ $gddealerV10087Templates[] = [
             {{if $sub['tier'] === 'max'}}
             <span class="gdTierCol__cta is-current">Current plan</span>
             {{else}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-upgrade">Upgrade to {$plans['max']['name']}</a>
+            <a href="{$sub['tier_buy_urls']['max']}" class="gdTierCol__cta is-upgrade">Upgrade to {$plans['max']['name']}</a>
             {{endif}}
         </div>
 

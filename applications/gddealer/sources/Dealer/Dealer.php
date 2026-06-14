@@ -51,29 +51,50 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 		'founding'   => '6hr',
 	];
 
-	/**
-	 * Get the effective import schedule for this dealer. Founding members
-	 * get 1hr sync regardless of their current subscription_tier. All others
-	 * get their tier's normal schedule from $tierSchedules.
-	 */
+	public function foundingPerksActive(): bool
+	{
+		if ( !$this->isFoundingMember() )
+		{
+			return false;
+		}
+		$expires = (string) ( $this->trial_expires_at ?? '' );
+		if ( $expires === '' || $expires === '0000-00-00 00:00:00' )
+		{
+			return false;
+		}
+		return strtotime( $expires ) > time();
+	}
+
+	public function isFoundingMember(): bool
+	{
+		if ( !empty( $this->is_founding_member ) ) { return true; }
+		if ( (string) ( $this->subscription_tier ?? '' ) === 'founding' ) { return true; }
+		try {
+			$member = \IPS\Member::load( (int) $this->dealer_id );
+			$foundingGroup = (int) \IPS\Settings::i()->gddealer_group_founding;
+			if ( $foundingGroup && ( (int) $member->member_group_id === $foundingGroup
+				 || in_array( (string) $foundingGroup, explode( ',', (string) $member->mgroup_others ), true ) ) )
+			{
+				return true;
+			}
+		} catch ( \Throwable ) {}
+		return false;
+	}
+
 	public function getEffectiveImportSchedule(): string
 	{
-		if ( !empty( $this->is_founding_member ) )
+		if ( $this->foundingPerksActive() )
 		{
 			return '6hr';
 		}
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
+		if ( $tier === 'founding' ) { $tier = 'basic'; }
 		return self::$tierSchedules[ $tier ] ?? '24hr';
 	}
 
-	/**
-	 * Get the display badge label for this dealer. Founding members show
-	 * 'Founder' regardless of subscription_tier. Otherwise show ucfirst of
-	 * the tier name (e.g. 'Pro', 'Enterprise', 'Basic').
-	 */
 	public function getBadgeLabel(): string
 	{
-		if ( !empty( $this->is_founding_member ) )
+		if ( $this->isFoundingMember() )
 		{
 			return 'Founder';
 		}
@@ -142,7 +163,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 		{
 			$dealer = static::load( (int) $member->member_id );
 
-			if ( !empty( $dealer->is_founding_member ) )
+			if ( $dealer->isFoundingMember() )
 			{
 				$tier = self::TIER_FOUNDING;
 			}
@@ -276,11 +297,12 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 
 	public function getListingCap(): int
 	{
-		if ( !empty( $this->is_founding_member ) )
+		if ( $this->foundingPerksActive() )
 		{
 			return PHP_INT_MAX;
 		}
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
+		if ( $tier === 'founding' ) { $tier = 'basic'; }
 		return self::$tierListingCaps[ $tier ] ?? 500;
 	}
 
