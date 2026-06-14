@@ -85,7 +85,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	{
 		if ( $this->foundingPerksActive() )
 		{
-			return '6hr';
+			return self::$tierSchedules['enterprise'];
 		}
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
 		if ( $tier === 'founding' ) { $tier = 'basic'; }
@@ -299,7 +299,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	{
 		if ( $this->foundingPerksActive() )
 		{
-			return PHP_INT_MAX;
+			return self::$tierListingCaps['enterprise'];
 		}
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
 		if ( $tier === 'founding' ) { $tier = 'basic'; }
