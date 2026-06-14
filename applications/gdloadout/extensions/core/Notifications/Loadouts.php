@@ -2,6 +2,7 @@
 
 namespace IPS\gdloadout\extensions\core\Notifications;
 
+use IPS\Extensions\NotificationsAbstract;
 use IPS\Http\Url;
 use IPS\Member;
 
@@ -11,9 +12,9 @@ if ( !\defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 	exit;
 }
 
-class _Loadouts
+class _Loadouts extends NotificationsAbstract
 {
-	public function configurationOptions( \IPS\Member $member = NULL ): array
+	public static function configurationOptions( ?Member $member = NULL ): array
 	{
 		return [
 			'gdloadout_notifications' => [
