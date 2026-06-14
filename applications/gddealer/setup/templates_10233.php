@@ -154,7 +154,7 @@ $dealerProfileTpl = <<<'TEMPLATE_EOT'
 					<li><i class="fa-solid fa-tag" aria-hidden="true"></i> <span class="gdProfile__sidebarTierPill" style="{expression="'background:' . $data['dealer']['tier_color']"}">{$data['dealer']['tier_label']}</span>
 					{{if $data['dealer']['tier_perk']}} &mdash; {$data['dealer']['tier_perk']}{{endif}}</li>
 					<li><i class="fa-solid fa-box-open" aria-hidden="true"></i> {$data['dealer']['listing_count']} active listings</li>
-					<li><i class="fa-solid fa-calendar" aria-hidden="true"></i> Member since {$data['dealer']['created_at']}</li>
+					<li><i class="fa-solid fa-calendar" aria-hidden="true"></i> Member since {$data['dealer']['member_since']}</li>
 					<li><i class="fa-solid fa-star" aria-hidden="true"></i> {$data['stats']['rating_label']} ({$data['stats']['avg_overall']} avg)</li>
 				</ul>
 			</div>
@@ -644,7 +644,7 @@ try
         'template_data'     => '$data',
         'template_content'  => $dealerProfileTpl,
         'template_updated'  => time(),
-        'template_version'  => '1.0.281',
+        'template_version'  => '1.0.282',
     ] );
 }
 catch ( \Throwable $e )
