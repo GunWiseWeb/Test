@@ -46,71 +46,17 @@ class _join extends \IPS\Dispatcher\Controller
 				);
 				return;
 			}
-			catch ( \OutOfRangeException ) { /* not a dealer yet, show landing */ }
+			catch ( \OutOfRangeException )
+			{
+				/* not a dealer yet — fall through to the membership-page redirect below */
+			}
 		}
 
-		$fallbackUrl = (string) \IPS\Http\Url::internal(
-			'app=gddealer&module=dealers&controller=join'
+		/* Everyone without a dealer subscription is sent to the new membership page. */
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::external( 'https://gunrack.deals/dealer-memberships/' )
 		);
-
-		$tiers = [
-			[
-				'key'          => Dealer::TIER_BASIC,
-				'label'        => 'Basic',
-				'price'        => '$39 / month',
-				'schedule'     => 'Every 6 hours',
-				'popular'      => false,
-				'features'     => [
-					'Unlimited listings',
-					'XML / JSON / CSV feed formats',
-					'Import logs + unmatched UPC report',
-					'Basic click-through stats',
-				],
-				'commerce_url' => $this->commerceUrlFor( (int) \IPS\Settings::i()->gddealer_commerce_basic_id, $fallbackUrl ),
-			],
-			[
-				'key'          => Dealer::TIER_PRO,
-				'label'        => 'Pro',
-				'price'        => '$99 / month',
-				'schedule'     => 'Every 30 minutes',
-				'popular'      => true,
-				'features'     => [
-					'Everything in Basic',
-					'Priority placement in price comparison',
-					'Full analytics — top listings, price competitiveness',
-					'Revenue opportunity report',
-				],
-				'commerce_url' => $this->commerceUrlFor( (int) \IPS\Settings::i()->gddealer_commerce_pro_id, $fallbackUrl ),
-			],
-			[
-				'key'          => Dealer::TIER_ENTERPRISE,
-				'label'        => 'Enterprise',
-				'price'        => '$249 / month',
-				'schedule'     => 'Every 15 minutes',
-				'popular'      => false,
-				'features'     => [
-					'Everything in Pro',
-					'Fastest feed sync available',
-					'Dedicated onboarding support',
-					'Early access to new features',
-				],
-				'commerce_url' => $this->commerceUrlFor( (int) \IPS\Settings::i()->gddealer_commerce_enterprise_id, $fallbackUrl ),
-			],
-		];
-
-		$contactEmail = (string) ( \IPS\Settings::i()->gddealer_help_contact ?: 'dealers@gunrack.deals' );
-
-		$guidelinesUrl = (string) \IPS\Http\Url::internal(
-			'app=gddealer&module=dealers&controller=profile&do=guidelines',
-			'front', 'dealers_review_guidelines'
-		);
-
-		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_front_join_title' );
-		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->join(
-			$tiers,
-			$contactEmail,
-			$guidelinesUrl
-		);
+		return;
 	}
 
 	/**
