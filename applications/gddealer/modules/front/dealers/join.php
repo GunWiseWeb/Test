@@ -208,6 +208,42 @@ class _join extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )
 			->dealerRegister( (string) $form, $tier, $member->name, $guidelinesUrl );
 	}
+	protected function subscribe(): void
+	{
+		$tier = strtolower( trim( (string) ( \IPS\Request::i()->tier ?? '' ) ) );
+
+		$map = [
+			'basic'      => (int) \IPS\Settings::i()->gddealer_commerce_basic_id,
+			'pro'        => (int) \IPS\Settings::i()->gddealer_commerce_pro_id,
+			'enterprise' => (int) \IPS\Settings::i()->gddealer_commerce_enterprise_id,
+			'max'        => (int) \IPS\Settings::i()->gddealer_commerce_max_id,
+		];
+
+		if ( !isset( $map[ $tier ] ) || !$map[ $tier ] )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=nexus&module=subscriptions&controller=subscriptions', 'front', 'nexus_subscriptions' )
+			);
+			return;
+		}
+
+		$pid = $map[ $tier ];
+
+		try
+		{
+			$pkg = \IPS\nexus\Subscription\Package::load( $pid );
+			$url = $pkg->url()->setQueryString( 'do', 'purchase' )->csrf();
+			\IPS\Output::i()->redirect( $url );
+			return;
+		}
+		catch ( \Throwable )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=nexus&module=subscriptions&controller=subscriptions', 'front', 'nexus_subscriptions' )
+			);
+			return;
+		}
+	}
 }
 
 class join extends _join {}
