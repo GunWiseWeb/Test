@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdsearch\setup\upg_10066;
+namespace IPS\gdsearch\setup\upg_10067;
 
 use function defined;
 
@@ -16,6 +16,7 @@ class _upgrade
 	{
 		require_once \IPS\ROOT_PATH . '/applications/gdsearch/setup/templates_10046.php';
 
+		try { \IPS\Theme::deleteCompiledTemplate( 'gdsearch', 'front', 'search' ); } catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
 		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }

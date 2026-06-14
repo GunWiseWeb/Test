@@ -418,61 +418,81 @@ class Searcher
         $orderBy = match( $sort ) {
             'price'    => 'l.dealer_price ASC',
             'shipping' => "(l.shipping_info IS NULL OR l.shipping_info = '') ASC, (l.shipping_info = 'Free shipping') DESC, l.dealer_price ASC",
-            'rating'   => '(r.avg_rating IS NULL) ASC, r.avg_rating DESC, l.dealer_price ASC',
+            'rating'   => 'l.dealer_price ASC',
             default    => "(d.subscription_tier = 'max') DESC, l.dealer_price ASC",
         };
 
         try {
-            $select = \IPS\Db::i()->select(
-                "l.*, d.dealer_name, d.dealer_slug, d.subscription_tier, r.avg_rating",
+            $rows = \IPS\Db::i()->select(
+                'l.*, d.dealer_name, d.dealer_slug, d.subscription_tier',
                 [ 'gd_dealer_listings', 'l' ],
                 [ 'l.upc=? AND l.listing_status=?', $upc, 'active' ],
                 $orderBy
             )->join(
                 [ 'gd_dealer_feed_config', 'd' ],
                 'l.dealer_id = d.dealer_id'
-            )->join(
-                [ \IPS\Db::i()->select(
-                    'dealer_id, AVG((rating_pricing + rating_shipping + rating_service) / 3) AS avg_rating',
-                    'gd_dealer_ratings',
-                    NULL,
-                    NULL,
-                    NULL,
-                    'dealer_id'
-                ), 'r' ],
-                'r.dealer_id = l.dealer_id',
-                'LEFT'
             );
 
             $minPrice = null;
-            foreach ( $select as $row ) {
+            $dealerIds = [];
+            foreach ( $rows as $row ) {
                 $price = (float) $row['dealer_price'];
-                if ( $minPrice === null || $price < $minPrice ) {
-                    $minPrice = $price;
-                }
+                if ( $minPrice === null || $price < $minPrice ) { $minPrice = $price; }
+                $did = (int) $row['dealer_id'];
+                $dealerIds[ $did ] = true;
                 $listings[] = [
-                    'dealer_id'    => (int) $row['dealer_id'],
-                    'dealer_name'  => (string) $row['dealer_name'],
-                    'dealer_slug'  => (string) $row['dealer_slug'],
-                    'tier'         => (string) $row['subscription_tier'],
-                    'price'        => $price,
-                    'in_stock'     => (bool) $row['in_stock'],
-                    'stock_qty'    => (int) ( $row['stock_qty'] ?? 0 ),
-                    'condition'    => (string) ( $row['condition'] ?? 'new' ),
-                    'listing_url'  => (string) ( $row['listing_url'] ?? '' ),
-                    'shipping_info'=> (string) ( $row['shipping_info'] ?? '' ),
-                    'avg_rating'   => $row['avg_rating'] !== null ? round( (float) $row['avg_rating'], 1 ) : null,
-                    'is_lowest'    => false,
+                    'dealer_id'     => $did,
+                    'dealer_name'   => (string) $row['dealer_name'],
+                    'dealer_slug'   => (string) $row['dealer_slug'],
+                    'tier'          => (string) $row['subscription_tier'],
+                    'price'         => $price,
+                    'in_stock'      => (bool) $row['in_stock'],
+                    'stock_qty'     => (int) ( $row['stock_qty'] ?? 0 ),
+                    'condition'     => (string) ( $row['condition'] ?? 'new' ),
+                    'listing_url'   => (string) ( $row['listing_url'] ?? '' ),
+                    'shipping_info' => (string) ( $row['shipping_info'] ?? '' ),
+                    'avg_rating'    => null,
+                    'is_lowest'     => false,
                 ];
             }
 
-            if ( $minPrice !== null ) {
-                foreach ( $listings as &$l ) {
-                    if ( $l['price'] === $minPrice ) {
-                        $l['is_lowest'] = true;
+            if ( $dealerIds ) {
+                $ratingByDealer = [];
+                try {
+                    $in = implode( ',', array_map( 'intval', array_keys( $dealerIds ) ) );
+                    foreach ( \IPS\Db::i()->select(
+                        'dealer_id, AVG((rating_pricing + rating_shipping + rating_service) / 3) AS avg_rating',
+                        'gd_dealer_ratings',
+                        'dealer_id IN (' . $in . ')',
+                        NULL,
+                        NULL,
+                        'dealer_id'
+                    ) as $rr ) {
+                        $ratingByDealer[ (int) $rr['dealer_id'] ] = $rr['avg_rating'] !== null ? round( (float) $rr['avg_rating'], 1 ) : null;
                     }
+                } catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gdsearch_listings' ); } catch ( \Throwable ) {} }
+
+                foreach ( $listings as &$lrow ) {
+                    $lrow['avg_rating'] = $ratingByDealer[ $lrow['dealer_id'] ] ?? null;
                 }
-                unset( $l );
+                unset( $lrow );
+            }
+
+            if ( $minPrice !== null ) {
+                foreach ( $listings as &$lrow2 ) {
+                    if ( $lrow2['price'] === $minPrice ) { $lrow2['is_lowest'] = true; }
+                }
+                unset( $lrow2 );
+            }
+
+            if ( $sort === 'rating' ) {
+                usort( $listings, function( $a, $b ) {
+                    $ar = $a['avg_rating']; $br = $b['avg_rating'];
+                    $aNull = ( $ar === null ); $bNull = ( $br === null );
+                    if ( $aNull !== $bNull ) { return $aNull <=> $bNull; }
+                    if ( !$aNull && $ar != $br ) { return $br <=> $ar; }
+                    return $a['price'] <=> $b['price'];
+                } );
             }
         } catch ( \Throwable $e ) {
             try { \IPS\Log::log( $e, 'gdsearch_listings' ); } catch ( \Throwable ) {}
