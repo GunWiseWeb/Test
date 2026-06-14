@@ -35,12 +35,7 @@
         </div>
         <div class="gdPlanHero__stat">
             <div class="gdPlanHero__statLabel">Feed sync frequency</div>
-            <div class="gdPlanHero__statValue">
-                {{if $sub['tier'] === 'basic'}}6 hr
-                {{elseif $sub['tier'] === 'pro'}}30 min
-                {{else}}15 min
-                {{endif}}
-            </div>
+            <div class="gdPlanHero__statValue">{$sub['sync_label']}</div>
             <div class="gdPlanHero__statSub">Based on your plan</div>
         </div>
         <div class="gdPlanHero__stat">
@@ -72,91 +67,84 @@
         <div class="gdTierCol {expression="$sub['tier'] === 'basic' ? 'is-current' : ''"}">
             {{if $sub['tier'] === 'basic'}}<span class="gdTierCol__badge">Your plan</span>{{endif}}
             <div class="gdTierCol__head">
-                <div class="gdTierCol__name">Basic</div>
-                <div class="gdTierCol__price"><span class="gdTierCol__priceNum">$39</span><span class="gdTierCol__pricePeriod">/mo</span></div>
-                <div class="gdTierCol__tagline">For small shops getting started.</div>
+                <div class="gdTierCol__name">{$plans['basic']['name']}</div>
+                <div class="gdTierCol__price"><span class="gdTierCol__priceNum">{$plans['basic']['price']}</span></div>
+                <div class="gdTierCol__tagline">{$plans['basic']['tagline']}</div>
             </div>
             <ul class="gdTierCol__features">
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Unlimited listings</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>6-hour sync</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Basic analytics</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>2 review disputes per month</li>
+                {{foreach $plans['basic']['features'] as $feature}}
+                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>{$feature|raw}</li>
+                {{endforeach}}
             </ul>
             {{if $sub['tier'] === 'basic'}}
             <span class="gdTierCol__cta is-current">Current plan</span>
             {{elseif $sub['tier'] === 'pro' or $sub['tier'] === 'enterprise' or $sub['tier'] === 'max' or $sub['tier'] === 'founding'}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-downgrade">Downgrade to Basic</a>
+            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-downgrade">Downgrade to {$plans['basic']['name']}</a>
             {{else}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta">Choose Basic</a>
+            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta">Choose {$plans['basic']['name']}</a>
             {{endif}}
         </div>
 
         <div class="gdTierCol {expression="$sub['tier'] === 'pro' ? 'is-current' : ''"}">
             {{if $sub['tier'] === 'pro'}}<span class="gdTierCol__badge">Your plan</span>{{endif}}
             <div class="gdTierCol__head">
-                <div class="gdTierCol__name">Pro</div>
-                <div class="gdTierCol__price"><span class="gdTierCol__priceNum">$99</span><span class="gdTierCol__pricePeriod">/mo</span></div>
-                <div class="gdTierCol__tagline">For dealers serious about competing.</div>
+                <div class="gdTierCol__name">{$plans['pro']['name']}</div>
+                <div class="gdTierCol__price"><span class="gdTierCol__priceNum">{$plans['pro']['price']}</span></div>
+                <div class="gdTierCol__tagline">{$plans['pro']['tagline']}</div>
             </div>
             <ul class="gdTierCol__features">
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Everything in Basic</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>30-minute sync</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Full analytics &amp; opportunities</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>5 review disputes per month</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Priority placement</li>
+                {{foreach $plans['pro']['features'] as $feature}}
+                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>{$feature|raw}</li>
+                {{endforeach}}
             </ul>
             {{if $sub['tier'] === 'pro'}}
             <span class="gdTierCol__cta is-current">Current plan</span>
             {{elseif $sub['tier'] === 'enterprise' or $sub['tier'] === 'max' or $sub['tier'] === 'founding'}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-downgrade">Downgrade to Pro</a>
+            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-downgrade">Downgrade to {$plans['pro']['name']}</a>
             {{else}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-upgrade">Upgrade to Pro</a>
+            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-upgrade">Upgrade to {$plans['pro']['name']}</a>
             {{endif}}
         </div>
 
         <div class="gdTierCol {expression="$sub['tier'] === 'enterprise' ? 'is-current' : ''"}">
             {{if $sub['tier'] === 'enterprise'}}<span class="gdTierCol__badge">Your plan</span>{{endif}}
             <div class="gdTierCol__head">
-                <div class="gdTierCol__name">Enterprise</div>
-                <div class="gdTierCol__price"><span class="gdTierCol__priceNum">$249</span><span class="gdTierCol__pricePeriod">/mo</span></div>
-                <div class="gdTierCol__tagline">For high-volume dealers.</div>
+                <div class="gdTierCol__name">{$plans['enterprise']['name']}</div>
+                <div class="gdTierCol__price"><span class="gdTierCol__priceNum">{$plans['enterprise']['price']}</span></div>
+                <div class="gdTierCol__tagline">{$plans['enterprise']['tagline']}</div>
             </div>
             <ul class="gdTierCol__features">
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Everything in Pro</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>15-minute sync</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Unlimited review disputes</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Dedicated onboarding</li>
+                {{foreach $plans['enterprise']['features'] as $feature}}
+                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>{$feature|raw}</li>
+                {{endforeach}}
             </ul>
             {{if $sub['tier'] === 'enterprise'}}
             <span class="gdTierCol__cta is-current">Current plan</span>
             {{elseif $sub['tier'] === 'max'}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-downgrade">Downgrade to Enterprise</a>
+            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-downgrade">Downgrade to {$plans['enterprise']['name']}</a>
             {{elseif $sub['tier'] === 'founding'}}
             <span class="gdTierCol__cta is-current">Included in Founding</span>
             {{else}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-upgrade">Upgrade to Enterprise</a>
+            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-upgrade">Upgrade to {$plans['enterprise']['name']}</a>
             {{endif}}
         </div>
 
         <div class="gdTierCol {expression="$sub['tier'] === 'max' ? 'is-current' : ''"}">
             {{if $sub['tier'] === 'max'}}<span class="gdTierCol__badge">Your plan</span>{{endif}}
             <div class="gdTierCol__head">
-                <div class="gdTierCol__name">Max</div>
-                <div class="gdTierCol__price"><span class="gdTierCol__priceNum">$399</span><span class="gdTierCol__pricePeriod">/mo</span></div>
-                <div class="gdTierCol__tagline">For the biggest operations.</div>
+                <div class="gdTierCol__name">{$plans['max']['name']}</div>
+                <div class="gdTierCol__price"><span class="gdTierCol__priceNum">{$plans['max']['price']}</span></div>
+                <div class="gdTierCol__tagline">{$plans['max']['tagline']}</div>
             </div>
             <ul class="gdTierCol__features">
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Everything in Enterprise</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Unlimited listings</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Unlimited review disputes</li>
-                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Priority support</li>
+                {{foreach $plans['max']['features'] as $feature}}
+                <li><span class="gdTierCol__check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>{$feature|raw}</li>
+                {{endforeach}}
             </ul>
             {{if $sub['tier'] === 'max'}}
             <span class="gdTierCol__cta is-current">Current plan</span>
-            {{elseif $sub['tier'] === 'founding'}}
-            <span class="gdTierCol__cta is-current">Included in Founding</span>
             {{else}}
-            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-upgrade">Upgrade to Max</a>
+            <a href="{$sub['subscribe_url']}" class="gdTierCol__cta is-upgrade">Upgrade to {$plans['max']['name']}</a>
             {{endif}}
         </div>
 

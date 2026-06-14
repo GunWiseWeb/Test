@@ -48,7 +48,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 		'pro'        => '12hr',
 		'enterprise' => '6hr',
 		'max'        => '3hr',
-		'founding'   => '1hr',
+		'founding'   => '6hr',
 	];
 
 	/**
@@ -60,7 +60,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	{
 		if ( !empty( $this->is_founding_member ) )
 		{
-			return '1hr';
+			return '6hr';
 		}
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
 		return self::$tierSchedules[ $tier ] ?? '24hr';
