@@ -1,0 +1,7 @@
+{
+    "Dealer": {
+        "type": "MemberListenerType",
+        "classname": "IPS\\gddealer\\listeners\\Dealer",
+        "extends": "IPS\\Member"
+    }
+}
