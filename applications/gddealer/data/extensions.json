@@ -17,6 +17,9 @@
 		},
 		"Profile": {
 			"MyDealers": "IPS\\gddealer\\extensions\\core\\Profile\\MyDealers"
+		},
+		"MemberSync": {
+			"Dealer": "IPS\\gddealer\\extensions\\core\\MemberSync\\Dealer"
 		}
 	}
 }

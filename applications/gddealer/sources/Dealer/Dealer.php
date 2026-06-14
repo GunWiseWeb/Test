@@ -98,6 +98,68 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 		'founding'   => PHP_INT_MAX,
 	];
 
+	public static array $tierPrecedence = [
+		self::TIER_FOUNDING,
+		self::TIER_MAX,
+		self::TIER_ENTERPRISE,
+		self::TIER_PRO,
+		self::TIER_BASIC,
+	];
+
+	public static function tierForGroups( array $groupIds ): string
+	{
+		$groupIds = array_map( 'intval', $groupIds );
+		foreach ( static::$tierPrecedence as $tier )
+		{
+			$gid = static::groupIdForTier( $tier );
+			if ( $gid > 0 && \in_array( $gid, $groupIds, true ) )
+			{
+				return $tier;
+			}
+		}
+		return self::TIER_BASIC;
+	}
+
+	public static function syncTierFromGroups( \IPS\Member $member ): string
+	{
+		if ( !$member->member_id )
+		{
+			return self::TIER_BASIC;
+		}
+
+		$groupIds = [ (int) $member->member_group_id ];
+		if ( $member->mgroup_others )
+		{
+			$groupIds = array_merge(
+				$groupIds,
+				array_filter( array_map( 'intval', explode( ',', (string) $member->mgroup_others ) ) )
+			);
+		}
+
+		$tier = static::tierForGroups( $groupIds );
+
+		try
+		{
+			$dealer = static::load( (int) $member->member_id );
+
+			if ( !empty( $dealer->is_founding_member ) )
+			{
+				$tier = self::TIER_FOUNDING;
+			}
+
+			if ( (string) $dealer->subscription_tier !== $tier )
+			{
+				$dealer->subscription_tier = $tier;
+				$dealer->save();
+			}
+		}
+		catch ( \Throwable )
+		{
+		}
+
+		return $tier;
+	}
+
 	public function getListingCap(): int
 	{
 		if ( !empty( $this->is_founding_member ) )
