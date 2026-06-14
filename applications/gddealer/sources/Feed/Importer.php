@@ -65,10 +65,20 @@ class Importer
 				'records_updated'   => 0,
 				'records_unchanged' => 0,
 				'records_unmatched' => 0,
+				'records_capped'    => 0,
 				'price_drops'       => 0,
 				'price_increases'   => 0,
 				'alerts_triggered'  => 0,
 			];
+
+			$cap = $dealer->getListingCap();
+			$activeCount = 0;
+			try
+			{
+				$activeCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_listings',
+					[ 'dealer_id=? AND listing_status=?', (int) $dealer->dealer_id, Listing::STATUS_ACTIVE ] )->first();
+			}
+			catch ( \Throwable ) {}
 
 			$runStart      = date( 'Y-m-d H:i:s' );
 			$seenIds       = [];
@@ -127,9 +137,20 @@ class Importer
 
 				if ( $listing === null )
 				{
+					if ( $activeCount >= $cap )
+					{
+						$stats['records_capped']++;
+						continue;
+					}
+
 					$listing = self::createListing( $dealer, $canonical, $runStart );
 					PriceHistory::record( (int) $dealer->dealer_id, $upc, (float) $canonical['dealer_price'], !empty( $canonical['in_stock'] ) );
 					$stats['records_created']++;
+
+					if ( $listing->listing_status === Listing::STATUS_ACTIVE )
+					{
+						$activeCount++;
+					}
 				}
 				else
 				{
@@ -154,6 +175,31 @@ class Importer
 
 				$seenIds[]           = (int) $listing->id;
 				$touchedUpcs[ $upc ] = true;
+			}
+
+			if ( $stats['records_capped'] > 0 )
+			{
+				try
+				{
+					$dealerMember = \IPS\Member::load( (int) $dealer->dealer_id );
+					if ( $dealerMember->member_id )
+					{
+						$n = new \IPS\Notification(
+							\IPS\Application::load( 'gddealer' ),
+							'listing_cap_reached',
+							NULL,
+							[ $dealerMember ],
+							[
+								'cap'    => $cap,
+								'capped' => $stats['records_capped'],
+								'tier'   => (string) ( $dealer->subscription_tier ?? 'basic' ),
+							]
+						);
+						$n->recipients->attach( $dealerMember );
+						try { $n->send(); } catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_cap_notif' ); } catch ( \Throwable ) {} }
+					}
+				}
+				catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_cap' ); } catch ( \Throwable ) {} }
 			}
 
 			self::markStale( (int) $dealer->dealer_id, $runStart );

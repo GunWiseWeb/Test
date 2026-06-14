@@ -480,6 +480,8 @@
     <word key="gddealer_notif_ffl_verified_desc"><![CDATA[When your FFL license is verified by GunRack staff]]></word>
     <word key="gddealer_notif_ffl_rejected"><![CDATA[FFL Submission Rejected]]></word>
     <word key="gddealer_notif_ffl_rejected_desc"><![CDATA[When your FFL submission is rejected and needs re-submission]]></word>
+    <word key="gddealer_notif_listing_cap_reached"><![CDATA[Listing cap reached]]></word>
+    <word key="gddealer_notif_listing_cap_reached_desc"><![CDATA[When your feed exceeds your plan's listing cap and some listings are skipped.]]></word>
     <word key="gddealer_notif_listing_reported"><![CDATA[A listing was reported]]></word>
     <word key="gddealer_notif_listing_reported_desc"><![CDATA[When a user reports one of your listings (wrong price, dead link, etc.)]]></word>
     <word key="mailani__gddealer_notification_listing_reported"><![CDATA[{member} reported one of your listings.]]></word>

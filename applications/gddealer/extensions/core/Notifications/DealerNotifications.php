@@ -161,6 +161,15 @@ class DealerNotifications extends NotificationsAbstract
 				'default'           => [ 'inline', 'email' ],
 				'disabled'          => [],
 			],
+			'listing_cap_reached' => [
+				'type'              => 'standard',
+				'notificationTypes' => [ 'listing_cap_reached' ],
+				'title'             => 'gddealer_notif_listing_cap_reached',
+				'showTitle'         => true,
+				'description'       => 'gddealer_notif_listing_cap_reached_desc',
+				'default'           => [ 'inline', 'email' ],
+				'disabled'          => [],
+			],
 			'listing_reported' => [
 				'type'              => 'standard',
 				'notificationTypes' => [ 'listing_reported' ],
@@ -376,6 +385,23 @@ class DealerNotifications extends NotificationsAbstract
 			'title'   => (string) ( $extra['dealer_name'] ?? 'A dealer' ) . ' replied on ticket: ' . (string) ( $extra['subject'] ?? '' ),
 			'url'     => $url,
 			'content' => 'Click to view the reply.',
+			'author'  => NULL,
+		];
+	}
+
+	public function parse_listing_cap_reached( Inline $notification, bool $htmlEscape = TRUE ): array
+	{
+		$extra  = $notification->extra ?: [];
+		$cap    = (int) ( $extra['cap'] ?? 0 );
+		$capped = (int) ( $extra['capped'] ?? 0 );
+		$tier   = ucfirst( (string) ( $extra['tier'] ?? 'basic' ) );
+
+		$capLabel = $cap >= PHP_INT_MAX ? 'unlimited' : number_format( $cap );
+
+		return [
+			'title'   => $capped . ' listing(s) were not imported — upgrade to list more',
+			'url'     => \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=subscription' ),
+			'content' => 'Your feed has more listings than your ' . $tier . ' plan allows (' . $capLabel . '). ' . number_format( $capped ) . ' listing(s) were skipped. Upgrade your plan to import all your products.',
 			'author'  => NULL,
 		];
 	}

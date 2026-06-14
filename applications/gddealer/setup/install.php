@@ -1073,7 +1073,7 @@ TEMPLATE_EOT,
 <div class="gdKpiGrid">
     <div class="gdKpi">
         <div class="gdKpi__label">Active listings</div>
-        <div class="gdKpi__value">{expression="number_format($data['stats']['active'])"}</div>
+        <div class="gdKpi__value">{expression="number_format($data['stats']['active'])"} <span style="font-size:0.55em;color:#6b7280;font-weight:400">/ {$data['stats']['cap_label']}</span></div>
     </div>
     <div class="gdKpi">
         <div class="gdKpi__label">Out of stock</div>
@@ -5144,6 +5144,7 @@ $notificationDefaults = [
 	'gddealer_ffl_verified'      => [ 'default' => 'inline,email', 'disabled' => '' ],
 	'gddealer_ffl_rejected'      => [ 'default' => 'inline,email', 'disabled' => '' ],
 	'listing_reported'           => [ 'default' => 'inline,email', 'disabled' => '' ],
+	'listing_cap_reached'        => [ 'default' => 'inline,email', 'disabled' => '' ],
 ];
 
 foreach ( $notificationDefaults as $key => $data )

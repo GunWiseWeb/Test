@@ -89,6 +89,25 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 		'founding'   => 0.0,
 	];
 
+	/** Max active listings per tier. PHP_INT_MAX = unlimited. */
+	public static array $tierListingCaps = [
+		'basic'      => 500,
+		'pro'        => 2500,
+		'enterprise' => 6000,
+		'max'        => PHP_INT_MAX,
+		'founding'   => PHP_INT_MAX,
+	];
+
+	public function getListingCap(): int
+	{
+		if ( !empty( $this->is_founding_member ) )
+		{
+			return PHP_INT_MAX;
+		}
+		$tier = (string) ( $this->subscription_tier ?? 'basic' );
+		return self::$tierListingCaps[ $tier ] ?? 500;
+	}
+
 	/**
 	 * Load every dealer row ordered by dealer name.
 	 *

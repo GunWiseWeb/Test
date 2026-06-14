@@ -48,7 +48,7 @@ class _ImportLog extends \IPS\Patterns\ActiveRecord
 	{
 		foreach ( [
 			'records_total', 'records_created', 'records_updated', 'records_unchanged',
-			'records_unmatched', 'price_drops', 'price_increases', 'alerts_triggered',
+			'records_unmatched', 'records_capped', 'price_drops', 'price_increases', 'alerts_triggered',
 		] as $k )
 		{
 			if ( array_key_exists( $k, $stats ) )

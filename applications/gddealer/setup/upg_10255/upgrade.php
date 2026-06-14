@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10254;
+namespace IPS\gddealer\setup\upg_10255;
 
 use function defined;
 
@@ -14,16 +14,31 @@ class _upgrade
 {
 	public function step1(): bool
 	{
+		if ( !\IPS\Db::i()->checkForColumn( 'gd_dealer_import_log', 'records_capped' ) )
+		{
+			\IPS\Db::i()->addColumn( 'gd_dealer_import_log', [
+				'name'           => 'records_capped',
+				'type'           => 'INT',
+				'length'         => 10,
+				'unsigned'       => true,
+				'allow_null'     => false,
+				'default'        => 0,
+			] );
+		}
+
+		try
+		{
+			\IPS\Db::i()->insert( 'core_notification_defaults', [
+				'notification_key' => 'listing_cap_reached',
+				'default'          => 'inline,email',
+				'disabled'         => '',
+			] );
+		}
+		catch ( \Throwable ) {}
+
 		$newStrings = [
-			'gddealer_group_max'              => 'Max Tier Group ID',
-			'gddealer_group_max_desc'         => 'IPS member group ID assigned to Max-tier dealers.',
-			'gddealer_plan_section_max'       => 'Max Plan',
-			'gddealer_plan_max_name'          => 'Display Name',
-			'gddealer_plan_max_price'         => 'Price Display',
-			'gddealer_plan_max_tagline'       => 'Audience Tagline',
-			'gddealer_plan_max_sync_label'    => 'Sync Frequency Label',
-			'gddealer_plan_max_features'      => 'Features (one per line, basic HTML allowed)',
-			'gddealer_plan_max_color'         => 'Accent Color',
+			'gddealer_notif_listing_cap_reached'      => 'Listing cap reached',
+			'gddealer_notif_listing_cap_reached_desc'  => 'When your feed exceeds your plan\'s listing cap and some listings are skipped.',
 		];
 
 		foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
