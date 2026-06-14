@@ -40,6 +40,8 @@ class _settings extends \IPS\Dispatcher\Controller
 			(int) \IPS\Settings::i()->gddealer_group_pro, FALSE ) );
 		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_group_enterprise',
 			(int) \IPS\Settings::i()->gddealer_group_enterprise, FALSE ) );
+		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_group_max',
+			(int) \IPS\Settings::i()->gddealer_group_max, FALSE ) );
 
 		$form->addHeader( 'gddealer_settings_general' );
 
@@ -68,6 +70,8 @@ class _settings extends \IPS\Dispatcher\Controller
 			(int) \IPS\Settings::i()->gddealer_commerce_pro_id, FALSE ) );
 		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_commerce_enterprise_id',
 			(int) \IPS\Settings::i()->gddealer_commerce_enterprise_id, FALSE ) );
+		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_commerce_max_id',
+			(int) \IPS\Settings::i()->gddealer_commerce_max_id, FALSE ) );
 
 		$form->addHeader( 'gddealer_settings_subscription_tab' );
 
@@ -258,12 +262,14 @@ class _settings extends \IPS\Dispatcher\Controller
 				'gddealer_group_basic'                => (int) $values['gddealer_group_basic'],
 				'gddealer_group_pro'                  => (int) $values['gddealer_group_pro'],
 				'gddealer_group_enterprise'           => (int) $values['gddealer_group_enterprise'],
+				'gddealer_group_max'                  => (int) $values['gddealer_group_max'],
 				'gddealer_default_import_schedule'    => (string) $values['gddealer_default_import_schedule'],
 				'gddealer_out_of_stock_grace_hours'   => (int) $values['gddealer_out_of_stock_grace_hours'],
 				'gddealer_click_tracking_enabled'     => (int) $values['gddealer_click_tracking_enabled'],
 				'gddealer_commerce_basic_id'          => (int) $values['gddealer_commerce_basic_id'],
 				'gddealer_commerce_pro_id'            => (int) $values['gddealer_commerce_pro_id'],
 				'gddealer_commerce_enterprise_id'     => (int) $values['gddealer_commerce_enterprise_id'],
+				'gddealer_commerce_max_id'            => (int) $values['gddealer_commerce_max_id'],
 				'gddealer_subscription_billing_note'  => (string) $values['gddealer_subscription_billing_note'],
 				'gddealer_subscribe_url'              => (string) $values['gddealer_subscribe_url'],
 				'gddealer_help_intro'                 => (string) $values['gddealer_help_intro'],

@@ -102,6 +102,8 @@
     <word key="gddealer_commerce_pro_id_desc"><![CDATA[IPS Commerce product ID for the Pro dealer subscription.]]></word>
     <word key="gddealer_commerce_enterprise_id"><![CDATA[Enterprise Tier Product ID]]></word>
     <word key="gddealer_commerce_enterprise_id_desc"><![CDATA[IPS Commerce product ID for the Enterprise dealer subscription.]]></word>
+    <word key="gddealer_commerce_max_id"><![CDATA[Max Tier Product ID]]></word>
+    <word key="gddealer_commerce_max_id_desc"><![CDATA[IPS Commerce product ID for the Max dealer subscription.]]></word>
     <word key="gddealer_frontend_dashboard_title"><![CDATA[Dealer Dashboard]]></word>
     <word key="gddealer_frontend_overview"><![CDATA[Overview]]></word>
     <word key="gddealer_frontend_feed_settings"><![CDATA[Feed Settings]]></word>

@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10257;
+namespace IPS\gddealer\setup\upg_10258;
 
 use function defined;
 
@@ -54,7 +54,7 @@ class _upgrade
 		catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
 
-		/* v256 carry-forward: one-time backfill of subscription_tier from groups */
+		/* v256 carry-forward: backfill subscription_tier from groups */
 		try
 		{
 			foreach ( \IPS\Db::i()->select( '*', 'gd_dealer_feed_config' ) as $row )
@@ -115,10 +115,32 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* v255 carry-forward: seed lang strings */
+		/* v258: register Max tier settings so they exist for the form */
+		foreach ( [ 'gddealer_group_max' => '0', 'gddealer_commerce_max_id' => '0' ] as $k => $v )
+		{
+			try
+			{
+				$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'core_sys_conf_settings', [ 'conf_key=?', $k ] )->first();
+				if ( !$exists )
+				{
+					\IPS\Db::i()->insert( 'core_sys_conf_settings', [
+						'conf_key'     => $k,
+						'conf_value'   => $v,
+						'conf_default' => $v,
+						'conf_app'     => 'gddealer',
+					] );
+				}
+			}
+			catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_max_settings' ); } catch ( \Throwable ) {} }
+		}
+		try { \IPS\Settings::i()->clearCache(); } catch ( \Throwable ) {}
+
+		/* Seed lang strings (v255 + v258) */
 		$newStrings = [
 			'gddealer_notif_listing_cap_reached'      => 'Listing cap reached',
 			'gddealer_notif_listing_cap_reached_desc'  => 'When your feed exceeds your plan\'s listing cap and some listings are skipped.',
+			'gddealer_commerce_max_id'                 => 'Max Tier Product ID',
+			'gddealer_commerce_max_id_desc'            => 'IPS Commerce product ID for the Max dealer subscription.',
 		];
 
 		foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
@@ -139,10 +161,6 @@ class _upgrade
 				catch ( \Throwable ) {}
 			}
 		}
-
-		/* v257: no schema change — 'capped' is a new value in the existing
-		 * varchar listing_status column. No auto-trim in upgrade — let it
-		 * happen on next import or admin tier change. */
 
 		require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
 		\IPS\gddealer\Setup\CanonicalTemplates::ensure();

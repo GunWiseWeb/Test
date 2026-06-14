@@ -16,6 +16,10 @@
 		"default": "0"
 	},
 	{
+		"key": "gddealer_group_max",
+		"default": "0"
+	},
+	{
 		"key": "gddealer_default_import_schedule",
 		"default": "6hr"
 	},
@@ -37,6 +41,10 @@
 	},
 	{
 		"key": "gddealer_commerce_enterprise_id",
+		"default": "0"
+	},
+	{
+		"key": "gddealer_commerce_max_id",
 		"default": "0"
 	},
 	{
