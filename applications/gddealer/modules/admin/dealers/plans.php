@@ -45,7 +45,7 @@ class _plans extends \IPS\Dispatcher\Controller
 	public static bool $csrfProtected = TRUE;
 
 	/** Plan keys in display order (fixed). */
-	protected static array $planKeys = [ 'basic', 'pro', 'enterprise', 'founding' ];
+	protected static array $planKeys = [ 'basic', 'pro', 'enterprise', 'max', 'founding' ];
 
 	/** Default plan content. Used on first install AND as fallback when settings
 	 *  are missing/corrupt. Values match the v1.0.169 hardcoded content from
@@ -95,6 +95,22 @@ class _plans extends \IPS\Dispatcher\Controller
 				'API access + custom branding',
 			],
 			'color'      => '#7c3aed',
+		],
+		'max' => [
+			'version'    => 1,
+			'name'       => 'Max',
+			'price'      => '$399 / mo',
+			'tagline'    => 'For the biggest operations — unlimited everything.',
+			'sync_label' => '3-hour sync',
+			'features'   => [
+				'Everything in Enterprise',
+				'3-hour sync',
+				'Unlimited listings',
+				'Unlimited review disputes',
+				'API access + custom branding',
+				'Priority support',
+			],
+			'color'      => '#dc2626',
 		],
 		'founding' => [
 			'version'    => 1,

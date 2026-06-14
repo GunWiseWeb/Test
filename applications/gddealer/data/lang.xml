@@ -80,6 +80,8 @@
     <word key="gddealer_settings_member_groups"><![CDATA[Member Groups]]></word>
     <word key="gddealer_group_founding"><![CDATA[Founding Tier Group ID]]></word>
     <word key="gddealer_group_founding_desc"><![CDATA[IPS member group ID assigned to Founding-tier dealers. Find the ID in ACP → Members → Groups. Leave 0 if not used.]]></word>
+    <word key="gddealer_group_max"><![CDATA[Max Tier Group ID]]></word>
+    <word key="gddealer_group_max_desc"><![CDATA[IPS member group ID assigned to Max-tier dealers.]]></word>
     <word key="gddealer_group_basic"><![CDATA[Basic Tier Group ID]]></word>
     <word key="gddealer_group_basic_desc"><![CDATA[IPS member group ID assigned to Basic-tier dealers.]]></word>
     <word key="gddealer_group_pro"><![CDATA[Pro Tier Group ID]]></word>
@@ -497,6 +499,7 @@
     <word key="gddealer_plan_section_basic"><![CDATA[Basic Plan]]></word>
     <word key="gddealer_plan_section_pro"><![CDATA[Pro Plan]]></word>
     <word key="gddealer_plan_section_enterprise"><![CDATA[Enterprise Plan]]></word>
+    <word key="gddealer_plan_section_max"><![CDATA[Max Plan]]></word>
     <word key="gddealer_plan_section_founding"><![CDATA[Founding Plan (info display only)]]></word>
     <word key="gddealer_plan_basic_name"><![CDATA[Display Name]]></word>
     <word key="gddealer_plan_basic_price"><![CDATA[Price Display]]></word>
@@ -516,6 +519,12 @@
     <word key="gddealer_plan_enterprise_sync_label"><![CDATA[Sync Frequency Label]]></word>
     <word key="gddealer_plan_enterprise_features"><![CDATA[Features (one per line, basic HTML allowed)]]></word>
     <word key="gddealer_plan_enterprise_color"><![CDATA[Accent Color]]></word>
+    <word key="gddealer_plan_max_name"><![CDATA[Display Name]]></word>
+    <word key="gddealer_plan_max_price"><![CDATA[Price Display]]></word>
+    <word key="gddealer_plan_max_tagline"><![CDATA[Audience Tagline]]></word>
+    <word key="gddealer_plan_max_sync_label"><![CDATA[Sync Frequency Label]]></word>
+    <word key="gddealer_plan_max_features"><![CDATA[Features (one per line, basic HTML allowed)]]></word>
+    <word key="gddealer_plan_max_color"><![CDATA[Accent Color]]></word>
     <word key="gddealer_plan_founding_name"><![CDATA[Display Name]]></word>
     <word key="gddealer_plan_founding_price"><![CDATA[Price Display]]></word>
     <word key="gddealer_plan_founding_tagline"><![CDATA[Audience Tagline]]></word>

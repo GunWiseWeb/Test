@@ -39,13 +39,15 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	const TIER_BASIC      = 'basic';
 	const TIER_PRO        = 'pro';
 	const TIER_ENTERPRISE = 'enterprise';
+	const TIER_MAX        = 'max';
 	const TIER_FOUNDING   = 'founding';
 
 	/** Scheduling per tier — used by DealerImportFeeds task */
 	public static array $tierSchedules = [
 		'basic'      => '24hr',
-		'pro'        => '6hr',
-		'enterprise' => '1hr',
+		'pro'        => '12hr',
+		'enterprise' => '6hr',
+		'max'        => '3hr',
 		'founding'   => '1hr',
 	];
 
@@ -83,6 +85,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 		'basic'      => 39.0,
 		'pro'        => 99.0,
 		'enterprise' => 249.0,
+		'max'        => 399.0,
 		'founding'   => 0.0,
 	];
 
@@ -151,12 +154,15 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 			return true;
 		}
 
-		$schedule = $this->import_schedule ?: 'daily';
+		$schedule = $this->getEffectiveImportSchedule();
 		$intervals = [
 			'15min' => 15 * 60,
 			'30min' => 30 * 60,
 			'1hr'   => 3600,
+			'3hr'   => 3 * 3600,
 			'6hr'   => 6 * 3600,
+			'12hr'  => 12 * 3600,
+			'24hr'  => 86400,
 			'daily' => 86400,
 		];
 		$seconds = $intervals[ $schedule ] ?? 86400;
@@ -224,6 +230,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 			self::TIER_BASIC      => 'gddealer_group_basic',
 			self::TIER_PRO        => 'gddealer_group_pro',
 			self::TIER_ENTERPRISE => 'gddealer_group_enterprise',
+			self::TIER_MAX        => 'gddealer_group_max',
 		];
 
 		$key = $map[ $tier ] ?? null;
@@ -243,7 +250,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	public static function allDealerGroupIds(): array
 	{
 		$ids = [];
-		foreach ( [ self::TIER_FOUNDING, self::TIER_BASIC, self::TIER_PRO, self::TIER_ENTERPRISE ] as $tier )
+		foreach ( [ self::TIER_FOUNDING, self::TIER_BASIC, self::TIER_PRO, self::TIER_ENTERPRISE, self::TIER_MAX ] as $tier )
 		{
 			$gid = static::groupIdForTier( $tier );
 			if ( $gid > 0 )
@@ -319,7 +326,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 		{
 			return false;
 		}
-		return in_array( static::getTier( $member ), [ 'pro', 'enterprise', 'founding' ], true );
+		return in_array( static::getTier( $member ), [ 'pro', 'enterprise', 'max', 'founding' ], true );
 	}
 
 	/**
@@ -328,7 +335,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	 */
 	public static function defaultTicketPriority( \IPS\Member $member ): string
 	{
-		return static::getTier( $member ) === 'enterprise' ? 'high' : 'normal';
+		return in_array( static::getTier( $member ), [ 'enterprise', 'max' ], true ) ? 'high' : 'normal';
 	}
 
 	public function url(): \IPS\Http\Url
