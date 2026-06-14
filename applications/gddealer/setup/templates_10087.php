@@ -77,10 +77,16 @@ $gddealerV10087Templates[] = [
 </div>
 
 {{if $sub['is_founding'] and $sub['trial_expires_formatted']}}
-<div class="gdTrialNotice">
+<div class="gdTrialNotice {expression="isset($sub['trial_days_left']) && (int)$sub['trial_days_left'] <= 7 ? 'gdTrialNotice--urgent' : ''"}">
+    {{if isset($sub['trial_days_left']) && (int)$sub['trial_days_left'] <= 7}}
+    <strong>Your founding trial ends in {$sub['trial_days_left']} day(s)</strong> (on {$sub['trial_expires_formatted']}).
+    Choose a paid plan now to keep your listings live — after that they'll be hidden until you subscribe. Your Founder
+    badge is permanent.
+    {{else}}
     <strong>Founding member —</strong> you have enterprise-level sync and listings until
-    <strong>{$sub['trial_expires_formatted']}</strong>. After that, choose a paid plan to keep premium features. Your
+    <strong>{$sub['trial_expires_formatted']}</strong>. After that, choose a paid plan to keep your listings live. Your
     Founder badge is permanent.
+    {{endif}}
 </div>
 {{endif}}
 

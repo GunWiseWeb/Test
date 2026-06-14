@@ -2615,6 +2615,11 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
     color: #92400E;
     margin-bottom: 24px;
 }
+.gdTrialNotice--urgent {
+    background: var(--gd-danger-bg, #FEF2F2);
+    border-color: var(--gd-danger, #DC2626);
+    color: #991B1B;
+}
 
 /* Tier comparison */
 .gdComparisonSection { margin-bottom: 24px; }

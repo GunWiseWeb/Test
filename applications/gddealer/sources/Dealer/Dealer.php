@@ -302,7 +302,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 			return self::$tierListingCaps['enterprise'];
 		}
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
-		if ( $tier === 'founding' ) { $tier = 'basic'; }
+		if ( $tier === 'founding' ) { return 0; }
 		return self::$tierListingCaps[ $tier ] ?? 500;
 	}
 

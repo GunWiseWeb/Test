@@ -6,15 +6,10 @@
  * @since       16 Apr 2026
  *
  * Runs daily (P1D). Two passes:
- *   1. Suspend dealers whose trial has ended (trial_expires_at <= NOW()
- *      AND active = 1). Sets listings to suspended, deactivates the feed
- *      config, removes the member from the Dealers group, sends
- *      trialExpired email.
- *   2. Send a 7-day warning email to dealers whose trial expires in
- *      exactly 7 days.
- *
- * Every DB operation is wrapped in its own try/catch so one bad row
- * cannot stop the whole task.
+ *   1. Expire dealers whose trial has ended. Founding members keep their
+ *      badge (group 7) but listings are suspended + feed deactivated.
+ *      Non-founders get fully stripped (groups removed, primary reset).
+ *   2. Send 30/7/1-day reminder emails (exact-day match = natural dedup).
  */
 
 namespace IPS\gddealer\tasks;
@@ -37,6 +32,9 @@ class _ExpireTrials extends \IPS\Task
 		$expired  = 0;
 		$warnings = 0;
 
+		$subscribeUrl = (string) ( \IPS\Settings::i()->gddealer_subscribe_url ?: 'https://gunrack.deals/dealers/join' );
+		$contactEmail = (string) ( \IPS\Settings::i()->gddealer_help_contact ?: 'dealers@gunrack.deals' );
+
 		/* ---- Pass 1: Expire dealers whose trial ended ---- */
 		try
 		{
@@ -45,20 +43,22 @@ class _ExpireTrials extends \IPS\Task
 				[ 'trial_expires_at IS NOT NULL AND trial_expires_at <= NOW() AND active=?', 1 ]
 			);
 		}
-		catch ( \Exception )
+		catch ( \Throwable )
 		{
 			$rows = [];
 		}
 
 		$allDealerGroupIds = \IPS\gddealer\Dealer\Dealer::allDealerGroupIds();
-		$subscribeUrl      = (string) ( \IPS\Settings::i()->gddealer_subscribe_url ?: 'https://gunrack.deals/dealers/join' );
-		$contactEmail      = (string) ( \IPS\Settings::i()->gddealer_help_contact ?: 'dealers@gunrack.deals' );
+		$foundingGroupId   = (int) ( \IPS\Settings::i()->gddealer_group_founding ?? 0 );
 
 		foreach ( $rows as $row )
 		{
 			$dealerId = (int) $row['dealer_id'];
 
-			/* Suspend all listings */
+			$isFounder = false;
+			try { $isFounder = \IPS\gddealer\Dealer\Dealer::load( $dealerId )->isFoundingMember(); } catch ( \Throwable ) {}
+
+			/* Suspend all listings (everyone — founders too) */
 			try
 			{
 				\IPS\Db::i()->update(
@@ -67,9 +67,9 @@ class _ExpireTrials extends \IPS\Task
 					[ 'dealer_id=? AND listing_status<>?', $dealerId, 'suspended' ]
 				);
 			}
-			catch ( \Exception ) {}
+			catch ( \Throwable ) {}
 
-			/* Deactivate feed config */
+			/* Deactivate feed config (everyone) */
 			try
 			{
 				\IPS\Db::i()->update(
@@ -78,87 +78,96 @@ class _ExpireTrials extends \IPS\Task
 					[ 'dealer_id=?', $dealerId ]
 				);
 			}
-			catch ( \Exception ) {}
+			catch ( \Throwable ) {}
 
-			/* Remove from all Dealer groups */
-			try
+			/* Group strip + primary reset — NON-founders only */
+			if ( !$isFounder )
 			{
-				$member = \IPS\Member::load( $dealerId );
-				if ( $member->member_id && !empty( $allDealerGroupIds ) )
+				try
 				{
-					$others = $member->mgroup_others
-						? array_filter( array_map( 'intval', explode( ',', (string) $member->mgroup_others ) ) )
-						: [];
-					$others = array_values( array_diff( $others, $allDealerGroupIds ) );
-					$member->mgroup_others = implode( ',', $others );
-
-					if ( in_array( (int) $member->member_group_id, $allDealerGroupIds, true ) )
+					$member = \IPS\Member::load( $dealerId );
+					if ( $member->member_id && !empty( $allDealerGroupIds ) )
 					{
-						$member->member_group_id = 3;
+						$others = $member->mgroup_others
+							? array_filter( array_map( 'intval', explode( ',', (string) $member->mgroup_others ) ) )
+							: [];
+						$others = array_values( array_diff( $others, $allDealerGroupIds ) );
+						$member->mgroup_others = implode( ',', $others );
+
+						if ( in_array( (int) $member->member_group_id, $allDealerGroupIds, true ) )
+						{
+							$member->member_group_id = 3;
+						}
+
+						$member->save();
 					}
-
-					$member->save();
 				}
+				catch ( \Throwable ) {}
 			}
-			catch ( \Exception ) {}
 
-			/* Send trialExpired email */
+			/* Email — founder-specific or generic */
 			try
 			{
 				$member = \IPS\Member::load( $dealerId );
 				if ( $member->member_id )
 				{
-					\IPS\Email::buildFromTemplate( 'gddealer', 'trialExpired', [
+					$tpl = $isFounder ? 'foundingTrialEnded' : 'trialExpired';
+					\IPS\Email::buildFromTemplate( 'gddealer', $tpl, [
 						'name'          => $member->name,
 						'subscribe_url' => $subscribeUrl,
 						'contact_email' => $contactEmail,
 					], \IPS\Email::TYPE_TRANSACTIONAL )->send( $member );
 				}
 			}
-			catch ( \Exception ) {}
+			catch ( \Throwable ) {}
 
 			$expired++;
 		}
 
-		/* ---- Pass 2: Send 7-day warning ---- */
-		try
-		{
-			$warningRows = \IPS\Db::i()->select(
-				'*', 'gd_dealer_feed_config',
-				[ 'DATE(trial_expires_at) = DATE(DATE_ADD(NOW(), INTERVAL 7 DAY)) AND active=?', 1 ]
-			);
-		}
-		catch ( \Exception )
-		{
-			$warningRows = [];
-		}
-
-		foreach ( $warningRows as $row )
+		/* ---- Pass 2: Send 30/7/1-day reminders ---- */
+		foreach ( [ 30 => 'trialReminder30', 7 => 'trialReminder7', 1 => 'trialReminder1' ] as $days => $tpl )
 		{
 			try
 			{
-				$member = \IPS\Member::load( (int) $row['dealer_id'] );
-				if ( $member->member_id )
-				{
-					$expiryDate = date( 'F j, Y', strtotime( (string) $row['trial_expires_at'] ) );
+				$reminderRows = \IPS\Db::i()->select(
+					'*', 'gd_dealer_feed_config',
+					[ 'DATE(trial_expires_at) = DATE(DATE_ADD(NOW(), INTERVAL ? DAY)) AND active=?', $days, 1 ]
+				);
+			}
+			catch ( \Throwable )
+			{
+				$reminderRows = [];
+			}
 
-					\IPS\Email::buildFromTemplate( 'gddealer', 'trialExpiringSoon', [
+			foreach ( $reminderRows as $row )
+			{
+				$member = null;
+				try { $member = \IPS\Member::load( (int) $row['dealer_id'] ); } catch ( \Throwable ) {}
+				if ( !$member || !$member->member_id ) { continue; }
+
+				$expiryDate = date( 'F j, Y', strtotime( (string) $row['trial_expires_at'] ) );
+
+				/* Email — own try/catch (rule #25) */
+				try
+				{
+					\IPS\Email::buildFromTemplate( 'gddealer', $tpl, [
 						'name'          => $member->name,
-						'days_left'     => '7',
+						'days'          => (string) $days,
+						'days_left'     => (string) $days,
 						'expiry_date'   => $expiryDate,
 						'subscribe_url' => $subscribeUrl,
 						'contact_email' => $contactEmail,
 					], \IPS\Email::TYPE_TRANSACTIONAL )->send( $member );
 				}
-			}
-			catch ( \Exception ) {}
+				catch ( \Throwable ) {}
 
-			$warnings++;
+				$warnings++;
+			}
 		}
 
 		if ( $expired > 0 || $warnings > 0 )
 		{
-			return "Expired {$expired} trial(s), sent {$warnings} 7-day warning(s)";
+			return "Expired {$expired} trial(s), sent {$warnings} reminder(s)";
 		}
 
 		return null;
