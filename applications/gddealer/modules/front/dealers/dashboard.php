@@ -711,11 +711,8 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		}
 
 		\IPS\Output::i()->redirect(
-			\IPS\Http\Url::internal(
-				'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) ( $this->dealer->dealer_slug ?? '' ) ),
-				'front', 'dealers_profile', (string) ( $this->dealer->dealer_slug ?? '' )
-			),
-			'Your FFL was submitted for verification.'
+			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard' ),
+			'Your FFL was submitted for verification. An admin will review it within 24 hours.'
 		);
 	}
 
