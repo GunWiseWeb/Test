@@ -123,13 +123,13 @@
 .gdNavItem__count.is-urgent { background: var(--gd-danger-bg); color: var(--gd-danger) !important; }
 .gdNavItem__count.is-warn   { background: var(--gd-warn-bg);   color: var(--gd-warn) !important; }
 
-.gdNavItem.gdNavItem--parent {
+.gdSidebar .gdNavItem.gdNavItem--parent {
     display: block;
     padding: 0;
     margin-bottom: 1px;
     background: none !important;
 }
-.gdNavItem.gdNavItem--parent:hover {
+.gdSidebar .gdNavItem.gdNavItem--parent:hover {
     background: none !important;
 }
 .gdNavItem__toggle {
@@ -188,6 +188,11 @@
   .gdSidebar .gdNavGroup__label { display: none; }
   .gdSidebar .gdNavItem { justify-content: center; padding: 10px; }
   .gdSidebar .gdNavItem__label, .gdSidebar .gdNavItem__count { display: none; }
+  .gdSidebar .gdNavItem.gdNavItem--parent { padding: 0; justify-content: initial; }
+  .gdSidebar .gdNavItem.gdNavItem--parent .gdNavItem__toggle { justify-content: center; padding: 10px; }
+  .gdSidebar .gdNavItem.gdNavItem--parent .gdNavItem__label,
+  .gdSidebar .gdNavItem.gdNavItem--parent .gdNavItem__caret { display: none; }
+  .gdSidebar .gdNavItem.gdNavItem--parent .gdNavItem__submenu { display: none !important; }
   .gdSidebar .gdSidebar__user { justify-content: center; padding: 6px; }
   .gdSidebar .gdSidebar__userInfo { display: none; }
   .gdMain { padding: 20px; }
@@ -228,6 +233,10 @@
     overflow-y: auto;
   }
   .gdDrawer__panel .gdNavItem { justify-content: flex-start !important; padding: 7px 10px !important; }
+  .gdDrawer__panel .gdNavItem.gdNavItem--parent { padding: 0 !important; display: block !important; }
+  .gdDrawer__panel .gdNavItem.gdNavItem--parent .gdNavItem__toggle { justify-content: flex-start; padding: 7px 10px; width: 100%; }
+  .gdDrawer__panel .gdNavItem.gdNavItem--parent .gdNavItem__caret { display: inline-flex; }
+  .gdDrawer__panel .gdNavItem.gdNavItem--parent.is-open .gdNavItem__submenu { display: flex; }
   .gdDrawer__panel .gdNavItem__label,
   .gdDrawer__panel .gdNavItem__count { display: inline-flex !important; }
   .gdDrawer__panel .gdNavGroup__label { display: block !important; }
