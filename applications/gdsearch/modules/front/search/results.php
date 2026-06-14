@@ -277,10 +277,15 @@ class _results extends \IPS\Dispatcher\Controller
             return;
         }
 
+        $offersSort = (string) ( \IPS\Request::i()->offers_sort ?? 'standard' );
+        if ( !\in_array( $offersSort, [ 'standard', 'price', 'rating', 'shipping' ], true ) ) {
+            $offersSort = 'standard';
+        }
+
         $listings = [];
         try {
             $searcher = new \IPS\gdsearch\Search\Searcher();
-            $listings = $searcher->getDealerListings( $upc );
+            $listings = $searcher->getDealerListings( $upc, $offersSort );
         } catch ( \Throwable ) {}
 
         $categoryName = '';
@@ -401,13 +406,25 @@ class _results extends \IPS\Dispatcher\Controller
         $listingReportLoginUrl = (string) \IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front' );
         try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'reportlisting.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
 
+        $sortOptions = [
+            'standard' => 'Standard',
+            'price'    => 'Cheapest price',
+            'rating'   => 'Best rated',
+            'shipping' => 'Cheapest shipping',
+        ];
+        $sortBaseUrl = (string) \IPS\Http\Url::internal(
+            'app=gdsearch&module=search&controller=results&do=product&upc=' . urlencode( $upc ),
+            'front'
+        );
+
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
             $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow,
             $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl,
             $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey,
             $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey,
-            $listingReportUrl, $listingReportLoggedIn, $listingReportCsrfKey, $listingReportLoginUrl
+            $listingReportUrl, $listingReportLoggedIn, $listingReportCsrfKey, $listingReportLoginUrl,
+            $offersSort, $sortOptions, $sortBaseUrl
         );
     }
 

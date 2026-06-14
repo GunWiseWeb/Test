@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl=''" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl=''" />
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 .gdsp-wrap{width:100%;margin:0;padding:18px;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#0f172a}
@@ -45,6 +45,10 @@
 .gdsp-sec-h strong{font-size:1.02em;font-weight:600;color:#0f172a}
 .gdsp-pad{padding:16px 20px}
 .gdsp-listhead{padding:16px 22px;border-bottom:1px solid #f1f5f9;background:#f8fafc;border-radius:14px 14px 0 0}
+.gdsp-sort{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.gdsp-sort a{display:inline-block;padding:5px 12px;border-radius:20px;font-size:.78em;font-weight:600;color:#64748b;text-decoration:none;border:1px solid #e2e8f0;background:#fff;transition:all .15s}
+.gdsp-sort a:hover{border-color:#93c5fd;color:#1e40af;background:#eff6ff}
+.gdsp-sort a.gdsp-sort--active{background:#1e40af;color:#fff;border-color:#1e40af}
 @media (max-width:768px){
 	.gdsp-wrap{padding:10px}
 	.gdsp-main{padding:16px}
@@ -52,6 +56,10 @@
 	.gdsp-specs{grid-template-columns:1fr}
 	.gdsp-buy-cta{margin-left:0;width:100%}
 	.gdsp-buy-btn{display:block;text-align:center}
+}
+@media (max-width:600px){
+	.gdsp-offers-table{min-width:0 !important}
+	.gdsp-col-stock,.gdsp-col-cond{display:none}
 }
 </style>
 <div class="gdsp-wrap">
@@ -192,6 +200,13 @@
 	<div class="gdsp-card" id="gdsp-listings" style="overflow:hidden">
 		<div class="gdsp-listhead">
 			<h2 style="margin:0;font-size:1.05em;font-weight:600;color:#0f172a">{lang="gdsearch_price_comparison"} <span style="font-weight:400;color:#94a3b8;font-size:0.9em">({expression="count($listings)"} {lang="gdsearch_dealers"})</span></h2>
+			{{if count($listings) > 1}}
+			<div class="gdsp-sort">
+				{{foreach $sortOptions as $sKey => $sLabel}}
+				<a href="{$sortBaseUrl}&amp;offers_sort={$sKey}#gdsp-listings" class="{{if $offersSort === $sKey}}gdsp-sort--active{{endif}}">{$sLabel}</a>
+				{{endforeach}}
+			</div>
+			{{endif}}
 		</div>
 		{{if count($listings) === 0}}
 		<div style="padding:40px;text-align:center;color:#94a3b8">
@@ -199,28 +214,28 @@
 		</div>
 		{{else}}
 		<div style="overflow-x:auto">
-		<table style="width:100%;border-collapse:collapse;min-width:560px">
+		<table class="gdsp-offers-table" style="width:100%;border-collapse:collapse;min-width:560px">
 			<thead>
 				<tr style="background:#f8fafc;font-size:0.72em;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8">
 					<th style="padding:11px 16px;text-align:left">{lang="gdsearch_dealer"}</th>
 					<th style="padding:11px 16px;text-align:right">{lang="gdsearch_price"}</th>
 					<th style="padding:11px 16px;text-align:center">{lang="gdsearch_shipping"}</th>
-					<th style="padding:11px 16px;text-align:center">{lang="gdsearch_stock"}</th>
-					<th style="padding:11px 16px;text-align:center">{lang="gdsearch_condition"}</th>
+					<th class="gdsp-col-stock" style="padding:11px 16px;text-align:center">{lang="gdsearch_stock"}</th>
+					<th class="gdsp-col-cond" style="padding:11px 16px;text-align:center">{lang="gdsearch_condition"}</th>
 					<th style="padding:11px 16px;text-align:center"></th>
 				</tr>
 			</thead>
 			<tbody>
 				{{foreach $listings as $i => $listing}}
-				<tr style="border-top:1px solid #f1f5f9{{if $i === 0}};background:#f0fdf4{{endif}}">
+				<tr style="border-top:1px solid #f1f5f9{{if $listing['is_lowest']}};background:#f0fdf4{{endif}}">
 					<td style="padding:14px 16px">
-						<div style="font-weight:600;font-size:0.92em;color:#0f172a">{$listing['dealer_name']}{{if $i === 0}} <span class="ipsBadge ipsBadge--positive" style="font-size:0.66em;vertical-align:middle">{lang="gdsearch_best_price"}</span>{{endif}}</div>
+						<div style="font-weight:600;font-size:0.92em;color:#0f172a">{$listing['dealer_name']}{{if $listing['is_lowest']}} <span class="ipsBadge ipsBadge--positive" style="font-size:0.66em;vertical-align:middle">{lang="gdsearch_best_price"}</span>{{endif}}</div>
 						<div style="margin-top:5px">
 							<button type="button" class="gd-listing-report-trigger" data-upc="{$product['upc']}" data-dealer-id="{$listing['dealer_id']}" data-dealer-name="{$listing['dealer_name']}" data-logged-in="{{if $listingReportLoggedIn}}1{{else}}0{{endif}}" style="border:none;background:none;color:#cbd5e1;font-size:.74em;cursor:pointer;padding:0">&#9873; Report</button>
 						</div>
 					</td>
 					<td style="padding:14px 16px;text-align:right">
-						<div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.1em;color:{{if $i === 0}}#16a34a{{else}}#0f172a{{endif}}">${expression="number_format((float)$listing['price'],2)"}</div>
+						<div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.1em;color:{{if $listing['is_lowest']}}#16a34a{{else}}#0f172a{{endif}}">${expression="number_format((float)$listing['price'],2)"}</div>
 					</td>
 					<td style="padding:14px 16px;text-align:center;font-size:0.85em">
 						{{if isset($listing['shipping_info']) && $listing['shipping_info'] !== ''}}
@@ -233,14 +248,14 @@
 						<span style="color:#cbd5e1">&mdash;</span>
 						{{endif}}
 					</td>
-					<td style="padding:14px 16px;text-align:center">
+					<td class="gdsp-col-stock" style="padding:14px 16px;text-align:center">
 						{{if $listing['in_stock']}}
 						<span class="ipsBadge ipsBadge--positive">{lang="gdsearch_in_stock"}{{if $listing['stock_qty'] > 0}} ({$listing['stock_qty']}){{endif}}</span>
 						{{else}}
 						<span class="ipsBadge ipsBadge--neutral">{lang="gdsearch_out_of_stock"}</span>
 						{{endif}}
 					</td>
-					<td style="padding:14px 16px;text-align:center;font-size:0.85em;color:#64748b">
+					<td class="gdsp-col-cond" style="padding:14px 16px;text-align:center;font-size:0.85em;color:#64748b">
 						{expression="ucfirst($listing['condition'])"}
 					</td>
 					<td style="padding:14px 16px;text-align:center">

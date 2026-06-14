@@ -411,31 +411,68 @@ class Searcher
     /**
      * Load all dealer listings for a single UPC (price comparison table).
      */
-    public function getDealerListings( string $upc ): array
+    public function getDealerListings( string $upc, string $sort = 'standard' ): array
     {
         $listings = [];
+
+        $orderBy = match( $sort ) {
+            'price'    => 'l.dealer_price ASC',
+            'shipping' => "(l.shipping_info IS NULL OR l.shipping_info = '') ASC, (l.shipping_info = 'Free shipping') DESC, l.dealer_price ASC",
+            'rating'   => '(r.avg_rating IS NULL) ASC, r.avg_rating DESC, l.dealer_price ASC',
+            default    => "(d.subscription_tier = 'max') DESC, l.dealer_price ASC",
+        };
+
         try {
-            foreach ( \IPS\Db::i()->select(
-                'l.*, d.dealer_name, d.dealer_slug, d.subscription_tier',
+            $select = \IPS\Db::i()->select(
+                "l.*, d.dealer_name, d.dealer_slug, d.subscription_tier, r.avg_rating",
                 [ 'gd_dealer_listings', 'l' ],
                 [ 'l.upc=? AND l.listing_status=?', $upc, 'active' ],
-                'l.dealer_price ASC'
+                $orderBy
             )->join(
                 [ 'gd_dealer_feed_config', 'd' ],
                 'l.dealer_id = d.dealer_id'
-            ) as $row ) {
+            )->join(
+                [ \IPS\Db::i()->select(
+                    'dealer_id, AVG((rating_pricing + rating_shipping + rating_service) / 3) AS avg_rating',
+                    'gd_dealer_ratings',
+                    NULL,
+                    NULL,
+                    NULL,
+                    'dealer_id'
+                ), 'r' ],
+                'r.dealer_id = l.dealer_id',
+                'LEFT'
+            );
+
+            $minPrice = null;
+            foreach ( $select as $row ) {
+                $price = (float) $row['dealer_price'];
+                if ( $minPrice === null || $price < $minPrice ) {
+                    $minPrice = $price;
+                }
                 $listings[] = [
                     'dealer_id'    => (int) $row['dealer_id'],
                     'dealer_name'  => (string) $row['dealer_name'],
                     'dealer_slug'  => (string) $row['dealer_slug'],
                     'tier'         => (string) $row['subscription_tier'],
-                    'price'        => (float) $row['dealer_price'],
+                    'price'        => $price,
                     'in_stock'     => (bool) $row['in_stock'],
                     'stock_qty'    => (int) ( $row['stock_qty'] ?? 0 ),
                     'condition'    => (string) ( $row['condition'] ?? 'new' ),
                     'listing_url'  => (string) ( $row['listing_url'] ?? '' ),
                     'shipping_info'=> (string) ( $row['shipping_info'] ?? '' ),
+                    'avg_rating'   => $row['avg_rating'] !== null ? round( (float) $row['avg_rating'], 1 ) : null,
+                    'is_lowest'    => false,
                 ];
+            }
+
+            if ( $minPrice !== null ) {
+                foreach ( $listings as &$l ) {
+                    if ( $l['price'] === $minPrice ) {
+                        $l['is_lowest'] = true;
+                    }
+                }
+                unset( $l );
             }
         } catch ( \Throwable $e ) {
             try { \IPS\Log::log( $e, 'gdsearch_listings' ); } catch ( \Throwable ) {}
