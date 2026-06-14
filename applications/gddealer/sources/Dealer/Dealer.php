@@ -88,7 +88,8 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 			return self::$tierSchedules['enterprise'];
 		}
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
-		if ( $tier === 'founding' ) { $tier = 'basic'; }
+		// expired founder, no paid tier — no service until they purchase
+		if ( $tier === 'founding' ) { return 'none'; }
 		return self::$tierSchedules[ $tier ] ?? '24hr';
 	}
 
@@ -372,6 +373,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 		}
 
 		$schedule = $this->getEffectiveImportSchedule();
+		if ( $schedule === 'none' ) { return false; }
 		$intervals = [
 			'15min' => 15 * 60,
 			'30min' => 30 * 60,
