@@ -74,6 +74,20 @@ $gddealerV10071Templates[] = [
 <div class="gdNavGroup">
     <div class="gdNavGroup__label">{$group['label']}</div>
     {{foreach $group['items'] as $item}}
+    {{if isset($item['children']) and $item['children']}}
+    <div class="gdNavItem gdNavItem--parent" data-gd-dropdown>
+        <button type="button" class="gdNavItem__toggle" aria-expanded="false">
+            {template="dealerNavIcon" group="dealers" app="gddealer" params="$item['icon']"}
+            <span class="gdNavItem__label">{$item['label']}</span>
+            <svg class="gdNavItem__caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="gdNavItem__submenu">
+            {{foreach $item['children'] as $child}}
+            <a href="{$child['url']}" class="gdNavSub">{$child['label']}</a>
+            {{endforeach}}
+        </div>
+    </div>
+    {{else}}
     <a href="{$item['url']}" class="gdNavItem {expression="$activeTab === $item['key'] ? 'is-active' : ''"}">
         {template="dealerNavIcon" group="dealers" app="gddealer" params="$item['icon']"}
         <span class="gdNavItem__label">{$item['label']}</span>
@@ -81,6 +95,7 @@ $gddealerV10071Templates[] = [
         <span class="gdNavItem__count is-{$item['badge']['variant']}">{$item['badge']['count']}</span>
         {{endif}}
     </a>
+    {{endif}}
     {{endforeach}}
 </div>
 {{endforeach}}

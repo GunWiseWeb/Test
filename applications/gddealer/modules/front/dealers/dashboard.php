@@ -1845,6 +1845,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		'pro'        => 5,
 		'founding'   => 5,
 		'enterprise' => PHP_INT_MAX,
+		'max'        => PHP_INT_MAX,
 	];
 
 	/** Map a 1–5 rating to a color on the shared rating scale. */

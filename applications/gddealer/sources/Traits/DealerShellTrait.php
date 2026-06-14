@@ -40,6 +40,11 @@ trait DealerShellTrait
 			$js = '<script>' . file_get_contents( $jsPath ) . '</script>';
 		}
 
+		$navJsPath = \IPS\ROOT_PATH . '/applications/gddealer/interface/dealerNav.js';
+		if ( file_exists( $navJsPath ) ) {
+			$js .= '<script>' . file_get_contents( $navJsPath ) . '</script>';
+		}
+
 		$fflOnboardingHtml = $this->fflOnboardingMarkup();
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_frontend_dashboard_title' );
@@ -375,6 +380,16 @@ HTML;
 					  'url' => $urls['help'], 'icon' => 'help', 'badge' => null ],
 					$canSupport ? [ 'key' => 'support', 'label' => $lang->addToStack('gddealer_support_nav'),
 					  'url' => $supportUrl, 'icon' => 'support', 'badge' => null ] : null,
+					[ 'key' => 'orders', 'label' => 'Orders',
+					  'url' => 'https://gunrack.deals/clients/orders/', 'icon' => 'orders', 'badge' => null ],
+					[ 'key' => 'mydetails', 'label' => 'My Details',
+					  'url' => '#', 'icon' => 'details', 'badge' => null,
+					  'children' => [
+						  [ 'label' => 'Personal Information', 'url' => 'https://gunrack.deals/clients/info/' ],
+						  [ 'label' => 'Addresses',            'url' => 'https://gunrack.deals/clients/addresses/' ],
+						  [ 'label' => 'Alternate Contacts',   'url' => 'https://gunrack.deals/clients/alternative-contacts/' ],
+					  ],
+					],
 				] ) )
 			],
 		];
