@@ -35,6 +35,7 @@ class _Listing extends \IPS\Patterns\ActiveRecord
 	const STATUS_OUT_OF_STOCK = 'out_of_stock';
 	const STATUS_SUSPENDED    = 'suspended';
 	const STATUS_DISCONTINUED = 'discontinued';
+	const STATUS_CAPPED       = 'capped';
 
 	/**
 	 * Load the row for a dealer+UPC pair, or null if none exists.

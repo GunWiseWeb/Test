@@ -204,6 +204,10 @@ class Importer
 
 			self::markStale( (int) $dealer->dealer_id, $runStart );
 
+			$capDeactivated = 0;
+			try { $capDeactivated = $dealer->enforceListingCap(); } catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_cap_enforce' ); } catch ( \Throwable ) {} }
+			if ( $capDeactivated > 0 ) { $stats['records_capped'] = ( $stats['records_capped'] ?? 0 ) + $capDeactivated; }
+
 			/* Recalculate denormalized pricing on gd_catalog for every UPC
 			 * touched this run (new, updated, or unchanged). Every touched
 			 * UPC must be refreshed even if THIS dealer's listing didn't

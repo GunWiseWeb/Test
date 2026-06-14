@@ -293,6 +293,7 @@ class _dealers extends \IPS\Dispatcher\Controller
 				'basic'      => 'Basic',
 				'pro'        => 'Pro',
 				'enterprise' => 'Enterprise',
+				'max'        => 'Max',
 				'founding'   => 'Founding',
 			],
 		] ) );
@@ -358,6 +359,8 @@ class _dealers extends \IPS\Dispatcher\Controller
 			$dealer->billing_note = $billingNote !== '' ? $billingNote : null;
 
 			$dealer->save();
+
+			try { $dealer->enforceListingCap(); } catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_cap_enforce' ); } catch ( \Throwable ) {} }
 
 			\IPS\Output::i()->redirect(
 				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dealers&do=view&id=' . (int) $dealer->dealer_id ),
@@ -479,6 +482,7 @@ class _dealers extends \IPS\Dispatcher\Controller
 				Dealer::TIER_BASIC      => 'Basic',
 				Dealer::TIER_PRO        => 'Pro',
 				Dealer::TIER_ENTERPRISE => 'Enterprise',
+				Dealer::TIER_MAX        => 'Max',
 				Dealer::TIER_FOUNDING   => 'Founding',
 			],
 		] ) );

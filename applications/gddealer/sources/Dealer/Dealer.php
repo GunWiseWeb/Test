@@ -151,6 +151,7 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 			{
 				$dealer->subscription_tier = $tier;
 				$dealer->save();
+				try { $dealer->enforceListingCap(); } catch ( \Throwable ) {}
 			}
 		}
 		catch ( \Throwable )
@@ -158,6 +159,119 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 		}
 
 		return $tier;
+	}
+
+	public function enforceListingCap(): int
+	{
+		$dealerId = (int) $this->dealer_id;
+		$cap = $this->getListingCap();
+
+		if ( $cap >= \PHP_INT_MAX )
+		{
+			try
+			{
+				\IPS\Db::i()->update( 'gd_dealer_listings',
+					[ 'listing_status' => \IPS\gddealer\Listing\Listing::STATUS_ACTIVE ],
+					[ 'dealer_id=? AND listing_status=?', $dealerId, \IPS\gddealer\Listing\Listing::STATUS_CAPPED ]
+				);
+			}
+			catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_cap_enforce' ); } catch ( \Throwable ) {} }
+			return 0;
+		}
+
+		try
+		{
+			$activeCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_listings',
+				[ 'dealer_id=? AND listing_status=?', $dealerId, \IPS\gddealer\Listing\Listing::STATUS_ACTIVE ]
+			)->first();
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( $e, 'gddealer_cap_enforce' ); } catch ( \Throwable ) {}
+			return 0;
+		}
+
+		$deactivated = 0;
+
+		if ( $activeCount > $cap )
+		{
+			$keepIds = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'id', 'gd_dealer_listings',
+					[ 'dealer_id=? AND listing_status=?', $dealerId, \IPS\gddealer\Listing\Listing::STATUS_ACTIVE ],
+					'click_count_30d DESC, last_seen_in_feed DESC, id ASC',
+					[ 0, $cap ]
+				) as $id )
+				{
+					$keepIds[] = (int) $id;
+				}
+			}
+			catch ( \Throwable $e )
+			{
+				try { \IPS\Log::log( $e, 'gddealer_cap_enforce' ); } catch ( \Throwable ) {}
+			}
+
+			if ( !empty( $keepIds ) )
+			{
+				$in = implode( ',', array_map( 'intval', $keepIds ) );
+				try
+				{
+					$deactivated = (int) \IPS\Db::i()->update( 'gd_dealer_listings',
+						[ 'listing_status' => \IPS\gddealer\Listing\Listing::STATUS_CAPPED ],
+						"dealer_id=" . $dealerId . " AND listing_status='active' AND id NOT IN (" . $in . ")"
+					);
+				}
+				catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_cap_enforce' ); } catch ( \Throwable ) {} }
+			}
+			else
+			{
+				try
+				{
+					$deactivated = (int) \IPS\Db::i()->update( 'gd_dealer_listings',
+						[ 'listing_status' => \IPS\gddealer\Listing\Listing::STATUS_CAPPED ],
+						[ 'dealer_id=? AND listing_status=?', $dealerId, \IPS\gddealer\Listing\Listing::STATUS_ACTIVE ]
+					);
+				}
+				catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_cap_enforce' ); } catch ( \Throwable ) {} }
+			}
+		}
+		elseif ( $activeCount < $cap )
+		{
+			$room = $cap - $activeCount;
+			$reactivateIds = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'id', 'gd_dealer_listings',
+					[ 'dealer_id=? AND listing_status=?', $dealerId, \IPS\gddealer\Listing\Listing::STATUS_CAPPED ],
+					'click_count_30d DESC, last_seen_in_feed DESC, id ASC',
+					[ 0, $room ]
+				) as $id )
+				{
+					$reactivateIds[] = (int) $id;
+				}
+			}
+			catch ( \Throwable $e )
+			{
+				try { \IPS\Log::log( $e, 'gddealer_cap_enforce' ); } catch ( \Throwable ) {}
+			}
+
+			if ( !empty( $reactivateIds ) )
+			{
+				$in = implode( ',', array_map( 'intval', $reactivateIds ) );
+				try
+				{
+					$n = (int) \IPS\Db::i()->update( 'gd_dealer_listings',
+						[ 'listing_status' => \IPS\gddealer\Listing\Listing::STATUS_ACTIVE ],
+						"dealer_id=" . $dealerId . " AND listing_status='capped' AND id IN (" . $in . ")"
+					);
+					$deactivated -= $n;
+				}
+				catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_cap_enforce' ); } catch ( \Throwable ) {} }
+			}
+		}
+
+		return $deactivated;
 	}
 
 	public function getListingCap(): int

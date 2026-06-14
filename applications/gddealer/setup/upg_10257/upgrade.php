@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10256;
+namespace IPS\gddealer\setup\upg_10257;
 
 use function defined;
 
@@ -14,7 +14,7 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* --- v255 carry-forward: records_capped column ---------------------- */
+		/* v255 carry-forward: records_capped column */
 		if ( !\IPS\Db::i()->checkForColumn( 'gd_dealer_import_log', 'records_capped' ) )
 		{
 			\IPS\Db::i()->addColumn( 'gd_dealer_import_log', [
@@ -37,7 +37,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* --- v256: self-heal extensions.json for MemberSync extension ------- */
+		/* v256 carry-forward: self-heal extensions.json for MemberSync */
 		$extFile = \IPS\ROOT_PATH . '/applications/gddealer/data/extensions.json';
 		try
 		{
@@ -54,7 +54,7 @@ class _upgrade
 		catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
 
-		/* --- v256: one-time backfill — sync subscription_tier from groups --- */
+		/* v256 carry-forward: one-time backfill of subscription_tier from groups */
 		try
 		{
 			foreach ( \IPS\Db::i()->select( '*', 'gd_dealer_feed_config' ) as $row )
@@ -62,16 +62,10 @@ class _upgrade
 				try
 				{
 					$memberId = (int) $row['dealer_id'];
-					if ( $memberId <= 0 )
-					{
-						continue;
-					}
+					if ( $memberId <= 0 ) { continue; }
 
 					$member = \IPS\Member::load( $memberId );
-					if ( !$member->member_id )
-					{
-						continue;
-					}
+					if ( !$member->member_id ) { continue; }
 
 					$groupIds = [ (int) $member->member_group_id ];
 					if ( $member->mgroup_others )
@@ -95,10 +89,7 @@ class _upgrade
 					foreach ( $tierPrecedence as $t )
 					{
 						$settingKey = $tierGroupSettings[ $t ] ?? '';
-						if ( !$settingKey )
-						{
-							continue;
-						}
+						if ( !$settingKey ) { continue; }
 						$gid = (int) \IPS\Settings::i()->$settingKey;
 						if ( $gid > 0 && \in_array( $gid, $groupIds, true ) )
 						{
@@ -124,7 +115,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* --- Seed lang strings from v255 + v256 ----------------------------- */
+		/* v255 carry-forward: seed lang strings */
 		$newStrings = [
 			'gddealer_notif_listing_cap_reached'      => 'Listing cap reached',
 			'gddealer_notif_listing_cap_reached_desc'  => 'When your feed exceeds your plan\'s listing cap and some listings are skipped.',
@@ -149,12 +140,14 @@ class _upgrade
 			}
 		}
 
-		/* --- Re-seed canonical templates ------------------------------------ */
+		/* v257: no schema change — 'capped' is a new value in the existing
+		 * varchar listing_status column. No auto-trim in upgrade — let it
+		 * happen on next import or admin tier change. */
+
 		require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
 		\IPS\gddealer\Setup\CanonicalTemplates::ensure();
 		\IPS\gddealer\Setup\CanonicalTemplates::clearCaches();
 
-		/* --- Clear all caches ----------------------------------------------- */
 		try { unset( \IPS\Data\Store::i()->extensions ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
