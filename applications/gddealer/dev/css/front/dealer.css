@@ -123,17 +123,33 @@
 .gdNavItem__count.is-urgent { background: var(--gd-danger-bg); color: var(--gd-danger) !important; }
 .gdNavItem__count.is-warn   { background: var(--gd-warn-bg);   color: var(--gd-warn) !important; }
 
-.gdNavItem__toggle { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0;
-                     cursor: pointer; font: inherit; color: inherit; padding: 8px 10px; text-align: left;
-                     border-radius: 6px; text-decoration: none; }
-.gdNavItem__toggle:hover { background: var(--gd-surface-muted); }
+.gdNavItem--parent {
+    display: block; padding: 0; margin-bottom: 1px; background: none !important;
+}
+.gdNavItem--parent:hover { background: none !important; }
+.gdNavItem__toggle {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: 0; cursor: pointer; text-align: left;
+    padding: 7px 10px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; color: var(--gd-text-muted);
+    text-decoration: none; transition: all 0.1s;
+}
+.gdNavItem__toggle:hover { background: var(--gd-surface-muted); color: var(--gd-text); }
+.gdNavItem__toggle .gdNavItem__icon { color: var(--gd-text-subtle); }
+.gdNavItem__toggle:hover .gdNavItem__icon { color: var(--gd-text); }
 .gdNavItem__caret { width: 16px; height: 16px; margin-left: auto; transition: transform .15s ease; flex-shrink: 0; }
 .gdNavItem--parent.is-open .gdNavItem__caret { transform: rotate(180deg); }
-.gdNavItem__submenu { display: none; flex-direction: column; padding-left: 34px; }
+.gdNavItem__submenu {
+    display: none; flex-direction: column; padding: 2px 0 2px 0;
+    margin-left: 36px; border-left: 1px solid var(--gd-border-subtle);
+}
 .gdNavItem--parent.is-open .gdNavItem__submenu { display: flex; }
-.gdNavSub { display: block; padding: 7px 12px; font-size: 12px; color: inherit; opacity: .7;
-            text-decoration: none; border-radius: 6px; }
-.gdNavSub:hover { opacity: 1; background: var(--gd-surface-muted); }
+.gdNavSub {
+    display: block; padding: 6px 10px; font-size: 12px;
+    color: var(--gd-text-muted); opacity: .85;
+    text-decoration: none; border-radius: 6px;
+}
+.gdNavSub:hover { opacity: 1; background: var(--gd-surface-muted); color: var(--gd-text); }
 
 .gdSidebar__footer { margin-top: auto; padding: 16px 12px 0;
                      border-top: 1px solid var(--gd-border-subtle); }
