@@ -166,6 +166,9 @@ $lang = array(
 	'gdcatalog_rule_any_true'                  => "Any Source = True",
 	'gdcatalog_rule_merge_all'                 => "Merge All Sources",
 
+	/* Pending conflicts */
+	'gdcatalog_pending_conflicts_title'        => "Pending Feed Conflicts",
+
 	/* Tasks */
 	'task__ImportFeeds'                        => "Import Distributor Feeds",
 	'task__AutoResolveConflicts'               => "Auto-Resolve Expired Feed Conflicts",

@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdcatalog\setup\upg_10103;
+namespace IPS\gdcatalog\setup\upg_10104;
 
 use function defined;
 
@@ -34,6 +34,7 @@ class _upgrade
 		$newStrings = [
 			'gdcatalog_auto_resolve_enabled'      => 'Auto-resolve feed conflicts',
 			'gdcatalog_auto_resolve_enabled_desc'  => 'When off, distributor feed conflicts wait for manual review and are never auto-accepted.',
+			'gdcatalog_pending_conflicts_title'    => 'Pending Feed Conflicts',
 		];
 		try
 		{
@@ -58,6 +59,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
+		try { \IPS\Theme::deleteCompiledTemplate( 'gdcatalog', 'admin', 'catalog' ); } catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
 		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }

@@ -127,6 +127,7 @@
     <word key="gdcatalog_rule_admin_override"><![CDATA[Admin Override]]></word>
     <word key="gdcatalog_rule_any_true"><![CDATA[Any Source = True]]></word>
     <word key="gdcatalog_rule_merge_all"><![CDATA[Merge All Sources]]></word>
+    <word key="gdcatalog_pending_conflicts_title"><![CDATA[Pending Feed Conflicts]]></word>
     <word key="task__ImportFeeds"><![CDATA[Import Distributor Feeds]]></word>
     <word key="task__AutoResolveConflicts"><![CDATA[Auto-Resolve Expired Feed Conflicts]]></word>
     <word key="gdcatalog_feeds_help"><![CDATA[Configure each distributor's feed URL, authentication, field mapping, and import schedule. Feeds are processed by the ImportFeeds background task.]]></word>

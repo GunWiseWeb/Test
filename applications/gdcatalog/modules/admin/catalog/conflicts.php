@@ -98,7 +98,6 @@ class _conflicts extends \IPS\Dispatcher\Controller
 
 		$entryCount = \count( $entries );
 
-		/* v1.0.26: total counts by scope. Single grouped query for efficiency. */
 		$manualCount = 0;
 		$autoCount   = 0;
 		foreach ( \IPS\Db::i()->select(
@@ -120,16 +119,19 @@ class _conflicts extends \IPS\Dispatcher\Controller
 			}
 		}
 
+		$pendingCount = 0;
+		try { $pendingCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_feed_conflicts', [ 'status=?', 'pending' ] )->first(); } catch ( \Throwable ) {}
+
+		$pendingUrl = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&do=pending' );
+
 		$formActionUrl = (string) \IPS\Http\Url::internal(
 			'app=gdcatalog&module=catalog&controller=conflicts'
 		);
 
-		/* v1.0.26: scope filter URLs */
 		$urlAll    = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts' );
 		$urlManual = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&scope=manual' );
 		$urlAuto   = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&scope=auto' );
 
-		/* v1.0.26: clear auto-resolved URL (CSRF-protected action) */
 		$clearAutoUrl = (string) \IPS\Http\Url::internal(
 			'app=gdcatalog&module=catalog&controller=conflicts&do=clearAutoResolved'
 		)->csrf();
@@ -145,7 +147,8 @@ class _conflicts extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->conflictLog(
 			$entries, $filterField, $filterSource, $filterRule, $filterUpc, $filterScope,
 			$total, $pagination, $entryCount, $formActionUrl,
-			$manualCount, $autoCount, $urlAll, $urlManual, $urlAuto, $clearAutoUrl
+			$manualCount, $autoCount, $urlAll, $urlManual, $urlAuto, $clearAutoUrl,
+			$pendingCount, $pendingUrl
 		);
 	}
 
@@ -176,6 +179,131 @@ class _conflicts extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts' ),
 			$message
+		);
+	}
+
+	protected function pending()
+	{
+		$conflicts = \IPS\gdcatalog\Conflict\FeedConflict::loadPending();
+
+		$rows = [];
+		foreach ( $conflicts as $c )
+		{
+			$distName = '';
+			try { $distName = (string) \IPS\Db::i()->select( 'distributor_label', 'gd_distributor_feeds', [ 'id=?', (int) $c->distributor_id ] )->first(); } catch ( \Throwable ) {}
+			if ( $distName === '' ) { $distName = 'Distributor #' . (int) $c->distributor_id; }
+
+			$acceptUrl = (string) \IPS\Http\Url::internal(
+				'app=gdcatalog&module=catalog&controller=conflicts&do=acceptConflict&id=' . (int) $c->id
+			)->csrf();
+
+			$rows[] = [
+				'id'             => (int) $c->id,
+				'upc'            => (string) $c->upc,
+				'field_name'     => (string) $c->field_name,
+				'current_value'  => htmlspecialchars( mb_substr( (string) $c->current_value, 0, 120 ) ),
+				'incoming_value' => htmlspecialchars( mb_substr( (string) $c->incoming_value, 0, 120 ) ),
+				'distributor'    => $distName,
+				'detected_at'    => (string) $c->detected_at,
+				'accept_url'     => $acceptUrl,
+			];
+		}
+
+		$logUrl  = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts' );
+		$keepUrl = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&do=keepConflict' );
+		$customUrl = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&do=customConflict' );
+		$csrfKey = \IPS\Session::i()->csrfKey;
+
+		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_pending_conflicts_title' );
+		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->pendingConflicts(
+			$rows, $logUrl, $keepUrl, $customUrl, $csrfKey
+		);
+	}
+
+	protected function acceptConflict()
+	{
+		\IPS\Session::i()->csrfCheck();
+		\IPS\Dispatcher::i()->checkAcpPermission( 'catalog_manage' );
+
+		try
+		{
+			$c = \IPS\gdcatalog\Conflict\FeedConflict::load( (int) \IPS\Request::i()->id );
+			$c->acceptIncoming( (int) \IPS\Member::loggedIn()->member_id );
+		}
+		catch ( \OutOfRangeException )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&do=pending' ),
+				'Conflict not found.'
+			);
+			return;
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&do=pending' ),
+			'Conflict resolved: accepted incoming value.'
+		);
+	}
+
+	protected function keepConflict()
+	{
+		\IPS\Session::i()->csrfCheck();
+		\IPS\Dispatcher::i()->checkAcpPermission( 'catalog_manage' );
+
+		try
+		{
+			$c = \IPS\gdcatalog\Conflict\FeedConflict::load( (int) \IPS\Request::i()->id );
+			$reason = trim( (string) ( \IPS\Request::i()->reason ?? '' ) ) ?: 'Manually resolved by admin';
+			$c->keepExisting( (int) \IPS\Member::loggedIn()->member_id, $reason );
+		}
+		catch ( \OutOfRangeException )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&do=pending' ),
+				'Conflict not found.'
+			);
+			return;
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&do=pending' ),
+			'Conflict resolved: kept current value.'
+		);
+	}
+
+	protected function customConflict()
+	{
+		\IPS\Session::i()->csrfCheck();
+		\IPS\Dispatcher::i()->checkAcpPermission( 'catalog_manage' );
+
+		$value = (string) ( \IPS\Request::i()->custom_value ?? '' );
+		if ( $value === '' )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&do=pending' ),
+				'Custom value cannot be empty.'
+			);
+			return;
+		}
+
+		try
+		{
+			$c = \IPS\gdcatalog\Conflict\FeedConflict::load( (int) \IPS\Request::i()->id );
+			$reason = trim( (string) ( \IPS\Request::i()->reason ?? '' ) ) ?: 'Manually resolved by admin';
+			$c->setCustom( (int) \IPS\Member::loggedIn()->member_id, $value, $reason );
+		}
+		catch ( \OutOfRangeException )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&do=pending' ),
+				'Conflict not found.'
+			);
+			return;
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=conflicts&do=pending' ),
+			'Conflict resolved: custom value set.'
 		);
 	}
 }

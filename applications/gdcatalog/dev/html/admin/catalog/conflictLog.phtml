@@ -1,5 +1,8 @@
-<ips:template parameters="$entries, $filterField, $filterSource, $filterRule, $filterUpc, $filterScope, $total, $pagination, $entryCount, $formActionUrl, $manualCount, $autoCount, $urlAll, $urlManual, $urlAuto, $clearAutoUrl" />
+<ips:template parameters="$entries, $filterField, $filterSource, $filterRule, $filterUpc, $filterScope, $total, $pagination, $entryCount, $formActionUrl, $manualCount, $autoCount, $urlAll, $urlManual, $urlAuto, $clearAutoUrl, $pendingCount=0, $pendingUrl=''" />
 <div class="ipsBox ipsPull">
+	<div style="display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0);align-items:center">
+		<a href="{$pendingUrl}" class="ipsButton ipsButton--primary ipsButton--small">Pending Conflicts ({$pendingCount})</a>
+	</div>
 	<div class="ipsBox_body ipsPad">
 
 		<div style="display:flex;gap:16px;margin-bottom:24px">
