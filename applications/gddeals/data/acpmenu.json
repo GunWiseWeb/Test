@@ -1,0 +1,10 @@
+{
+    "deals": {
+        "categories": {
+            "tab": "gddeals",
+            "controller": "categories",
+            "do": "",
+            "restriction": "categories_manage"
+        }
+    }
+}

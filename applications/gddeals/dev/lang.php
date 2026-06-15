@@ -33,4 +33,5 @@ $lang = [
     'gddeals_cat_8'                   => 'Safes',
     'gddeals_cat_9'                   => 'NFA',
     'gddeals_cat_10'                  => 'Knives',
+    'r__categories_manage'            => 'Manage Deal Categories',
 ];
