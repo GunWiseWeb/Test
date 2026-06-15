@@ -45,11 +45,19 @@ class _settings extends \IPS\Dispatcher\Controller
 			\IPS\Settings::i()->gdcatalog_opensearch_index ?: 'gunrack_products',
 			TRUE
 		));
+		$form->add( new \IPS\Helpers\Form\YesNo(
+			'gdcatalog_auto_resolve_enabled',
+			(bool) \IPS\Settings::i()->gdcatalog_auto_resolve_enabled,
+			FALSE,
+			[ 'togglesOn' => [ 'gdcatalog_auto_resolve_hours' ] ]
+		));
 		$form->add( new \IPS\Helpers\Form\Number(
 			'gdcatalog_auto_resolve_hours',
 			\IPS\Settings::i()->gdcatalog_auto_resolve_hours ?: 48,
-			TRUE,
-			[ 'min' => 1, 'max' => 168 ]
+			FALSE,
+			[ 'min' => 1, 'max' => 168 ],
+			NULL, NULL, NULL,
+			'gdcatalog_auto_resolve_hours'
 		));
 		$form->add( new \IPS\Helpers\Form\Number(
 			'gdcatalog_discontinue_threshold',

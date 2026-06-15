@@ -8,6 +8,10 @@
 		"default": "gunrack_products"
 	},
 	{
+		"key": "gdcatalog_auto_resolve_enabled",
+		"default": "0"
+	},
+	{
 		"key": "gdcatalog_auto_resolve_hours",
 		"default": "48"
 	},

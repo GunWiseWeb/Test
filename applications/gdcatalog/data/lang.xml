@@ -143,6 +143,8 @@
     <word key="gdcatalog_feeds_manage"><![CDATA[Can manage feed configuration]]></word>
     <word key="gdcatalog_opensearch_host"><![CDATA[OpenSearch Host]]></word>
     <word key="gdcatalog_opensearch_index"><![CDATA[OpenSearch Index Name]]></word>
+    <word key="gdcatalog_auto_resolve_enabled"><![CDATA[Auto-resolve feed conflicts]]></word>
+    <word key="gdcatalog_auto_resolve_enabled_desc"><![CDATA[When off, distributor feed conflicts wait for manual review and are never auto-accepted.]]></word>
     <word key="gdcatalog_auto_resolve_hours"><![CDATA[Auto-Resolve Conflicts After (Hours)]]></word>
     <word key="gdcatalog_discontinue_threshold"><![CDATA[Discontinue Threshold (Missing Feeds)]]></word>
     <word key="gdcatalog_digest_email_enabled"><![CDATA[Daily Compliance Digest Email]]></word>

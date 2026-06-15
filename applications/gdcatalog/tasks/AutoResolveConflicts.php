@@ -32,6 +32,11 @@ class _AutoResolveConflicts extends \IPS\Task
 	 */
 	public function execute(): mixed
 	{
+		if ( ! \IPS\Settings::i()->gdcatalog_auto_resolve_enabled )
+		{
+			return null;
+		}
+
 		$expired  = FeedConflict::loadExpired();
 		$resolved = 0;
 
