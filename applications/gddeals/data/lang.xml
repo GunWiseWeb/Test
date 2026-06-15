@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language name="English (US)">
+  <app key="gddeals">
+    <word key="__app_gddeals"><![CDATA[GD Deals]]></word>
+    <word key="menutab__gddeals"><![CDATA[GD Deals]]></word>
+    <word key="menutab__gddeals_icon"><![CDATA[tags]]></word>
+    <word key="module__gddeals_deals"><![CDATA[Deals]]></word>
+    <word key="menu__gddeals_deals"><![CDATA[Deals]]></word>
+    <word key="menu__gddeals_deals_categories"><![CDATA[Categories]]></word>
+    <word key="menu__gddeals_deals_browse"><![CDATA[Browse Deals]]></word>
+    <word key="gddeals_categories_title"><![CDATA[Deal Categories]]></word>
+    <word key="gddeals_category_add"><![CDATA[Add Category]]></word>
+    <word key="gddeals_category_edit"><![CDATA[Edit Category]]></word>
+    <word key="gddeals_category_delete"><![CDATA[Delete Category]]></word>
+    <word key="gddeals_category_delete_confirm"><![CDATA[Are you sure you want to delete this category?]]></word>
+    <word key="gddeals_ct_deal"><![CDATA[Deal]]></word>
+    <word key="gddeals_ct_deals"><![CDATA[Deals]]></word>
+    <word key="gddeals_ct_deal_pl"><![CDATA[Deals]]></word>
+    <word key="gddeals_ct_deal_lc"><![CDATA[deal]]></word>
+    <word key="gddeals_ct_deals_lc"><![CDATA[deals]]></word>
+    <word key="gddeals_ct_comment"><![CDATA[Comment]]></word>
+    <word key="gddeals_ct_comments"><![CDATA[Comments]]></word>
+    <word key="gddeals_perm_view"><![CDATA[Can view deals?]]></word>
+    <word key="gddeals_perm_read"><![CDATA[Can read deals?]]></word>
+    <word key="gddeals_perm_add"><![CDATA[Can submit deals?]]></word>
+    <word key="gddeals_perm_reply"><![CDATA[Can comment on deals?]]></word>
+    <word key="gddeals_cat_1"><![CDATA[Handguns]]></word>
+    <word key="gddeals_cat_2"><![CDATA[Rifles]]></word>
+    <word key="gddeals_cat_3"><![CDATA[Shotguns]]></word>
+    <word key="gddeals_cat_4"><![CDATA[Ammunition]]></word>
+    <word key="gddeals_cat_5"><![CDATA[Optics]]></word>
+    <word key="gddeals_cat_6"><![CDATA[Gun Accessories]]></word>
+    <word key="gddeals_cat_7"><![CDATA[Holsters]]></word>
+    <word key="gddeals_cat_8"><![CDATA[Safes]]></word>
+    <word key="gddeals_cat_9"><![CDATA[NFA]]></word>
+    <word key="gddeals_cat_10"><![CDATA[Knives]]></word>
+  </app>
+</language>

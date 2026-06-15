@@ -1,0 +1,7 @@
+{
+	"core": {
+		"ContentRouter": {
+			"Deals": "IPS\\gddeals\\extensions\\core\\ContentRouter\\Deals"
+		}
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"admin": {
+		"deals": {
+			"default_controller": "categories",
+			"protected": false
+		}
+	},
+	"front": {
+		"deals": {
+			"default_controller": "browse",
+			"protected": false
+		}
+	}
+}

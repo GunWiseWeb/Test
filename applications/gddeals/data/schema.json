@@ -1,0 +1,126 @@
+{
+    "gd_deal_categories": {
+        "name": "gd_deal_categories",
+        "columns": {
+            "id": { "name": "id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "parent_id": { "name": "parent_id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "position": { "name": "position", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "open": { "name": "open", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": 1, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "name_seo": { "name": "name_seo", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "bitoptions": { "name": "bitoptions", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "deal_count": { "name": "deal_count", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY": { "type": "primary", "name": "PRIMARY", "columns": ["id"], "length": [null] },
+            "idx_parent_id": { "type": "key", "name": "idx_parent_id", "columns": ["parent_id"], "length": [null] }
+        }
+    },
+    "gd_deal_posts": {
+        "name": "gd_deal_posts",
+        "columns": {
+            "id": { "name": "id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "category_id": { "name": "category_id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "member_id": { "name": "member_id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "author_name": { "name": "author_name", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "title": { "name": "title", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "description": { "name": "description", "type": "TEXT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "posted_at": { "name": "posted_at", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "updated": { "name": "updated", "type": "INT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "view_count": { "name": "view_count", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "comment_count": { "name": "comment_count", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "unapproved_comments": { "name": "unapproved_comments", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "hidden_comments": { "name": "hidden_comments", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "last_comment": { "name": "last_comment", "type": "INT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "approved": { "name": "approved", "type": "TINYINT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "approved_by": { "name": "approved_by", "type": "INT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "approved_date": { "name": "approved_date", "type": "INT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "featured": { "name": "featured", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "ip_address": { "name": "ip_address", "type": "VARCHAR", "length": 46, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "post_type": { "name": "post_type", "type": "ENUM", "length": null, "decimals": null, "allow_null": false, "default": "product", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": ["product","bundle","storewide","clearance","coupon","price_error"], "comment": "" },
+            "upc": { "name": "upc", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "retailer_name": { "name": "retailer_name", "type": "VARCHAR", "length": 150, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "retailer_type": { "name": "retailer_type", "type": "ENUM", "length": null, "decimals": null, "allow_null": false, "default": "online", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": ["online","instore","both"], "comment": "" },
+            "store_location": { "name": "store_location", "type": "VARCHAR", "length": 200, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "deal_price": { "name": "deal_price", "type": "DECIMAL", "length": 10, "decimals": 2, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "original_price": { "name": "original_price", "type": "DECIMAL", "length": 10, "decimals": 2, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "discount_pct": { "name": "discount_pct", "type": "DECIMAL", "length": 5, "decimals": 2, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "deal_url": { "name": "deal_url", "type": "VARCHAR", "length": 500, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "promo_code": { "name": "promo_code", "type": "VARCHAR", "length": 100, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "shipping_cost": { "name": "shipping_cost", "type": "DECIMAL", "length": 10, "decimals": 2, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "free_shipping": { "name": "free_shipping", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "source_badge": { "name": "source_badge", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": false, "default": "community", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "upvotes": { "name": "upvotes", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "downvotes": { "name": "downvotes", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "click_count": { "name": "click_count", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "heat_score": { "name": "heat_score", "type": "TINYINT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "heat_label": { "name": "heat_label", "type": "ENUM", "length": null, "decimals": null, "allow_null": false, "default": "cold", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": ["cold","warm","hot","fire"], "comment": "" },
+            "expired": { "name": "expired", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "expires_at": { "name": "expires_at", "type": "INT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "manually_expired_by": { "name": "manually_expired_by", "type": "INT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "manually_expired_at": { "name": "manually_expired_at", "type": "INT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "flagged_expired": { "name": "flagged_expired", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "dealer_id": { "name": "dealer_id", "type": "INT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "show_source": { "name": "show_source", "type": "ENUM", "length": null, "decimals": null, "allow_null": false, "default": "community", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": ["community","dealer"], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY": { "type": "primary", "name": "PRIMARY", "columns": ["id"], "length": [null] },
+            "idx_category_id": { "type": "key", "name": "idx_category_id", "columns": ["category_id"], "length": [null] },
+            "idx_member_id": { "type": "key", "name": "idx_member_id", "columns": ["member_id"], "length": [null] },
+            "idx_approved": { "type": "key", "name": "idx_approved", "columns": ["approved"], "length": [null] },
+            "idx_upc": { "type": "key", "name": "idx_upc", "columns": ["upc"], "length": [null] },
+            "idx_posted_at": { "type": "key", "name": "idx_posted_at", "columns": ["posted_at"], "length": [null] },
+            "idx_expires_at": { "type": "key", "name": "idx_expires_at", "columns": ["expires_at"], "length": [null] },
+            "idx_dealer_id": { "type": "key", "name": "idx_dealer_id", "columns": ["dealer_id"], "length": [null] }
+        }
+    },
+    "gd_deal_comments": {
+        "name": "gd_deal_comments",
+        "columns": {
+            "id": { "name": "id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "deal_id": { "name": "deal_id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "member_id": { "name": "member_id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "author_name": { "name": "author_name", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "content": { "name": "content", "type": "TEXT", "length": null, "decimals": null, "allow_null": false, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "comment_date": { "name": "comment_date", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "ip_address": { "name": "ip_address", "type": "VARCHAR", "length": 46, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "approved": { "name": "approved", "type": "TINYINT", "length": null, "decimals": null, "allow_null": false, "default": 1, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY": { "type": "primary", "name": "PRIMARY", "columns": ["id"], "length": [null] },
+            "idx_deal_id": { "type": "key", "name": "idx_deal_id", "columns": ["deal_id"], "length": [null] },
+            "idx_member_id": { "type": "key", "name": "idx_member_id", "columns": ["member_id"], "length": [null] }
+        }
+    },
+    "gd_deal_votes": {
+        "name": "gd_deal_votes",
+        "columns": {
+            "id": { "name": "id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "deal_id": { "name": "deal_id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "member_id": { "name": "member_id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "vote": { "name": "vote", "type": "TINYINT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "voted_at": { "name": "voted_at", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY": { "type": "primary", "name": "PRIMARY", "columns": ["id"], "length": [null] },
+            "idx_deal_member": { "type": "unique", "name": "idx_deal_member", "columns": ["deal_id","member_id"], "length": [null,null] }
+        }
+    },
+    "gd_deal_retailers": {
+        "name": "gd_deal_retailers",
+        "columns": {
+            "id": { "name": "id", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "name": { "name": "name", "type": "VARCHAR", "length": 150, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "slug": { "name": "slug", "type": "VARCHAR", "length": 160, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "logo_url": { "name": "logo_url", "type": "VARCHAR", "length": 500, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "website_url": { "name": "website_url", "type": "VARCHAR", "length": 500, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "retailer_type": { "name": "retailer_type", "type": "ENUM", "length": null, "decimals": null, "allow_null": false, "default": "both", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": ["online","instore","both"], "comment": "" },
+            "deal_count": { "name": "deal_count", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "is_registered_dealer": { "name": "is_registered_dealer", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "created_at": { "name": "created_at", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY": { "type": "primary", "name": "PRIMARY", "columns": ["id"], "length": [null] },
+            "idx_slug": { "type": "unique", "name": "idx_slug", "columns": ["slug"], "length": [null] }
+        }
+    }
+}
