@@ -1,4 +1,4 @@
-<ips:template parameters="$cards, $cats, $activeCat, $activeSort, $activeQf, $pagination, $total, $sortUrls, $qfUrls" />
+<ips:template parameters="$cards, $cats, $activeCat, $activeSort, $activeQf, $pagination, $total, $sortUrls, $qfUrls, $csrfKey" />
 <div class="gd-deals-wrap">
 	<div class="gd-deals-header">
 		<h1>{lang="gddeals_feed_title"}</h1>
@@ -16,6 +16,7 @@
 		<span class="gd-control-label">{lang="gddeals_sort_label"}</span>
 		<div class="gd-seg">
 			<a href="{$sortUrls['newest']}"{{if $activeSort == 'newest'}} class="gd-active"{{endif}}>{lang="gddeals_sort_newest"}</a>
+			<a href="{$sortUrls['hottest']}"{{if $activeSort == 'hottest'}} class="gd-active"{{endif}}>{lang="gddeals_sort_hottest"}</a>
 			<a href="{$sortUrls['discount']}"{{if $activeSort == 'discount'}} class="gd-active"{{endif}}>{lang="gddeals_sort_discount"}</a>
 			<a href="{$sortUrls['expiring']}"{{if $activeSort == 'expiring'}} class="gd-active"{{endif}}>{lang="gddeals_sort_expiring"}</a>
 		</div>
@@ -30,30 +31,40 @@
 	{{else}}
 		<div class="gd-deal-grid">
 			{{foreach $cards as $d}}
-				<a class="gd-deal-card" href="{$d['url']}">
-					{{if $d['image']}}
-						<div class="gd-card-imgwrap"><img class="gd-card-img" src="{$d['image']}" alt="{$d['title']}"></div>
-					{{endif}}
-					<div class="gd-card-top">
-						<span class="gd-card-cat">{$d['category']}</span>
-						<div class="gd-card-title">{$d['title']}</div>
-						<div class="gd-card-retailer">{$d['retailer']}</div>
-					</div>
-					<div class="gd-card-price">
-						{{if $d['price']}}<span class="gd-price">{$d['price']}</span>{{endif}}
-						{{if $d['discount']}}<span class="gd-discount">{$d['discount']}% {lang="gddeals_off"}</span>{{endif}}
-						{{if $d['original']}}<span class="gd-orig">{$d['original']}</span>{{endif}}
-					</div>
-					{{if $d['promo'] or $d['free_ship']}}
-						<div class="gd-card-badges">
-							{{if $d['promo']}}<span class="gd-badge">{lang="gddeals_promo_badge"}</span>{{endif}}
-							{{if $d['free_ship']}}<span class="gd-badge gd-ship">{lang="gddeals_free_ship"}</span>{{endif}}
+				<div class="gd-deal-card">
+					<a class="gd-card-main" href="{$d['url']}">
+						{{if $d['image']}}
+							<div class="gd-card-imgwrap"><img class="gd-card-img" src="{$d['image']}" alt="{$d['title']}"></div>
+						{{endif}}
+						<div class="gd-card-top">
+							<span class="gd-card-cat">{$d['category']}</span>
+							<div class="gd-card-title">{$d['title']}</div>
+							<div class="gd-card-retailer">{$d['retailer']}</div>
 						</div>
-					{{endif}}
+						<div class="gd-card-price">
+							{{if $d['price']}}<span class="gd-price">{$d['price']}</span>{{endif}}
+							{{if $d['discount']}}<span class="gd-discount">{$d['discount']}% {lang="gddeals_off"}</span>{{endif}}
+							{{if $d['original']}}<span class="gd-orig">{$d['original']}</span>{{endif}}
+						</div>
+						{{if $d['promo'] or $d['free_ship']}}
+							<div class="gd-card-badges">
+								{{if $d['promo']}}<span class="gd-badge">{lang="gddeals_promo_badge"}</span>{{endif}}
+								{{if $d['free_ship']}}<span class="gd-badge gd-ship">{lang="gddeals_free_ship"}</span>{{endif}}
+							</div>
+						{{endif}}
+					</a>
 					<div class="gd-card-foot">
-						{lang="gddeals_by"} {$d['author']} · {$d['posted']}{{if $d['expires']}} · {lang="gddeals_expires"} {$d['expires']}{{endif}}
+						<div class="gd-card-foot-row">
+							<span>{lang="gddeals_by"} {$d['author']} · {$d['posted']}{{if $d['expires']}} · {lang="gddeals_expires"} {$d['expires']}{{endif}}</span>
+							{{if $d['heat_label'] != 'cold'}}<span class="gd-heat-badge gd-heat--{$d['heat_label']}">{$d['heat_text']}</span>{{endif}}
+						</div>
+						<div class="gd-vote-widget" data-vote-url="{$d['vote_url']}" data-csrf-key="{$csrfKey}">
+							<button class="gd-vote-btn{{if $d['user_vote'] == 1}} gd-voted{{endif}}" data-dir="up" title="Upvote">&#9650;</button>
+							<span class="gd-vote-score">{$d['heat_score']}</span>
+							<button class="gd-vote-btn{{if $d['user_vote'] == -1}} gd-voted{{endif}}" data-dir="down" title="Downvote">&#9660;</button>
+						</div>
 					</div>
-				</a>
+				</div>
 			{{endforeach}}
 		</div>
 		{$pagination|raw}

@@ -71,3 +71,23 @@
 .gd-comments-h{font-size:1.25rem;font-weight:800;margin:0 0 16px;color:#16181d;}
 .gd-comments-list{margin-bottom:18px;}
 .gd-comment-form{margin-top:18px;}
+
+/* card restructure for vote widget */
+.gd-card-main{display:flex;flex-direction:column;text-decoration:none;color:inherit;flex:1;}
+.gd-card-foot-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+
+/* vote widget */
+.gd-vote-widget{display:inline-flex;align-items:center;gap:6px;}
+.gd-vote-btn{background:none;border:1px solid #d3d9e0;border-radius:6px;padding:3px 8px;font-size:.78rem;color:#8a93a0;cursor:pointer;line-height:1;transition:.12s;}
+.gd-vote-btn:hover{border-color:#1a7f37;color:#1a7f37;background:#f0faf3;}
+.gd-vote-btn.gd-voted{border-color:#1a7f37;color:#fff;background:#1a7f37;}
+.gd-vote-score{font-size:.92rem;font-weight:800;color:#16181d;min-width:20px;text-align:center;}
+.gd-vote--lg{margin:8px 0 16px;}
+.gd-vote--lg .gd-vote-btn{padding:6px 12px;font-size:.95rem;border-radius:8px;}
+.gd-vote--lg .gd-vote-score{font-size:1.3rem;min-width:28px;}
+
+/* heat badges */
+.gd-heat-badge{font-size:.7rem;font-weight:800;border-radius:5px;padding:3px 8px;text-transform:uppercase;letter-spacing:.03em;}
+.gd-heat--warm{background:#fff4e5;color:#b86e00;}
+.gd-heat--hot{background:#fdecea;color:#c0392b;}
+.gd-heat--fire{background:#c0392b;color:#fff;}

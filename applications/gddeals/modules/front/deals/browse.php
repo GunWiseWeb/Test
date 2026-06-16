@@ -21,6 +21,7 @@ class _browse extends \IPS\Dispatcher\Controller
 	protected function manage()
 	{
 		\IPS\Output::i()->cssFiles = array_merge( \IPS\Output::i()->cssFiles, \IPS\Theme::i()->css( 'deals.css', 'gddeals', 'front' ) );
+		\IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'deals-vote.js', 'gddeals', 'interface' ) );
 
 		$catId   = (int) ( \IPS\Request::i()->category ?? 0 );
 		$sort    = \IPS\Request::i()->sort ?? 'newest';
@@ -29,7 +30,7 @@ class _browse extends \IPS\Dispatcher\Controller
 		$perPage = 24;
 		$offset  = ( $page - 1 ) * $perPage;
 
-		if ( !in_array( $sort, [ 'newest', 'discount', 'expiring' ], TRUE ) )
+		if ( !in_array( $sort, [ 'newest', 'discount', 'expiring', 'hottest' ], TRUE ) )
 		{
 			$sort = 'newest';
 		}
@@ -57,6 +58,7 @@ class _browse extends \IPS\Dispatcher\Controller
 		$order = match ( $sort ) {
 			'discount' => 'gd_deal_posts.discount_pct DESC, gd_deal_posts.posted_at DESC',
 			'expiring' => '( gd_deal_posts.expires_at IS NULL ) ASC, gd_deal_posts.expires_at ASC',
+			'hottest'  => 'gd_deal_posts.heat_score DESC, gd_deal_posts.posted_at DESC',
 			default    => 'gd_deal_posts.posted_at DESC',
 		};
 
@@ -68,24 +70,52 @@ class _browse extends \IPS\Dispatcher\Controller
 			$rows = \IPS\gddeals\Deal::getItemsWithPermission( $where, $order, [ $offset, $perPage ], 'read' );
 		}
 
-		$cards = [];
+		$dealIds = [];
+		$dealList = [];
 		foreach ( $rows as $deal )
 		{
+			$dealIds[] = $deal->id;
+			$dealList[] = $deal;
+		}
+
+		$myVotes = [];
+		$me = \IPS\Member::loggedIn();
+		if ( $me->member_id && !empty( $dealIds ) )
+		{
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'deal_id, vote', 'gd_deal_votes', [ 'member_id=? AND ' . \IPS\Db::i()->in( 'deal_id', $dealIds ), $me->member_id ] ) as $vr )
+				{
+					$myVotes[ (int) $vr['deal_id'] ] = (int) $vr['vote'];
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		$cards = [];
+		foreach ( $dealList as $deal )
+		{
+			$hl = $deal->heat_label ?: 'cold';
 			$cards[] = [
-				'url'       => (string) $deal->url(),
-				'title'     => $deal->title,
-				'category'  => $deal->container()->_title,
-				'retailer'  => $deal->retailer_name,
-				'price'     => $deal->deal_price !== NULL ? '$' . number_format( (float) $deal->deal_price, 2 ) : '',
-				'original'  => $deal->original_price !== NULL ? '$' . number_format( (float) $deal->original_price, 2 ) : '',
-				'discount'  => $deal->discount_pct ? rtrim( rtrim( number_format( (float) $deal->discount_pct, 1 ), '0' ), '.' ) : '',
-				'promo'     => $deal->promo_code,
-				'free_ship' => (bool) $deal->free_shipping,
-				'posted'    => (string) \IPS\DateTime::ts( $deal->posted_at )->relative(),
-				'author'    => $deal->author()->name,
-				'source'    => $deal->source_badge,
-				'image'     => $deal->image_url ?: '',
-				'expires'   => $deal->expires_at ? (string) \IPS\DateTime::ts( $deal->expires_at )->relative() : '',
+				'url'        => (string) $deal->url(),
+				'title'      => $deal->title,
+				'category'   => $deal->container()->_title,
+				'retailer'   => $deal->retailer_name,
+				'price'      => $deal->deal_price !== NULL ? '$' . number_format( (float) $deal->deal_price, 2 ) : '',
+				'original'   => $deal->original_price !== NULL ? '$' . number_format( (float) $deal->original_price, 2 ) : '',
+				'discount'   => $deal->discount_pct ? rtrim( rtrim( number_format( (float) $deal->discount_pct, 1 ), '0' ), '.' ) : '',
+				'promo'      => $deal->promo_code,
+				'free_ship'  => (bool) $deal->free_shipping,
+				'posted'     => (string) \IPS\DateTime::ts( $deal->posted_at )->relative(),
+				'author'     => $deal->author()->name,
+				'source'     => $deal->source_badge,
+				'image'      => $deal->image_url ?: '',
+				'expires'    => $deal->expires_at ? (string) \IPS\DateTime::ts( $deal->expires_at )->relative() : '',
+				'heat_score' => (int) $deal->upvotes - (int) $deal->downvotes,
+				'heat_label' => $hl,
+				'heat_text'  => $this->_heatText( $hl ),
+				'vote_url'   => (string) \IPS\Http\Url::internal( "app=gddeals&module=deals&controller=view&id={$deal->id}&do=vote", 'front' ),
+				'user_vote'  => $myVotes[ $deal->id ] ?? 0,
 			];
 		}
 
@@ -131,6 +161,7 @@ class _browse extends \IPS\Dispatcher\Controller
 		}
 		$sortUrls = [
 			'newest'   => (string) $sortBase->setQueryString( 'sort', 'newest' ),
+			'hottest'  => (string) $sortBase->setQueryString( 'sort', 'hottest' ),
 			'discount' => (string) $sortBase->setQueryString( 'sort', 'discount' ),
 			'expiring' => (string) $sortBase->setQueryString( 'sort', 'expiring' ),
 		];
@@ -149,8 +180,20 @@ class _browse extends \IPS\Dispatcher\Controller
 			'today'    => (string) $qfBase->setQueryString( 'qf', 'today' ),
 		];
 
+		$csrfKey = \IPS\Session::i()->csrfKey;
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddeals_feed_title' );
-		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->browse( $cards, $cats, $catId, $sort, $qf, $pagination, $total, $sortUrls, $qfUrls );
+		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->browse( $cards, $cats, $catId, $sort, $qf, $pagination, $total, $sortUrls, $qfUrls, $csrfKey );
+	}
+
+	protected function _heatText( string $label ): string
+	{
+		return match ( $label ) {
+			'warm' => \IPS\Member::loggedIn()->language()->addToStack( 'gddeals_heat_warm' ),
+			'hot'  => \IPS\Member::loggedIn()->language()->addToStack( 'gddeals_heat_hot' ),
+			'fire' => \IPS\Member::loggedIn()->language()->addToStack( 'gddeals_heat_fire' ),
+			default => '',
+		};
 	}
 }
 class browse extends _browse {}

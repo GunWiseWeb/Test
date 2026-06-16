@@ -117,5 +117,9 @@
     <word key="gddeals_mod_delete"><![CDATA[Delete]]></word>
     <word key="gddeals_comments"><![CDATA[Comments]]></word>
     <word key="gddeals_mod_restore"><![CDATA[Restore]]></word>
+    <word key="gddeals_sort_hottest"><![CDATA[Hottest]]></word>
+    <word key="gddeals_heat_warm"><![CDATA[Warm]]></word>
+    <word key="gddeals_heat_hot"><![CDATA[Hot]]></word>
+    <word key="gddeals_heat_fire"><![CDATA[Fire]]></word>
   </app>
 </language>

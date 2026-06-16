@@ -1,4 +1,4 @@
-<ips:template parameters="$d, $commentsHtml, $commentForm, $commentPagination, $totalComments" />
+<ips:template parameters="$d, $commentsHtml, $commentForm, $commentPagination, $totalComments, $csrfKey" />
 <div class="gd-deals-wrap gd-deal-view">
 	{{if $d['is_pending']}}<div class="gd-pending-banner">{lang="gddeals_deal_pending"}</div>{{endif}}
 	{{if $d['can_approve'] or $d['can_hide'] or $d['can_delete']}}
@@ -25,6 +25,12 @@
 				{{if $d['price']}}<span class="gd-price gd-price--lg">{$d['price']}</span>{{endif}}
 				{{if $d['discount']}}<span class="gd-discount">{$d['discount']}% {lang="gddeals_off"}</span>{{endif}}
 				{{if $d['original']}}<span class="gd-orig">{$d['original']}</span>{{endif}}
+			</div>
+			<div class="gd-vote-widget gd-vote--lg" data-vote-url="{$d['vote_url']}" data-csrf-key="{$csrfKey}">
+				<button class="gd-vote-btn{{if $d['user_vote'] == 1}} gd-voted{{endif}}" data-dir="up" title="Upvote">&#9650;</button>
+				<span class="gd-vote-score">{$d['heat_score']}</span>
+				<button class="gd-vote-btn{{if $d['user_vote'] == -1}} gd-voted{{endif}}" data-dir="down" title="Downvote">&#9660;</button>
+				{{if $d['heat_label'] != 'cold'}}<span class="gd-heat-badge gd-heat--{$d['heat_label']}">{$d['heat_text']}</span>{{endif}}
 			</div>
 			<div class="gd-deal-meta">
 				{{if $d['free_ship']}}<span class="gd-badge gd-ship">{lang="gddeals_free_ship"}</span>{{endif}}

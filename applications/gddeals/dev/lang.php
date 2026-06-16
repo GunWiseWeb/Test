@@ -116,4 +116,8 @@ $lang = [
     'gddeals_mod_delete'              => 'Delete',
     'gddeals_comments'                => 'Comments',
     'gddeals_mod_restore'             => 'Restore',
+    'gddeals_sort_hottest'            => 'Hottest',
+    'gddeals_heat_warm'               => 'Warm',
+    'gddeals_heat_hot'                => 'Hot',
+    'gddeals_heat_fire'               => 'Fire',
 ];
