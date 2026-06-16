@@ -65,3 +65,9 @@
 .gd-mod-approve:hover{background:#15692e;color:#fff;}
 .gd-mod-delete{border-color:#e3b4b4;color:#c0392b;}
 .gd-mod-delete:hover{background:#fdecea;color:#c0392b;}
+
+/* comments section */
+.gd-comments{margin-top:34px;border-top:1px solid #e6e9ee;padding-top:24px;}
+.gd-comments-h{font-size:1.25rem;font-weight:800;margin:0 0 16px;color:#16181d;}
+.gd-comments-list{margin-bottom:18px;}
+.gd-comment-form{margin-top:18px;}

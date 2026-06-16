@@ -2,6 +2,9 @@
 	"core": {
 		"ContentRouter": {
 			"Deals": "IPS\\gddeals\\extensions\\core\\ContentRouter\\Deals"
+		},
+		"EditorLocations": {
+			"Deals": "IPS\\gddeals\\extensions\\core\\EditorLocations\\Deals"
 		}
 	}
 }

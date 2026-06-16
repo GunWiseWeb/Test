@@ -1,4 +1,4 @@
-<ips:template parameters="$d" />
+<ips:template parameters="$d, $commentsHtml, $commentForm, $commentPagination, $totalComments" />
 <div class="gd-deals-wrap gd-deal-view">
 	{{if $d['is_pending']}}<div class="gd-pending-banner">{lang="gddeals_deal_pending"}</div>{{endif}}
 	{{if $d['can_approve'] or $d['can_hide'] or $d['can_delete']}}
@@ -37,5 +37,11 @@
 			{{if $d['description']}}<div class="gd-deal-desc">{$d['description']}</div>{{endif}}
 			<div class="gd-deal-byline">{lang="gddeals_by"} {$d['author_name']} · {$d['posted']}</div>
 		</div>
+	</div>
+	<div class="gd-comments">
+		<h2 class="gd-comments-h">{$totalComments} {lang="gddeals_comments"}</h2>
+		{{if $commentsHtml}}<div class="gd-comments-list">{$commentsHtml|raw}</div>{{endif}}
+		{{if $commentPagination}}{$commentPagination|raw}{{endif}}
+		{{if $commentForm}}<div class="gd-comment-form">{$commentForm|raw}</div>{{endif}}
 	</div>
 </div>

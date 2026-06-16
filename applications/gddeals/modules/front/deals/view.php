@@ -61,8 +61,38 @@ class _view extends \IPS\Dispatcher\Controller
 		$d['url_hide']    = (string) $deal->url( 'hide' )->csrf();
 		$d['url_delete']  = (string) $deal->url( 'delete' )->csrf();
 
+		$commentForm = $deal->commentForm();
+
+		$cPage    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
+		$cPerPage = 25;
+		$cOffset  = ( $cPage - 1 ) * $cPerPage;
+		$totalComments = (int) $deal->mapped( 'num_comments' );
+
+		$comments = $deal->comments( $cPerPage, $cOffset, 'date', 'asc' );
+		if ( !\is_array( $comments ) )
+		{
+			$comments = $comments ? [ $comments ] : [];
+		}
+
+		$commentsHtml = '';
+		foreach ( $comments as $c )
+		{
+			$commentsHtml .= $c->html();
+		}
+
+		$commentPagination = '';
+		if ( $totalComments > $cPerPage )
+		{
+			$commentPagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
+				$deal->url(),
+				(int) ceil( $totalComments / $cPerPage ),
+				$cPage,
+				$cPerPage
+			);
+		}
+
 		\IPS\Output::i()->title  = $deal->title;
-		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->view( $d );
+		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->view( $d, $commentsHtml, $commentForm, $commentPagination, $totalComments );
 	}
 
 	protected function approve(): void
