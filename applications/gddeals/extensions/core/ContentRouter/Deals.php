@@ -15,7 +15,7 @@ class _Deals
 
 	public function __construct()
 	{
-		$this->classes[] = 'IPS\\gddeals\\Deal\\Deal';
+		$this->classes[] = 'IPS\\gddeals\\Deal';
 	}
 }
 class Deals extends _Deals {}

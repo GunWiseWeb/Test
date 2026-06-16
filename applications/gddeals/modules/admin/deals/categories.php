@@ -13,7 +13,7 @@ class _categories extends \IPS\Node\Controller
 {
 	public static bool $csrfProtected = TRUE;
 
-	protected string $nodeClass = 'IPS\\gddeals\\Category\\Category';
+	protected string $nodeClass = 'IPS\\gddeals\\Category';
 
 	public function execute(): void
 	{

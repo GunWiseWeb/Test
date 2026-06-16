@@ -1,5 +1,5 @@
 <?php
-namespace IPS\gddeals\Category;
+namespace IPS\gddeals;
 
 use function defined;
 
@@ -27,7 +27,7 @@ class _Category extends \IPS\Node\Model implements \IPS\Node\Permissions
 
 	public static ?string $titleLangPrefix = 'gddeals_cat_';
 
-	public static ?string $contentItemClass = 'IPS\\gddeals\\Deal\\Deal';
+	public static ?string $contentItemClass = 'IPS\\gddeals\\Deal';
 
 	public static ?string $permApp  = 'gddeals';
 	public static ?string $permType = 'category';

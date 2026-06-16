@@ -1,5 +1,5 @@
 <?php
-namespace IPS\gddeals\Deal;
+namespace IPS\gddeals;
 
 use function defined;
 
@@ -23,7 +23,7 @@ class _Deal extends \IPS\Content\Item
 
 	protected static array $multitons = [];
 
-	public static string $title = 'gddeals_ct_deal';
+	public static string $title = 'gddeals_deal';
 
 	public static array $databaseColumnMap = [
 		'container'         => 'category_id',
@@ -45,7 +45,7 @@ class _Deal extends \IPS\Content\Item
 		'ip_address'        => 'ip_address',
 	];
 
-	public static ?string $containerNodeClass = 'IPS\\gddeals\\Category\\Category';
+	public static ?string $containerNodeClass = 'IPS\\gddeals\\Category';
 
 	public static ?string $commentClass = 'IPS\\gddeals\\Deal\\Comment';
 

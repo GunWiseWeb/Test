@@ -20,9 +20,9 @@ class _Comment extends \IPS\Content\Comment
 
 	protected static array $multitons = [];
 
-	public static string $title = 'gddeals_ct_comment';
+	public static string $title = 'gddeals_deal_comment';
 
-	public static ?string $itemClass = 'IPS\\gddeals\\Deal\\Deal';
+	public static ?string $itemClass = 'IPS\\gddeals\\Deal';
 
 	public static array $databaseColumnMap = [
 		'item'        => 'deal_id',

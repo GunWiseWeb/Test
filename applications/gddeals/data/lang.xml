@@ -35,5 +35,32 @@
     <word key="gddeals_cat_9"><![CDATA[NFA]]></word>
     <word key="gddeals_cat_10"><![CDATA[Knives]]></word>
     <word key="r__categories_manage"><![CDATA[Manage Deal Categories]]></word>
+    <word key="gddeals_deal"><![CDATA[Deal]]></word>
+    <word key="gddeals_deal_pl"><![CDATA[Deals]]></word>
+    <word key="__indefart_gddeals_deal"><![CDATA[a deal]]></word>
+    <word key="__defart_gddeals_deal"><![CDATA[the deal]]></word>
+    <word key="__defart_gddeals_deal_plural"><![CDATA[the deals]]></word>
+    <word key="gddeals_deal_comment"><![CDATA[comment]]></word>
+    <word key="gddeals_deal_comment_pl"><![CDATA[comments]]></word>
+    <word key="__indefart_gddeals_deal_comment"><![CDATA[a comment]]></word>
+    <word key="__defart_gddeals_deal_comment"><![CDATA[the comment]]></word>
+    <word key="__defart_gddeals_deal_comment_plural"><![CDATA[the comments]]></word>
+    <word key="modperms__core_Content_gddeals_Deal"><![CDATA[Deals]]></word>
+    <word key="can_edit_gddeals_deal"><![CDATA[Can edit deals]]></word>
+    <word key="can_hide_gddeals_deal"><![CDATA[Can hide deals]]></word>
+    <word key="can_unhide_gddeals_deal"><![CDATA[Can approve/unhide deals]]></word>
+    <word key="can_view_hidden_gddeals_deal"><![CDATA[Can view hidden deals]]></word>
+    <word key="can_feature_gddeals_deal"><![CDATA[Can feature deals]]></word>
+    <word key="can_unfeature_gddeals_deal"><![CDATA[Can unfeature deals]]></word>
+    <word key="can_move_gddeals_deal"><![CDATA[Can move deals]]></word>
+    <word key="can_delete_gddeals_deal"><![CDATA[Can delete deals]]></word>
+    <word key="can_view_reports_gddeals_deal"><![CDATA[Can view reported deals]]></word>
+    <word key="can_feature_comments_gddeals_deal"><![CDATA[Can feature deal comments]]></word>
+    <word key="can_unfeature_comments_gddeals_deal"><![CDATA[Can unfeature deal comments]]></word>
+    <word key="can_edit_gddeals_deal_comment"><![CDATA[Can edit deal comments]]></word>
+    <word key="can_hide_gddeals_deal_comment"><![CDATA[Can hide deal comments]]></word>
+    <word key="can_unhide_gddeals_deal_comment"><![CDATA[Can approve/unhide deal comments]]></word>
+    <word key="can_view_hidden_gddeals_deal_comment"><![CDATA[Can view hidden deal comments]]></word>
+    <word key="can_delete_gddeals_deal_comment"><![CDATA[Can delete deal comments]]></word>
   </app>
 </language>
