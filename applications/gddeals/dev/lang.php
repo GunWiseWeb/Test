@@ -115,4 +115,5 @@ $lang = [
     'gddeals_mod_hide'                => 'Hide',
     'gddeals_mod_delete'              => 'Delete',
     'gddeals_comments'                => 'Comments',
+    'gddeals_mod_restore'             => 'Restore',
 ];

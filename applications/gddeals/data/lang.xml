@@ -116,5 +116,6 @@
     <word key="gddeals_mod_hide"><![CDATA[Hide]]></word>
     <word key="gddeals_mod_delete"><![CDATA[Delete]]></word>
     <word key="gddeals_comments"><![CDATA[Comments]]></word>
+    <word key="gddeals_mod_restore"><![CDATA[Restore]]></word>
   </app>
 </language>
