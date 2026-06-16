@@ -155,6 +155,27 @@ class _submit extends \IPS\Dispatcher\Controller
 
 			$deal->save();
 
+			if ( $deal->hidden() === 1 )
+			{
+				try
+				{
+					\IPS\core\Approval::loadFromContent( get_class( $deal ), $deal->id );
+				}
+				catch ( \OutOfRangeException $e )
+				{
+					$reason = 'node';
+					if ( $deal->author()->mod_posts )
+					{
+						$reason = 'user';
+					}
+					elseif ( $deal->author()->group['g_mod_preview'] )
+					{
+						$reason = 'group';
+					}
+					\IPS\core\Approval::create( $deal, $reason );
+				}
+			}
+
 			\IPS\Output::i()->redirect( $deal->url() );
 			return;
 		}
