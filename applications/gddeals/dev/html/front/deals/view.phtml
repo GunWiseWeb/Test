@@ -48,6 +48,10 @@
 		<h2 class="gd-comments-h">{$totalComments} {lang="gddeals_comments"}</h2>
 		{{if $commentsHtml}}<div class="gd-comments-list">{$commentsHtml|raw}</div>{{endif}}
 		{{if $commentPagination}}{$commentPagination|raw}{{endif}}
-		{{if $commentForm}}<div class="gd-comment-form">{$commentForm|raw}</div>{{endif}}
+		{{if $commentForm}}
+			<div class="gd-comment-form">{$commentForm|raw}</div>
+		{{else}}
+			<div class="gd-comment-login"><a href="{url="app=core&module=system&controller=login" seoTemplate="login"}">{lang="gddeals_login_to_comment"}</a></div>
+		{{endif}}
 	</div>
 </div>

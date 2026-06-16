@@ -121,5 +121,7 @@
     <word key="gddeals_heat_warm"><![CDATA[Warm]]></word>
     <word key="gddeals_heat_hot"><![CDATA[Hot]]></word>
     <word key="gddeals_heat_fire"><![CDATA[Fire]]></word>
+    <word key="gddeals_date_replied"><![CDATA[Posted %s]]></word>
+    <word key="gddeals_login_to_comment"><![CDATA[Sign in to join the conversation]]></word>
   </app>
 </language>

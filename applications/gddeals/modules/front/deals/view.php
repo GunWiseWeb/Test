@@ -84,7 +84,7 @@ class _view extends \IPS\Dispatcher\Controller
 		$d['url_hide']      = (string) $deal->url( 'hide' )->csrf();
 		$d['url_delete']    = (string) $deal->url( 'delete' )->csrf();
 
-		$commentForm = $deal->commentForm();
+		$commentForm = \IPS\Member::loggedIn()->member_id ? $deal->commentForm() : NULL;
 
 		$cPage    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
 		$cPerPage = 25;

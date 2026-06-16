@@ -120,4 +120,6 @@ $lang = [
     'gddeals_heat_warm'               => 'Warm',
     'gddeals_heat_hot'                => 'Hot',
     'gddeals_heat_fire'               => 'Fire',
+    'gddeals_date_replied'            => 'Posted %s',
+    'gddeals_login_to_comment'        => 'Sign in to join the conversation',
 ];

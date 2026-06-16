@@ -91,3 +91,8 @@
 .gd-heat--warm{background:#fff4e5;color:#b86e00;}
 .gd-heat--hot{background:#fdecea;color:#c0392b;}
 .gd-heat--fire{background:#c0392b;color:#fff;}
+
+/* comment login prompt */
+.gd-comment-login{padding:16px;background:#f7f8fa;border:1px dashed #d3d9e0;border-radius:10px;text-align:center;}
+.gd-comment-login a{font-weight:700;color:#1a7f37;text-decoration:none;}
+.gd-comment-login a:hover{text-decoration:underline;}
