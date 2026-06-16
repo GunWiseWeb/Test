@@ -1,0 +1,53 @@
+<ips:template parameters="$cards, $cats, $activeCat, $activeSort, $activeQf, $pagination, $total" />
+<div class="ipsBox ipsPad gd-deals-feed">
+	<div class="ipsFlex ipsJustify_between ipsAlign_center ipsSpacer_bottom">
+		<h1 class="ipsType_pageTitle">{lang="gddeals_feed_title"}</h1>
+		<a href="{url="app=gddeals&module=deals&controller=submit" seoTemplate="gddeals_submit"}" class="ipsButton ipsButton_primary ipsButton_small">{lang="gddeals_post_deal"}</a>
+	</div>
+
+	<div class="gd-cat-nav ipsSpacer_bottom">
+		<a href="{url="app=gddeals&module=deals&controller=browse"}" class="ipsButton ipsButton_verySmall {{if !$activeCat}}ipsButton_primary{{else}}ipsButton_light{{endif}}">{lang="gddeals_cat_all"}</a>
+		{{foreach $cats as $c}}
+			<a href="{$c['url']}" class="ipsButton ipsButton_verySmall {{if $activeCat == $c['id']}}ipsButton_primary{{else}}ipsButton_light{{endif}}">{$c['title']}</a>
+		{{endforeach}}
+	</div>
+
+	<div class="gd-controls ipsSpacer_bottom ipsGap_2">
+		<span class="ipsType_light ipsType_small">{lang="gddeals_sort_newest"}:</span>
+		<a href="{url="app=gddeals&module=deals&controller=browse"}&sort=newest{{if $activeCat}}&category={$activeCat}{{endif}}{{if $activeQf}}&qf={$activeQf}{{endif}}" class="ipsButton ipsButton_verySmall {{if $activeSort == 'newest'}}ipsButton_primary{{else}}ipsButton_light{{endif}}">{lang="gddeals_sort_newest"}</a>
+		<a href="{url="app=gddeals&module=deals&controller=browse"}&sort=discount{{if $activeCat}}&category={$activeCat}{{endif}}{{if $activeQf}}&qf={$activeQf}{{endif}}" class="ipsButton ipsButton_verySmall {{if $activeSort == 'discount'}}ipsButton_primary{{else}}ipsButton_light{{endif}}">{lang="gddeals_sort_discount"}</a>
+		<a href="{url="app=gddeals&module=deals&controller=browse"}&sort=expiring{{if $activeCat}}&category={$activeCat}{{endif}}{{if $activeQf}}&qf={$activeQf}{{endif}}" class="ipsButton ipsButton_verySmall {{if $activeSort == 'expiring'}}ipsButton_primary{{else}}ipsButton_light{{endif}}">{lang="gddeals_sort_expiring"}</a>
+		<span class="ipsType_light ipsType_small">|</span>
+		<a href="{url="app=gddeals&module=deals&controller=browse"}&qf=under500{{if $activeCat}}&category={$activeCat}{{endif}}&sort={$activeSort}" class="ipsButton ipsButton_verySmall {{if $activeQf == 'under500'}}ipsButton_positive{{else}}ipsButton_light{{endif}}">{lang="gddeals_qf_under500"}</a>
+		<a href="{url="app=gddeals&module=deals&controller=browse"}&qf=today{{if $activeCat}}&category={$activeCat}{{endif}}&sort={$activeSort}" class="ipsButton ipsButton_verySmall {{if $activeQf == 'today'}}ipsButton_positive{{else}}ipsButton_light{{endif}}">{lang="gddeals_qf_today"}</a>
+	</div>
+
+	{{if $total == 0}}
+		<div class="ipsMessage ipsMessage_info">{lang="gddeals_feed_empty"}</div>
+	{{else}}
+		<div class="gd-deal-grid">
+			{{foreach $cards as $d}}
+				<div class="gd-deal-card ipsBox">
+					<div class="gd-deal-card__body ipsPad_half">
+						<span class="ipsType_small ipsType_light">{$d['category']}</span>
+						<h3 class="ipsType_sectionTitle"><a href="{$d['url']}">{$d['title']}</a></h3>
+						<p class="ipsType_small">{$d['retailer']}</p>
+						{{if $d['price']}}
+							<div class="gd-deal-card__price">
+								<span class="gd-price">{$d['price']}</span>
+								{{if $d['discount']}}<span class="gd-discount">{$d['discount']}% {lang="gddeals_off"}</span>{{endif}}
+								{{if $d['original']}}<s class="gd-orig">{$d['original']}</s>{{endif}}
+							</div>
+						{{endif}}
+						<div class="gd-deal-card__badges">
+							{{if $d['promo']}}<span class="ipsBadge ipsBadge_style2">{lang="gddeals_promo_badge"}</span>{{endif}}
+							{{if $d['free_ship']}}<span class="ipsBadge ipsBadge_positive">{lang="gddeals_free_ship"}</span>{{endif}}
+						</div>
+						<p class="ipsType_small ipsType_light">{lang="gddeals_by"} {$d['author']} · {$d['posted']}{{if $d['expires']}} · {lang="gddeals_expires"} {$d['expires']}{{endif}}</p>
+					</div>
+				</div>
+			{{endforeach}}
+		</div>
+		{$pagination|raw}
+	{{endif}}
+</div>

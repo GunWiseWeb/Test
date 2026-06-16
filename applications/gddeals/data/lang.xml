@@ -96,5 +96,17 @@
     <word key="gddeals_v_price"><![CDATA[Price]]></word>
     <word key="gddeals_v_promo"><![CDATA[Promo Code]]></word>
     <word key="gddeals_v_link"><![CDATA[View Deal at Retailer]]></word>
+    <word key="gddeals_feed_title"><![CDATA[Community Deals]]></word>
+    <word key="gddeals_post_deal"><![CDATA[Post a Deal]]></word>
+    <word key="gddeals_cat_all"><![CDATA[All Deals]]></word>
+    <word key="gddeals_sort_newest"><![CDATA[Newest]]></word>
+    <word key="gddeals_sort_discount"><![CDATA[Biggest Discount]]></word>
+    <word key="gddeals_sort_expiring"><![CDATA[Expiring Soon]]></word>
+    <word key="gddeals_qf_under500"><![CDATA[Under $500]]></word>
+    <word key="gddeals_qf_today"><![CDATA[Today's Deals]]></word>
+    <word key="gddeals_feed_empty"><![CDATA[No deals here yet — be the first to post one!]]></word>
+    <word key="gddeals_promo_badge"><![CDATA[Promo Code]]></word>
+    <word key="gddeals_free_ship"><![CDATA[Free Shipping]]></word>
+    <word key="gddeals_expires"><![CDATA[Expires]]></word>
   </app>
 </language>
