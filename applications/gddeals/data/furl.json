@@ -8,6 +8,10 @@
 		"gddeals_view": {
 			"friendly": "deal/{#id}-{?}",
 			"real": "app=gddeals&module=deals&controller=view"
+		},
+		"gddeals_browse": {
+			"friendly": "",
+			"real": "app=gddeals&module=deals&controller=browse"
 		}
 	}
 }
