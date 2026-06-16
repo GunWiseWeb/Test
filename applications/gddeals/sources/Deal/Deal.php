@@ -51,7 +51,7 @@ class _Deal extends \IPS\Content\Item
 
 	public static string $icon = 'tags';
 
-	public function url( $action = NULL )
+	public function url( ?string $action = NULL ): \IPS\Http\Url
 	{
 		$seoTitle = \IPS\Http\Url\Friendly::seoTitle( $this->title );
 		$url = \IPS\Http\Url::internal( "app=gddeals&module=deals&controller=view&id={$this->id}", 'front', 'gddeals_view', $seoTitle );
