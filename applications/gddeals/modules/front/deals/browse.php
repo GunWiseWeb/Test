@@ -180,7 +180,7 @@ class _browse extends \IPS\Dispatcher\Controller
 			'today'    => (string) $qfBase->setQueryString( 'qf', 'today' ),
 		];
 
-		$csrfKey = \IPS\Session::i()->csrfKey;
+		$csrfKey = (string) \IPS\Session::i()->csrfKey;
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddeals_feed_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->browse( $cards, $cats, $catId, $sort, $qf, $pagination, $total, $sortUrls, $qfUrls, $csrfKey );

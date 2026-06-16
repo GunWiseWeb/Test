@@ -114,7 +114,7 @@ class _view extends \IPS\Dispatcher\Controller
 			);
 		}
 
-		$csrfKey = \IPS\Session::i()->csrfKey;
+		$csrfKey = (string) \IPS\Session::i()->csrfKey;
 
 		\IPS\Output::i()->title  = $deal->title;
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->view( $d, $commentsHtml, $commentForm, $commentPagination, $totalComments, $csrfKey );
