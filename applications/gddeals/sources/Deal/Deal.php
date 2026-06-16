@@ -9,11 +9,11 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 	exit;
 }
 
-class _Deal extends \IPS\Content\Item implements
-	\IPS\Content\Hideable,
-	\IPS\Content\Featurable,
-	\IPS\Content\Reportable
+class _Deal extends \IPS\Content\Item
 {
+	use \IPS\Content\Hideable,
+		\IPS\Content\Featurable,
+		\IPS\Content\Reportable;
 	public static string $application = 'gddeals';
 	public static string $module      = 'deals';
 

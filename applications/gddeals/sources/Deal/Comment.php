@@ -9,10 +9,9 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 	exit;
 }
 
-class _Comment extends \IPS\Content\Comment implements
-	\IPS\Content\Hideable,
-	\IPS\Content\Reportable
+class _Comment extends \IPS\Content\Comment
 {
+	use \IPS\Content\Hideable, \IPS\Content\Reportable;
 	public static string $application = 'gddeals';
 
 	public static ?string $databaseTable   = 'gd_deal_comments';

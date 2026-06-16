@@ -19,18 +19,18 @@ class _Category extends \IPS\Node\Model implements \IPS\Node\Permissions
 
 	public static string $nodeTitle = 'gddeals_categories_title';
 
-	public static string $databaseColumnOrder = 'position';
+	public static ?string $databaseColumnOrder = 'position';
 
-	public static string $databaseColumnParent = 'parent_id';
+	public static ?string $databaseColumnParent = 'parent_id';
 
 	public static ?string $databaseColumnEnabledDisabled = 'open';
 
-	public static string $titleLangPrefix = 'gddeals_cat_';
+	public static ?string $titleLangPrefix = 'gddeals_cat_';
 
 	public static ?string $contentItemClass = 'IPS\\gddeals\\Deal\\Deal';
 
-	public static string $permApp  = 'gddeals';
-	public static string $permType = 'category';
+	public static ?string $permApp  = 'gddeals';
+	public static ?string $permType = 'category';
 
 	public static array $permissionMap = [
 		'view'  => 'view',
