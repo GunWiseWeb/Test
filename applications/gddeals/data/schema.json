@@ -60,7 +60,8 @@
             "manually_expired_at": { "name": "manually_expired_at", "type": "INT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
             "flagged_expired": { "name": "flagged_expired", "type": "INT", "length": null, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
             "dealer_id": { "name": "dealer_id", "type": "INT", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
-            "show_source": { "name": "show_source", "type": "ENUM", "length": null, "decimals": null, "allow_null": false, "default": "community", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": ["community","dealer"], "comment": "" }
+            "show_source": { "name": "show_source", "type": "ENUM", "length": null, "decimals": null, "allow_null": false, "default": "community", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": ["community","dealer"], "comment": "" },
+            "image_url": { "name": "image_url", "type": "VARCHAR", "length": 500, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
         },
         "indexes": {
             "PRIMARY": { "type": "primary", "name": "PRIMARY", "columns": ["id"], "length": [null] },

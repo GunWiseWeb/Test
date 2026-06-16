@@ -84,6 +84,7 @@ class _browse extends \IPS\Dispatcher\Controller
 				'posted'    => (string) \IPS\DateTime::ts( $deal->posted_at )->relative(),
 				'author'    => $deal->author()->name,
 				'source'    => $deal->source_badge,
+				'image'     => $deal->image_url ?: '',
 				'expires'   => $deal->expires_at ? (string) \IPS\DateTime::ts( $deal->expires_at )->relative() : '',
 			];
 		}

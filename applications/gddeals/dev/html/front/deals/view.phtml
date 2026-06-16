@@ -1,13 +1,33 @@
 <ips:template parameters="$d" />
-<div class="ipsBox ipsPad gd-deal-view">
-	{{if $d['is_pending']}}<div class="ipsMessage ipsMessage_warning">{lang="gddeals_deal_pending"}</div>{{endif}}
-	<h1 class="ipsType_pageTitle">{$d['title']}</h1>
-	<p class="ipsType_light">{$d['category_name']} · {$d['retailer_name']} · {lang="gddeals_by"} {$d['author_name']} · {$d['posted']}</p>
-	<ul class="ipsList_reset">
-		{{if $d['deal_price']}}<li><strong>{lang="gddeals_v_price"}:</strong> {$d['deal_price']}{{if $d['discount_pct']}} ({$d['discount_pct']}% {lang="gddeals_off"}{{if $d['original_price']}} from {$d['original_price']}{{endif}}){{endif}}</li>{{endif}}
-		{{if $d['promo_code']}}<li><strong>{lang="gddeals_v_promo"}:</strong> {$d['promo_code']}</li>{{endif}}
-		{{if $d['deal_url']}}<li><a href="{$d['deal_url']}" rel="nofollow noopener" target="_blank">{lang="gddeals_v_link"}</a></li>{{endif}}
-		{{if $d['store_location']}}<li>{$d['store_location']}</li>{{endif}}
-	</ul>
-	{{if $d['description']}}<div class="ipsType_richText">{$d['description']}</div>{{endif}}
+<div class="gd-deals-wrap gd-deal-view">
+	{{if $d['is_pending']}}<div class="gd-pending-banner">{lang="gddeals_deal_pending"}</div>{{endif}}
+	<div class="gd-deal-layout">
+		<div class="gd-deal-media">
+			{{if $d['image']}}
+				<img class="gd-deal-img" src="{$d['image']}" alt="{$d['title']}">
+			{{else}}
+				<div class="gd-deal-img gd-deal-img--empty">{$d['category_name']}</div>
+			{{endif}}
+		</div>
+		<div class="gd-deal-info">
+			<span class="gd-card-cat">{$d['category_name']}</span>
+			<h1 class="gd-deal-h1">{$d['title']}</h1>
+			<div class="gd-deal-retailer">{$d['retailer_name']}{{if $d['store_location']}} · {$d['store_location']}{{endif}}</div>
+			<div class="gd-deal-pricerow">
+				{{if $d['price']}}<span class="gd-price gd-price--lg">{$d['price']}</span>{{endif}}
+				{{if $d['discount']}}<span class="gd-discount">{$d['discount']}% {lang="gddeals_off"}</span>{{endif}}
+				{{if $d['original']}}<span class="gd-orig">{$d['original']}</span>{{endif}}
+			</div>
+			<div class="gd-deal-meta">
+				{{if $d['free_ship']}}<span class="gd-badge gd-ship">{lang="gddeals_free_ship"}</span>{{endif}}
+				{{if $d['shipping']}}<span class="gd-badge">{lang="gddeals_v_shipping"}: {$d['shipping']}</span>{{endif}}
+				{{if $d['promo']}}<span class="gd-promo-chip">{lang="gddeals_v_promo"}: <strong>{$d['promo']}</strong></span>{{endif}}
+			</div>
+			{{if $d['deal_url']}}
+				<a class="gd-deal-cta" href="{$d['deal_url']}" rel="nofollow noopener" target="_blank">{lang="gddeals_v_link"}</a>
+			{{endif}}
+			{{if $d['description']}}<div class="gd-deal-desc">{$d['description']}</div>{{endif}}
+			<div class="gd-deal-byline">{lang="gddeals_by"} {$d['author_name']} · {$d['posted']}</div>
+		</div>
+	</div>
 </div>

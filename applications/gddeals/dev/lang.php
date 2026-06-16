@@ -108,4 +108,6 @@ $lang = [
     'gddeals_free_ship'               => 'Free Shipping',
     'gddeals_expires'                 => 'Expires',
     'gddeals_sort_label'              => 'Sort',
+    'gddeals_f_image'                 => 'Image URL (optional)',
+    'gddeals_v_shipping'              => 'Shipping',
 ];

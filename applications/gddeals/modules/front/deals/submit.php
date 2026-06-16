@@ -103,6 +103,8 @@ class _submit extends \IPS\Dispatcher\Controller
 			'maxLength' => 100,
 		] ) );
 
+		$form->add( new \IPS\Helpers\Form\Url( 'gddeals_f_image', NULL, FALSE ) );
+
 		$form->add( new \IPS\Helpers\Form\YesNo( 'gddeals_f_free_shipping', FALSE, FALSE ) );
 
 		$form->add( new \IPS\Helpers\Form\Number( 'gddeals_f_shipping_cost', NULL, FALSE, [
@@ -139,6 +141,7 @@ class _submit extends \IPS\Dispatcher\Controller
 			$deal->free_shipping = $values['gddeals_f_free_shipping'] ? 1 : 0;
 			$deal->shipping_cost = $values['gddeals_f_shipping_cost'] ?: NULL;
 			$deal->expires_at    = $values['gddeals_f_expires'] ? $values['gddeals_f_expires']->getTimestamp() : NULL;
+			$deal->image_url     = $values['gddeals_f_image'] ? (string) $values['gddeals_f_image'] : NULL;
 			$deal->source_badge  = $member->isAdmin() ? 'admin' : 'community';
 
 			if ( $deal->original_price > 0 && $deal->deal_price > 0 && $deal->original_price > $deal->deal_price )

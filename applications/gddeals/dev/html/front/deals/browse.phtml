@@ -31,6 +31,9 @@
 		<div class="gd-deal-grid">
 			{{foreach $cards as $d}}
 				<a class="gd-deal-card" href="{$d['url']}">
+					{{if $d['image']}}
+						<div class="gd-card-imgwrap"><img class="gd-card-img" src="{$d['image']}" alt="{$d['title']}"></div>
+					{{endif}}
 					<div class="gd-card-top">
 						<span class="gd-card-cat">{$d['category']}</span>
 						<div class="gd-card-title">{$d['title']}</div>

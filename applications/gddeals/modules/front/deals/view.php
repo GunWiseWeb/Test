@@ -20,6 +20,8 @@ class _view extends \IPS\Dispatcher\Controller
 
 	protected function manage()
 	{
+		\IPS\Output::i()->cssFiles = array_merge( \IPS\Output::i()->cssFiles, \IPS\Theme::i()->css( 'deals.css', 'gddeals', 'front' ) );
+
 		try
 		{
 			$deal = \IPS\gddeals\Deal::loadAndCheckPerms( \IPS\Request::i()->id );
@@ -30,29 +32,24 @@ class _view extends \IPS\Dispatcher\Controller
 			return;
 		}
 
-		$dealPrice    = ( $deal->deal_price > 0 )     ? '$' . number_format( (float) $deal->deal_price, 2 )     : '';
-		$origPrice    = ( $deal->original_price > 0 )  ? '$' . number_format( (float) $deal->original_price, 2 ) : '';
-		$shipCost     = ( $deal->shipping_cost > 0 )   ? '$' . number_format( (float) $deal->shipping_cost, 2 )  : '';
-		$discountPct  = ( $deal->discount_pct > 0 )    ? number_format( (float) $deal->discount_pct, 1 )         : '';
-
 		$d = [
 			'title'          => $deal->title,
 			'category_name'  => $deal->container()->_title,
 			'retailer_name'  => $deal->retailer_name,
 			'retailer_type'  => $deal->retailer_type,
-			'store_location' => $deal->store_location,
-			'deal_price'     => $dealPrice,
-			'original_price' => $origPrice,
-			'discount_pct'   => $discountPct,
-			'deal_url'       => $deal->deal_url,
-			'promo_code'     => $deal->promo_code,
-			'free_shipping'  => (bool) $deal->free_shipping,
-			'shipping_cost'  => $shipCost,
-			'description'    => $deal->description,
+			'store_location' => $deal->store_location ?: '',
+			'price'          => $deal->deal_price !== NULL ? '$' . number_format( (float) $deal->deal_price, 2 ) : '',
+			'original'       => $deal->original_price !== NULL ? '$' . number_format( (float) $deal->original_price, 2 ) : '',
+			'discount'       => $deal->discount_pct ? rtrim( rtrim( number_format( (float) $deal->discount_pct, 1 ), '0' ), '.' ) : '',
+			'deal_url'       => (string) ( $deal->deal_url ?: '' ),
+			'promo'          => $deal->promo_code ?: '',
+			'free_ship'      => (bool) $deal->free_shipping,
+			'shipping'       => $deal->shipping_cost !== NULL ? '$' . number_format( (float) $deal->shipping_cost, 2 ) : '',
+			'image'          => $deal->image_url ?: '',
+			'description'    => $deal->description ?: '',
 			'post_type'      => $deal->post_type,
-			'source_badge'   => $deal->source_badge,
 			'author_name'    => $deal->author()->name,
-			'posted'         => \IPS\DateTime::ts( $deal->posted_at )->relative(),
+			'posted'         => (string) \IPS\DateTime::ts( $deal->posted_at )->relative(),
 			'is_pending'     => (bool) $deal->hidden(),
 		];
 
