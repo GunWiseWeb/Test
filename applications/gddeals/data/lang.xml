@@ -108,5 +108,6 @@
     <word key="gddeals_promo_badge"><![CDATA[Promo Code]]></word>
     <word key="gddeals_free_ship"><![CDATA[Free Shipping]]></word>
     <word key="gddeals_expires"><![CDATA[Expires]]></word>
+    <word key="gddeals_sort_label"><![CDATA[Sort]]></word>
   </app>
 </language>

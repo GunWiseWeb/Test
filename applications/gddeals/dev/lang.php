@@ -107,4 +107,5 @@ $lang = [
     'gddeals_promo_badge'             => 'Promo Code',
     'gddeals_free_ship'               => 'Free Shipping',
     'gddeals_expires'                 => 'Expires',
+    'gddeals_sort_label'              => 'Sort',
 ];

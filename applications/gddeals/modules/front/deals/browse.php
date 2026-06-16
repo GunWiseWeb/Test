@@ -119,8 +119,37 @@ class _browse extends \IPS\Dispatcher\Controller
 			$pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination( $baseUrl, $pages, $page, $perPage );
 		}
 
+		$sortBase = \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=browse', 'front' );
+		if ( $catId )
+		{
+			$sortBase = $sortBase->setQueryString( 'category', $catId );
+		}
+		if ( $qf )
+		{
+			$sortBase = $sortBase->setQueryString( 'qf', $qf );
+		}
+		$sortUrls = [
+			'newest'   => (string) $sortBase->setQueryString( 'sort', 'newest' ),
+			'discount' => (string) $sortBase->setQueryString( 'sort', 'discount' ),
+			'expiring' => (string) $sortBase->setQueryString( 'sort', 'expiring' ),
+		];
+
+		$qfBase = \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=browse', 'front' );
+		if ( $catId )
+		{
+			$qfBase = $qfBase->setQueryString( 'category', $catId );
+		}
+		if ( $sort !== 'newest' )
+		{
+			$qfBase = $qfBase->setQueryString( 'sort', $sort );
+		}
+		$qfUrls = [
+			'under500' => (string) $qfBase->setQueryString( 'qf', 'under500' ),
+			'today'    => (string) $qfBase->setQueryString( 'qf', 'today' ),
+		];
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddeals_feed_title' );
-		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->browse( $cards, $cats, $catId, $sort, $qf, $pagination, $total );
+		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->browse( $cards, $cats, $catId, $sort, $qf, $pagination, $total, $sortUrls, $qfUrls );
 	}
 }
 class browse extends _browse {}
