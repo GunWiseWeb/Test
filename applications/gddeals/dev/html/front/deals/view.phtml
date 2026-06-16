@@ -1,0 +1,13 @@
+<ips:template parameters="$d" />
+<div class="ipsBox ipsPad gd-deal-view">
+	{{if $d['is_pending']}}<div class="ipsMessage ipsMessage_warning">{lang="gddeals_deal_pending"}</div>{{endif}}
+	<h1 class="ipsType_pageTitle">{$d['title']}</h1>
+	<p class="ipsType_light">{$d['category_name']} · {$d['retailer_name']} · {lang="gddeals_by"} {$d['author_name']} · {$d['posted']}</p>
+	<ul class="ipsList_reset">
+		{{if $d['deal_price']}}<li><strong>{lang="gddeals_v_price"}:</strong> {$d['deal_price']}{{if $d['discount_pct']}} ({$d['discount_pct']}% {lang="gddeals_off"}{{if $d['original_price']}} from {$d['original_price']}{{endif}}){{endif}}</li>{{endif}}
+		{{if $d['promo_code']}}<li><strong>{lang="gddeals_v_promo"}:</strong> {$d['promo_code']}</li>{{endif}}
+		{{if $d['deal_url']}}<li><a href="{$d['deal_url']}" rel="nofollow noopener" target="_blank">{lang="gddeals_v_link"}</a></li>{{endif}}
+		{{if $d['store_location']}}<li>{$d['store_location']}</li>{{endif}}
+	</ul>
+	{{if $d['description']}}<div class="ipsType_richText">{$d['description']}</div>{{endif}}
+</div>

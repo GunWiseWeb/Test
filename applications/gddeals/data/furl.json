@@ -1,4 +1,13 @@
 {
 	"topLevel": "deals",
-	"pages": {}
+	"pages": {
+		"gddeals_submit": {
+			"friendly": "submit-deal",
+			"real": "app=gddeals&module=deals&controller=submit"
+		},
+		"gddeals_view": {
+			"friendly": "deal/{#id}-{?}",
+			"real": "app=gddeals&module=deals&controller=view"
+		}
+	}
 }

@@ -50,5 +50,18 @@ class _Deal extends \IPS\Content\Item
 	public static ?string $commentClass = 'IPS\\gddeals\\Deal\\Comment';
 
 	public static string $icon = 'tags';
+
+	public function url( $action = NULL )
+	{
+		$seoTitle = \IPS\Http\Url\Friendly::seoTitle( $this->title );
+		$url = \IPS\Http\Url::internal( "app=gddeals&module=deals&controller=view&id={$this->id}", 'front', 'gddeals_view', $seoTitle );
+
+		if ( $action )
+		{
+			$url = $url->setQueryString( 'do', $action );
+		}
+
+		return $url;
+	}
 }
 class Deal extends _Deal {}

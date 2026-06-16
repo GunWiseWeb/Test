@@ -7,7 +7,7 @@
 	},
 	"front": {
 		"deals": {
-			"default_controller": "browse",
+			"default_controller": "submit",
 			"protected": false
 		}
 	}
