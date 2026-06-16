@@ -55,3 +55,13 @@
 .gd-deal-desc{font-size:1rem;line-height:1.6;color:#2b303a;margin-bottom:20px;white-space:pre-wrap;}
 .gd-deal-byline{color:#8a93a0;font-size:.85rem;border-top:1px solid #f0f2f5;padding-top:14px;}
 @media(max-width:760px){.gd-deal-layout{grid-template-columns:1fr;}.gd-deal-h1{font-size:1.5rem;}.gd-price--lg{font-size:1.9rem;}}
+
+/* moderation bar */
+.gd-mod-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:18px;padding:11px 14px;background:#f7f8fa;border:1px solid #e6e9ee;border-radius:10px;}
+.gd-mod-label{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#8a93a0;margin-right:4px;}
+.gd-mod-btn{font-size:.85rem;font-weight:700;padding:7px 16px;border-radius:7px;text-decoration:none;background:#fff;border:1px solid #d3d9e0;color:#3a4250;transition:.12s;}
+.gd-mod-btn:hover{background:#eef1f4;color:#1a2b4a;}
+.gd-mod-approve{background:#1a7f37;border-color:#1a7f37;color:#fff;}
+.gd-mod-approve:hover{background:#15692e;color:#fff;}
+.gd-mod-delete{border-color:#e3b4b4;color:#c0392b;}
+.gd-mod-delete:hover{background:#fdecea;color:#c0392b;}

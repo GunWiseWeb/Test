@@ -55,6 +55,11 @@ class _Category extends \IPS\Node\Model implements \IPS\Node\Permissions
 		return \IPS\Member::loggedIn()->language()->addToStack( static::$titleLangPrefix . $this->id );
 	}
 
+	public function url(): \IPS\Http\Url
+	{
+		return \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=browse', 'front', 'gddeals_browse' )->setQueryString( 'category', $this->_id );
+	}
+
 	public function get_name_seo(): ?string
 	{
 		return $this->_data['name_seo'] ?? null;

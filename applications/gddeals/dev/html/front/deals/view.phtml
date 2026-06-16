@@ -1,6 +1,14 @@
 <ips:template parameters="$d" />
 <div class="gd-deals-wrap gd-deal-view">
 	{{if $d['is_pending']}}<div class="gd-pending-banner">{lang="gddeals_deal_pending"}</div>{{endif}}
+	{{if $d['can_approve'] or $d['can_hide'] or $d['can_delete']}}
+		<div class="gd-mod-bar">
+			<span class="gd-mod-label">{lang="gddeals_mod_label"}</span>
+			{{if $d['can_approve']}}<a class="gd-mod-btn gd-mod-approve" href="{$d['url_approve']}">{lang="gddeals_mod_approve"}</a>{{endif}}
+			{{if $d['can_hide']}}<a class="gd-mod-btn" href="{$d['url_hide']}">{lang="gddeals_mod_hide"}</a>{{endif}}
+			{{if $d['can_delete']}}<a class="gd-mod-btn gd-mod-delete" href="{$d['url_delete']}" onclick="return confirm('Delete this deal? This cannot be undone.')">{lang="gddeals_mod_delete"}</a>{{endif}}
+		</div>
+	{{endif}}
 	<div class="gd-deal-layout">
 		<div class="gd-deal-media">
 			{{if $d['image']}}

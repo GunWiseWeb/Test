@@ -53,8 +53,46 @@ class _view extends \IPS\Dispatcher\Controller
 			'is_pending'     => (bool) $deal->hidden(),
 		];
 
+		$me = \IPS\Member::loggedIn();
+		$d['can_approve'] = ( $deal->hidden() === 1 AND $deal->canUnhide( $me ) );
+		$d['can_hide']    = ( $deal->hidden() === 0 AND $deal->canHide( $me ) );
+		$d['can_delete']  = $deal->canDelete( $me );
+		$d['url_approve'] = (string) $deal->url( 'approve' )->csrf();
+		$d['url_hide']    = (string) $deal->url( 'hide' )->csrf();
+		$d['url_delete']  = (string) $deal->url( 'delete' )->csrf();
+
 		\IPS\Output::i()->title  = $deal->title;
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->view( $d );
+	}
+
+	protected function approve(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		try { $deal = \IPS\gddeals\Deal::loadAndCheckPerms( \IPS\Request::i()->id ); }
+		catch ( \OutOfRangeException $e ) { \IPS\Output::i()->error( 'gddeals_deal_not_found', '2GD101/2', 404 ); return; }
+		if ( !$deal->canUnhide() ) { \IPS\Output::i()->error( 'node_error', '2GD102/1', 403 ); return; }
+		$deal->unhide( \IPS\Member::loggedIn() );
+		\IPS\Output::i()->redirect( $deal->url() );
+	}
+
+	protected function hide(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		try { $deal = \IPS\gddeals\Deal::loadAndCheckPerms( \IPS\Request::i()->id ); }
+		catch ( \OutOfRangeException $e ) { \IPS\Output::i()->error( 'gddeals_deal_not_found', '2GD101/3', 404 ); return; }
+		if ( !$deal->canHide() ) { \IPS\Output::i()->error( 'node_error', '2GD102/2', 403 ); return; }
+		$deal->hide( \IPS\Member::loggedIn() );
+		\IPS\Output::i()->redirect( $deal->url() );
+	}
+
+	protected function delete(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		try { $deal = \IPS\gddeals\Deal::loadAndCheckPerms( \IPS\Request::i()->id ); }
+		catch ( \OutOfRangeException $e ) { \IPS\Output::i()->error( 'gddeals_deal_not_found', '2GD101/4', 404 ); return; }
+		if ( !$deal->canDelete() ) { \IPS\Output::i()->error( 'node_error', '2GD102/3', 403 ); return; }
+		$deal->delete();
+		\IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=browse', 'front', 'gddeals_browse' ) );
 	}
 }
 class view extends _view {}

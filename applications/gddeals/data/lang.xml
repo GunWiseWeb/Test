@@ -111,5 +111,9 @@
     <word key="gddeals_sort_label"><![CDATA[Sort]]></word>
     <word key="gddeals_f_image"><![CDATA[Image URL (optional)]]></word>
     <word key="gddeals_v_shipping"><![CDATA[Shipping]]></word>
+    <word key="gddeals_mod_label"><![CDATA[Moderation]]></word>
+    <word key="gddeals_mod_approve"><![CDATA[Approve]]></word>
+    <word key="gddeals_mod_hide"><![CDATA[Hide]]></word>
+    <word key="gddeals_mod_delete"><![CDATA[Delete]]></word>
   </app>
 </language>

@@ -110,4 +110,8 @@ $lang = [
     'gddeals_sort_label'              => 'Sort',
     'gddeals_f_image'                 => 'Image URL (optional)',
     'gddeals_v_shipping'              => 'Shipping',
+    'gddeals_mod_label'               => 'Moderation',
+    'gddeals_mod_approve'             => 'Approve',
+    'gddeals_mod_hide'                => 'Hide',
+    'gddeals_mod_delete'              => 'Delete',
 ];
