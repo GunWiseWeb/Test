@@ -14,12 +14,7 @@ class _view extends \IPS\Content\Controller
 	public static bool $csrfProtected = TRUE;
 	protected static string $contentModel = 'IPS\\gddeals\\Deal';
 
-	public function execute(): void
-	{
-		parent::execute();
-	}
-
-	protected function manage(): void
+	protected function manage(): mixed
 	{
 		\IPS\Output::i()->cssFiles = array_merge( \IPS\Output::i()->cssFiles, \IPS\Theme::i()->css( 'deals.css', 'gddeals', 'front' ) );
 		\IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'deals-vote.js', 'gddeals', 'interface' ) );
