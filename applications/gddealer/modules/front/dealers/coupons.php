@@ -238,19 +238,25 @@ class _coupons extends \IPS\Dispatcher\Controller
 				$formUrl   = (string) \IPS\Http\Url::internal( $baseUrl . '&do=create', 'front', 'dealers_coupons_action' );
 				$csrfKey   = (string) \IPS\Session::i()->csrfKey;
 
+				$gddealsEnabled    = \IPS\Application::appIsEnabled( 'gddeals' );
+				$gddealsCategories = $this->gddealsCategoriesForForm();
+
 				$this->output( 'coupons',
 					(string) \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->couponForm(
 						'create', $formUrl, $cancelUrl, $csrfKey, $errors,
 						[
-							'code'           => $code,
-							'description'    => $description,
-							'discount_type'  => $discountType,
-							'discount_value' => $discountValue,
-							'min_purchase'   => $minPurchase,
-							'terms'          => $terms,
-							'expiry'         => $expiryRaw,
-							'is_active'      => $isActive,
-						]
+							'code'                  => $code,
+							'description'            => $description,
+							'discount_type'          => $discountType,
+							'discount_value'         => $discountValue,
+							'min_purchase'           => $minPurchase,
+							'terms'                  => $terms,
+							'expiry'                 => $expiryRaw,
+							'is_active'              => $isActive,
+							'publish_community'      => (int) ( $req->publish_community ?? 0 ),
+							'community_category_id'  => (int) ( $req->community_category_id ?? 0 ),
+						],
+						$gddealsEnabled, $gddealsCategories
 					)
 				);
 				return;
@@ -258,18 +264,21 @@ class _coupons extends \IPS\Dispatcher\Controller
 
 			try
 			{
-				\IPS\Db::i()->insert( 'gd_dealer_coupons', [
-					'dealer_id'      => (int) $dealer->dealer_id,
-					'code'           => $code,
-					'description'    => $description !== '' ? $description : null,
-					'discount_type'  => $discountType,
-					'discount_value' => $discountValue,
-					'min_purchase'   => $minPurchase,
-					'terms'          => $terms,
-					'expiry'         => $expiry,
-					'is_active'      => $isActive,
-					'created'        => time(),
+				$newId = \IPS\Db::i()->insert( 'gd_dealer_coupons', [
+					'dealer_id'             => (int) $dealer->dealer_id,
+					'code'                  => $code,
+					'description'           => $description !== '' ? $description : null,
+					'discount_type'         => $discountType,
+					'discount_value'        => $discountValue,
+					'min_purchase'          => $minPurchase,
+					'terms'                 => $terms,
+					'expiry'                => $expiry,
+					'is_active'             => $isActive,
+					'created'               => time(),
+					'publish_community'     => ( (int) ( $req->publish_community ?? 0 ) === 1 ) ? 1 : 0,
+					'community_category_id' => (int) ( $req->community_category_id ?? 0 ) ?: null,
 				] );
+				$this->syncCommunityCoupon( (int) $newId );
 			}
 			catch ( \Throwable ) {}
 
@@ -284,19 +293,25 @@ class _coupons extends \IPS\Dispatcher\Controller
 		$formUrl   = (string) \IPS\Http\Url::internal( $baseUrl . '&do=create', 'front', 'dealers_coupons_action' );
 		$csrfKey   = (string) \IPS\Session::i()->csrfKey;
 
+		$gddealsEnabled    = \IPS\Application::appIsEnabled( 'gddeals' );
+		$gddealsCategories = $this->gddealsCategoriesForForm();
+
 		$this->output( 'coupons',
 			(string) \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->couponForm(
 				'create', $formUrl, $cancelUrl, $csrfKey, [],
 				[
-					'code'           => '',
-					'description'    => '',
-					'discount_type'  => 'percent',
-					'discount_value' => '',
-					'min_purchase'   => '',
-					'terms'          => '',
-					'expiry'         => '',
-					'is_active'      => 1,
-				]
+					'code'                  => '',
+					'description'           => '',
+					'discount_type'         => 'percent',
+					'discount_value'        => '',
+					'min_purchase'          => '',
+					'terms'                 => '',
+					'expiry'                => '',
+					'is_active'             => 1,
+					'publish_community'     => 0,
+					'community_category_id' => 0,
+				],
+				$gddealsEnabled, $gddealsCategories
 			)
 		);
 	}
@@ -421,19 +436,25 @@ class _coupons extends \IPS\Dispatcher\Controller
 				$formUrl   = (string) \IPS\Http\Url::internal( $baseUrl . '&do=edit&coupon_id=' . $couponId, 'front', 'dealers_coupons_action' );
 				$csrfKey   = (string) \IPS\Session::i()->csrfKey;
 
+				$gddealsEnabled    = \IPS\Application::appIsEnabled( 'gddeals' );
+				$gddealsCategories = $this->gddealsCategoriesForForm();
+
 				$this->output( 'coupons',
 					(string) \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->couponForm(
 						'edit', $formUrl, $cancelUrl, $csrfKey, $errors,
 						[
-							'code'           => $code,
-							'description'    => $description,
-							'discount_type'  => $discountType,
-							'discount_value' => $discountValue,
-							'min_purchase'   => $minPurchase,
-							'terms'          => $terms,
-							'expiry'         => $expiryRaw,
-							'is_active'      => $isActive,
-						]
+							'code'                  => $code,
+							'description'            => $description,
+							'discount_type'          => $discountType,
+							'discount_value'         => $discountValue,
+							'min_purchase'           => $minPurchase,
+							'terms'                  => $terms,
+							'expiry'                 => $expiryRaw,
+							'is_active'              => $isActive,
+							'publish_community'      => (int) ( $req->publish_community ?? 0 ),
+							'community_category_id'  => (int) ( $req->community_category_id ?? 0 ),
+						],
+						$gddealsEnabled, $gddealsCategories
 					)
 				);
 				return;
@@ -442,15 +463,18 @@ class _coupons extends \IPS\Dispatcher\Controller
 			try
 			{
 				\IPS\Db::i()->update( 'gd_dealer_coupons', [
-					'code'           => $code,
-					'description'    => $description !== '' ? $description : null,
-					'discount_type'  => $discountType,
-					'discount_value' => $discountValue,
-					'min_purchase'   => $minPurchase,
-					'terms'          => $terms,
-					'expiry'         => $expiry,
-					'is_active'      => $isActive,
+					'code'                  => $code,
+					'description'           => $description !== '' ? $description : null,
+					'discount_type'         => $discountType,
+					'discount_value'        => $discountValue,
+					'min_purchase'          => $minPurchase,
+					'terms'                 => $terms,
+					'expiry'                => $expiry,
+					'is_active'             => $isActive,
+					'publish_community'     => ( (int) ( $req->publish_community ?? 0 ) === 1 ) ? 1 : 0,
+					'community_category_id' => (int) ( $req->community_category_id ?? 0 ) ?: null,
 				], [ 'coupon_id=? AND dealer_id=?', $couponId, (int) $dealer->dealer_id ] );
+				$this->syncCommunityCoupon( $couponId );
 			}
 			catch ( \Throwable ) {}
 
@@ -472,19 +496,25 @@ class _coupons extends \IPS\Dispatcher\Controller
 			$expiryFormatted = date( 'Y-m-d\TH:i', (int) $coupon['expiry'] );
 		}
 
+		$gddealsEnabled    = \IPS\Application::appIsEnabled( 'gddeals' );
+		$gddealsCategories = $this->gddealsCategoriesForForm();
+
 		$this->output( 'coupons',
 			(string) \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->couponForm(
 				'edit', $formUrl, $cancelUrl, $csrfKey, [],
 				[
-					'code'           => (string) $coupon['code'],
-					'description'    => (string) ( $coupon['description'] ?? '' ),
-					'discount_type'  => (string) $coupon['discount_type'],
-					'discount_value' => (float) $coupon['discount_value'],
-					'min_purchase'   => $coupon['min_purchase'] !== null ? (float) $coupon['min_purchase'] : '',
-					'terms'          => (string) ( $coupon['terms'] ?? '' ),
-					'expiry'         => $expiryFormatted,
-					'is_active'      => (int) $coupon['is_active'],
-				]
+					'code'                  => (string) $coupon['code'],
+					'description'           => (string) ( $coupon['description'] ?? '' ),
+					'discount_type'         => (string) $coupon['discount_type'],
+					'discount_value'        => (float) $coupon['discount_value'],
+					'min_purchase'          => $coupon['min_purchase'] !== null ? (float) $coupon['min_purchase'] : '',
+					'terms'                 => (string) ( $coupon['terms'] ?? '' ),
+					'expiry'                => $expiryFormatted,
+					'is_active'             => (int) $coupon['is_active'],
+					'publish_community'     => (int) ( $coupon['publish_community'] ?? 0 ),
+					'community_category_id' => (int) ( $coupon['community_category_id'] ?? 0 ),
+				],
+				$gddealsEnabled, $gddealsCategories
 			)
 		);
 	}
@@ -512,6 +542,7 @@ class _coupons extends \IPS\Dispatcher\Controller
 			\IPS\Db::i()->update( 'gd_dealer_coupons', [
 				'is_active' => $newActive,
 			], [ 'coupon_id=? AND dealer_id=?', $couponId, (int) $dealer->dealer_id ] );
+			$this->syncCommunityCoupon( $couponId );
 		}
 		catch ( \Throwable ) {}
 
@@ -534,10 +565,16 @@ class _coupons extends \IPS\Dispatcher\Controller
 
 		try
 		{
-			/* Verify ownership before deleting */
-			\IPS\Db::i()->select( 'coupon_id', 'gd_dealer_coupons', [
+			/* Verify ownership and get community_post_id before deleting */
+			$row = \IPS\Db::i()->select( '*', 'gd_dealer_coupons', [
 				'coupon_id=? AND dealer_id=?', $couponId, (int) $dealer->dealer_id
 			] )->first();
+
+			$communityPostId = (int) ( $row['community_post_id'] ?? 0 );
+			if ( $communityPostId && \IPS\Application::appIsEnabled( 'gddeals' ) )
+			{
+				try { \IPS\gddeals\Deal::load( $communityPostId )->delete(); } catch ( \OutOfRangeException $e ) {}
+			}
 
 			\IPS\Db::i()->delete( 'gd_dealer_coupons', [
 				'coupon_id=? AND dealer_id=?', $couponId, (int) $dealer->dealer_id
@@ -548,6 +585,97 @@ class _coupons extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( $baseUrl, 'front', 'dealers_coupons' )
 		);
+	}
+
+	/* ------------------------------------------------------------------ */
+	/*  gddeals community helpers                                         */
+	/* ------------------------------------------------------------------ */
+
+	protected function gddealsCategoriesForForm(): array
+	{
+		if ( !\IPS\Application::appIsEnabled( 'gddeals' ) ) { return []; }
+		$out = [];
+		try {
+			foreach ( \IPS\gddeals\Category::roots() as $cat ) {
+				$out[ (int) $cat->_id ] = $cat->_title;
+			}
+		} catch ( \Throwable $e ) {}
+		return $out;
+	}
+
+	protected function syncCommunityCoupon( int $couponId ): void
+	{
+		if ( !\IPS\Application::appIsEnabled( 'gddeals' ) ) { return; }
+
+		try { $row = \IPS\Db::i()->select( '*', 'gd_dealer_coupons', [ 'coupon_id=?', $couponId ] )->first(); }
+		catch ( \UnderflowException $e ) { return; }
+
+		$publish    = (int) ( $row['publish_community'] ?? 0 ) === 1;
+		$categoryId = (int) ( $row['community_category_id'] ?? 0 );
+		$existingId = (int) ( $row['community_post_id'] ?? 0 );
+		$isActive   = (int) ( $row['is_active'] ?? 0 ) === 1;
+
+		if ( !$publish || !$categoryId )
+		{
+			if ( $existingId )
+			{
+				try { \IPS\gddeals\Deal::load( $existingId )->delete(); } catch ( \OutOfRangeException $e ) {}
+				\IPS\Db::i()->update( 'gd_dealer_coupons', [ 'community_post_id' => null ], [ 'coupon_id=?', $couponId ] );
+			}
+			return;
+		}
+
+		try { $category = \IPS\gddeals\Category::load( $categoryId ); }
+		catch ( \OutOfRangeException $e ) { return; }
+
+		$dealerName = ''; $websiteUrl = '';
+		try {
+			$cfg = \IPS\Db::i()->select( 'dealer_name, website_url', 'gd_dealer_feed_config', [ 'dealer_id=?', (int) $row['dealer_id'] ] )->first();
+			$dealerName = (string) ( $cfg['dealer_name'] ?? '' );
+			$websiteUrl = (string) ( $cfg['website_url'] ?? '' );
+		} catch ( \UnderflowException $e ) {}
+
+		$code   = (string) ( $row['code'] ?? '' );
+		$desc   = trim( (string) ( $row['description'] ?? '' ) );
+		$terms  = (string) ( $row['terms'] ?? '' );
+		$dType  = (string) ( $row['discount_type'] ?? 'percent' );
+		$dValue = (float) ( $row['discount_value'] ?? 0 );
+		$title  = $desc !== '' ? $desc : ( $code !== '' ? ( 'Coupon code ' . $code ) : 'Dealer coupon' );
+
+		$post = null;
+		if ( $existingId ) { try { $post = \IPS\gddeals\Deal::load( $existingId ); } catch ( \OutOfRangeException $e ) { $post = null; } }
+		if ( $post === null )
+		{
+			$author = \IPS\Member::load( (int) $row['dealer_id'] );
+			$post = \IPS\gddeals\Deal::createItem( $author, \IPS\Request::i()->ipAddress(), \IPS\DateTime::create(), $category, FALSE );
+		}
+		else
+		{
+			$post->category_id = (int) $category->_id;
+		}
+
+		$post->post_type      = 'coupon';
+		$post->title          = $title;
+		$post->description    = $terms;
+		$post->promo_code     = $code;
+		$post->retailer_name  = $dealerName ?: $title;
+		$post->retailer_type  = 'online';
+		$post->deal_url       = $websiteUrl;
+		$post->image_url      = null;
+		$post->source_badge   = 'dealer';
+		$post->expires_at     = $row['expiry'] !== null ? (int) $row['expiry'] : null;
+		$post->discount_pct   = ( $dType === 'percent' ) ? $dValue : 0;
+		$post->free_shipping  = ( $dType === 'free_shipping' ) ? 1 : 0;
+		$post->deal_price     = null;
+		$post->original_price = null;
+		$post->save();
+
+		try {
+			if ( $isActive && $post->hidden() !== 0 ) { $post->unhide( \IPS\Member::loggedIn() ); }
+			elseif ( !$isActive && $post->hidden() === 0 ) { $post->hide( \IPS\Member::loggedIn() ); }
+		} catch ( \Throwable $e ) {}
+
+		\IPS\Db::i()->update( 'gd_dealer_coupons', [ 'community_post_id' => (int) $post->id ], [ 'coupon_id=?', $couponId ] );
 	}
 }
 

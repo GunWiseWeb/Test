@@ -4489,6 +4489,48 @@
 				"zerofill": false,
 				"values": [],
 				"comment": ""
+			},
+			"publish_community": {
+				"name": "publish_community",
+				"type": "TINYINT",
+				"length": 1,
+				"decimals": null,
+				"allow_null": false,
+				"default": 0,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"community_category_id": {
+				"name": "community_category_id",
+				"type": "BIGINT",
+				"length": 20,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"community_post_id": {
+				"name": "community_post_id",
+				"type": "BIGINT",
+				"length": 20,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
 			}
 		},
 		"indexes": {

@@ -1,4 +1,4 @@
-<ips:template parameters="$mode, $formUrl, $cancelUrl, $csrfKey, $errors=array(), $coupon=array()" />
+<ips:template parameters="$mode, $formUrl, $cancelUrl, $csrfKey, $errors=array(), $coupon=array(), $gddealsEnabled=false, $gddealsCategories=array()" />
 <div class="gdCoupons">
 	<div class="gdCoupons__header">
 		<h2>{{if $mode === 'edit'}}{lang="gddealer_coupons_edit_title"}{{else}}{lang="gddealer_coupons_create_title"}{{endif}}</h2>
@@ -61,6 +61,22 @@
 		<div class="gdCoupons__field">
 			<label><input type="checkbox" name="is_active" value="1" {{if !isset($coupon['is_active']) || $coupon['is_active']}}checked{{endif}}> Active</label>
 		</div>
+
+		{{if $gddealsEnabled}}
+			<div class="gdCoupons__field">
+				<label><input type="checkbox" name="publish_community" value="1" {{if isset($coupon['publish_community']) && $coupon['publish_community']}}checked{{endif}}> Post to Community Deals</label>
+				<p class="gdCoupons__hint">Share this coupon on the public Community Deals feed where shoppers can upvote and comment.</p>
+			</div>
+			<div class="gdCoupons__field">
+				<label>Community Category</label>
+				<select name="community_category_id">
+					<option value="">— Select a category —</option>
+					{{foreach $gddealsCategories as $catId => $catName}}
+						<option value="{$catId}" {{if isset($coupon['community_category_id']) && (int)$coupon['community_category_id'] === (int)$catId}}selected{{endif}}>{$catName}</option>
+					{{endforeach}}
+				</select>
+			</div>
+		{{endif}}
 
 		<div class="gdCoupons__formActions">
 			<button type="submit" class="gdCoupons__btn gdCoupons__btn--primary">{{if $mode === 'edit'}}Save Changes{{else}}Create Coupon{{endif}}</button>
