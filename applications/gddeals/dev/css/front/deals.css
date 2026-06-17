@@ -96,3 +96,7 @@
 .gd-comment-login{padding:16px;background:#f7f8fa;border:1px dashed #d3d9e0;border-radius:10px;text-align:center;}
 .gd-comment-login a{font-weight:700;color:#1a7f37;text-decoration:none;}
 .gd-comment-login a:hover{text-decoration:underline;}
+
+/* card no-image placeholder */
+.gd-card-noimg{display:flex;align-items:center;justify-content:center;padding:10px;background:linear-gradient(135deg,#eaf5ee 0%,#dfe7f0 100%);}
+.gd-noimg-cat{font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1a7f37;text-align:center;line-height:1.3;}

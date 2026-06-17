@@ -35,6 +35,8 @@
 					<a class="gd-card-main" href="{$d['url']}">
 						{{if $d['image']}}
 							<div class="gd-card-imgwrap"><img class="gd-card-img" src="{$d['image']}" alt="{$d['title']}"></div>
+						{{else}}
+							<div class="gd-card-imgwrap gd-card-noimg"><span class="gd-noimg-cat">{$d['category']}</span></div>
 						{{endif}}
 						<div class="gd-card-top">
 							<span class="gd-card-cat">{$d['category']}</span>
