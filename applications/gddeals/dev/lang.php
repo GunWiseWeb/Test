@@ -126,4 +126,9 @@ $lang = [
     'gddeals_edit_title'              => 'Edit Deal',
     'gddeals_verified_dealer'         => 'Verified Dealer',
     'gddeals_view_dealer_profile'     => 'View Dealer Profile →',
+    'gddeals_coupons_title'           => 'Coupons & promo codes',
+    'gddeals_view_all'                => 'View all',
+    'gddeals_featured_dealer'         => 'Featured Dealer',
+    'gddeals_copy'                    => 'Copy',
+    'gddeals_shop'                    => 'Shop',
 ];

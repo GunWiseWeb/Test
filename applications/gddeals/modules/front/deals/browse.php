@@ -24,6 +24,7 @@ class _browse extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'deals-vote.js', 'gddeals', 'interface' ) );
 
 		$catId   = (int) ( \IPS\Request::i()->category ?? 0 );
+		$couponMode = ( (string) ( \IPS\Request::i()->type ?? '' ) === 'coupon' );
 		$sort    = \IPS\Request::i()->sort ?? 'newest';
 		$qf      = \IPS\Request::i()->qf ?? '';
 		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
@@ -53,6 +54,15 @@ class _browse extends \IPS\Dispatcher\Controller
 		if ( $qf === 'today' )
 		{
 			$where[] = [ 'gd_deal_posts.posted_at >= ?', strtotime( 'today' ) ];
+		}
+
+		if ( $couponMode )
+		{
+			$where[] = [ "gd_deal_posts.post_type='coupon'" ];
+		}
+		else
+		{
+			$where[] = [ "( gd_deal_posts.post_type IS NULL OR gd_deal_posts.post_type <> 'coupon' )" ];
 		}
 
 		$baseOrder = match ( $sort ) {
@@ -153,6 +163,31 @@ class _browse extends \IPS\Dispatcher\Controller
 			];
 		}
 
+		if ( $couponMode )
+		{
+			$coupons = $this->buildCouponCards( $dealList );
+			$cards   = [];
+		}
+		else
+		{
+			$couponDeals = [];
+			$cWhere = [
+				[ 'gd_deal_posts.expired=0 AND ( gd_deal_posts.expires_at IS NULL OR gd_deal_posts.expires_at > ? )', time() ],
+				[ "gd_deal_posts.post_type='coupon'" ],
+			];
+			if ( $catId ) { $cWhere[] = [ 'gd_deal_posts.category_id=?', $catId ]; }
+			try
+			{
+				foreach ( \IPS\gddeals\Deal::getItemsWithPermission( $cWhere, "( gd_deal_posts.source_badge = 'dealer' ) DESC, gd_deal_posts.posted_at DESC", [ 0, 4 ], 'read' ) as $deal )
+				{
+					$couponDeals[] = $deal;
+				}
+			}
+			catch ( \Throwable ) {}
+			$coupons = $this->buildCouponCards( $couponDeals );
+		}
+		$couponsAllUrl = (string) \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=browse', 'front' )->setQueryString( 'type', 'coupon' );
+
 		$cats = [];
 		foreach ( \IPS\gddeals\Category::roots() as $c )
 		{
@@ -217,7 +252,7 @@ class _browse extends \IPS\Dispatcher\Controller
 		$csrfKey = (string) \IPS\Session::i()->csrfKey;
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddeals_feed_title' );
-		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->browse( $cards, $cats, $catId, $sort, $qf, $pagination, $total, $sortUrls, $qfUrls, $csrfKey );
+		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->browse( $cards, $cats, $catId, $sort, $qf, $pagination, $total, $sortUrls, $qfUrls, $csrfKey, $coupons, $couponMode, $couponsAllUrl );
 	}
 
 	protected function _heatText( string $label ): string
@@ -228,6 +263,98 @@ class _browse extends \IPS\Dispatcher\Controller
 			'fire' => \IPS\Member::loggedIn()->language()->addToStack( 'gddeals_heat_fire' ),
 			default => '',
 		};
+	}
+
+	protected function buildCouponCards( array $deals ): array
+	{
+		if ( empty( $deals ) ) { return []; }
+		$me = \IPS\Member::loggedIn();
+
+		$myVotes = [];
+		$ids = [];
+		foreach ( $deals as $deal ) { $ids[] = (int) $deal->id; }
+		if ( $me->member_id && $ids )
+		{
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'deal_id, vote', 'gd_deal_votes', [ 'member_id=? AND ' . \IPS\Db::i()->in( 'deal_id', $ids ), $me->member_id ] ) as $vr )
+				{
+					$myVotes[ (int) $vr['deal_id'] ] = (int) $vr['vote'];
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		$slugMap = [];
+		if ( \IPS\Application::appIsEnabled( 'gddealer' ) )
+		{
+			$dids = [];
+			foreach ( $deals as $deal )
+			{
+				if ( $deal->source_badge === 'dealer' && $deal->dealer_id )
+				{
+					$dids[] = (int) $deal->dealer_id;
+				}
+			}
+			if ( $dids )
+			{
+				try
+				{
+					foreach ( \IPS\Db::i()->select( 'dealer_id, dealer_slug', 'gd_dealer_feed_config', \IPS\Db::i()->in( 'dealer_id', array_values( array_unique( $dids ) ) ) ) as $r )
+					{
+						$slugMap[ (int) $r['dealer_id'] ] = (string) $r['dealer_slug'];
+					}
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+
+		$out = [];
+		foreach ( $deals as $deal )
+		{
+			$profileUrl = '';
+			if ( $deal->source_badge === 'dealer' && $deal->dealer_id )
+			{
+				$slug = $slugMap[ (int) $deal->dealer_id ] ?? '';
+				if ( $slug !== '' )
+				{
+					$profileUrl = (string) \IPS\Http\Url::internal(
+						'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $slug ),
+						'front'
+					);
+				}
+			}
+
+			if ( $deal->discount_pct )
+			{
+				$headline = rtrim( rtrim( number_format( (float) $deal->discount_pct, 1 ), '0' ), '.' ) . '% ' . $me->language()->addToStack( 'gddeals_off' );
+			}
+			elseif ( $deal->free_shipping )
+			{
+				$headline = $me->language()->addToStack( 'gddeals_free_ship' );
+			}
+			else
+			{
+				$headline = $deal->title;
+			}
+
+			$out[] = [
+				'url'                => (string) $deal->url(),
+				'title'              => $deal->title,
+				'headline'           => $headline,
+				'desc'               => $deal->description ?: '',
+				'retailer'           => $deal->retailer_name,
+				'source'             => $deal->source_badge,
+				'dealer_profile_url' => $profileUrl,
+				'code'               => $deal->promo_code ?: '',
+				'shop_url'           => (string) ( $deal->deal_url ?: $deal->url() ),
+				'expires'            => $deal->expires_at ? (string) \IPS\DateTime::ts( $deal->expires_at )->relative() : '',
+				'heat_score'         => (int) $deal->upvotes - (int) $deal->downvotes,
+				'vote_url'           => (string) $deal->url( 'vote' )->csrf(),
+				'user_vote'          => $myVotes[ $deal->id ] ?? 0,
+			];
+		}
+		return $out;
 	}
 }
 class browse extends _browse {}

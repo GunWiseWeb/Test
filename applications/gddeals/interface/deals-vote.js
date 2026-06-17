@@ -24,4 +24,26 @@
 			w.setAttribute('data-uservote', d.userVote);
 		}).catch(function () { btn.disabled = false; });
 	});
+
+	document.addEventListener('click', function (e) {
+		var btn = e.target.closest ? e.target.closest('.gd-cpn-copy') : null;
+		if (!btn) { return; }
+		e.preventDefault();
+		var code = btn.getAttribute('data-code') || '';
+		if (!code) { return; }
+		var done = function () {
+			var prev = btn.textContent;
+			btn.textContent = 'Copied!';
+			btn.classList.add('gd-cpn-copied');
+			setTimeout(function () { btn.textContent = prev; btn.classList.remove('gd-cpn-copied'); }, 1500);
+		};
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(code).then(done).catch(done);
+		} else {
+			var ta = document.createElement('textarea');
+			ta.value = code; document.body.appendChild(ta); ta.select();
+			try { document.execCommand('copy'); } catch (err) {}
+			document.body.removeChild(ta); done();
+		}
+	});
 })();

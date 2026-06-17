@@ -127,5 +127,10 @@
     <word key="gddeals_edit_title"><![CDATA[Edit Deal]]></word>
     <word key="gddeals_verified_dealer"><![CDATA[Verified Dealer]]></word>
     <word key="gddeals_view_dealer_profile"><![CDATA[View Dealer Profile →]]></word>
+    <word key="gddeals_coupons_title"><![CDATA[Coupons & promo codes]]></word>
+    <word key="gddeals_view_all"><![CDATA[View all]]></word>
+    <word key="gddeals_featured_dealer"><![CDATA[Featured Dealer]]></word>
+    <word key="gddeals_copy"><![CDATA[Copy]]></word>
+    <word key="gddeals_shop"><![CDATA[Shop]]></word>
   </app>
 </language>

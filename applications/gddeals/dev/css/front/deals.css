@@ -114,3 +114,32 @@
 .gd-deal-card--dealer:hover{box-shadow:0 10px 28px rgba(26,127,55,.26);border-color:#15692e;}
 .gd-deal-card--dealer::before{content:"\2605 FEATURED DEALER";position:absolute;top:10px;right:10px;z-index:4;background:#1a7f37;color:#fff;font-size:.6rem;font-weight:800;letter-spacing:.04em;padding:4px 10px;border-radius:20px;box-shadow:0 2px 6px rgba(0,0,0,.22);pointer-events:none;}
 .gd-deal-card--dealer .gd-card-cat{color:#15692e;}
+
+/* coupon band + ticket card */
+.gd-coupons{margin:0 0 26px;}
+.gd-coupons-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;}
+.gd-coupons-title{margin:0;font-size:1.15rem;font-weight:800;color:#16181d;}
+.gd-coupons-all{font-size:.85rem;font-weight:700;color:#1a7f37;text-decoration:none;}
+.gd-coupons-all:hover{text-decoration:underline;}
+.gd-coupons-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
+.gd-coupons-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+.gd-cpn{position:relative;display:flex;flex-direction:column;gap:8px;background:#fff;border:1px dashed #c7ced6;border-radius:14px;padding:15px 15px 12px;}
+.gd-cpn--dealer{border:2px solid #1a7f37;border-style:solid;box-shadow:0 4px 14px rgba(26,127,55,.16);}
+.gd-cpn-tag{position:absolute;top:-10px;left:14px;background:#1a7f37;color:#fff;font-size:.6rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:10px;}
+.gd-cpn-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.gd-cpn-dealer{font-size:.9rem;font-weight:700;color:#1a2b4a;text-decoration:none;}
+a.gd-cpn-dealer:hover{text-decoration:underline;}
+.gd-cpn-vf{display:inline-flex;align-items:center;gap:3px;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#fff;background:#1a7f37;padding:2px 7px;border-radius:9px;white-space:nowrap;}
+.gd-cpn-vf::before{content:"\2713";font-weight:900;}
+.gd-cpn-main{display:block;text-decoration:none;color:inherit;}
+.gd-cpn-disc{font-size:1.5rem;font-weight:800;color:#16181d;line-height:1.1;}
+.gd-cpn-desc{font-size:.82rem;color:#6b7480;line-height:1.3;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.gd-cpn-code{display:flex;align-items:stretch;gap:7px;}
+.gd-cpn-codeval{flex:1;display:flex;align-items:center;border:1px dashed #a9b2bd;border-radius:8px;padding:6px 11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92rem;font-weight:700;letter-spacing:.05em;color:#16181d;background:#f7f9fb;}
+.gd-cpn-copy{padding:0 13px;border:1px solid #1a7f37;background:#1a7f37;color:#fff;border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;}
+.gd-cpn-copy:hover{background:#15692e;border-color:#15692e;}
+.gd-cpn-copy.gd-cpn-copied{background:#0d5223;border-color:#0d5223;}
+.gd-cpn-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.74rem;color:#8a93a0;padding-top:6px;border-top:1px dashed #e3e8ee;}
+.gd-cpn-shop{color:#1a7f37;font-weight:700;text-decoration:none;}
+.gd-cpn-shop:hover{text-decoration:underline;}
+.gd-cpn .gd-vote{margin-top:2px;}
