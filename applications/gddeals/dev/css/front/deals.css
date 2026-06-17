@@ -65,6 +65,8 @@
 .gd-mod-approve:hover{background:#15692e;color:#fff;}
 .gd-mod-delete{border-color:#e3b4b4;color:#c0392b;}
 .gd-mod-delete:hover{background:#fdecea;color:#c0392b;}
+.gd-mod-edit{background:#1a2b4a;border-color:#1a2b4a;color:#fff;}
+.gd-mod-edit:hover{background:#0f1d33;color:#fff;}
 
 /* comments section */
 .gd-comments{margin-top:34px;border-top:1px solid #e6e9ee;padding-top:24px;}
