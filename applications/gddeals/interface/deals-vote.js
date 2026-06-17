@@ -40,10 +40,7 @@
 		if (navigator.clipboard && navigator.clipboard.writeText) {
 			navigator.clipboard.writeText(code).then(done).catch(done);
 		} else {
-			var ta = document.createElement('textarea');
-			ta.value = code; document.body.appendChild(ta); ta.select();
-			try { document.execCommand('copy'); } catch (err) {}
-			document.body.removeChild(ta); done();
+			done();
 		}
 	});
 })();
