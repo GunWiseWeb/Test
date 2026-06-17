@@ -116,6 +116,7 @@ class _view extends \IPS\Content\Controller
 
 		\IPS\Output::i()->title  = $deal->title;
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->view( $d, $commentsHtml, $commentForm, $commentPagination, $totalComments, $csrfKey );
+		return null;
 	}
 
 	protected function _heatLabel( string $label ): string
