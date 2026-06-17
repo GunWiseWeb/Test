@@ -79,12 +79,10 @@ class _view extends \IPS\Dispatcher\Controller
 		$d['can_approve']   = ( $deal->hidden() !== 0 AND $deal->canUnhide( $me ) );
 		$d['can_hide']      = ( $deal->hidden() === 0 AND $deal->canHide( $me ) );
 		$d['can_delete']    = $deal->canDelete( $me );
-		$d['can_edit']      = $deal->canEdit( $me );
 		$d['approve_label'] = $me->language()->addToStack( ( $deal->hidden() === 1 ) ? 'gddeals_mod_approve' : 'gddeals_mod_restore' );
 		$d['url_approve']   = (string) $deal->url( 'approve' )->csrf();
 		$d['url_hide']      = (string) $deal->url( 'hide' )->csrf();
 		$d['url_delete']    = (string) $deal->url( 'delete' )->csrf();
-		$d['url_edit']      = (string) \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=submit&id=' . $deal->id, 'front', 'gddeals_submit' );
 
 		$commentForm = \IPS\Member::loggedIn()->member_id ? $deal->commentForm() : NULL;
 

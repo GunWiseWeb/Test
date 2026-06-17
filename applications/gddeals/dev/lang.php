@@ -122,7 +122,4 @@ $lang = [
     'gddeals_heat_fire'               => 'Fire',
     'gddeals_date_replied'            => 'Posted %s',
     'gddeals_login_to_comment'        => 'Sign in to join the conversation',
-    'gddeals_edit_deal'               => 'Edit Deal',
-    'gddeals_edit_deal_title'         => 'Edit Deal',
-    'gddeals_no_edit_perm'            => 'You don\'t have permission to edit this deal.',
 ];
