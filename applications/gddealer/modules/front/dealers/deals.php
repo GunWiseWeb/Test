@@ -210,8 +210,11 @@ class _deals extends \IPS\Dispatcher\Controller
 				);
 			} catch ( \Throwable ) {}
 
+			$gddealsEnabled    = \IPS\Application::appIsEnabled( 'gddeals' );
+			$gddealsCategories = $this->gddealsCategoriesForForm();
+
 			$body = (string) \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )
-				->dealsForm( $searchUrl, $submitUrl, $cancelUrl, $csrfKey, [], null, null );
+				->dealsForm( $searchUrl, $submitUrl, $cancelUrl, $csrfKey, [], null, null, $gddealsEnabled, $gddealsCategories );
 
 			$this->output( 'deals', $body );
 			return;
@@ -262,11 +265,14 @@ class _deals extends \IPS\Dispatcher\Controller
 			'source'     => 'dealer',
 			'created'    => time(),
 			'updated'    => null,
+			'publish_community'     => ( (int) ( \IPS\Request::i()->publish_community ?? 0 ) === 1 ) ? 1 : 0,
+			'community_category_id' => (int) ( \IPS\Request::i()->community_category_id ?? 0 ) ?: null,
 		];
 
 		try
 		{
-			\IPS\Db::i()->insert( 'gd_deals', $insert );
+			$newId = \IPS\Db::i()->insert( 'gd_deals', $insert );
+			$this->syncCommunityDeal( (int) $newId );
 		}
 		catch ( \Throwable $e )
 		{
@@ -323,8 +329,11 @@ class _deals extends \IPS\Dispatcher\Controller
 				);
 			} catch ( \Throwable ) {}
 
+			$gddealsEnabled    = \IPS\Application::appIsEnabled( 'gddeals' );
+			$gddealsCategories = $this->gddealsCategoriesForForm();
+
 			$body = (string) \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )
-				->dealsForm( $searchUrl, $submitUrl, $cancelUrl, $csrfKey, [], $deal, $selectedProduct );
+				->dealsForm( $searchUrl, $submitUrl, $cancelUrl, $csrfKey, [], $deal, $selectedProduct, $gddealsEnabled, $gddealsCategories );
 
 			$this->output( 'deals', $body );
 			return;
@@ -371,11 +380,14 @@ class _deals extends \IPS\Dispatcher\Controller
 			'start_date'   => $startDate,
 			'end_date'     => $endDate,
 			'updated'      => time(),
+			'publish_community'     => ( (int) ( \IPS\Request::i()->publish_community ?? 0 ) === 1 ) ? 1 : 0,
+			'community_category_id' => (int) ( \IPS\Request::i()->community_category_id ?? 0 ) ?: null,
 		];
 
 		try
 		{
 			\IPS\Db::i()->update( 'gd_deals', $update, [ 'deal_id=? AND dealer_id=?', $dealId, $dealerId ] );
+			$this->syncCommunityDeal( $dealId );
 		}
 		catch ( \Throwable )
 		{
@@ -406,6 +418,7 @@ class _deals extends \IPS\Dispatcher\Controller
 				'is_active' => $newActive,
 				'updated'   => time(),
 			], [ 'deal_id=? AND dealer_id=?', $dealId, $dealerId ] );
+			$this->syncCommunityDeal( $dealId );
 		}
 		catch ( \Throwable )
 		{
@@ -441,6 +454,117 @@ class _deals extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=deals', 'front', 'dealers_deals' )
 		);
+	}
+
+	protected function gddealsCategoriesForForm(): array
+	{
+		if ( !\IPS\Application::appIsEnabled( 'gddeals' ) ) { return []; }
+		$out = [];
+		try {
+			foreach ( \IPS\gddeals\Category::roots() as $cat ) {
+				$out[ (int) $cat->_id ] = $cat->_title;
+			}
+		} catch ( \Throwable $e ) {}
+		return $out;
+	}
+
+	protected function syncCommunityDeal( int $dealerDealId ): void
+	{
+		if ( !\IPS\Application::appIsEnabled( 'gddeals' ) ) { return; }
+
+		try {
+			$row = \IPS\Db::i()->select(
+				'd.*, c.title AS product_title, c.image_url AS product_image_url, l.dealer_price AS current_dealer_price',
+				[ 'gd_deals', 'd' ],
+				[ 'd.deal_id=?', $dealerDealId ]
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc = d.upc', 'LEFT' )
+			 ->join( [ 'gd_dealer_listings', 'l' ], 'l.upc = d.upc AND l.dealer_id = d.dealer_id', 'LEFT' )
+			 ->first();
+		} catch ( \UnderflowException $e ) { return; }
+
+		$publish    = (int) ( $row['publish_community'] ?? 0 ) === 1;
+		$categoryId = (int) ( $row['community_category_id'] ?? 0 );
+		$existingId = (int) ( $row['community_post_id'] ?? 0 );
+		$isActive   = (int) ( $row['is_active'] ?? 0 ) === 1;
+
+		if ( !$publish || !$categoryId )
+		{
+			if ( $existingId )
+			{
+				try { \IPS\gddeals\Deal::load( $existingId )->delete(); } catch ( \OutOfRangeException $e ) {}
+				\IPS\Db::i()->update( 'gd_deals', [ 'community_post_id' => null ], [ 'deal_id=?', $dealerDealId ] );
+			}
+			return;
+		}
+
+		try { $category = \IPS\gddeals\Category::load( $categoryId ); }
+		catch ( \OutOfRangeException $e ) { return; }
+
+		$dealerName = ''; $websiteUrl = '';
+		try {
+			$cfg = \IPS\Db::i()->select( 'dealer_name, website_url', 'gd_dealer_feed_config', [ 'dealer_id=?', (int) $row['dealer_id'] ] )->first();
+			$dealerName = (string) ( $cfg['dealer_name'] ?? '' );
+			$websiteUrl = (string) ( $cfg['website_url'] ?? '' );
+		} catch ( \UnderflowException $e ) {}
+
+		$listPrice = $row['current_dealer_price'] !== null ? (float) $row['current_dealer_price'] : 0.0;
+		$dealType  = (string) $row['deal_type'];
+		if ( $dealType === 'percent' )
+		{
+			$pct        = (float) ( $row['deal_percent'] ?? 0 );
+			$origPrice  = $listPrice;
+			$finalPrice = $listPrice > 0 ? round( $listPrice * ( 1 - ( $pct / 100 ) ), 2 ) : 0.0;
+		}
+		else
+		{
+			$finalPrice = (float) ( $row['deal_price'] ?? 0 );
+			$origPrice  = $listPrice;
+		}
+
+		$title = trim( (string) ( $row['title'] ?? '' ) );
+		if ( $title === '' ) { $title = trim( (string) ( $row['product_title'] ?? 'Dealer Deal' ) ); }
+
+		$post = null;
+		if ( $existingId )
+		{
+			try { $post = \IPS\gddeals\Deal::load( $existingId ); } catch ( \OutOfRangeException $e ) { $post = null; }
+		}
+		if ( $post === null )
+		{
+			$author = \IPS\Member::load( (int) $row['dealer_id'] );
+			$post = \IPS\gddeals\Deal::createItem( $author, \IPS\Request::i()->ipAddress(), \IPS\DateTime::create(), $category, FALSE );
+		}
+		else
+		{
+			$post->category_id = (int) $category->_id;
+		}
+
+		$post->title          = $title;
+		$post->description    = (string) ( $row['blurb'] ?? '' );
+		$post->retailer_name  = $dealerName ?: $title;
+		$post->retailer_type  = 'online';
+		$post->deal_price     = $finalPrice ?: null;
+		$post->original_price = $origPrice ?: null;
+		$post->deal_url       = $websiteUrl;
+		$post->image_url      = (string) ( $row['product_image_url'] ?? '' ) ?: null;
+		$post->source_badge   = 'dealer';
+		$post->upc            = (string) ( $row['upc'] ?? '' );
+		$post->expires_at     = $row['end_date'] !== null ? (int) $row['end_date'] : null;
+
+		if ( $post->original_price > 0 && $post->deal_price > 0 && $post->original_price > $post->deal_price ) {
+			$post->discount_pct = round( ( 1 - ( $post->deal_price / $post->original_price ) ) * 100, 2 );
+		} else {
+			$post->discount_pct = 0;
+		}
+
+		$post->save();
+
+		try {
+			if ( $isActive && $post->hidden() !== 0 ) { $post->unhide( \IPS\Member::loggedIn() ); }
+			elseif ( !$isActive && $post->hidden() === 0 ) { $post->hide( \IPS\Member::loggedIn() ); }
+		} catch ( \Throwable $e ) {}
+
+		\IPS\Db::i()->update( 'gd_deals', [ 'community_post_id' => (int) $post->id ], [ 'deal_id=?', $dealerDealId ] );
 	}
 
 	/**

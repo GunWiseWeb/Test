@@ -1,4 +1,4 @@
-<ips:template parameters="$searchUrl, $formUrl, $cancelUrl, $csrfKey, $errors=array(), $deal=null, $selectedProduct=null" />
+<ips:template parameters="$searchUrl, $formUrl, $cancelUrl, $csrfKey, $errors=array(), $deal=null, $selectedProduct=null, $gddealsEnabled=false, $gddealsCategories=array()" />
 <div class="gdDeals">
 	<div class="gdDeals__header">
 		<h2>{{if $deal}}{lang="gddealer_deals_edit_title"}{{else}}{lang="gddealer_deals_create_title"}{{endif}}</h2>
@@ -77,6 +77,22 @@
 		<div class="gdDeals__field">
 			<label><input type="checkbox" name="is_active" value="1" {{if !isset($deal['is_active']) || $deal['is_active']}}checked{{endif}}> Active</label>
 		</div>
+
+		{{if $gddealsEnabled}}
+			<div class="gdDeals__field">
+				<label><input type="checkbox" name="publish_community" value="1" {{if isset($deal['publish_community']) && $deal['publish_community']}}checked{{endif}}> Post to Community Deals</label>
+				<p class="gdDeals__hint">Share this deal on the public Community Deals feed where shoppers can upvote and comment.</p>
+			</div>
+			<div class="gdDeals__field">
+				<label>Community Category</label>
+				<select name="community_category_id">
+					<option value="">— Select a category —</option>
+					{{foreach $gddealsCategories as $catId => $catName}}
+						<option value="{$catId}" {{if isset($deal['community_category_id']) && (int)$deal['community_category_id'] === (int)$catId}}selected{{endif}}>{$catName}</option>
+					{{endforeach}}
+				</select>
+			</div>
+		{{endif}}
 
 		<div class="gdDeals__formActions">
 			<button type="submit" class="gdDeals__btn gdDeals__btn--primary">{{if $deal}}Save Changes{{else}}Create Deal{{endif}}</button>
