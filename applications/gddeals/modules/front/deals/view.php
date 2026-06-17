@@ -132,8 +132,6 @@ class _view extends \IPS\Dispatcher\Controller
 
 	protected function vote(): void
 	{
-		\IPS\Session::i()->csrfCheck();
-
 		if ( !\IPS\Request::i()->isAjax() )
 		{
 			\IPS\Output::i()->error( 'node_error', '2GD103/1', 403 );
