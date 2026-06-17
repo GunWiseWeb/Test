@@ -124,5 +124,6 @@
     <word key="gddeals_date_replied"><![CDATA[Posted %s]]></word>
     <word key="gddeals_login_to_comment"><![CDATA[Sign in to join the conversation]]></word>
     <word key="gddeals_mod_edit"><![CDATA[Edit]]></word>
+    <word key="gddeals_edit_title"><![CDATA[Edit Deal]]></word>
   </app>
 </language>

@@ -26,7 +26,7 @@ class _view extends \IPS\Content\Controller
 		catch ( \OutOfRangeException $e )
 		{
 			\IPS\Output::i()->error( 'gddeals_deal_not_found', '2GD101/1', 404 );
-			return;
+			return null;
 		}
 
 		$heatLabel = $deal->heat_label ?: 'cold';
@@ -80,7 +80,7 @@ class _view extends \IPS\Content\Controller
 		$d['url_unhide']    = (string) $deal->url( 'moderate' )->setQueryString( 'action', 'unhide' )->csrf();
 		$d['url_hide']      = (string) $deal->url( 'moderate' )->setQueryString( 'action', 'hide' )->csrf();
 		$d['url_delete']    = (string) $deal->url( 'moderate' )->setQueryString( 'action', 'delete' )->csrf();
-		$d['url_edit']      = (string) $deal->url( 'edit' );
+		$d['url_edit']      = (string) \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=submit&id=' . $deal->id, 'front', 'gddeals_submit' );
 
 		$commentForm = \IPS\Member::loggedIn()->member_id ? $deal->commentForm() : NULL;
 

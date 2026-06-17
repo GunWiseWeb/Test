@@ -123,4 +123,5 @@ $lang = [
     'gddeals_date_replied'            => 'Posted %s',
     'gddeals_login_to_comment'        => 'Sign in to join the conversation',
     'gddeals_mod_edit'                => 'Edit',
+    'gddeals_edit_title'              => 'Edit Deal',
 ];
