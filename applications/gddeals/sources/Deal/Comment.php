@@ -26,6 +26,8 @@ class _Comment extends \IPS\Content\Comment
 	public static ?string $itemClass = 'IPS\\gddeals\\Deal';
 
 	public static string $formLangPrefix = 'gddeals_';
+	public static string $icon = 'comments';
+	public static ?string $hideLogKey = 'gddeals_comment';
 
 	public static array $databaseColumnMap = [
 		'item'        => 'deal_id',

@@ -9,16 +9,17 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 	exit;
 }
 
-class _view extends \IPS\Dispatcher\Controller
+class _view extends \IPS\Content\Controller
 {
 	public static bool $csrfProtected = TRUE;
+	protected static string $contentModel = 'IPS\\gddeals\\Deal';
 
 	public function execute(): void
 	{
 		parent::execute();
 	}
 
-	protected function manage()
+	protected function manage(): void
 	{
 		\IPS\Output::i()->cssFiles = array_merge( \IPS\Output::i()->cssFiles, \IPS\Theme::i()->css( 'deals.css', 'gddeals', 'front' ) );
 		\IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'deals-vote.js', 'gddeals', 'interface' ) );
@@ -79,10 +80,12 @@ class _view extends \IPS\Dispatcher\Controller
 		$d['can_approve']   = ( $deal->hidden() !== 0 AND $deal->canUnhide( $me ) );
 		$d['can_hide']      = ( $deal->hidden() === 0 AND $deal->canHide( $me ) );
 		$d['can_delete']    = $deal->canDelete( $me );
+		$d['can_edit']      = $deal->canEdit( $me );
 		$d['approve_label'] = $me->language()->addToStack( ( $deal->hidden() === 1 ) ? 'gddeals_mod_approve' : 'gddeals_mod_restore' );
-		$d['url_approve']   = (string) $deal->url( 'approve' )->csrf();
-		$d['url_hide']      = (string) $deal->url( 'hide' )->csrf();
-		$d['url_delete']    = (string) $deal->url( 'delete' )->csrf();
+		$d['url_unhide']    = (string) $deal->url( 'moderate' )->setQueryString( 'action', 'unhide' )->csrf();
+		$d['url_hide']      = (string) $deal->url( 'moderate' )->setQueryString( 'action', 'hide' )->csrf();
+		$d['url_delete']    = (string) $deal->url( 'moderate' )->setQueryString( 'action', 'delete' )->csrf();
+		$d['url_edit']      = (string) $deal->url( 'edit' );
 
 		$commentForm = \IPS\Member::loggedIn()->member_id ? $deal->commentForm() : NULL;
 
@@ -216,59 +219,5 @@ class _view extends \IPS\Dispatcher\Controller
 		] );
 	}
 
-	protected function approve(): void
-	{
-		\IPS\Session::i()->csrfCheck();
-		try { $deal = \IPS\gddeals\Deal::loadAndCheckPerms( \IPS\Request::i()->id ); }
-		catch ( \OutOfRangeException $e ) { \IPS\Output::i()->error( 'gddeals_deal_not_found', '2GD101/2', 404 ); return; }
-		if ( !$deal->canUnhide() ) { \IPS\Output::i()->error( 'node_error', '2GD102/1', 403 ); return; }
-		$deal->unhide( \IPS\Member::loggedIn() );
-		\IPS\Output::i()->redirect( $deal->url() );
-	}
-
-	protected function hide(): void
-	{
-		\IPS\Session::i()->csrfCheck();
-		try { $deal = \IPS\gddeals\Deal::loadAndCheckPerms( \IPS\Request::i()->id ); }
-		catch ( \OutOfRangeException $e ) { \IPS\Output::i()->error( 'gddeals_deal_not_found', '2GD101/3', 404 ); return; }
-		if ( !$deal->canHide() ) { \IPS\Output::i()->error( 'node_error', '2GD102/2', 403 ); return; }
-		$deal->hide( \IPS\Member::loggedIn() );
-		\IPS\Output::i()->redirect( $deal->url() );
-	}
-
-	protected function delete(): void
-	{
-		\IPS\Session::i()->csrfCheck();
-		try { $deal = \IPS\gddeals\Deal::loadAndCheckPerms( \IPS\Request::i()->id ); }
-		catch ( \OutOfRangeException $e ) { \IPS\Output::i()->error( 'gddeals_deal_not_found', '2GD101/4', 404 ); return; }
-		if ( !$deal->canDelete() ) { \IPS\Output::i()->error( 'node_error', '2GD102/3', 403 ); return; }
-		$deal->delete();
-		\IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=browse', 'front', 'gddeals_browse' ) );
-	}
-
-	protected function moderate(): void
-	{
-		\IPS\Session::i()->csrfCheck();
-		try { $deal = \IPS\gddeals\Deal::loadAndCheckPerms( \IPS\Request::i()->id ); }
-		catch ( \OutOfRangeException $e ) { \IPS\Output::i()->error( 'gddeals_deal_not_found', '2GD101/5', 404 ); return; }
-
-		$action = (string) \IPS\Request::i()->action;
-		if ( $action === 'unhide' AND $deal->canUnhide() )
-		{
-			$deal->unhide( \IPS\Member::loggedIn() );
-		}
-		elseif ( $action === 'hide' AND $deal->canHide() )
-		{
-			$deal->hide( \IPS\Member::loggedIn() );
-		}
-		elseif ( $action === 'delete' AND $deal->canDelete() )
-		{
-			$deal->delete();
-			\IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=browse', 'front', 'gddeals_browse' ) );
-			return;
-		}
-
-		\IPS\Output::i()->redirect( $deal->url() );
-	}
 }
 class view extends _view {}

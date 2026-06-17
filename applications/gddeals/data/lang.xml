@@ -123,5 +123,6 @@
     <word key="gddeals_heat_fire"><![CDATA[Fire]]></word>
     <word key="gddeals_date_replied"><![CDATA[Posted %s]]></word>
     <word key="gddeals_login_to_comment"><![CDATA[Sign in to join the conversation]]></word>
+    <word key="gddeals_mod_edit"><![CDATA[Edit]]></word>
   </app>
 </language>
