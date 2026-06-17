@@ -124,4 +124,6 @@ $lang = [
     'gddeals_login_to_comment'        => 'Sign in to join the conversation',
     'gddeals_mod_edit'                => 'Edit',
     'gddeals_edit_title'              => 'Edit Deal',
+    'gddeals_verified_dealer'         => 'Verified Dealer',
+    'gddeals_view_dealer_profile'     => 'View Dealer Profile →',
 ];

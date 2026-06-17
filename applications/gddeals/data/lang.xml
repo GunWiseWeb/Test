@@ -125,5 +125,7 @@
     <word key="gddeals_login_to_comment"><![CDATA[Sign in to join the conversation]]></word>
     <word key="gddeals_mod_edit"><![CDATA[Edit]]></word>
     <word key="gddeals_edit_title"><![CDATA[Edit Deal]]></word>
+    <word key="gddeals_verified_dealer"><![CDATA[Verified Dealer]]></word>
+    <word key="gddeals_view_dealer_profile"><![CDATA[View Dealer Profile →]]></word>
   </app>
 </language>

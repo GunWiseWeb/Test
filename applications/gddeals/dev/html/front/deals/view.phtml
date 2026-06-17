@@ -21,7 +21,8 @@
 		<div class="gd-deal-info">
 			<span class="gd-card-cat">{$d['category_name']}</span>
 			<h1 class="gd-deal-h1">{$d['title']}</h1>
-			<div class="gd-deal-retailer">{$d['retailer_name']}{{if $d['store_location']}} · {$d['store_location']}{{endif}}</div>
+			<div class="gd-deal-retailer">{$d['retailer_name']}{{if $d['store_location']}} · {$d['store_location']}{{endif}}{{if $d['source'] == 'dealer'}} <span class="gd-verified-badge">{lang="gddeals_verified_dealer"}</span>{{endif}}</div>
+				{{if $d['dealer_profile_url']}}<div class="gd-dealer-profile-link"><a href="{$d['dealer_profile_url']}">{lang="gddeals_view_dealer_profile"}</a></div>{{endif}}
 			<div class="gd-deal-pricerow">
 				{{if $d['price']}}<span class="gd-price gd-price--lg">{$d['price']}</span>{{endif}}
 				{{if $d['discount']}}<span class="gd-discount">{$d['discount']}% {lang="gddeals_off"}</span>{{endif}}

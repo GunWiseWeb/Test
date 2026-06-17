@@ -92,10 +92,42 @@ class _browse extends \IPS\Dispatcher\Controller
 			catch ( \Throwable ) {}
 		}
 
+		$dealerSlugMap = [];
+		if ( \IPS\Application::appIsEnabled( 'gddealer' ) )
+		{
+			$dIds = [];
+			foreach ( $dealList as $dl )
+			{
+				if ( $dl->source_badge === 'dealer' && $dl->dealer_id )
+				{
+					$dIds[] = (int) $dl->dealer_id;
+				}
+			}
+			if ( !empty( $dIds ) )
+			{
+				try
+				{
+					foreach ( \IPS\Db::i()->select( 'dealer_id, dealer_slug', 'gd_dealer_feed_config', \IPS\Db::i()->in( 'dealer_id', $dIds ) ) as $dr )
+					{
+						$dealerSlugMap[ (int) $dr['dealer_id'] ] = (string) $dr['dealer_slug'];
+					}
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+
 		$cards = [];
 		foreach ( $dealList as $deal )
 		{
 			$hl = $deal->heat_label ?: 'cold';
+			$dealerProfileUrl = '';
+			if ( $deal->source_badge === 'dealer' && $deal->dealer_id && isset( $dealerSlugMap[ (int) $deal->dealer_id ] ) )
+			{
+				$dealerProfileUrl = (string) \IPS\Http\Url::internal(
+					'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( $dealerSlugMap[ (int) $deal->dealer_id ] ),
+					'front'
+				);
+			}
 			$cards[] = [
 				'url'        => (string) $deal->url(),
 				'title'      => $deal->title,
@@ -108,7 +140,8 @@ class _browse extends \IPS\Dispatcher\Controller
 				'free_ship'  => (bool) $deal->free_shipping,
 				'posted'     => (string) \IPS\DateTime::ts( $deal->posted_at )->relative(),
 				'author'     => $deal->author()->name,
-				'source'     => $deal->source_badge,
+				'source'              => $deal->source_badge,
+				'dealer_profile_url'  => $dealerProfileUrl,
 				'image'      => $deal->image_url ?: '',
 				'expires'    => $deal->expires_at ? (string) \IPS\DateTime::ts( $deal->expires_at )->relative() : '',
 				'heat_score' => (int) $deal->upvotes - (int) $deal->downvotes,

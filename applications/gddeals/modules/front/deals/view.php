@@ -72,6 +72,21 @@ class _view extends \IPS\Content\Controller
 			'user_vote'      => $userVote,
 		];
 
+		$d['source'] = $deal->source_badge;
+		$d['dealer_profile_url'] = '';
+		if ( $deal->source_badge === 'dealer' && $deal->dealer_id && \IPS\Application::appIsEnabled( 'gddealer' ) )
+		{
+			try
+			{
+				$slug = \IPS\Db::i()->select( 'dealer_slug', 'gd_dealer_feed_config', [ 'dealer_id=?', (int) $deal->dealer_id ] )->first();
+				$d['dealer_profile_url'] = (string) \IPS\Http\Url::internal(
+					'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) $slug ),
+					'front'
+				);
+			}
+			catch ( \Throwable ) {}
+		}
+
 		$d['can_approve']   = ( $deal->hidden() !== 0 AND $deal->canUnhide( $me ) );
 		$d['can_hide']      = ( $deal->hidden() === 0 AND $deal->canHide( $me ) );
 		$d['can_delete']    = $deal->canDelete( $me );

@@ -41,7 +41,7 @@
 						<div class="gd-card-top">
 							<span class="gd-card-cat">{$d['category']}</span>
 							<div class="gd-card-title">{$d['title']}</div>
-							<div class="gd-card-retailer">{$d['retailer']}</div>
+							<div class="gd-card-retailer">{{if $d['dealer_profile_url']}}<a class="gd-dealer-link" href="{$d['dealer_profile_url']}">{$d['retailer']}</a>{{else}}{$d['retailer']}{{endif}}{{if $d['source'] == 'dealer'}} <span class="gd-verified-badge">{lang="gddeals_verified_dealer"}</span>{{endif}}</div>
 						</div>
 						<div class="gd-card-price">
 							{{if $d['price']}}<span class="gd-price">{$d['price']}</span>{{endif}}
