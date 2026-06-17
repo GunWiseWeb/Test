@@ -77,7 +77,7 @@
 .gd-card-foot-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
 
 /* vote widget */
-.gd-vote-widget{display:inline-flex;align-items:center;gap:6px;}
+.gd-vote{display:inline-flex;align-items:center;gap:6px;}
 .gd-vote-btn{background:none;border:1px solid #d3d9e0;border-radius:6px;padding:3px 8px;font-size:.78rem;color:#8a93a0;cursor:pointer;line-height:1;transition:.12s;}
 .gd-vote-btn:hover{border-color:#1a7f37;color:#1a7f37;background:#f0faf3;}
 .gd-vote-btn.gd-voted{border-color:#1a7f37;color:#fff;background:#1a7f37;}

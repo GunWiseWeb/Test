@@ -72,7 +72,7 @@ class _view extends \IPS\Dispatcher\Controller
 			'heat_score'     => $score,
 			'heat_label'     => $heatLabel,
 			'heat_text'      => $heatText,
-			'vote_url'       => (string) \IPS\Http\Url::internal( "app=gddeals&module=deals&controller=view&id={$deal->id}&do=vote", 'front' ),
+			'vote_url'       => (string) $deal->url( 'vote' )->csrf(),
 			'user_vote'      => $userVote,
 		];
 
@@ -143,7 +143,7 @@ class _view extends \IPS\Dispatcher\Controller
 		$me = \IPS\Member::loggedIn();
 		if ( !$me->member_id )
 		{
-			\IPS\Output::i()->json( [ 'error' => 'not_logged_in' ], 403 );
+			\IPS\Output::i()->json( [ 'error' => 'login' ], 403 );
 			return;
 		}
 
@@ -210,8 +210,9 @@ class _view extends \IPS\Dispatcher\Controller
 		$deal->save();
 
 		\IPS\Output::i()->json( [
+			'ok'         => TRUE,
 			'score'      => $score,
-			'user_vote'  => $finalVote,
+			'userVote'   => $finalVote,
 			'heat_label' => $heatLabel,
 			'heat_text'  => $this->_heatLabel( $heatLabel ),
 		] );

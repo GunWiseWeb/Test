@@ -26,10 +26,10 @@
 				{{if $d['discount']}}<span class="gd-discount">{$d['discount']}% {lang="gddeals_off"}</span>{{endif}}
 				{{if $d['original']}}<span class="gd-orig">{$d['original']}</span>{{endif}}
 			</div>
-			<div class="gd-vote-widget gd-vote--lg" data-vote-url="{$d['vote_url']}" data-csrf-key='{expression="\IPS\Session::i()->csrfKey"}'>
-				<button class="gd-vote-btn{{if $d['user_vote'] == 1}} gd-voted{{endif}}" data-dir="up" title="Upvote">&#9650;</button>
+			<div class="gd-vote gd-vote--lg" data-vote-url="{$d['vote_url']}" data-uservote="{$d['user_vote']}">
+				<button class="gd-vote-btn gd-vote-up{{if $d['user_vote'] == 1}} gd-voted{{endif}}" data-dir="up" title="Upvote">&#9650;</button>
 				<span class="gd-vote-score">{$d['heat_score']}</span>
-				<button class="gd-vote-btn{{if $d['user_vote'] == -1}} gd-voted{{endif}}" data-dir="down" title="Downvote">&#9660;</button>
+				<button class="gd-vote-btn gd-vote-down{{if $d['user_vote'] == -1}} gd-voted{{endif}}" data-dir="down" title="Downvote">&#9660;</button>
 				{{if $d['heat_label'] != 'cold'}}<span class="gd-heat-badge gd-heat--{$d['heat_label']}">{$d['heat_text']}</span>{{endif}}
 			</div>
 			<div class="gd-deal-meta">

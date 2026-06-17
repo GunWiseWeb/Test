@@ -114,7 +114,7 @@ class _browse extends \IPS\Dispatcher\Controller
 				'heat_score' => (int) $deal->upvotes - (int) $deal->downvotes,
 				'heat_label' => $hl,
 				'heat_text'  => $this->_heatText( $hl ),
-				'vote_url'   => (string) \IPS\Http\Url::internal( "app=gddeals&module=deals&controller=view&id={$deal->id}&do=vote", 'front' ),
+				'vote_url'   => (string) $deal->url( 'vote' )->csrf(),
 				'user_vote'  => $myVotes[ $deal->id ] ?? 0,
 			];
 		}
