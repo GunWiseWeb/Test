@@ -55,12 +55,13 @@ class _browse extends \IPS\Dispatcher\Controller
 			$where[] = [ 'gd_deal_posts.posted_at >= ?', strtotime( 'today' ) ];
 		}
 
-		$order = match ( $sort ) {
+		$baseOrder = match ( $sort ) {
 			'discount' => 'gd_deal_posts.discount_pct DESC, gd_deal_posts.posted_at DESC',
 			'expiring' => '( gd_deal_posts.expires_at IS NULL ) ASC, gd_deal_posts.expires_at ASC',
 			'hottest'  => 'gd_deal_posts.heat_score DESC, gd_deal_posts.posted_at DESC',
 			default    => 'gd_deal_posts.posted_at DESC',
 		};
+		$order = "( gd_deal_posts.source_badge = 'dealer' ) DESC, " . $baseOrder;
 
 		$total = (int) \IPS\gddeals\Deal::getItemsWithPermission( $where, NULL, NULL, 'read', \IPS\Content\Filter::FILTER_AUTOMATIC, 0, NULL, FALSE, FALSE, FALSE, TRUE );
 

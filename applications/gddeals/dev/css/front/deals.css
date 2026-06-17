@@ -108,3 +108,9 @@
 .gd-dealer-profile-link{margin-top:4px;margin-bottom:12px;}
 .gd-dealer-profile-link a{color:#1a7f37;font-size:.88rem;font-weight:600;text-decoration:none;}
 .gd-dealer-profile-link a:hover{text-decoration:underline;}
+
+/* dealer card standout */
+.gd-deal-card--dealer{position:relative;border:2px solid #1a7f37;box-shadow:0 4px 16px rgba(26,127,55,.18);}
+.gd-deal-card--dealer:hover{box-shadow:0 10px 28px rgba(26,127,55,.26);border-color:#15692e;}
+.gd-deal-card--dealer::before{content:"\2605 FEATURED DEALER";position:absolute;top:10px;right:10px;z-index:4;background:#1a7f37;color:#fff;font-size:.6rem;font-weight:800;letter-spacing:.04em;padding:4px 10px;border-radius:20px;box-shadow:0 2px 6px rgba(0,0,0,.22);pointer-events:none;}
+.gd-deal-card--dealer .gd-card-cat{color:#15692e;}

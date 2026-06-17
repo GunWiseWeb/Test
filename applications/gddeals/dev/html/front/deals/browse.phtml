@@ -31,7 +31,7 @@
 	{{else}}
 		<div class="gd-deal-grid">
 			{{foreach $cards as $d}}
-				<div class="gd-deal-card">
+				<div class="gd-deal-card{{if $d['source'] == 'dealer'}} gd-deal-card--dealer{{endif}}">
 					<a class="gd-card-main" href="{$d['url']}">
 						{{if $d['image']}}
 							<div class="gd-card-imgwrap"><img class="gd-card-img" src="{$d['image']}" alt="{$d['title']}"></div>
