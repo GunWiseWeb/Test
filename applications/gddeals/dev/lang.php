@@ -162,4 +162,7 @@ $lang = [
     'block_gdRecentDeals'             => 'GD: Recent Deals',
     'block_gdRecentCoupons'           => 'GD: Recent Coupons',
     'block_gdRecentComments'          => 'GD: Recent Comments',
+    'block_gdRecentDeals_desc'        => 'Shows the newest deals, dealer deals first.',
+    'block_gdRecentCoupons_desc'      => 'Shows the newest coupons and promo codes.',
+    'block_gdRecentComments_desc'     => 'Shows the latest comments across all deals.',
 ];

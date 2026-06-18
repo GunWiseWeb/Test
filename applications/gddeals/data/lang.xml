@@ -163,5 +163,8 @@
     <word key="block_gdRecentDeals"><![CDATA[GD: Recent Deals]]></word>
     <word key="block_gdRecentCoupons"><![CDATA[GD: Recent Coupons]]></word>
     <word key="block_gdRecentComments"><![CDATA[GD: Recent Comments]]></word>
+    <word key="block_gdRecentDeals_desc"><![CDATA[Shows the newest deals, dealer deals first.]]></word>
+    <word key="block_gdRecentCoupons_desc"><![CDATA[Shows the newest coupons and promo codes.]]></word>
+    <word key="block_gdRecentComments_desc"><![CDATA[Shows the latest comments across all deals.]]></word>
   </app>
 </language>
