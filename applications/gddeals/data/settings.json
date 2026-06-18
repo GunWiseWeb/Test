@@ -1,1 +1,22 @@
-[]
+[
+	{"key":"gddeals_c_primary","default":"#1f3a63","report":"full"},
+	{"key":"gddeals_c_primary_hover","default":"#16305a","report":"full"},
+	{"key":"gddeals_c_dealer","default":"#1a7f37","report":"full"},
+	{"key":"gddeals_c_dealer_hover","default":"#15692e","report":"full"},
+	{"key":"gddeals_c_discount","default":"#d97706","report":"full"},
+	{"key":"gddeals_c_heading","default":"#1a2b4a","report":"full"},
+	{"key":"gddeals_c_text","default":"#16181d","report":"full"},
+	{"key":"gddeals_c_text_muted","default":"#6b7480","report":"full"},
+	{"key":"gddeals_c_text_faint","default":"#8a93a0","report":"full"},
+	{"key":"gddeals_c_text_strike","default":"#9aa3ad","report":"full"},
+	{"key":"gddeals_c_border","default":"#e6e9ee","report":"full"},
+	{"key":"gddeals_c_border_hover","default":"#d3d9e0","report":"full"},
+	{"key":"gddeals_c_border_light","default":"#dfe4ea","report":"full"},
+	{"key":"gddeals_c_surface","default":"#ffffff","report":"full"},
+	{"key":"gddeals_c_surface_alt","default":"#f1f3f5","report":"full"},
+	{"key":"gddeals_c_promo_bg","default":"#fff4e5","report":"full"},
+	{"key":"gddeals_c_promo_text","default":"#8a5a00","report":"full"},
+	{"key":"gddeals_c_ship_bg","default":"#e7f4ec","report":"full"},
+	{"key":"gddeals_c_expired","default":"#c0392b","report":"full"},
+	{"key":"gddeals_c_expired_bg","default":"#fdecea","report":"full"}
+]

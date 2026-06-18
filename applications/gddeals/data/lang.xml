@@ -133,5 +133,32 @@
     <word key="gddeals_copy"><![CDATA[Copy]]></word>
     <word key="gddeals_shop"><![CDATA[Shop]]></word>
     <word key="gddeals_deals_divider"><![CDATA[Deals]]></word>
+    <word key="gddeals_c_primary"><![CDATA[Primary (navy)]]></word>
+    <word key="gddeals_c_primary_hover"><![CDATA[Primary hover]]></word>
+    <word key="gddeals_c_dealer"><![CDATA[Dealer / verified (green)]]></word>
+    <word key="gddeals_c_dealer_hover"><![CDATA[Dealer hover]]></word>
+    <word key="gddeals_c_discount"><![CDATA[Discount (amber)]]></word>
+    <word key="gddeals_c_heading"><![CDATA[Headings]]></word>
+    <word key="gddeals_c_text"><![CDATA[Title text]]></word>
+    <word key="gddeals_c_text_muted"><![CDATA[Muted text]]></word>
+    <word key="gddeals_c_text_faint"><![CDATA[Faint text]]></word>
+    <word key="gddeals_c_text_strike"><![CDATA[Strikethrough price]]></word>
+    <word key="gddeals_c_border"><![CDATA[Card border]]></word>
+    <word key="gddeals_c_border_hover"><![CDATA[Border hover]]></word>
+    <word key="gddeals_c_border_light"><![CDATA[Light border / divider]]></word>
+    <word key="gddeals_c_surface"><![CDATA[Card background]]></word>
+    <word key="gddeals_c_surface_alt"><![CDATA[Alt background]]></word>
+    <word key="gddeals_c_promo_bg"><![CDATA[Promo badge background]]></word>
+    <word key="gddeals_c_promo_text"><![CDATA[Promo badge text]]></word>
+    <word key="gddeals_c_ship_bg"><![CDATA[Free-shipping badge bg]]></word>
+    <word key="gddeals_c_expired"><![CDATA[Expired text]]></word>
+    <word key="gddeals_c_expired_bg"><![CDATA[Expired badge bg]]></word>
+    <word key="gddeals_colhdr_brand"><![CDATA[Brand colors]]></word>
+    <word key="gddeals_colhdr_text"><![CDATA[Text]]></word>
+    <word key="gddeals_colhdr_surfaces"><![CDATA[Surfaces & borders]]></word>
+    <word key="gddeals_colhdr_badges"><![CDATA[Badges]]></word>
+    <word key="gddeals_colors_title"><![CDATA[Deal Colors]]></word>
+    <word key="menu__gddeals_deals_settings"><![CDATA[Colors]]></word>
+    <word key="r__settings_manage"><![CDATA[Manage Deal Colors]]></word>
   </app>
 </language>

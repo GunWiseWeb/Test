@@ -5,6 +5,12 @@
             "controller": "categories",
             "do": "",
             "restriction": "categories_manage"
+        },
+        "settings": {
+            "tab": "gddeals",
+            "controller": "settings",
+            "do": "",
+            "restriction": "settings_manage"
         }
     }
 }

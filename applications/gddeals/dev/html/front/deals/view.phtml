@@ -1,4 +1,5 @@
 <ips:template parameters="$d, $commentsHtml, $commentForm, $commentPagination, $totalComments, $csrfKey" />
+{expression="\IPS\gddeals\Application::colorCss()" raw="1"}
 <div class="gd-deals-wrap gd-deal-view">
 	{{if $d['is_pending']}}<div class="gd-pending-banner">{lang="gddeals_deal_pending"}</div>{{endif}}
 	{{if $d['can_approve'] or $d['can_hide'] or $d['can_delete'] or $d['can_edit']}}
