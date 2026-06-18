@@ -160,9 +160,9 @@
     <word key="gddeals_colors_title"><![CDATA[Deal Colors]]></word>
     <word key="menu__gddeals_deals_settings"><![CDATA[Colors]]></word>
     <word key="r__settings_manage"><![CDATA[Manage Deal Colors]]></word>
-    <word key="block_gdRecentDeals"><![CDATA[GD: Recent Deals]]></word>
-    <word key="block_gdRecentCoupons"><![CDATA[GD: Recent Coupons]]></word>
-    <word key="block_gdRecentComments"><![CDATA[GD: Recent Comments]]></word>
+    <word key="block_gdRecentDeals"><![CDATA[Recent Deals]]></word>
+    <word key="block_gdRecentCoupons"><![CDATA[Recent Coupons]]></word>
+    <word key="block_gdRecentComments"><![CDATA[Recent Comments]]></word>
     <word key="block_gdRecentDeals_desc"><![CDATA[Shows the newest deals, dealer deals first.]]></word>
     <word key="block_gdRecentCoupons_desc"><![CDATA[Shows the newest coupons and promo codes.]]></word>
     <word key="block_gdRecentComments_desc"><![CDATA[Shows the latest comments across all deals.]]></word>
