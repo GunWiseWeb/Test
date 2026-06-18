@@ -159,4 +159,7 @@ $lang = [
     'gddeals_colors_title'            => 'Deal Colors',
     'menu__gddeals_deals_settings'    => 'Colors',
     'r__settings_manage'              => 'Manage Deal Colors',
+    'block_gdRecentDeals'             => 'GD: Recent Deals',
+    'block_gdRecentCoupons'           => 'GD: Recent Coupons',
+    'block_gdRecentComments'          => 'GD: Recent Comments',
 ];

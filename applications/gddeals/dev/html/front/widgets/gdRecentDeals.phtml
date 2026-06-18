@@ -1,0 +1,19 @@
+<ips:template parameters="$items, $orientation='', $carousel=false" />
+{expression="\IPS\gddeals\Application::colorCss()" raw="1"}
+<div class='gd-widget gd-widget--deals'>
+	<h3 class='gd-widget__title'>{lang="block_gdRecentDeals"}</h3>
+	<ul class='gd-widget__list'>
+		{{foreach $items as $d}}
+		<li class='gd-widget__row{{if $d['dealer']}} is-dealer{{endif}}'>
+			<a href='{$d['url']}' class='gd-widget__link'>
+				{{if $d['image']}}<span class='gd-widget__thumb' style="background-image:url('{$d['image']}')"></span>{{else}}<span class='gd-widget__thumb gd-widget__thumb--ph'></span>{{endif}}
+				<span class='gd-widget__main'>
+					<span class='gd-widget__name'>{$d['title']}</span>
+					<span class='gd-widget__meta'>{{if $d['dealer']}}<span class='gd-widget__badge'>Dealer</span>{{endif}}{$d['retailer']}</span>
+				</span>
+				<span class='gd-widget__price'>{$d['price']}{{if $d['discount']}}<span class='gd-widget__off'>{$d['discount']}</span>{{endif}}</span>
+			</a>
+		</li>
+		{{endforeach}}
+	</ul>
+</div>

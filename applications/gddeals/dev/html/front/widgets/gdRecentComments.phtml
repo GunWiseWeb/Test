@@ -1,0 +1,16 @@
+<ips:template parameters="$items, $orientation='', $carousel=false" />
+{expression="\IPS\gddeals\Application::colorCss()" raw="1"}
+<div class='gd-widget gd-widget--comments'>
+	<h3 class='gd-widget__title'>{lang="block_gdRecentComments"}</h3>
+	<ul class='gd-widget__list'>
+		{{foreach $items as $c}}
+		<li class='gd-widget__row'>
+			<a href='{$c['url']}' class='gd-widget__link gd-widget__link--cmt'>
+				<span class='gd-widget__cmt-head'><strong>{$c['author']}</strong> · <span class='gd-widget__cmt-deal'>{$c['deal_title']}</span></span>
+				<span class='gd-widget__cmt-body'>{$c['snippet']}</span>
+				<span class='gd-widget__cmt-date'>{$c['date']}</span>
+			</a>
+		</li>
+		{{endforeach}}
+	</ul>
+</div>
