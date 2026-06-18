@@ -1,5 +1,5 @@
 <?php
-namespace IPS\gddeals\setup\upg_10037;
+namespace IPS\gddeals\setup\upg_10038;
 
 use function defined;
 
