@@ -1,0 +1,6 @@
+{
+	"rebates": {
+		"sources":  { "sources_manage": "sources_manage" },
+		"settings": { "settings_manage": "settings_manage" }
+	}
+}

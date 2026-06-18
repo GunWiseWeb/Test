@@ -1,0 +1,548 @@
+{
+	"gd_rebate_sources": {
+		"name": "gd_rebate_sources",
+		"columns": {
+			"source_id": {
+				"name": "source_id",
+				"type": "BIGINT",
+				"length": 20,
+				"decimals": null,
+				"allow_null": false,
+				"default": null,
+				"auto_increment": true,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"manufacturer": {
+				"name": "manufacturer",
+				"type": "VARCHAR",
+				"length": 120,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"url": {
+				"name": "url",
+				"type": "VARCHAR",
+				"length": 500,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"source_type": {
+				"name": "source_type",
+				"type": "VARCHAR",
+				"length": 10,
+				"decimals": null,
+				"allow_null": false,
+				"default": "single",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"is_active": {
+				"name": "is_active",
+				"type": "TINYINT",
+				"length": 1,
+				"decimals": null,
+				"allow_null": false,
+				"default": 1,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"last_parsed_at": {
+				"name": "last_parsed_at",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"last_status": {
+				"name": "last_status",
+				"type": "VARCHAR",
+				"length": 20,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"last_message": {
+				"name": "last_message",
+				"type": "TEXT",
+				"length": null,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"last_found": {
+				"name": "last_found",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": false,
+				"default": 0,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"created": {
+				"name": "created",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": false,
+				"default": 0,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"updated": {
+				"name": "updated",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": false,
+				"default": 0,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			}
+		},
+		"indexes": {
+			"PRIMARY": {
+				"type": "primary",
+				"name": "PRIMARY",
+				"length": [
+					null
+				],
+				"columns": [
+					"source_id"
+				]
+			},
+			"idx_active": {
+				"type": "key",
+				"name": "idx_active",
+				"length": [
+					null
+				],
+				"columns": [
+					"is_active"
+				]
+			}
+		}
+	},
+	"gd_rebates": {
+		"name": "gd_rebates",
+		"columns": {
+			"rebate_id": {
+				"name": "rebate_id",
+				"type": "BIGINT",
+				"length": 20,
+				"decimals": null,
+				"allow_null": false,
+				"default": null,
+				"auto_increment": true,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"source_id": {
+				"name": "source_id",
+				"type": "BIGINT",
+				"length": 20,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"manufacturer": {
+				"name": "manufacturer",
+				"type": "VARCHAR",
+				"length": 120,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"title": {
+				"name": "title",
+				"type": "VARCHAR",
+				"length": 255,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"rebate_type": {
+				"name": "rebate_type",
+				"type": "VARCHAR",
+				"length": 20,
+				"decimals": null,
+				"allow_null": false,
+				"default": "cash",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"amount": {
+				"name": "amount",
+				"type": "DECIMAL",
+				"length": 10,
+				"decimals": 2,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"amount_text": {
+				"name": "amount_text",
+				"type": "VARCHAR",
+				"length": 80,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"eligible_models": {
+				"name": "eligible_models",
+				"type": "TEXT",
+				"length": null,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"start_date": {
+				"name": "start_date",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"end_date": {
+				"name": "end_date",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"submit_by": {
+				"name": "submit_by",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"redemption_url": {
+				"name": "redemption_url",
+				"type": "VARCHAR",
+				"length": 500,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"source_url": {
+				"name": "source_url",
+				"type": "VARCHAR",
+				"length": 500,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"image_url": {
+				"name": "image_url",
+				"type": "VARCHAR",
+				"length": 500,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"pdf_url": {
+				"name": "pdf_url",
+				"type": "VARCHAR",
+				"length": 500,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"status": {
+				"name": "status",
+				"type": "VARCHAR",
+				"length": 10,
+				"decimals": null,
+				"allow_null": false,
+				"default": "pending",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"dedupe_hash": {
+				"name": "dedupe_hash",
+				"type": "CHAR",
+				"length": 40,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"raw_extract": {
+				"name": "raw_extract",
+				"type": "MEDIUMTEXT",
+				"length": null,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"approved_by": {
+				"name": "approved_by",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"approved_at": {
+				"name": "approved_at",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"created": {
+				"name": "created",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": false,
+				"default": 0,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"updated": {
+				"name": "updated",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": false,
+				"default": 0,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			}
+		},
+		"indexes": {
+			"PRIMARY": {
+				"type": "primary",
+				"name": "PRIMARY",
+				"length": [
+					null
+				],
+				"columns": [
+					"rebate_id"
+				]
+			},
+			"idx_status": {
+				"type": "key",
+				"name": "idx_status",
+				"length": [
+					null
+				],
+				"columns": [
+					"status"
+				]
+			},
+			"idx_mfr": {
+				"type": "key",
+				"name": "idx_mfr",
+				"length": [
+					50
+				],
+				"columns": [
+					"manufacturer"
+				]
+			},
+			"idx_dedupe": {
+				"type": "key",
+				"name": "idx_dedupe",
+				"length": [
+					null
+				],
+				"columns": [
+					"dedupe_hash"
+				]
+			},
+			"idx_end": {
+				"type": "key",
+				"name": "idx_end",
+				"length": [
+					null
+				],
+				"columns": [
+					"end_date"
+				]
+			}
+		}
+	}
+}

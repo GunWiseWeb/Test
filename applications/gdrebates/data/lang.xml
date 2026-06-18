@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language name="English (US)">
+  <app key="gdrebates">
+    <word key="__app_gdrebates"><![CDATA[GD Rebates]]></word>
+    <word key="menutab__gdrebates"><![CDATA[GD Rebates]]></word>
+    <word key="menutab__gdrebates_icon"><![CDATA[tags]]></word>
+    <word key="menu__gdrebates_rebates_sources"><![CDATA[Rebate Sources]]></word>
+    <word key="menu__gdrebates_rebates_settings"><![CDATA[Settings]]></word>
+    <word key="r__sources_manage"><![CDATA[Manage rebate sources]]></word>
+    <word key="r__settings_manage"><![CDATA[Manage rebate settings]]></word>
+    <word key="gdrebates_src_manufacturer"><![CDATA[Manufacturer]]></word>
+    <word key="gdrebates_src_url"><![CDATA[Rebate page URL]]></word>
+    <word key="gdrebates_src_source_type"><![CDATA[Source type]]></word>
+    <word key="gdrebates_src_type_single"><![CDATA[Single rebate page]]></word>
+    <word key="gdrebates_src_type_index"><![CDATA[Index page (links to many)]]></word>
+    <word key="gdrebates_src_is_active"><![CDATA[Active]]></word>
+    <word key="gdrebates_src_last_parsed_at"><![CDATA[Last parsed]]></word>
+    <word key="gdrebates_src_last_status"><![CDATA[Last status]]></word>
+    <word key="gdrebates_src_add"><![CDATA[Add Source]]></word>
+    <word key="gdrebates_src_edit"><![CDATA[Edit Source]]></word>
+    <word key="gdrebates_api_key"><![CDATA[Anthropic API key]]></word>
+    <word key="gdrebates_parse_cap"><![CDATA[Max sources per parse run]]></word>
+    <word key="gdrebates_parse_active"><![CDATA[Parsing enabled]]></word>
+  </app>
+</language>

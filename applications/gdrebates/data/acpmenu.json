@@ -1,0 +1,6 @@
+{
+	"rebates": {
+		"sources": { "tab": "gdrebates", "controller": "sources", "do": "", "restriction": "sources_manage" },
+		"settings": { "tab": "gdrebates", "controller": "settings", "do": "", "restriction": "settings_manage" }
+	}
+}

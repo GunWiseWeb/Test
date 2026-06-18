@@ -1,0 +1,23 @@
+<?php
+$lang = [
+    '__app_gdrebates'                  => 'GD Rebates',
+    'menutab__gdrebates'               => 'GD Rebates',
+    'menutab__gdrebates_icon'          => 'tags',
+    'menu__gdrebates_rebates_sources'  => 'Rebate Sources',
+    'menu__gdrebates_rebates_settings' => 'Settings',
+    'r__sources_manage'                => 'Manage rebate sources',
+    'r__settings_manage'               => 'Manage rebate settings',
+    'gdrebates_src_manufacturer'       => 'Manufacturer',
+    'gdrebates_src_url'                => 'Rebate page URL',
+    'gdrebates_src_source_type'        => 'Source type',
+    'gdrebates_src_type_single'        => 'Single rebate page',
+    'gdrebates_src_type_index'         => 'Index page (links to many)',
+    'gdrebates_src_is_active'          => 'Active',
+    'gdrebates_src_last_parsed_at'     => 'Last parsed',
+    'gdrebates_src_last_status'        => 'Last status',
+    'gdrebates_src_add'                => 'Add Source',
+    'gdrebates_src_edit'               => 'Edit Source',
+    'gdrebates_api_key'                => 'Anthropic API key',
+    'gdrebates_parse_cap'              => 'Max sources per parse run',
+    'gdrebates_parse_active'           => 'Parsing enabled',
+];

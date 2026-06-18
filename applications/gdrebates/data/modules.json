@@ -1,0 +1,8 @@
+{
+	"admin": {
+		"rebates": {
+			"default_controller": "sources",
+			"protected": false
+		}
+	}
+}
