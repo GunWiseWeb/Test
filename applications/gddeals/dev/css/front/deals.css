@@ -143,3 +143,8 @@ a.gd-cpn-dealer:hover{text-decoration:underline;}
 .gd-cpn-shop{color:#1a7f37;font-weight:700;text-decoration:none;}
 .gd-cpn-shop:hover{text-decoration:underline;}
 .gd-cpn .gd-vote{margin-top:2px;}
+
+/* divider between coupons band and deals grid */
+.gd-divider{display:flex;align-items:center;gap:16px;margin:2px 0 24px;}
+.gd-divider::before,.gd-divider::after{content:"";flex:1;height:2px;border-radius:2px;background:linear-gradient(to right,rgba(227,232,238,0),#dfe4ea 50%,rgba(227,232,238,0));}
+.gd-divider-label{font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#1a7f37;white-space:nowrap;}

@@ -69,6 +69,10 @@
 		</section>
 	{{endif}}
 
+	{{if !$couponMode && count($coupons)}}
+		<div class="gd-divider"><span class="gd-divider-label">{lang="gddeals_deals_divider"}</span></div>
+	{{endif}}
+
 	{{if $total == 0}}
 		<div class="gd-empty">{lang="gddeals_feed_empty"}</div>
 	{{else}}

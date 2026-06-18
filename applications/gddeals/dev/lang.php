@@ -131,4 +131,5 @@ $lang = [
     'gddeals_featured_dealer'         => 'Featured Dealer',
     'gddeals_copy'                    => 'Copy',
     'gddeals_shop'                    => 'Shop',
+    'gddeals_deals_divider'           => 'Deals',
 ];
