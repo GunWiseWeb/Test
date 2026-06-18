@@ -148,3 +148,11 @@ a.gd-cpn-dealer:hover{text-decoration:underline;}
 .gd-divider{display:flex;align-items:center;gap:16px;margin:2px 0 24px;}
 .gd-divider::before,.gd-divider::after{content:"";flex:1;height:2px;border-radius:2px;background:linear-gradient(to right,rgba(227,232,238,0),#dfe4ea 50%,rgba(227,232,238,0));}
 .gd-divider-label{font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#1a7f37;white-space:nowrap;}
+
+/* sort pill no-wrap + mobile scroll */
+.gd-seg a{white-space:nowrap;}
+@media (max-width:640px){
+	.gd-controls{gap:10px;}
+	.gd-seg{max-width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;}
+	.gd-seg::-webkit-scrollbar{display:none;}
+}
