@@ -596,11 +596,23 @@ class _coupons extends \IPS\Dispatcher\Controller
 		if ( !\IPS\Application::appIsEnabled( 'gddeals' ) ) { return []; }
 		$out = [];
 		try {
-			foreach ( \IPS\gddeals\Category::roots() as $cat ) {
-				$out[ (int) $cat->_id ] = $cat->_title;
+			foreach ( \IPS\gddeals\Category::roots() as $root ) {
+				$this->gddealsCategoryBranch( $root, 0, $out );
 			}
 		} catch ( \Throwable $e ) {}
 		return $out;
+	}
+
+	protected function gddealsCategoryBranch( \IPS\gddeals\Category $cat, int $depth, array &$out ): void
+	{
+		$prefix = $depth > 0 ? str_repeat( "\xE2\x80\x94 ", $depth ) : '';
+		$out[ (int) $cat->_id ] = $prefix . (string) $cat->_title;
+
+		try {
+			foreach ( $cat->children() as $child ) {
+				$this->gddealsCategoryBranch( $child, $depth + 1, $out );
+			}
+		} catch ( \Throwable $e ) {}
 	}
 
 	protected function syncCommunityCoupon( int $couponId ): void
