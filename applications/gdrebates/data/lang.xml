@@ -21,5 +21,9 @@
     <word key="gdrebates_api_key"><![CDATA[Anthropic API key]]></word>
     <word key="gdrebates_parse_cap"><![CDATA[Max sources per parse run]]></word>
     <word key="gdrebates_parse_active"><![CDATA[Parsing enabled]]></word>
+    <word key="gdrebates_model"><![CDATA[Default Claude model]]></word>
+    <word key="gdrebates_src_model_override"><![CDATA[Model override]]></word>
+    <word key="gdrebates_src_parse"><![CDATA[Parse now]]></word>
+    <word key="gdrebates_src_parse_done"><![CDATA[Parse complete]]></word>
   </app>
 </language>

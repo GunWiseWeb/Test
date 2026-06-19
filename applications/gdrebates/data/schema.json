@@ -155,6 +155,20 @@
 				"zerofill": false,
 				"values": [],
 				"comment": ""
+			},
+			"model_override": {
+				"name": "model_override",
+				"type": "VARCHAR",
+				"length": 20,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
 			}
 		},
 		"indexes": {

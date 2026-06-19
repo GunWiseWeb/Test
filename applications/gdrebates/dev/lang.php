@@ -20,4 +20,8 @@ $lang = [
     'gdrebates_api_key'                => 'Anthropic API key',
     'gdrebates_parse_cap'              => 'Max sources per parse run',
     'gdrebates_parse_active'           => 'Parsing enabled',
+    'gdrebates_model'                  => 'Default Claude model',
+    'gdrebates_src_model_override'     => 'Model override',
+    'gdrebates_src_parse'              => 'Parse now',
+    'gdrebates_src_parse_done'         => 'Parse complete',
 ];

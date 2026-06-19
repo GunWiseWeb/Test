@@ -23,6 +23,12 @@ class _settings extends \IPS\Dispatcher\Controller
 	{
 		$form = new \IPS\Helpers\Form;
 		$form->add( new \IPS\Helpers\Form\Text( 'gdrebates_api_key', \IPS\Settings::i()->gdrebates_api_key, FALSE, [ 'size' => 60 ] ) );
+		$form->add( new \IPS\Helpers\Form\Select( 'gdrebates_model', \IPS\Settings::i()->gdrebates_model ?: 'claude-haiku-4-5-20251001', TRUE, [
+			'options' => [
+				'claude-haiku-4-5-20251001' => 'Haiku 4.5 (fast / cheap)',
+				'claude-sonnet-4-6'         => 'Sonnet 4.6 (accurate)',
+			],
+		] ) );
 		$form->add( new \IPS\Helpers\Form\Number( 'gdrebates_parse_cap', \IPS\Settings::i()->gdrebates_parse_cap ?: 20, TRUE ) );
 		$form->add( new \IPS\Helpers\Form\YesNo( 'gdrebates_parse_active', \IPS\Settings::i()->gdrebates_parse_active, FALSE ) );
 

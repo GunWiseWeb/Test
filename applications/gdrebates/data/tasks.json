@@ -1,1 +1,6 @@
-{}
+{
+	"ParseRebates": {
+		"key": "ParseRebates",
+		"frequency": "P0Y0M7DT0H0M0S"
+	}
+}

@@ -39,6 +39,7 @@ class _sources extends \IPS\Dispatcher\Controller
 
 		$table->rowButtons = function( $row ) {
 			return [
+				'parse'  => [ 'icon' => 'refresh', 'title' => 'gdrebates_src_parse', 'link' => \IPS\Http\Url::internal( 'app=gdrebates&module=rebates&controller=sources&do=parse&id=' . $row['source_id'] )->csrf() ],
 				'edit'   => [ 'icon' => 'pencil', 'title' => 'edit',   'link' => \IPS\Http\Url::internal( 'app=gdrebates&module=rebates&controller=sources&do=form&id=' . $row['source_id'] ) ],
 				'delete' => [ 'icon' => 'times-circle', 'title' => 'delete', 'link' => \IPS\Http\Url::internal( 'app=gdrebates&module=rebates&controller=sources&do=delete&id=' . $row['source_id'] )->csrf(), 'data' => [ 'delete' => '' ] ],
 			];
@@ -64,15 +65,23 @@ class _sources extends \IPS\Dispatcher\Controller
 		$form->add( new \IPS\Helpers\Form\Url( 'gdrebates_src_url', $row['url'] ?? '', TRUE ) );
 		$form->add( new \IPS\Helpers\Form\Select( 'gdrebates_src_source_type', $row['source_type'] ?? 'single', TRUE, [ 'options' => [ 'single' => 'gdrebates_src_type_single', 'index' => 'gdrebates_src_type_index' ] ] ) );
 		$form->add( new \IPS\Helpers\Form\YesNo( 'gdrebates_src_is_active', $row['is_active'] ?? 1, FALSE ) );
+		$form->add( new \IPS\Helpers\Form\Select( 'gdrebates_src_model_override', $row['model_override'] ?? '', FALSE, [
+			'options' => [
+				''                          => 'Use global default',
+				'claude-haiku-4-5-20251001' => 'Haiku 4.5 (fast / cheap)',
+				'claude-sonnet-4-6'         => 'Sonnet 4.6 (accurate)',
+			],
+		] ) );
 
 		if ( $values = $form->values() )
 		{
 			$save = [
-				'manufacturer' => (string) $values['gdrebates_src_manufacturer'],
-				'url'          => (string) $values['gdrebates_src_url'],
-				'source_type'  => (string) $values['gdrebates_src_source_type'],
-				'is_active'    => $values['gdrebates_src_is_active'] ? 1 : 0,
-				'updated'      => time(),
+				'manufacturer'   => (string) $values['gdrebates_src_manufacturer'],
+				'url'            => (string) $values['gdrebates_src_url'],
+				'source_type'    => (string) $values['gdrebates_src_source_type'],
+				'is_active'      => $values['gdrebates_src_is_active'] ? 1 : 0,
+				'model_override' => (string) $values['gdrebates_src_model_override'],
+				'updated'        => time(),
 			];
 
 			if ( $id )
@@ -104,6 +113,36 @@ class _sources extends \IPS\Dispatcher\Controller
 		}
 
 		\IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=gdrebates&module=rebates&controller=sources' ), 'deleted' );
+	}
+
+	protected function parse(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$id = (int) ( \IPS\Request::i()->id ?? 0 );
+		if ( !$id )
+		{
+			\IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=gdrebates&module=rebates&controller=sources' ) );
+			return;
+		}
+
+		try
+		{
+			$source = \IPS\Db::i()->select( '*', 'gd_rebate_sources', [ 'source_id=?', $id ] )->first();
+		}
+		catch ( \UnderflowException $e )
+		{
+			\IPS\Output::i()->error( 'node_error', '2GR100/2', 404 );
+			return;
+		}
+
+		$parser = new \IPS\gdrebates\sources\Parser( $source );
+		$result = $parser->run();
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdrebates&module=rebates&controller=sources' ),
+			'gdrebates_src_parse_done'
+		);
 	}
 }
 class sources extends _sources {}

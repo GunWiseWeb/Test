@@ -1,5 +1,6 @@
 [
 	{ "key": "gdrebates_api_key", "default": "", "report": "none" },
 	{ "key": "gdrebates_parse_cap", "default": "20", "report": "full" },
-	{ "key": "gdrebates_parse_active", "default": "0", "report": "full" }
+	{ "key": "gdrebates_parse_active", "default": "0", "report": "full" },
+	{ "key": "gdrebates_model", "default": "claude-haiku-4-5-20251001", "report": "full" }
 ]
