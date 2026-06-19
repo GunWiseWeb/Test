@@ -3,6 +3,7 @@ $lang = [
     '__app_gdrebates'                  => 'GD Rebates',
     'menutab__gdrebates'               => 'GD Rebates',
     'menutab__gdrebates_icon'          => 'tags',
+    'menu__gdrebates_rebates'          => 'Rebates',
     'menu__gdrebates_rebates_sources'  => 'Rebate Sources',
     'menu__gdrebates_rebates_settings' => 'Settings',
     'r__sources_manage'                => 'Manage rebate sources',
