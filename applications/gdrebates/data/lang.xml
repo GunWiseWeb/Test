@@ -26,5 +26,35 @@
     <word key="gdrebates_src_model_override"><![CDATA[Model override]]></word>
     <word key="gdrebates_src_parse"><![CDATA[Parse now]]></word>
     <word key="gdrebates_src_parse_done"><![CDATA[Parse complete]]></word>
+    <word key="menu__gdrebates_rebates_queue"><![CDATA[Review Queue]]></word>
+    <word key="r__queue_manage"><![CDATA[Manage rebate review queue]]></word>
+    <word key="gdrebates_rb_edit"><![CDATA[Edit Rebate]]></word>
+    <word key="gdrebates_rb_manufacturer"><![CDATA[Manufacturer]]></word>
+    <word key="gdrebates_rb_title"><![CDATA[Title]]></word>
+    <word key="gdrebates_rb_rebate_type"><![CDATA[Type]]></word>
+    <word key="gdrebates_rb_amount"><![CDATA[Amount ($)]]></word>
+    <word key="gdrebates_rb_amount_text"><![CDATA[Amount label]]></word>
+    <word key="gdrebates_rb_eligible_models"><![CDATA[Eligible models]]></word>
+    <word key="gdrebates_rb_start_date"><![CDATA[Start date]]></word>
+    <word key="gdrebates_rb_end_date"><![CDATA[End date]]></word>
+    <word key="gdrebates_rb_submit_by"><![CDATA[Submit by]]></word>
+    <word key="gdrebates_rb_redemption_url"><![CDATA[Redemption URL]]></word>
+    <word key="gdrebates_rb_status"><![CDATA[Status]]></word>
+    <word key="gdrebates_type_cash"><![CDATA[Cash back]]></word>
+    <word key="gdrebates_type_prepaid_card"><![CDATA[Prepaid card]]></word>
+    <word key="gdrebates_type_store_credit"><![CDATA[Store credit]]></word>
+    <word key="gdrebates_type_free_item"><![CDATA[Free item]]></word>
+    <word key="gdrebates_type_free_shipping"><![CDATA[Free shipping]]></word>
+    <word key="gdrebates_type_bundle"><![CDATA[Bundle]]></word>
+    <word key="gdrebates_type_other"><![CDATA[Other]]></word>
+    <word key="gdrebates_status_pending"><![CDATA[Pending]]></word>
+    <word key="gdrebates_status_approved"><![CDATA[Approved]]></word>
+    <word key="gdrebates_status_rejected"><![CDATA[Rejected]]></word>
+    <word key="gdrebates_status_expired"><![CDATA[Expired]]></word>
+    <word key="gdrebates_status_all"><![CDATA[All]]></word>
+    <word key="gdrebates_approve"><![CDATA[Approve]]></word>
+    <word key="gdrebates_reject"><![CDATA[Reject]]></word>
+    <word key="gdrebates_approved"><![CDATA[Rebate approved]]></word>
+    <word key="gdrebates_rejected"><![CDATA[Rebate rejected]]></word>
   </app>
 </language>
