@@ -129,22 +129,37 @@ class _Parser
 		}
 	}
 
+	protected function flatten( $v ): string
+	{
+		if ( is_array( $v ) )
+		{
+			$parts = [];
+			foreach ( $v as $item )
+			{
+				if ( is_scalar( $item ) ) { $parts[] = trim( (string) $item ); }
+			}
+			return implode( ', ', array_filter( $parts, fn( $p ) => $p !== '' ) );
+		}
+		if ( is_scalar( $v ) ) { return trim( (string) $v ); }
+		return '';
+	}
+
 	protected function insertRebates( array $rebates ): int
 	{
 		$inserted = 0;
 		$sourceId = (int) $this->source['source_id'];
-		$mfr      = (string) $this->source['manufacturer'];
+		$mfr      = $this->flatten( $this->source['manufacturer'] ?? '' );
 		$srcUrl   = (string) $this->source['url'];
 
 		foreach ( $rebates as $r )
 		{
-			$title = mb_substr( trim( (string) ( $r['title'] ?? '' ) ), 0, 255 );
+			$title = mb_substr( $this->flatten( $r['title'] ?? '' ), 0, 255 );
 			if ( $title === '' )
 			{
 				continue;
 			}
 
-			$hash = sha1( $mfr . '|' . $title . '|' . ( $r['end_date'] ?? '' ) );
+			$hash = sha1( $mfr . '|' . $title . '|' . $this->flatten( $r['end_date'] ?? '' ) );
 
 			$existing = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_rebates', [ 'dedupe_hash=?', $hash ] )->first();
 			if ( $existing > 0 )
@@ -160,17 +175,17 @@ class _Parser
 				'source_id'      => $sourceId,
 				'manufacturer'   => $mfr,
 				'title'          => $title,
-				'rebate_type'    => $this->sanitizeType( $r['rebate_type'] ?? 'other' ),
+				'rebate_type'    => $this->sanitizeType( $this->flatten( $r['rebate_type'] ?? 'other' ) ),
 				'amount'         => isset( $r['amount'] ) && is_numeric( $r['amount'] ) ? (float) $r['amount'] : NULL,
-				'amount_text'    => mb_substr( (string) ( $r['amount_text'] ?? '' ), 0, 80 ),
-				'eligible_models'=> (string) ( $r['eligible_models'] ?? '' ),
+				'amount_text'    => mb_substr( $this->flatten( $r['amount_text'] ?? '' ), 0, 80 ),
+				'eligible_models'=> $this->flatten( $r['eligible_models'] ?? '' ),
 				'start_date'     => $startTs,
 				'end_date'       => $endTs,
 				'submit_by'      => $submitTs,
-				'redemption_url' => mb_substr( (string) ( $r['redemption_url'] ?? '' ), 0, 500 ),
+				'redemption_url' => mb_substr( $this->flatten( $r['redemption_url'] ?? '' ), 0, 500 ),
 				'source_url'     => $srcUrl,
-				'image_url'      => mb_substr( (string) ( $r['image_url'] ?? '' ), 0, 500 ),
-				'pdf_url'        => mb_substr( (string) ( $r['pdf_url'] ?? '' ), 0, 500 ),
+				'image_url'      => mb_substr( $this->flatten( $r['image_url'] ?? '' ), 0, 500 ),
+				'pdf_url'        => mb_substr( $this->flatten( $r['pdf_url'] ?? '' ), 0, 500 ),
 				'status'         => 'pending',
 				'dedupe_hash'    => $hash,
 				'raw_extract'    => json_encode( $r, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ),
@@ -185,6 +200,8 @@ class _Parser
 
 	protected function parseDate( $val ): ?int
 	{
+		if ( is_array( $val ) ) { $val = $this->flatten( $val ); }
+		if ( !is_scalar( $val ) ) { return NULL; }
 		if ( $val === NULL || $val === '' )
 		{
 			return NULL;
@@ -195,6 +212,7 @@ class _Parser
 
 	protected function sanitizeType( string $type ): string
 	{
+		$type = is_array( $type ) ? '' : (string) $type;
 		$allowed = [ 'cash', 'percent', 'gift_card', 'other' ];
 		return in_array( $type, $allowed, true ) ? $type : 'other';
 	}
