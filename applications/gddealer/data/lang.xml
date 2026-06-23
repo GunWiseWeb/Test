@@ -629,5 +629,14 @@
     <word key="gddealer_transfer_complete"><![CDATA[Dealer ownership has been transferred successfully.]]></word>
     <word key="gddealer_transfer_collision"><![CDATA[The selected member already has a dealer account. Remove their existing dealer account first, or choose a different member.]]></word>
     <word key="gddealer_transfer_same_member"><![CDATA[Cannot transfer a dealer to the same member who already owns it.]]></word>
+    <word key="gddealer_caps_header"><![CDATA[Listing Caps]]></word>
+    <word key="gddealer_cap_basic"><![CDATA[Basic tier max listings]]></word>
+    <word key="gddealer_cap_basic_desc"><![CDATA[Maximum active listings for the Basic tier. 0 = unlimited.]]></word>
+    <word key="gddealer_cap_pro"><![CDATA[Pro tier max listings]]></word>
+    <word key="gddealer_cap_pro_desc"><![CDATA[Maximum active listings for the Pro tier. 0 = unlimited.]]></word>
+    <word key="gddealer_cap_enterprise"><![CDATA[Enterprise tier max listings]]></word>
+    <word key="gddealer_cap_enterprise_desc"><![CDATA[Maximum active listings for the Enterprise tier. 0 = unlimited.]]></word>
+    <word key="gddealer_cap_max"><![CDATA[Max tier max listings]]></word>
+    <word key="gddealer_cap_max_desc"><![CDATA[Maximum active listings for the Max tier. 0 = unlimited.]]></word>
   </app>
 </language>

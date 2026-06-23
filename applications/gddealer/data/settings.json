@@ -132,5 +132,9 @@
 	{ "key": "gddealer_plan_pro_json", "default": "" },
 	{ "key": "gddealer_plan_enterprise_json", "default": "" },
 	{ "key": "gddealer_plan_max_json", "default": "" },
-	{ "key": "gddealer_plan_founding_json", "default": "" }
+	{ "key": "gddealer_plan_founding_json", "default": "" },
+	{ "key": "gddealer_cap_basic", "default": "500" },
+	{ "key": "gddealer_cap_pro", "default": "2500" },
+	{ "key": "gddealer_cap_enterprise", "default": "6000" },
+	{ "key": "gddealer_cap_max", "default": "0" }
 ]

@@ -300,11 +300,26 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	{
 		if ( $this->foundingPerksActive() )
 		{
-			return self::$tierListingCaps['enterprise'];
+			return static::tierCap( 'enterprise' );
 		}
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
 		if ( $tier === 'founding' ) { return 0; }
-		return self::$tierListingCaps[ $tier ] ?? 500;
+		return static::tierCap( $tier );
+	}
+
+	public static function tierCap( string $tier ): int
+	{
+		$key = 'gddealer_cap_' . $tier;
+		try { $val = \IPS\Settings::i()->$key; }
+		catch ( \Throwable $e ) { $val = NULL; }
+
+		if ( $val === NULL || $val === '' )
+		{
+			return self::$tierListingCaps[ $tier ] ?? 500;
+		}
+
+		$n = (int) $val;
+		return $n <= 0 ? PHP_INT_MAX : $n;
 	}
 
 	/**

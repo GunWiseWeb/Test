@@ -605,4 +605,13 @@ $lang = [
     'gddealer_transfer_complete'                                   => 'Dealer ownership has been transferred successfully.',
     'gddealer_transfer_collision'                                  => 'The selected member already has a dealer account. Remove their existing dealer account first, or choose a different member.',
     'gddealer_transfer_same_member'                                => 'Cannot transfer a dealer to the same member who already owns it.',
+    'gddealer_caps_header'                                         => 'Listing Caps',
+    'gddealer_cap_basic'                                           => 'Basic tier max listings',
+    'gddealer_cap_basic_desc'                                      => 'Maximum active listings for the Basic tier. 0 = unlimited.',
+    'gddealer_cap_pro'                                             => 'Pro tier max listings',
+    'gddealer_cap_pro_desc'                                        => 'Maximum active listings for the Pro tier. 0 = unlimited.',
+    'gddealer_cap_enterprise'                                      => 'Enterprise tier max listings',
+    'gddealer_cap_enterprise_desc'                                 => 'Maximum active listings for the Enterprise tier. 0 = unlimited.',
+    'gddealer_cap_max'                                             => 'Max tier max listings',
+    'gddealer_cap_max_desc'                                        => 'Maximum active listings for the Max tier. 0 = unlimited.',
 ];

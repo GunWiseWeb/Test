@@ -146,6 +146,12 @@ class _settings extends \IPS\Dispatcher\Controller
 		$form->add( new \IPS\Helpers\Form\TextArea( 'gddealer_guidelines_dealer_body',
 			(string) ( $settings->gddealer_guidelines_dealer_body ?? '' ), FALSE, [ 'rows' => 10 ] ) );
 
+		$form->addHeader( 'gddealer_caps_header' );
+		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_cap_basic',      ( \IPS\Settings::i()->gddealer_cap_basic !== '' ? (int) \IPS\Settings::i()->gddealer_cap_basic : 500 ),      FALSE, [ 'min' => 0 ] ) );
+		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_cap_pro',        ( \IPS\Settings::i()->gddealer_cap_pro !== '' ? (int) \IPS\Settings::i()->gddealer_cap_pro : 2500 ),       FALSE, [ 'min' => 0 ] ) );
+		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_cap_enterprise', ( \IPS\Settings::i()->gddealer_cap_enterprise !== '' ? (int) \IPS\Settings::i()->gddealer_cap_enterprise : 6000 ), FALSE, [ 'min' => 0 ] ) );
+		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_cap_max',        ( \IPS\Settings::i()->gddealer_cap_max !== '' ? (int) \IPS\Settings::i()->gddealer_cap_max : 0 ),           FALSE, [ 'min' => 0 ] ) );
+
 		$form->addHeader( 'gddealer_settings_theme' );
 
 		$form->add( new \IPS\Helpers\Form\Color( 'gddealer_color_primary',
@@ -305,6 +311,10 @@ class _settings extends \IPS\Dispatcher\Controller
 				'gddealer_basic_badge_color'          => (string) $values['gddealer_basic_badge_color'],
 				'gddealer_pro_badge_color'            => (string) $values['gddealer_pro_badge_color'],
 				'gddealer_enterprise_badge_color'     => (string) $values['gddealer_enterprise_badge_color'],
+				'gddealer_cap_basic'                 => (int) $values['gddealer_cap_basic'],
+				'gddealer_cap_pro'                   => (int) $values['gddealer_cap_pro'],
+				'gddealer_cap_enterprise'            => (int) $values['gddealer_cap_enterprise'],
+				'gddealer_cap_max'                   => (int) $values['gddealer_cap_max'],
 			]);
 
 			if ( isset( $values['gddealer_quicklinks_json'] ) )
