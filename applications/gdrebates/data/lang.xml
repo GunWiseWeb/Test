@@ -56,5 +56,17 @@
     <word key="gdrebates_reject"><![CDATA[Reject]]></word>
     <word key="gdrebates_approved"><![CDATA[Rebate approved]]></word>
     <word key="gdrebates_rejected"><![CDATA[Rebate rejected]]></word>
+    <word key="gdrebates_page_title"><![CDATA[Manufacturer Rebates]]></word>
+    <word key="gdrebates_f_all_mfr"><![CDATA[All manufacturers]]></word>
+    <word key="gdrebates_f_all_type"><![CDATA[All types]]></word>
+    <word key="gdrebates_f_all_amt"><![CDATA[Any amount]]></word>
+    <word key="gdrebates_sort_ending"><![CDATA[Ending soon]]></word>
+    <word key="gdrebates_sort_amount"><![CDATA[Highest $]]></word>
+    <word key="gdrebates_sort_newest"><![CDATA[Newest]]></word>
+    <word key="gdrebates_ends"><![CDATA[Ends]]></word>
+    <word key="gdrebates_submit"><![CDATA[Submit Rebate]]></word>
+    <word key="gdrebates_details"><![CDATA[Details]]></word>
+    <word key="gdrebates_none"><![CDATA[No active rebates right now. Check back soon.]]></word>
+    <word key="gdrebates_no_match"><![CDATA[No rebates match those filters.]]></word>
   </app>
 </language>

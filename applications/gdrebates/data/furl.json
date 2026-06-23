@@ -1,0 +1,9 @@
+{
+	"topLevel": "rebates",
+	"pages": {
+		"gdrebates_browse": {
+			"friendly": "",
+			"real": "app=gdrebates&module=rebates&controller=browse"
+		}
+	}
+}

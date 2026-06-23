@@ -1,5 +1,5 @@
 <?php
-namespace IPS\gdrebates\setup\upg_10002;
+namespace IPS\gdrebates\setup\upg_10004;
 
 use function defined;
 
@@ -72,6 +72,18 @@ class _upgrade
 			'gdrebates_reject'                 => 'Reject',
 			'gdrebates_approved'               => 'Rebate approved',
 			'gdrebates_rejected'               => 'Rebate rejected',
+			'gdrebates_page_title'             => 'Manufacturer Rebates',
+			'gdrebates_f_all_mfr'              => 'All manufacturers',
+			'gdrebates_f_all_type'             => 'All types',
+			'gdrebates_f_all_amt'              => 'Any amount',
+			'gdrebates_sort_ending'            => 'Ending soon',
+			'gdrebates_sort_amount'            => 'Highest $',
+			'gdrebates_sort_newest'            => 'Newest',
+			'gdrebates_ends'                   => 'Ends',
+			'gdrebates_submit'                 => 'Submit Rebate',
+			'gdrebates_details'                => 'Details',
+			'gdrebates_none'                   => 'No active rebates right now. Check back soon.',
+			'gdrebates_no_match'               => 'No rebates match those filters.',
 		];
 
 		try

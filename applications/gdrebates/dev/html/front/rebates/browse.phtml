@@ -1,0 +1,112 @@
+<ips:template parameters="$rebates, $manufacturers" />
+<div class='gdrb-wrap'>
+	<h1 class='gdrb-title'>{lang="gdrebates_page_title"}</h1>
+
+	<div class='gdrb-filters'>
+		<select id='gdrb-f-mfr' class='gdrb-sel'>
+			<option value=''>{lang="gdrebates_f_all_mfr"}</option>
+			{{foreach $manufacturers as $m}}<option value='{$m}'>{$m}</option>{{endforeach}}
+		</select>
+		<select id='gdrb-f-type' class='gdrb-sel'>
+			<option value=''>{lang="gdrebates_f_all_type"}</option>
+			<option value='cash'>{lang="gdrebates_type_cash"}</option>
+			<option value='prepaid_card'>{lang="gdrebates_type_prepaid_card"}</option>
+			<option value='store_credit'>{lang="gdrebates_type_store_credit"}</option>
+			<option value='free_item'>{lang="gdrebates_type_free_item"}</option>
+			<option value='free_shipping'>{lang="gdrebates_type_free_shipping"}</option>
+			<option value='bundle'>{lang="gdrebates_type_bundle"}</option>
+			<option value='other'>{lang="gdrebates_type_other"}</option>
+		</select>
+		<select id='gdrb-f-amt' class='gdrb-sel'>
+			<option value=''>{lang="gdrebates_f_all_amt"}</option>
+			<option value='1'>$1&ndash;49</option>
+			<option value='2'>$50&ndash;99</option>
+			<option value='3'>$100&ndash;199</option>
+			<option value='4'>$200+</option>
+			<option value='free'>{lang="gdrebates_type_free_item"}</option>
+		</select>
+		<select id='gdrb-f-sort' class='gdrb-sel'>
+			<option value='ending'>{lang="gdrebates_sort_ending"}</option>
+			<option value='amount'>{lang="gdrebates_sort_amount"}</option>
+			<option value='newest'>{lang="gdrebates_sort_newest"}</option>
+		</select>
+	</div>
+
+	{{if count( $rebates )}}
+	<div class='gdrb-grid' id='gdrb-grid'>
+		{{foreach $rebates as $r}}
+		<div class='gdrb-card' data-mfr="{$r['manufacturer']}" data-type="{$r['rebate_type']}" data-amount="{$r['amount']}" data-end="{$r['end_date']}" data-created="{$r['created']}">
+			<div class='gdrb-card__head'>
+				<span class='gdrb-card__mfr'>{$r['manufacturer']}</span>
+				{{if $r['amount_text']}}<span class='gdrb-card__amt'>{$r['amount_text']}</span>{{endif}}
+			</div>
+			<div class='gdrb-card__title'>{$r['title']}</div>
+			{{if $r['eligible_models']}}<div class='gdrb-card__models'>{$r['eligible_models']}</div>{{endif}}
+			<div class='gdrb-card__meta'>
+				<span class='gdrb-card__type gdrb-type--{$r['rebate_type']}'>{expression="\IPS\Member::loggedIn()->language()->addToStack( 'gdrebates_type_' . $r['rebate_type'] )"}</span>
+				{{if $r['end_date']}}<span class='gdrb-card__end'>{lang="gdrebates_ends"} {expression="\IPS\DateTime::ts( $r['end_date'] )->localeDate()"}</span>{{endif}}
+			</div>
+			<div class='gdrb-card__actions'>
+				{{if $r['redemption_url']}}<a class='gdrb-btn gdrb-btn--primary' href='{$r['redemption_url']}' target='_blank' rel='noopener'>{lang="gdrebates_submit"}</a>{{endif}}
+				{{if $r['source_url']}}<a class='gdrb-btn gdrb-btn--soft' href='{$r['source_url']}' target='_blank' rel='noopener'>{lang="gdrebates_details"}</a>{{endif}}
+			</div>
+		</div>
+		{{endforeach}}
+	</div>
+	<p class='gdrb-noresults' id='gdrb-noresults' style='display:none'>{lang="gdrebates_no_match"}</p>
+	{{else}}
+	<p class='gdrb-empty'>{lang="gdrebates_none"}</p>
+	{{endif}}
+</div>
+
+<script>
+(function(){
+	var grid = document.getElementById('gdrb-grid');
+	if(!grid){ return; }
+	var cards = Array.prototype.slice.call(grid.querySelectorAll('.gdrb-card'));
+	var fMfr = document.getElementById('gdrb-f-mfr');
+	var fType = document.getElementById('gdrb-f-type');
+	var fAmt = document.getElementById('gdrb-f-amt');
+	var fSort = document.getElementById('gdrb-f-sort');
+	var noRes = document.getElementById('gdrb-noresults');
+	function bucket(a){
+		if(a===null || a===''){ return 'free'; }
+		var n = parseFloat(a);
+		if(isNaN(n)){ return 'free'; }
+		if(n<50){ return '1'; }
+		if(n<100){ return '2'; }
+		if(n<200){ return '3'; }
+		return '4';
+	}
+	function sortVisible(){
+		var mode = fSort.value;
+		var vis = cards.filter(function(c){ return c.style.display!=='none'; });
+		vis.sort(function(a,b){
+			if(mode==='amount'){ return (parseFloat(b.getAttribute('data-amount'))||0)-(parseFloat(a.getAttribute('data-amount'))||0); }
+			if(mode==='newest'){ return (parseInt(b.getAttribute('data-created'))||0)-(parseInt(a.getAttribute('data-created'))||0); }
+			var ea = parseInt(a.getAttribute('data-end'))||0;
+			var eb = parseInt(b.getAttribute('data-end'))||0;
+			if(ea===0 && eb===0){ return 0; }
+			if(ea===0){ return 1; }
+			if(eb===0){ return -1; }
+			return ea-eb;
+		});
+		vis.forEach(function(c){ grid.appendChild(c); });
+	}
+	function apply(){
+		var mfr=fMfr.value, type=fType.value, amt=fAmt.value, shown=0;
+		cards.forEach(function(c){
+			var ok=true;
+			if(mfr && c.getAttribute('data-mfr')!==mfr){ ok=false; }
+			if(type && c.getAttribute('data-type')!==type){ ok=false; }
+			if(amt && bucket(c.getAttribute('data-amount'))!==amt){ ok=false; }
+			c.style.display = ok ? '' : 'none';
+			if(ok){ shown++; }
+		});
+		if(noRes){ noRes.style.display = shown ? 'none' : ''; }
+		sortVisible();
+	}
+	[fMfr,fType,fAmt,fSort].forEach(function(el){ if(el){ el.addEventListener('change', apply); } });
+	sortVisible();
+})();
+</script>

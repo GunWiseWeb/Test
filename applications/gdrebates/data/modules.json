@@ -1,8 +1,4 @@
 {
-	"admin": {
-		"rebates": {
-			"default_controller": "sources",
-			"protected": false
-		}
-	}
+	"admin": { "rebates": { "default_controller": "sources", "protected": false } },
+	"front": { "rebates": { "default_controller": "browse",  "protected": false } }
 }
