@@ -98,6 +98,14 @@ class _results extends \IPS\Dispatcher\Controller
             'product_type'        => $arr( \IPS\Request::i()->product_type        ?? [] ),
             'material'            => $arr( \IPS\Request::i()->material            ?? [] ),
             'color'               => $arr( \IPS\Request::i()->color               ?? [] ),
+            'finish'              => $arr( \IPS\Request::i()->finish              ?? [] ),
+            'size'                => $arr( \IPS\Request::i()->size                ?? [] ),
+            'mount_type'          => $arr( \IPS\Request::i()->mount_type          ?? [] ),
+            'fit'                 => $arr( \IPS\Request::i()->fit                 ?? [] ),
+            'battery_size'        => $arr( \IPS\Request::i()->battery_size        ?? [] ),
+            'nrr'                 => $arr( \IPS\Request::i()->nrr                 ?? [] ),
+            'lock_type'           => $arr( \IPS\Request::i()->lock_type           ?? [] ),
+            'species'             => $arr( \IPS\Request::i()->species             ?? [] ),
             'is_ammo'        => !empty( \IPS\Request::i()->is_ammo ),
             'grain'          => $arr( \IPS\Request::i()->grain ?? [] ),
             'velocity'       => $arr( \IPS\Request::i()->velocity ?? [] ),
@@ -141,7 +149,8 @@ class _results extends \IPS\Dispatcher\Controller
                 'apparel_patterns', 'apparel_sizes', 'apparel_materials',
                 'blade_shapes', 'blade_lengths', 'blade_materials', 'blade_edges', 'knife_handles',
                 'hunt_call_types', 'hunt_games',
-                'optics_mags', 'optics_objs', 'product_types', 'materials', 'colors' ] as $scopedAgg )
+                'optics_mags', 'optics_objs', 'product_types', 'materials', 'colors',
+                'finishes', 'sizes', 'mount_types', 'fits', 'battery_sizes', 'nrrs', 'lock_types', 'species_list' ] as $scopedAgg )
             {
                 if ( isset( $aggs[ $scopedAgg ]['values']['buckets'] ) )
                 {
@@ -157,7 +166,8 @@ class _results extends \IPS\Dispatcher\Controller
             'apparel_patterns', 'apparel_sizes', 'apparel_materials',
             'blade_shapes', 'blade_lengths', 'blade_materials', 'blade_edges', 'knife_handles',
             'hunt_call_types', 'hunt_games',
-            'optics_mags', 'optics_objs', 'product_types', 'materials', 'colors' ] as $aggKey )
+            'optics_mags', 'optics_objs', 'product_types', 'materials', 'colors',
+            'finishes', 'sizes', 'mount_types', 'fits', 'battery_sizes', 'nrrs', 'lock_types', 'species_list' ] as $aggKey )
         {
             if ( isset( $aggs[ $aggKey ]['buckets'] ) && is_array( $aggs[ $aggKey ]['buckets'] ) )
             {
@@ -198,6 +208,14 @@ class _results extends \IPS\Dispatcher\Controller
             foreach ( (array) $filters['product_type'] as $v )       { $paginationQs .= '&product_type[]='       . urlencode( $v ); }
             foreach ( (array) $filters['material'] as $v )           { $paginationQs .= '&material[]='           . urlencode( $v ); }
             foreach ( (array) $filters['color'] as $v )              { $paginationQs .= '&color[]='              . urlencode( $v ); }
+            foreach ( (array) $filters['finish'] as $v )             { $paginationQs .= '&finish[]='             . urlencode( $v ); }
+            foreach ( (array) $filters['size'] as $v )               { $paginationQs .= '&size[]='               . urlencode( $v ); }
+            foreach ( (array) $filters['mount_type'] as $v )         { $paginationQs .= '&mount_type[]='         . urlencode( $v ); }
+            foreach ( (array) $filters['fit'] as $v )                { $paginationQs .= '&fit[]='                . urlencode( $v ); }
+            foreach ( (array) $filters['battery_size'] as $v )       { $paginationQs .= '&battery_size[]='       . urlencode( $v ); }
+            foreach ( (array) $filters['nrr'] as $v )                { $paginationQs .= '&nrr[]='                . urlencode( $v ); }
+            foreach ( (array) $filters['lock_type'] as $v )          { $paginationQs .= '&lock_type[]='          . urlencode( $v ); }
+            foreach ( (array) $filters['species'] as $v )            { $paginationQs .= '&species[]='            . urlencode( $v ); }
             if ( !empty( $filters['is_ammo'] ) )       { $paginationQs .= '&is_ammo=1'; }
             foreach ( (array) $filters['grain'] as $v )    { $paginationQs .= '&grain[]='    . urlencode( $v ); }
             foreach ( (array) $filters['velocity'] as $v ) { $paginationQs .= '&velocity[]=' . urlencode( $v ); }

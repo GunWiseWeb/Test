@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdsearch\setup\upg_10070;
+namespace IPS\gdsearch\setup\upg_10071;
 
 use function defined;
 
@@ -15,9 +15,17 @@ class _upgrade
 	public function step1(): bool
 	{
 		$newStrings = [
-			'gdsearch_facet_product_type' => 'Type',
-			'gdsearch_facet_material'     => 'Material',
-			'gdsearch_facet_color'        => 'Color',
+			'gdsearch_facet_product_type'  => 'Type',
+			'gdsearch_facet_material'      => 'Material',
+			'gdsearch_facet_color'         => 'Color',
+			'gdsearch_facet_finish'        => 'Finish',
+			'gdsearch_facet_size'          => 'Size',
+			'gdsearch_facet_mount_type'    => 'Mount Type',
+			'gdsearch_facet_fit'           => 'Fits',
+			'gdsearch_facet_battery_size'  => 'Battery Size',
+			'gdsearch_facet_nrr'           => 'Noise Reduction (NRR)',
+			'gdsearch_facet_lock_type'     => 'Lock Type',
+			'gdsearch_facet_species'       => 'Species',
 		];
 
 		try

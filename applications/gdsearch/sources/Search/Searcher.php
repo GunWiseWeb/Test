@@ -126,6 +126,14 @@ class Searcher
         $facet( 'product_type.keyword',        $filters['product_type']        ?? '' );
         $facet( 'material.keyword',            $filters['material']            ?? '' );
         $facet( 'color.keyword',               $filters['color']               ?? '' );
+        $facet( 'finish.keyword',              $filters['finish']              ?? '' );
+        $facet( 'size.keyword',                $filters['size']                ?? '' );
+        $facet( 'mount_type.keyword',          $filters['mount_type']          ?? '' );
+        $facet( 'fit.keyword',                 $filters['fit']                 ?? '' );
+        $facet( 'battery_size.keyword',        $filters['battery_size']        ?? '' );
+        $facet( 'nrr.keyword',                 $filters['nrr']                 ?? '' );
+        $facet( 'lock_type.keyword',           $filters['lock_type']           ?? '' );
+        $facet( 'species.keyword',             $filters['species']             ?? '' );
 
         if ( !empty( $filters['requires_ffl'] ) ) { $filter[] = [ 'term' => [ 'requires_ffl' => true ] ]; }
         if ( !empty( $filters['is_ammo'] ) )      { $filter[] = [ 'term' => [ 'is_ammo' => true ] ]; }
@@ -300,6 +308,30 @@ class Searcher
                 ],
                 'colors' => [
                     'terms' => [ 'field' => 'color.keyword', 'size' => 50 ],
+                ],
+                'finishes' => [
+                    'terms' => [ 'field' => 'finish.keyword', 'size' => 50 ],
+                ],
+                'sizes' => [
+                    'terms' => [ 'field' => 'size.keyword', 'size' => 50 ],
+                ],
+                'mount_types' => [
+                    'terms' => [ 'field' => 'mount_type.keyword', 'size' => 50 ],
+                ],
+                'fits' => [
+                    'terms' => [ 'field' => 'fit.keyword', 'size' => 80 ],
+                ],
+                'battery_sizes' => [
+                    'terms' => [ 'field' => 'battery_size.keyword', 'size' => 30 ],
+                ],
+                'nrrs' => [
+                    'terms' => [ 'field' => 'nrr.keyword', 'size' => 30 ],
+                ],
+                'lock_types' => [
+                    'terms' => [ 'field' => 'lock_type.keyword', 'size' => 30 ],
+                ],
+                'species_list' => [
+                    'terms' => [ 'field' => 'species.keyword', 'size' => 50 ],
                 ],
             ],
         ];

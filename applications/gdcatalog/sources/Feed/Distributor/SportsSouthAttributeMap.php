@@ -251,38 +251,57 @@ class SportsSouthAttributeMap
 			9 => 'features',
 			10 => 'finish',
 		],
-		// ── Accessory categories: Type + Material + Color ──
-		1  => [ 1 => 'product_type', 5 => 'material', 3 => 'color' ],   // ACCESSORIES MISC
-		3  => [ 1 => 'product_type', 4 => 'material', 3 => 'color' ],   // ATV ACCESSORIES
-		7  => [ 1 => 'product_type', 12 => 'material', 7 => 'color' ],  // ARCHERY
-		11 => [ 1 => 'product_type', 7 => 'material', 4 => 'color' ],   // BLACK POWDER ACCESSORIES
-		15 => [ 1 => 'product_type', 4 => 'material', 2 => 'color' ],   // GUNCASES
-		16 => [ 1 => 'product_type', 9 => 'material' ],                 // CHOKE TUBES
-		17 => [ 1 => 'product_type', 7 => 'material' ],                 // CLEANING AND RESTORATION
-		20 => [ 1 => 'product_type', 9 => 'color' ],                    // ELECTRONICS
-		23 => [ 1 => 'product_type', 4 => 'material', 5 => 'color' ],   // GRIPS AND RECOIL PADS
-		31 => [ 1 => 'product_type', 10 => 'material', 9 => 'color' ],  // LIGHTS
-		34 => [ 1 => 'product_type', 9 => 'material', 11 => 'color' ],  // PERSONAL PROTECTION
-		35 => [ 1 => 'product_type', 8 => 'material' ],                 // RELOADING ACCESSORIES
-		38 => [ 1 => 'product_type', 6 => 'material' ],                 // DIES
-		41 => [ 1 => 'product_type', 7 => 'material' ],                 // RINGS AND ADAPTORS
-		42 => [ 1 => 'product_type', 2 => 'material' ],                 // PRESSES
-		44 => [ 1 => 'product_type', 6 => 'material', 2 => 'color' ],   // GUN VAULTS AND SAFES
-		47 => [ 1 => 'product_type', 4 => 'material', 13 => 'color' ],  // TARGETS
-		50 => [ 1 => 'product_type', 2 => 'material', 3 => 'color' ],   // GUN SIGHTS
-		51 => [ 1 => 'product_type', 6 => 'material', 5 => 'color' ],   // SLINGS
-		55 => [ 1 => 'product_type', 6 => 'material' ],                 // BASES
-		75 => [ 1 => 'product_type', 3 => 'material', 2 => 'color' ],   // HOLDERS AND ACCESSORIES
-		76 => [ 1 => 'product_type', 4 => 'material', 3 => 'color' ],   // SWIVELS
-		77 => [ 1 => 'product_type', 4 => 'material' ],                 // CONVERSION KITS
-		79 => [ 1 => 'product_type', 4 => 'material' ],                 // BORE SIGHTERS AND ARBORS
-		80 => [ 1 => 'product_type', 4 => 'material' ],                 // SCOPE COVERS AND SHADES
-		81 => [ 1 => 'product_type', 2 => 'material' ],                 // COMPONENTS
-		82 => [ 1 => 'product_type' ],                                   // POWDERS
-		83 => [ 1 => 'product_type', 9 => 'material', 2 => 'color' ],   // HEARING PROTECTION
-		84 => [ 1 => 'product_type', 4 => 'material', 6 => 'color' ],   // CARRYING BAGS
-		87 => [ 1 => 'product_type', 9 => 'material' ],                 // CLEANING KITS
-		88 => [ 1 => 'product_type', 5 => 'material' ],                 // UTILITY BOXES
+		// ── Accessory categories ──
+		1  => [ 1=>'product_type', 3=>'color', 4=>'size', 5=>'material', 7=>'mount_type', 8=>'battery_size', 10=>'fit' ],
+		3  => [ 1=>'product_type', 3=>'color', 4=>'material', 5=>'size' ],
+		7  => [ 1=>'product_type', 7=>'color', 12=>'material' ],
+		9  => [ 7=>'color', 8=>'fit', 12=>'finish', 13=>'mount_type' ],
+		10 => [ 1=>'magnification' ],
+		11 => [ 1=>'product_type', 2=>'caliber', 3=>'finish', 4=>'color', 5=>'capacity', 6=>'size', 7=>'material' ],
+		15 => [ 1=>'product_type', 2=>'color', 4=>'material', 5=>'finish', 9=>'lock_type' ],
+		16 => [ 1=>'product_type', 2=>'gauge', 5=>'finish', 9=>'material' ],
+		17 => [ 1=>'product_type', 2=>'size', 7=>'material' ],
+		19 => [ 1=>'product_type', 2=>'species', 5=>'color', 6=>'material', 7=>'battery_size' ],
+		20 => [ 1=>'product_type', 5=>'battery_size', 9=>'color' ],
+		21 => [ 1=>'product_type', 2=>'size', 4=>'battery_size' ],
+		22 => [ 1=>'product_type', 2=>'species', 3=>'material', 6=>'battery_size', 7=>'color' ],
+		23 => [ 1=>'product_type', 3=>'finish', 4=>'material', 5=>'color' ],
+		25 => [ 1=>'product_type', 2=>'color', 3=>'nrr' ],
+		27 => [ 2=>'product_type', 11=>'color' ],
+		31 => [ 1=>'product_type', 7=>'battery_size', 9=>'color', 10=>'material' ],
+		32 => [ 4=>'product_type', 1=>'magnification', 6=>'battery_size' ],
+		34 => [ 1=>'product_type', 2=>'size', 9=>'material', 11=>'color' ],
+		35 => [ 1=>'product_type', 2=>'caliber', 3=>'size', 8=>'material', 12=>'finish' ],
+		38 => [ 1=>'product_type', 2=>'caliber', 6=>'material' ],
+		41 => [ 1=>'product_type', 5=>'finish', 7=>'material', 11=>'mount_type' ],
+		42 => [ 1=>'product_type', 2=>'material', 5=>'mount_type' ],
+		43 => [ 2=>'product_type' ],
+		44 => [ 1=>'product_type', 2=>'color', 5=>'lock_type', 6=>'material', 7=>'finish' ],
+		45 => [ 1=>'product_type', 2=>'species' ],
+		47 => [ 1=>'product_type', 4=>'material', 13=>'color' ],
+		50 => [ 1=>'product_type', 2=>'material', 3=>'color', 4=>'fit' ],
+		51 => [ 1=>'product_type', 5=>'color', 6=>'material' ],
+		52 => [ 1=>'magnification' ],
+		53 => [ 2=>'product_type', 6=>'material' ],
+		55 => [ 1=>'product_type', 5=>'finish', 6=>'material', 9=>'mount_type' ],
+		56 => [ 1=>'product_type', 4=>'size', 5=>'color', 6=>'material' ],
+		62 => [ 1=>'product_type', 5=>'battery_size' ],
+		68 => [ 1=>'product_type' ],
+		73 => [ 1=>'product_type', 2=>'size', 3=>'caliber', 4=>'capacity', 6=>'finish', 7=>'material', 9=>'mount_type' ],
+		75 => [ 1=>'product_type', 2=>'color', 3=>'material', 8=>'mount_type', 11=>'caliber' ],
+		76 => [ 1=>'product_type', 3=>'color', 4=>'material' ],
+		77 => [ 1=>'product_type', 4=>'material', 8=>'capacity' ],
+		78 => [ 1=>'magnification' ],
+		79 => [ 1=>'product_type', 2=>'caliber', 4=>'material', 7=>'mount_type' ],
+		80 => [ 1=>'product_type', 4=>'material', 6=>'mount_type' ],
+		81 => [ 1=>'product_type', 2=>'material', 8=>'caliber' ],
+		82 => [ 1=>'product_type' ],
+		83 => [ 1=>'product_type', 2=>'color', 3=>'nrr', 9=>'material' ],
+		84 => [ 1=>'product_type', 4=>'material', 6=>'color' ],
+		85 => [ 1=>'product_type', 2=>'species' ],
+		87 => [ 1=>'product_type', 2=>'size', 9=>'material', 10=>'caliber' ],
+		88 => [ 1=>'product_type', 5=>'material' ],
+		89 => [ 4=>'product_type' ],
 	];
 
 	public static function resolve( int|string $catId, int $itatrPosition ): ?string

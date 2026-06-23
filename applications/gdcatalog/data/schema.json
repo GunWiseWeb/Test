@@ -1005,7 +1005,15 @@
             "optic_objective": { "name": "optic_objective", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
             "product_type": { "name": "product_type", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
             "material": { "name": "material", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
-            "color": { "name": "color", "type": "VARCHAR", "length": 60, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+            "color": { "name": "color", "type": "VARCHAR", "length": 60, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "finish": { "name": "finish", "type": "VARCHAR", "length": 60, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "size": { "name": "size", "type": "VARCHAR", "length": 60, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "mount_type": { "name": "mount_type", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "fit": { "name": "fit", "type": "VARCHAR", "length": 150, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "battery_size": { "name": "battery_size", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "nrr": { "name": "nrr", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "lock_type": { "name": "lock_type", "type": "VARCHAR", "length": 60, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "species": { "name": "species", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
         },
         "indexes": {
             "PRIMARY": {

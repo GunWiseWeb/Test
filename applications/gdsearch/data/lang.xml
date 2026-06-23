@@ -98,6 +98,14 @@
     <word key="gdsearch_facet_product_type" js="0" export="1">Type</word>
     <word key="gdsearch_facet_material" js="0" export="1">Material</word>
     <word key="gdsearch_facet_color" js="0" export="1">Color</word>
+    <word key="gdsearch_facet_finish" js="0" export="1">Finish</word>
+    <word key="gdsearch_facet_size" js="0" export="1">Size</word>
+    <word key="gdsearch_facet_mount_type" js="0" export="1">Mount Type</word>
+    <word key="gdsearch_facet_fit" js="0" export="1">Fits</word>
+    <word key="gdsearch_facet_battery_size" js="0" export="1">Battery Size</word>
+    <word key="gdsearch_facet_nrr" js="0" export="1">Noise Reduction (NRR)</word>
+    <word key="gdsearch_facet_lock_type" js="0" export="1">Lock Type</word>
+    <word key="gdsearch_facet_species" js="0" export="1">Species</word>
     <word key="gdsearch_facets_title" js="0" export="1">Main Catalog Page Facets</word>
     <word key="gdsearch_facets_intro" js="0" export="1"><![CDATA[These toggles control which facets appear on the main catalog page (all products). Turning one off hides it there only — every facet still appears on its category page when that category has matching products.]]></word>
     <word key="menu__gdsearch_search_facets" js="0" export="1">Facets</word>

@@ -470,6 +470,126 @@
 				{{endif}}
 				{{endif}}
 
+				{{if isset($aggs['finishes']['buckets']) and count($aggs['finishes']['buckets'])}}
+				{{if !isset($hiddenFacets['finishes'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['finish']) and count($filters['finish'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_finish"}{{if is_array($filters['finish']) and count($filters['finish'])}}<span class="gdsr-facet-cnt">{expression="count($filters['finish'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['finishes']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="finish[]" value="{$b['key']}" {{if is_array($filters['finish']) and in_array($b['key'], $filters['finish'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
+				{{if isset($aggs['sizes']['buckets']) and count($aggs['sizes']['buckets'])}}
+				{{if !isset($hiddenFacets['sizes'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['size']) and count($filters['size'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_size"}{{if is_array($filters['size']) and count($filters['size'])}}<span class="gdsr-facet-cnt">{expression="count($filters['size'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['sizes']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="size[]" value="{$b['key']}" {{if is_array($filters['size']) and in_array($b['key'], $filters['size'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
+				{{if isset($aggs['mount_types']['buckets']) and count($aggs['mount_types']['buckets'])}}
+				{{if !isset($hiddenFacets['mount_types'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['mount_type']) and count($filters['mount_type'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_mount_type"}{{if is_array($filters['mount_type']) and count($filters['mount_type'])}}<span class="gdsr-facet-cnt">{expression="count($filters['mount_type'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['mount_types']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="mount_type[]" value="{$b['key']}" {{if is_array($filters['mount_type']) and in_array($b['key'], $filters['mount_type'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
+				{{if isset($aggs['fits']['buckets']) and count($aggs['fits']['buckets'])}}
+				{{if !isset($hiddenFacets['fits'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['fit']) and count($filters['fit'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_fit"}{{if is_array($filters['fit']) and count($filters['fit'])}}<span class="gdsr-facet-cnt">{expression="count($filters['fit'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['fits']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="fit[]" value="{$b['key']}" {{if is_array($filters['fit']) and in_array($b['key'], $filters['fit'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
+				{{if isset($aggs['battery_sizes']['buckets']) and count($aggs['battery_sizes']['buckets'])}}
+				{{if !isset($hiddenFacets['battery_sizes'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['battery_size']) and count($filters['battery_size'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_battery_size"}{{if is_array($filters['battery_size']) and count($filters['battery_size'])}}<span class="gdsr-facet-cnt">{expression="count($filters['battery_size'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['battery_sizes']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="battery_size[]" value="{$b['key']}" {{if is_array($filters['battery_size']) and in_array($b['key'], $filters['battery_size'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
+				{{if isset($aggs['nrrs']['buckets']) and count($aggs['nrrs']['buckets'])}}
+				{{if !isset($hiddenFacets['nrrs'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['nrr']) and count($filters['nrr'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_nrr"}{{if is_array($filters['nrr']) and count($filters['nrr'])}}<span class="gdsr-facet-cnt">{expression="count($filters['nrr'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['nrrs']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="nrr[]" value="{$b['key']}" {{if is_array($filters['nrr']) and in_array($b['key'], $filters['nrr'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
+				{{if isset($aggs['lock_types']['buckets']) and count($aggs['lock_types']['buckets'])}}
+				{{if !isset($hiddenFacets['lock_types'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['lock_type']) and count($filters['lock_type'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_lock_type"}{{if is_array($filters['lock_type']) and count($filters['lock_type'])}}<span class="gdsr-facet-cnt">{expression="count($filters['lock_type'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['lock_types']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="lock_type[]" value="{$b['key']}" {{if is_array($filters['lock_type']) and in_array($b['key'], $filters['lock_type'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
+				{{if isset($aggs['species_list']['buckets']) and count($aggs['species_list']['buckets'])}}
+				{{if !isset($hiddenFacets['species_list'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['species']) and count($filters['species'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_species"}{{if is_array($filters['species']) and count($filters['species'])}}<span class="gdsr-facet-cnt">{expression="count($filters['species'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['species_list']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="species[]" value="{$b['key']}" {{if is_array($filters['species']) and in_array($b['key'], $filters['species'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
 				<div class="gdsr-side-box">
 					<h3 class="gdsr-fh">{lang="gdsearch_filters"}</h3>
 					<label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -522,6 +642,14 @@
 					{{foreach $filters['product_type'] as $v}}<input type="hidden" name="product_type[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['material'] as $v}}<input type="hidden" name="material[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['color'] as $v}}<input type="hidden" name="color[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['finish'] as $v}}<input type="hidden" name="finish[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['size'] as $v}}<input type="hidden" name="size[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['mount_type'] as $v}}<input type="hidden" name="mount_type[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['fit'] as $v}}<input type="hidden" name="fit[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['battery_size'] as $v}}<input type="hidden" name="battery_size[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['nrr'] as $v}}<input type="hidden" name="nrr[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['lock_type'] as $v}}<input type="hidden" name="lock_type[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['species'] as $v}}<input type="hidden" name="species[]" value="{$v}">{{endforeach}}
 					{{if $filters['in_stock']}}<input type="hidden" name="in_stock" value="1">{{endif}}
 					<select name="sort" class="ipsInput ipsInput--select" onchange="this.form.submit()">
 						<option value="relevance" {{if $sort === 'relevance'}}selected{{endif}}>{lang="gdsearch_sort_relevance"}</option>
