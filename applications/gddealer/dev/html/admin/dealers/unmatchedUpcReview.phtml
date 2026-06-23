@@ -1,4 +1,4 @@
-<ips:template parameters="$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl" />
+<ips:template parameters="$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl, $prefill" />
 <div class="ipsBox" style="max-width:900px">
 	<div class="ipsBox__header" style="display:flex;justify-content:space-between;align-items:center">
 		<h1 class="ipsType_pageTitle">{lang="gddealer_unmatched_review_title"}</h1>
@@ -30,19 +30,19 @@
 			<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
 				<div>
 					<label class="ipsFieldRow__label">{lang="gdcatalog_product_title"} *</label>
-					<input type="text" name="title" class="ipsInput ipsInput--text" style="width:100%" required>
+					<input type="text" name="title" class="ipsInput ipsInput--text" style="width:100%" required value="{$prefill['title']}">
 				</div>
 				<div>
 					<label class="ipsFieldRow__label">{lang="gdcatalog_product_brand"}</label>
-					<input type="text" name="brand" class="ipsInput ipsInput--text" style="width:100%">
+					<input type="text" name="brand" class="ipsInput ipsInput--text" style="width:100%" value="{$prefill['brand']}">
 				</div>
 				<div>
 					<label class="ipsFieldRow__label">{lang="gdcatalog_product_mpn"}</label>
-					<input type="text" name="mpn" class="ipsInput ipsInput--text" style="width:100%">
+					<input type="text" name="mpn" class="ipsInput ipsInput--text" style="width:100%" value="{$prefill['mpn']}">
 				</div>
 				<div>
 					<label class="ipsFieldRow__label">{lang="gdcatalog_product_model"}</label>
-					<input type="text" name="model" class="ipsInput ipsInput--text" style="width:100%">
+					<input type="text" name="model" class="ipsInput ipsInput--text" style="width:100%" value="{$prefill['model']}">
 				</div>
 				<div>
 					<label class="ipsFieldRow__label">{lang="gddealer_unmatched_category"} *</label>
@@ -55,11 +55,11 @@
 				</div>
 				<div>
 					<label class="ipsFieldRow__label">{lang="gdcatalog_product_msrp"}</label>
-					<input type="number" name="msrp" step="0.01" class="ipsInput ipsInput--text" style="width:100%">
+					<input type="number" name="msrp" step="0.01" class="ipsInput ipsInput--text" style="width:100%" value="{$prefill['msrp']}">
 				</div>
 				<div>
 					<label class="ipsFieldRow__label">{lang="gdcatalog_product_caliber"}</label>
-					<input type="text" name="caliber" class="ipsInput ipsInput--text" style="width:100%">
+					<input type="text" name="caliber" class="ipsInput ipsInput--text" style="width:100%" value="{$prefill['caliber']}">
 				</div>
 				<div>
 					<label class="ipsFieldRow__label">{lang="gdcatalog_product_action_type"}</label>
@@ -79,7 +79,7 @@
 				</div>
 				<div>
 					<label class="ipsFieldRow__label">{lang="gdcatalog_product_image_url"}</label>
-					<input type="text" name="image_url" class="ipsInput ipsInput--text" style="width:100%">
+					<input type="text" name="image_url" class="ipsInput ipsInput--text" style="width:100%" value="{$prefill['image_url']}">
 				</div>
 			</div>
 
@@ -97,7 +97,7 @@
 
 			<div style="margin-bottom:16px">
 				<label class="ipsFieldRow__label">{lang="gdcatalog_product_description"}</label>
-				<textarea name="description" class="ipsInput ipsInput--text" style="width:100%;min-height:80px"></textarea>
+				<textarea name="description" class="ipsInput ipsInput--text" style="width:100%;min-height:80px">{$prefill['description']}</textarea>
 			</div>
 
 			<div style="display:flex;gap:12px">

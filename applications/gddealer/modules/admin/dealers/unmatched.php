@@ -158,9 +158,18 @@ class _unmatched extends \IPS\Dispatcher\Controller
 			'app=gddealer&module=dealers&controller=unmatched'
 		);
 
+		$prefill = array_merge(
+			[ 'title' => '', 'brand' => '', 'mpn' => '', 'model' => '', 'msrp' => '', 'caliber' => '', 'image_url' => '', 'description' => '' ],
+			array_intersect_key( $snapshot, array_flip( [ 'title', 'brand', 'mpn', 'model', 'msrp', 'caliber', 'image_url', 'description' ] ) )
+		);
+		if ( $prefill['brand'] === '' && !empty( $snapshot['manufacturer'] ) )
+		{
+			$prefill['brand'] = (string) $snapshot['manufacturer'];
+		}
+
 		\IPS\Output::i()->title = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_unmatched_review_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'admin' )->unmatchedUpcReview(
-			$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl
+			$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl, $prefill
 		);
 	}
 
