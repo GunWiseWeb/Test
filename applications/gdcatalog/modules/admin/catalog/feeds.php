@@ -957,6 +957,100 @@ class _feeds extends \IPS\Dispatcher\Controller
 			'Feed status reset.'
 		);
 	}
+
+	protected function catAttrs(): void
+	{
+		$ssFeed = null;
+		try
+		{
+			foreach ( Distributor::loadAll() as $f )
+			{
+				if ( (string) $f->auth_type === 'sportssouth' )
+				{
+					$ssFeed = $f;
+					break;
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		if ( $ssFeed === null )
+		{
+			Output::i()->title  = 'Sports South Category Attribute Labels';
+			Output::i()->output = '<p style="color:#b00">No Sports South feed configured.</p>';
+			return;
+		}
+
+		$client = \IPS\gdcatalog\Feed\Distributor\SportsSouthClient::fromDistributor( $ssFeed );
+
+		$rows = [];
+		$err  = '';
+		try { $rows = $client->categoryUpdate(); }
+		catch ( \Throwable $e ) { $err = $e->getMessage(); }
+
+		$cols = [];
+		foreach ( $rows as $r ) { foreach ( array_keys( $r ) as $k ) { $cols[ $k ] = TRUE; } }
+		$cols = array_keys( $cols );
+
+		$localCounts = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'name, product_count', 'gd_categories' ) as $cat )
+			{
+				$localCounts[ mb_strtolower( trim( (string) $cat['name'] ) ) ] = (int) $cat['product_count'];
+			}
+		}
+		catch ( \Throwable ) {}
+
+		$targets = [ 'cleaning', 'electronic', 'comm', 'gunsmith', 'parts', 'reload', 'storage', 'safety', 'tactical', 'training' ];
+
+		$backUrl = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+
+		$html = '<div style="padding:16px 20px;max-width:100%;margin:0 auto">';
+		$html .= '<h2 style="margin:0 0 16px">Sports South Category Attribute Labels</h2>';
+		$html .= '<p style="color:#6b7280;font-size:0.9em;margin-bottom:16px">Highlighted rows match the 8 target categories needing facet mappings. "Local Count" shows product_count from gd_categories matched by name.</p>';
+
+		if ( $err !== '' )
+		{
+			$html .= '<div style="background:#fee2e2;border:1px solid #fca5a5;color:#7f1d1d;padding:12px 16px;border-radius:8px;margin-bottom:16px">' . htmlspecialchars( $err, ENT_QUOTES, 'UTF-8' ) . '</div>';
+		}
+
+		$html .= '<div style="overflow-x:auto;border:1px solid #e5e7eb;border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:0.8em;background:#fff">';
+		$html .= '<thead><tr style="background:#f9fafb">';
+		foreach ( $cols as $c )
+		{
+			$html .= '<th style="text-align:left;padding:6px 8px;border-bottom:2px solid #e5e7eb;font-weight:600;white-space:nowrap">' . htmlspecialchars( $c, ENT_QUOTES, 'UTF-8' ) . '</th>';
+		}
+		$html .= '<th style="text-align:right;padding:6px 8px;border-bottom:2px solid #e5e7eb;font-weight:600;white-space:nowrap">Local Count</th>';
+		$html .= '</tr></thead><tbody>';
+
+		foreach ( $rows as $r )
+		{
+			$name = strtolower( implode( ' ', array_map( 'strval', $r ) ) );
+			$hit  = FALSE;
+			foreach ( $targets as $t ) { if ( str_contains( $name, $t ) ) { $hit = TRUE; break; } }
+
+			$catName = mb_strtolower( trim( (string) ( $r['CATDES'] ?? $r['CATDESC'] ?? $r['CATEGORY'] ?? '' ) ) );
+			$localCount = $localCounts[ $catName ] ?? '—';
+
+			$bg = $hit ? 'background:#fff7e0;' : '';
+			$html .= '<tr style="' . $bg . 'border-bottom:1px solid #f3f4f6">';
+			foreach ( $cols as $c )
+			{
+				$val = (string) ( $r[ $c ] ?? '' );
+				$html .= '<td style="padding:4px 8px;vertical-align:top;white-space:nowrap">' . htmlspecialchars( $val, ENT_QUOTES, 'UTF-8' ) . '</td>';
+			}
+			$html .= '<td style="padding:4px 8px;text-align:right;vertical-align:top">' . htmlspecialchars( (string) $localCount, ENT_QUOTES, 'UTF-8' ) . '</td>';
+			$html .= '</tr>';
+		}
+		$html .= '</tbody></table></div>';
+
+		$html .= '<div style="margin-top:16px"><a href="' . htmlspecialchars( $backUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton_normal">Back to feeds</a></div>';
+		$html .= '</div>';
+
+		Output::i()->title  = 'Sports South Category Attribute Labels';
+		Output::i()->output = $html;
+	}
 }
 
 class feeds extends _feeds {}
