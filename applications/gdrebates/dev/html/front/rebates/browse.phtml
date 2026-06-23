@@ -37,7 +37,7 @@
 		{{foreach $rebates as $r}}
 		<div class='gdrb-card' data-mfr="{$r['manufacturer']}" data-type="{$r['rebate_type']}" data-amount="{$r['amount']}" data-end="{$r['end_date']}" data-created="{$r['created']}">
 			<div class='gdrb-card__head'>
-				<span class='gdrb-card__mfr'>{$r['manufacturer']}</span>
+				{{if $r['_logo']}}<img class='gdrb-card__logo' src='{$r['_logo']}' alt='{$r['manufacturer']}' loading='lazy'>{{else}}<span class='gdrb-card__mfr'>{$r['manufacturer']}</span>{{endif}}
 				{{if $r['amount_text']}}<span class='gdrb-card__amt'>{$r['amount_text']}</span>{{endif}}
 			</div>
 			<div class='gdrb-card__title'>{$r['title']}</div>

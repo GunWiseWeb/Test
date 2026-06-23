@@ -67,4 +67,10 @@ $lang = [
     'gdrebates_details'               => 'Details',
     'gdrebates_none'                  => 'No active rebates right now. Check back soon.',
     'gdrebates_no_match'              => 'No rebates match those filters.',
+    'menu__gdrebates_rebates_logos'    => 'Manufacturer Logos',
+    'r__logos_manage'                  => 'Manage manufacturer logos',
+    'gdrebates_logo_manufacturer'      => 'Manufacturer',
+    'gdrebates_logo_url'               => 'Logo image URL',
+    'gdrebates_logo_add'               => 'Add Logo',
+    'gdrebates_logo_edit'              => 'Edit Logo',
 ];

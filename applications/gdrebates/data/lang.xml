@@ -68,5 +68,11 @@
     <word key="gdrebates_details"><![CDATA[Details]]></word>
     <word key="gdrebates_none"><![CDATA[No active rebates right now. Check back soon.]]></word>
     <word key="gdrebates_no_match"><![CDATA[No rebates match those filters.]]></word>
+    <word key="menu__gdrebates_rebates_logos"><![CDATA[Manufacturer Logos]]></word>
+    <word key="r__logos_manage"><![CDATA[Manage manufacturer logos]]></word>
+    <word key="gdrebates_logo_manufacturer"><![CDATA[Manufacturer]]></word>
+    <word key="gdrebates_logo_url"><![CDATA[Logo image URL]]></word>
+    <word key="gdrebates_logo_add"><![CDATA[Add Logo]]></word>
+    <word key="gdrebates_logo_edit"><![CDATA[Edit Logo]]></word>
   </app>
 </language>

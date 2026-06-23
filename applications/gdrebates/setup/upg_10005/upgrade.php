@@ -1,5 +1,5 @@
 <?php
-namespace IPS\gdrebates\setup\upg_10004;
+namespace IPS\gdrebates\setup\upg_10005;
 
 use function defined;
 
@@ -36,6 +36,24 @@ class _upgrade
 			] );
 		}
 		catch ( \Throwable $e ) {}
+
+		if ( !\IPS\Db::i()->checkForTable( 'gd_rebate_logos' ) )
+		{
+			\IPS\Db::i()->createTable( [
+				'name' => 'gd_rebate_logos',
+				'columns' => [
+					'logo_id'      => [ 'name' => 'logo_id', 'type' => 'BIGINT', 'length' => 20, 'allow_null' => false, 'default' => null, 'auto_increment' => true, 'unsigned' => true ],
+					'manufacturer' => [ 'name' => 'manufacturer', 'type' => 'VARCHAR', 'length' => 120, 'allow_null' => false, 'default' => '' ],
+					'logo_url'     => [ 'name' => 'logo_url', 'type' => 'VARCHAR', 'length' => 500, 'allow_null' => false, 'default' => '' ],
+					'created'      => [ 'name' => 'created', 'type' => 'INT', 'length' => 10, 'allow_null' => false, 'default' => 0, 'unsigned' => true ],
+					'updated'      => [ 'name' => 'updated', 'type' => 'INT', 'length' => 10, 'allow_null' => false, 'default' => 0, 'unsigned' => true ],
+				],
+				'indexes' => [
+					'PRIMARY' => [ 'type' => 'primary', 'name' => 'PRIMARY', 'length' => [ null ], 'columns' => [ 'logo_id' ] ],
+					'idx_mfr' => [ 'type' => 'key', 'name' => 'idx_mfr', 'length' => [ 50 ], 'columns' => [ 'manufacturer' ] ],
+				],
+			] );
+		}
 
 		$newStrings = [
 			'gdrebates_model'                  => 'Default Claude model',
@@ -84,6 +102,12 @@ class _upgrade
 			'gdrebates_details'                => 'Details',
 			'gdrebates_none'                   => 'No active rebates right now. Check back soon.',
 			'gdrebates_no_match'               => 'No rebates match those filters.',
+			'menu__gdrebates_rebates_logos'     => 'Manufacturer Logos',
+			'r__logos_manage'                  => 'Manage manufacturer logos',
+			'gdrebates_logo_manufacturer'      => 'Manufacturer',
+			'gdrebates_logo_url'               => 'Logo image URL',
+			'gdrebates_logo_add'               => 'Add Logo',
+			'gdrebates_logo_edit'              => 'Edit Logo',
 		];
 
 		try

@@ -24,6 +24,20 @@ class _browse extends \IPS\Dispatcher\Controller
 			$rebates[] = $r;
 		}
 
+		$logos = [];
+		foreach ( \IPS\Db::i()->select( 'manufacturer, logo_url', 'gd_rebate_logos' ) as $l )
+		{
+			if ( trim( (string) $l['logo_url'] ) !== '' )
+			{
+				$logos[ mb_strtolower( trim( (string) $l['manufacturer'] ) ) ] = (string) $l['logo_url'];
+			}
+		}
+		foreach ( $rebates as &$rr )
+		{
+			$rr['_logo'] = $logos[ mb_strtolower( trim( (string) $rr['manufacturer'] ) ) ] ?? '';
+		}
+		unset( $rr );
+
 		$mfrs = [];
 		foreach ( $rebates as $r ) { if ( $r['manufacturer'] !== '' ) { $mfrs[ $r['manufacturer'] ] = true; } }
 		$mfrs = array_keys( $mfrs );
