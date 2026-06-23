@@ -1003,7 +1003,9 @@
             "knife_handle": { "name": "knife_handle", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
             "optic_magnification": { "name": "optic_magnification", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
             "optic_objective": { "name": "optic_objective", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
-            "product_type": { "name": "product_type", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+            "product_type": { "name": "product_type", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "material": { "name": "material", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "color": { "name": "color", "type": "VARCHAR", "length": 60, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
         },
         "indexes": {
             "PRIMARY": {

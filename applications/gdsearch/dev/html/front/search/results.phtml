@@ -440,6 +440,36 @@
 				{{endif}}
 				{{endif}}
 
+				{{if isset($aggs['materials']['buckets']) and count($aggs['materials']['buckets'])}}
+				{{if !isset($hiddenFacets['materials'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['material']) and count($filters['material'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_material"}{{if is_array($filters['material']) and count($filters['material'])}}<span class="gdsr-facet-cnt">{expression="count($filters['material'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['materials']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="material[]" value="{$b['key']}" {{if is_array($filters['material']) and in_array($b['key'], $filters['material'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
+				{{if isset($aggs['colors']['buckets']) and count($aggs['colors']['buckets'])}}
+				{{if !isset($hiddenFacets['colors'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['color']) and count($filters['color'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_color"}{{if is_array($filters['color']) and count($filters['color'])}}<span class="gdsr-facet-cnt">{expression="count($filters['color'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['colors']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="color[]" value="{$b['key']}" {{if is_array($filters['color']) and in_array($b['key'], $filters['color'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
 				<div class="gdsr-side-box">
 					<h3 class="gdsr-fh">{lang="gdsearch_filters"}</h3>
 					<label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -490,6 +520,8 @@
 					{{foreach $filters['optic_magnification'] as $v}}<input type="hidden" name="optic_magnification[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['optic_objective'] as $v}}<input type="hidden" name="optic_objective[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['product_type'] as $v}}<input type="hidden" name="product_type[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['material'] as $v}}<input type="hidden" name="material[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['color'] as $v}}<input type="hidden" name="color[]" value="{$v}">{{endforeach}}
 					{{if $filters['in_stock']}}<input type="hidden" name="in_stock" value="1">{{endif}}
 					<select name="sort" class="ipsInput ipsInput--select" onchange="this.form.submit()">
 						<option value="relevance" {{if $sort === 'relevance'}}selected{{endif}}>{lang="gdsearch_sort_relevance"}</option>

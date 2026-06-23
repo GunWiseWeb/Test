@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdsearch\setup\upg_10069;
+namespace IPS\gdsearch\setup\upg_10070;
 
 use function defined;
 
@@ -16,6 +16,8 @@ class _upgrade
 	{
 		$newStrings = [
 			'gdsearch_facet_product_type' => 'Type',
+			'gdsearch_facet_material'     => 'Material',
+			'gdsearch_facet_color'        => 'Color',
 		];
 
 		try
@@ -35,15 +37,16 @@ class _upgrade
 							'word_export'  => 1,
 						] );
 					}
-					catch ( \Throwable $e ) {}
+					catch ( \Throwable ) {}
 				}
 			}
 		}
-		catch ( \Throwable $e ) {}
+		catch ( \Throwable ) {}
 
-		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable $e ) {}
-		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable $e ) {}
-		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
+		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }            catch ( \Throwable ) {}
+
 		return TRUE;
 	}
 }

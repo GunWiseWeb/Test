@@ -251,38 +251,38 @@ class SportsSouthAttributeMap
 			9 => 'features',
 			10 => 'finish',
 		],
-		// ── Accessory categories: ITATR slot 1 = "Type" ──
-		1  => [ 1 => 'product_type' ], // Archery
-		3  => [ 1 => 'product_type' ], // Binoculars
-		7  => [ 1 => 'product_type' ], // Books, Videos, Software
-		11 => [ 1 => 'product_type' ], // Camping
-		15 => [ 1 => 'product_type' ], // Fishing
-		16 => [ 1 => 'product_type' ], // Flashlights, Batteries
-		17 => [ 1 => 'product_type' ], // Game Processing
-		20 => [ 1 => 'product_type' ], // Gun Care
-		23 => [ 1 => 'product_type' ], // Holsters, Belts, Pouches
-		31 => [ 1 => 'product_type' ], // Knives / Blades
-		34 => [ 1 => 'product_type' ], // Law Enforcement
-		35 => [ 1 => 'product_type' ], // Lighting
-		38 => [ 1 => 'product_type' ], // Range Accessories
-		41 => [ 1 => 'product_type' ], // Reloading
-		42 => [ 1 => 'product_type' ], // Safes, Security
-		44 => [ 1 => 'product_type' ], // Scope Accessories
-		47 => [ 1 => 'product_type' ], // Shooting Accessories
-		50 => [ 1 => 'product_type' ], // Slings, Swivels, Bipods
-		51 => [ 1 => 'product_type' ], // Targets
-		55 => [ 1 => 'product_type' ], // Tree Stands, Blinds
-		75 => [ 1 => 'product_type' ], // Apparel
-		76 => [ 1 => 'product_type' ], // Bags, Cases, Storage
-		77 => [ 1 => 'product_type' ], // Decoys
-		79 => [ 1 => 'product_type' ], // Game Calls
-		80 => [ 1 => 'product_type' ], // Hearing / Eye Protection
-		81 => [ 1 => 'product_type' ], // Hunting Accessories
-		82 => [ 1 => 'product_type' ], // Night Vision
-		83 => [ 1 => 'product_type' ], // Outdoor / Survival
-		84 => [ 1 => 'product_type' ], // Pet Supplies
-		87 => [ 1 => 'product_type' ], // Rangefinders
-		88 => [ 1 => 'product_type' ], // Trail Cameras
+		// ── Accessory categories: Type + Material + Color ──
+		1  => [ 1 => 'product_type', 5 => 'material', 3 => 'color' ],   // ACCESSORIES MISC
+		3  => [ 1 => 'product_type', 4 => 'material', 3 => 'color' ],   // ATV ACCESSORIES
+		7  => [ 1 => 'product_type', 12 => 'material', 7 => 'color' ],  // ARCHERY
+		11 => [ 1 => 'product_type', 7 => 'material', 4 => 'color' ],   // BLACK POWDER ACCESSORIES
+		15 => [ 1 => 'product_type', 4 => 'material', 2 => 'color' ],   // GUNCASES
+		16 => [ 1 => 'product_type', 9 => 'material' ],                 // CHOKE TUBES
+		17 => [ 1 => 'product_type', 7 => 'material' ],                 // CLEANING AND RESTORATION
+		20 => [ 1 => 'product_type', 9 => 'color' ],                    // ELECTRONICS
+		23 => [ 1 => 'product_type', 4 => 'material', 5 => 'color' ],   // GRIPS AND RECOIL PADS
+		31 => [ 1 => 'product_type', 10 => 'material', 9 => 'color' ],  // LIGHTS
+		34 => [ 1 => 'product_type', 9 => 'material', 11 => 'color' ],  // PERSONAL PROTECTION
+		35 => [ 1 => 'product_type', 8 => 'material' ],                 // RELOADING ACCESSORIES
+		38 => [ 1 => 'product_type', 6 => 'material' ],                 // DIES
+		41 => [ 1 => 'product_type', 7 => 'material' ],                 // RINGS AND ADAPTORS
+		42 => [ 1 => 'product_type', 2 => 'material' ],                 // PRESSES
+		44 => [ 1 => 'product_type', 6 => 'material', 2 => 'color' ],   // GUN VAULTS AND SAFES
+		47 => [ 1 => 'product_type', 4 => 'material', 13 => 'color' ],  // TARGETS
+		50 => [ 1 => 'product_type', 2 => 'material', 3 => 'color' ],   // GUN SIGHTS
+		51 => [ 1 => 'product_type', 6 => 'material', 5 => 'color' ],   // SLINGS
+		55 => [ 1 => 'product_type', 6 => 'material' ],                 // BASES
+		75 => [ 1 => 'product_type', 3 => 'material', 2 => 'color' ],   // HOLDERS AND ACCESSORIES
+		76 => [ 1 => 'product_type', 4 => 'material', 3 => 'color' ],   // SWIVELS
+		77 => [ 1 => 'product_type', 4 => 'material' ],                 // CONVERSION KITS
+		79 => [ 1 => 'product_type', 4 => 'material' ],                 // BORE SIGHTERS AND ARBORS
+		80 => [ 1 => 'product_type', 4 => 'material' ],                 // SCOPE COVERS AND SHADES
+		81 => [ 1 => 'product_type', 2 => 'material' ],                 // COMPONENTS
+		82 => [ 1 => 'product_type' ],                                   // POWDERS
+		83 => [ 1 => 'product_type', 9 => 'material', 2 => 'color' ],   // HEARING PROTECTION
+		84 => [ 1 => 'product_type', 4 => 'material', 6 => 'color' ],   // CARRYING BAGS
+		87 => [ 1 => 'product_type', 9 => 'material' ],                 // CLEANING KITS
+		88 => [ 1 => 'product_type', 5 => 'material' ],                 // UTILITY BOXES
 	];
 
 	public static function resolve( int|string $catId, int $itatrPosition ): ?string

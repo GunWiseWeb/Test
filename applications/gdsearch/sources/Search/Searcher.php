@@ -124,6 +124,8 @@ class Searcher
         $facet( 'optic_magnification.keyword', $filters['optic_magnification'] ?? '' );
         $facet( 'optic_objective.keyword',     $filters['optic_objective']     ?? '' );
         $facet( 'product_type.keyword',        $filters['product_type']        ?? '' );
+        $facet( 'material.keyword',            $filters['material']            ?? '' );
+        $facet( 'color.keyword',               $filters['color']               ?? '' );
 
         if ( !empty( $filters['requires_ffl'] ) ) { $filter[] = [ 'term' => [ 'requires_ffl' => true ] ]; }
         if ( !empty( $filters['is_ammo'] ) )      { $filter[] = [ 'term' => [ 'is_ammo' => true ] ]; }
@@ -292,6 +294,12 @@ class Searcher
                 ],
                 'product_types' => [
                     'terms' => [ 'field' => 'product_type.keyword', 'size' => 50 ],
+                ],
+                'materials' => [
+                    'terms' => [ 'field' => 'material.keyword', 'size' => 50 ],
+                ],
+                'colors' => [
+                    'terms' => [ 'field' => 'color.keyword', 'size' => 50 ],
                 ],
             ],
         ];
