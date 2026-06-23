@@ -95,6 +95,7 @@
     <word key="gdsearch_facet_hunt_game" js="0" export="1">Game Type</word>
     <word key="gdsearch_facet_optic_magnification" js="0" export="1">Magnification</word>
     <word key="gdsearch_facet_optic_objective" js="0" export="1">Objective Size</word>
+    <word key="gdsearch_facet_product_type" js="0" export="1">Type</word>
     <word key="gdsearch_facets_title" js="0" export="1">Main Catalog Page Facets</word>
     <word key="gdsearch_facets_intro" js="0" export="1"><![CDATA[These toggles control which facets appear on the main catalog page (all products). Turning one off hides it there only — every facet still appears on its category page when that category has matching products.]]></word>
     <word key="menu__gdsearch_search_facets" js="0" export="1">Facets</word>

@@ -21,6 +21,7 @@ class _facets extends \IPS\Dispatcher\Controller
 			'Knives'   => [ 'blade_shapes'=>'Blade Shape','blade_lengths'=>'Blade Length','blade_materials'=>'Blade Material','blade_edges'=>'Blade Edge','knife_handles'=>'Knife Handle' ],
 			'Hunting'  => [ 'hunt_call_types'=>'Hunt Call Type','hunt_games'=>'Hunt Game' ],
 			'Optics'   => [ 'optics_mags'=>'Magnification','optics_objs'=>'Objective Size' ],
+			'General'  => [ 'product_types'=>'Type' ],
 		];
 
 		$hidden = [];

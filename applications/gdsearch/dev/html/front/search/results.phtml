@@ -425,6 +425,21 @@
 				</details>
 				{{endif}}
 
+				{{if isset($aggs['product_types']['buckets']) and count($aggs['product_types']['buckets'])}}
+				{{if !isset($hiddenFacets['product_types'])}}
+				<details class="gdsr-facet-box" {{if is_array($filters['product_type']) and count($filters['product_type'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_product_type"}{{if is_array($filters['product_type']) and count($filters['product_type'])}}<span class="gdsr-facet-cnt">{expression="count($filters['product_type'])"}</span>{{endif}}</summary>
+					<div class="gdsr-facet-body">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['product_types']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="product_type[]" value="{$b['key']}" {{if is_array($filters['product_type']) and in_array($b['key'], $filters['product_type'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+					</div>
+				</details>
+				{{endif}}
+				{{endif}}
+
 				<div class="gdsr-side-box">
 					<h3 class="gdsr-fh">{lang="gdsearch_filters"}</h3>
 					<label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -474,6 +489,7 @@
 					{{foreach $filters['hunt_game'] as $v}}<input type="hidden" name="hunt_game[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['optic_magnification'] as $v}}<input type="hidden" name="optic_magnification[]" value="{$v}">{{endforeach}}
 					{{foreach $filters['optic_objective'] as $v}}<input type="hidden" name="optic_objective[]" value="{$v}">{{endforeach}}
+					{{foreach $filters['product_type'] as $v}}<input type="hidden" name="product_type[]" value="{$v}">{{endforeach}}
 					{{if $filters['in_stock']}}<input type="hidden" name="in_stock" value="1">{{endif}}
 					<select name="sort" class="ipsInput ipsInput--select" onchange="this.form.submit()">
 						<option value="relevance" {{if $sort === 'relevance'}}selected{{endif}}>{lang="gdsearch_sort_relevance"}</option>

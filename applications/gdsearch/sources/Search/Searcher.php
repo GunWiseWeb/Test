@@ -123,6 +123,7 @@ class Searcher
         $facet( 'hunt_game.keyword',        $filters['hunt_game']       ?? '' );
         $facet( 'optic_magnification.keyword', $filters['optic_magnification'] ?? '' );
         $facet( 'optic_objective.keyword',     $filters['optic_objective']     ?? '' );
+        $facet( 'product_type.keyword',        $filters['product_type']        ?? '' );
 
         if ( !empty( $filters['requires_ffl'] ) ) { $filter[] = [ 'term' => [ 'requires_ffl' => true ] ]; }
         if ( !empty( $filters['is_ammo'] ) )      { $filter[] = [ 'term' => [ 'is_ammo' => true ] ]; }
@@ -288,6 +289,9 @@ class Searcher
                 'optics_objs' => [
                     'filter' => [ 'term' => [ 'category.keyword' => 'Optics' ] ],
                     'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'optic_objective.keyword', 'size' => 40 ] ] ],
+                ],
+                'product_types' => [
+                    'terms' => [ 'field' => 'product_type.keyword', 'size' => 50 ],
                 ],
             ],
         ];

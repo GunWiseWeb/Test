@@ -130,6 +130,7 @@ class OpenSearchIndexer
 					'knife_handle'     => [ 'type' => 'keyword' ],
 					'optic_magnification' => [ 'type' => 'keyword' ],
 					'optic_objective'     => [ 'type' => 'keyword' ],
+					'product_type'        => [ 'type' => 'keyword' ],
 				],
 			],
 		];
@@ -329,7 +330,7 @@ class OpenSearchIndexer
 	 */
 	public function indexBatch( int $offset, int $batchSize = 250 ): int
 	{
-		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description, holster_type, holster_color, holster_material, holster_hand, apparel_pattern, apparel_size, apparel_material, hunt_call_type, hunt_game, blade_shape, blade_length, blade_material, blade_edge, knife_handle, optic_magnification, optic_objective';
+		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description, holster_type, holster_color, holster_material, holster_hand, apparel_pattern, apparel_size, apparel_material, hunt_call_type, hunt_game, blade_shape, blade_length, blade_material, blade_edge, knife_handle, optic_magnification, optic_objective, product_type';
 		$rows = \IPS\Db::i()->select(
 			$indexColumns,
 			'gd_catalog',
@@ -392,7 +393,7 @@ class OpenSearchIndexer
 		$batchMax = 250;
 		$offset   = 0;
 
-		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description, holster_type, holster_color, holster_material, holster_hand, apparel_pattern, apparel_size, apparel_material, hunt_call_type, hunt_game, blade_shape, blade_length, blade_material, blade_edge, knife_handle, optic_magnification, optic_objective';
+		$indexColumns = 'upc, title, brand, model, mpn, category_id, subcategory, caliber, action_type, barrel_length, capacity, msrp, nfa_item, requires_ffl, is_ammo, grain, case_type, bullet_type, muzzle_velocity, record_status, image_url, description, holster_type, holster_color, holster_material, holster_hand, apparel_pattern, apparel_size, apparel_material, hunt_call_type, hunt_game, blade_shape, blade_length, blade_material, blade_edge, knife_handle, optic_magnification, optic_objective, product_type';
 
 		while ( TRUE )
 		{
@@ -503,6 +504,7 @@ class OpenSearchIndexer
 			'knife_handle'     => $product->knife_handle ?? '',
 			'optic_magnification' => $product->optic_magnification ?? '',
 			'optic_objective'     => $product->optic_objective ?? '',
+			'product_type'        => $product->product_type ?? '',
 		];
 	}
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdsearch\setup\upg_10068;
+namespace IPS\gdsearch\setup\upg_10069;
 
 use function defined;
 
@@ -15,8 +15,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$newStrings = [
-			'gdsearch_facets_title' => 'Main Catalog Page Facets',
-			'gdsearch_facets_intro' => 'These toggles control which facets appear on the main catalog page (all products). Turning one off hides it there only — every facet still appears on its category page when that category has matching products.',
+			'gdsearch_facet_product_type' => 'Type',
 		];
 
 		try
@@ -42,13 +41,10 @@ class _upgrade
 		}
 		catch ( \Throwable $e ) {}
 
-		try { unset( \IPS\Data\Store::i()->gdsearch_hidden_facets ); } catch ( \Throwable $e ) {}
 		try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable $e ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable $e ) {}
 		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
-
 		return TRUE;
 	}
 }
-
 class upgrade extends _upgrade {}

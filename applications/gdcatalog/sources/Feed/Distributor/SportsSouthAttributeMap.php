@@ -251,6 +251,38 @@ class SportsSouthAttributeMap
 			9 => 'features',
 			10 => 'finish',
 		],
+		// ── Accessory categories: ITATR slot 1 = "Type" ──
+		1  => [ 1 => 'product_type' ], // Archery
+		3  => [ 1 => 'product_type' ], // Binoculars
+		7  => [ 1 => 'product_type' ], // Books, Videos, Software
+		11 => [ 1 => 'product_type' ], // Camping
+		15 => [ 1 => 'product_type' ], // Fishing
+		16 => [ 1 => 'product_type' ], // Flashlights, Batteries
+		17 => [ 1 => 'product_type' ], // Game Processing
+		20 => [ 1 => 'product_type' ], // Gun Care
+		23 => [ 1 => 'product_type' ], // Holsters, Belts, Pouches
+		31 => [ 1 => 'product_type' ], // Knives / Blades
+		34 => [ 1 => 'product_type' ], // Law Enforcement
+		35 => [ 1 => 'product_type' ], // Lighting
+		38 => [ 1 => 'product_type' ], // Range Accessories
+		41 => [ 1 => 'product_type' ], // Reloading
+		42 => [ 1 => 'product_type' ], // Safes, Security
+		44 => [ 1 => 'product_type' ], // Scope Accessories
+		47 => [ 1 => 'product_type' ], // Shooting Accessories
+		50 => [ 1 => 'product_type' ], // Slings, Swivels, Bipods
+		51 => [ 1 => 'product_type' ], // Targets
+		55 => [ 1 => 'product_type' ], // Tree Stands, Blinds
+		75 => [ 1 => 'product_type' ], // Apparel
+		76 => [ 1 => 'product_type' ], // Bags, Cases, Storage
+		77 => [ 1 => 'product_type' ], // Decoys
+		79 => [ 1 => 'product_type' ], // Game Calls
+		80 => [ 1 => 'product_type' ], // Hearing / Eye Protection
+		81 => [ 1 => 'product_type' ], // Hunting Accessories
+		82 => [ 1 => 'product_type' ], // Night Vision
+		83 => [ 1 => 'product_type' ], // Outdoor / Survival
+		84 => [ 1 => 'product_type' ], // Pet Supplies
+		87 => [ 1 => 'product_type' ], // Rangefinders
+		88 => [ 1 => 'product_type' ], // Trail Cameras
 	];
 
 	public static function resolve( int|string $catId, int $itatrPosition ): ?string
