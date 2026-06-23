@@ -292,7 +292,10 @@ class Searcher
             ],
         ];
 
-        $hiddenF = static::hiddenFacets();
+        /* Hidden facets are suppressed only on the MAIN catalog page (no category).
+           On a category page we aggregate everything so relevant facets still show. */
+        $onCategoryPage = !empty( $filters['category'] ) || !empty( $filters['category_id'] );
+        $hiddenF = $onCategoryPage ? [] : static::hiddenFacets();
         if ( $hiddenF )
         {
             foreach ( array_keys( $hiddenF ) as $hk )

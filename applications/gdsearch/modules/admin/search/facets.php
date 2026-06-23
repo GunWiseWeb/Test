@@ -27,6 +27,7 @@ class _facets extends \IPS\Dispatcher\Controller
 		try { foreach ( \IPS\Db::i()->select( 'facet_key', 'gd_facet_settings', [ 'hidden=?', 1 ] ) as $k ) { $hidden[ $k ] = TRUE; } } catch ( \Throwable ) {}
 
 		$form = new \IPS\Helpers\Form;
+		$form->addMessage( 'gdsearch_facets_intro', 'ipsMessage ipsMessage--information' );
 		foreach ( $groups as $groupLabel => $facets )
 		{
 			$form->addHeader( $groupLabel );
