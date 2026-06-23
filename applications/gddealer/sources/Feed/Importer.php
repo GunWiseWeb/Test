@@ -125,7 +125,7 @@ class Importer
 					 * want a snapshot full of nulls/empties. UnmatchedUpc::
 					 * record() will skip the JSON write if the array is
 					 * empty, falling back to the legacy count-only path. */
-					$snapshot = self::extractSnapshot( $canonical );
+					$snapshot = self::extractSnapshot( $canonical, $raw );
 					UnmatchedUpc::record( $upc, (int) $dealer->dealer_id, $snapshot );
 					$stats['records_unmatched']++;
 					continue;
@@ -431,7 +431,7 @@ class Importer
 	 * @param  array<string,mixed> $canonical Output of FieldMapper::apply()
 	 * @return array<string,mixed>
 	 */
-	protected static function extractSnapshot( array $canonical ): array
+	protected static function extractSnapshot( array $canonical, array $raw = [] ): array
 	{
 		$probe = function( array $rec, array $candidates ): ?string {
 			foreach ( $candidates as $key )
@@ -449,36 +449,50 @@ class Importer
 			return null;
 		};
 
+		$rawProbe = function( array $rec, array $candidates ): ?string {
+			if ( empty( $rec ) ) { return null; }
+			$norm = [];
+			foreach ( $rec as $k => $v )
+			{
+				$nk = preg_replace( '/[^a-z0-9]/', '', strtolower( (string) $k ) );
+				if ( $nk !== '' && !isset( $norm[ $nk ] ) ) { $norm[ $nk ] = $v; }
+			}
+			foreach ( $candidates as $cand )
+			{
+				$nc = preg_replace( '/[^a-z0-9]/', '', strtolower( $cand ) );
+				if ( isset( $norm[ $nc ] ) )
+				{
+					$val = trim( (string) $norm[ $nc ] );
+					if ( $val !== '' ) { return $val; }
+				}
+			}
+			return null;
+		};
+
 		$snapshot = [];
 
-		/* Product identity */
-		$title = $probe( $canonical, [ 'title' ] );
+		$title = $probe( $canonical, [ 'title' ] ) ?? $rawProbe( $raw, [ 'title', 'name', 'productname', 'producttitle', 'itemname', 'itemtitle', 'product' ] );
 		if ( $title !== null ) { $snapshot['title'] = $title; }
 
-		$brand = $probe( $canonical, [ 'brand' ] );
+		$brand = $probe( $canonical, [ 'brand' ] ) ?? $rawProbe( $raw, [ 'brand', 'brandname', 'make' ] );
 		if ( $brand !== null ) { $snapshot['brand'] = $brand; }
 
-		$mpn = $probe( $canonical, [ 'mpn' ] );
+		$mpn = $probe( $canonical, [ 'mpn' ] ) ?? $rawProbe( $raw, [ 'mpn', 'manufacturersku', 'mfgsku', 'mfgpartnumber', 'partnumber' ] );
 		if ( $mpn !== null ) { $snapshot['mpn'] = $mpn; }
 
-		$manufacturer = $probe( $canonical, [ 'manufacturer' ] );
+		$manufacturer = $probe( $canonical, [ 'manufacturer' ] ) ?? $rawProbe( $raw, [ 'manufacturer', 'mfg', 'mfr' ] );
 		if ( $manufacturer !== null ) { $snapshot['manufacturer'] = $manufacturer; }
 
-		$model = $probe( $canonical, [ 'model' ] );
+		$model = $probe( $canonical, [ 'model' ] ) ?? $rawProbe( $raw, [ 'model', 'modelname', 'modelnumber' ] );
 		if ( $model !== null ) { $snapshot['model'] = $model; }
 
-		/* Image - probe canonical 'image_url' first, then alternate 'image' slug */
-		$imageUrl = $probe( $canonical, [ 'image_url', 'image' ] );
+		$imageUrl = $probe( $canonical, [ 'image_url', 'image' ] ) ?? $rawProbe( $raw, [ 'imageurl', 'image', 'imagelink', 'imagelink1', 'photo', 'picture' ] );
 		if ( $imageUrl !== null ) { $snapshot['image_url'] = $imageUrl; }
 
-		/* Description (helpful for catalog admin even if not always present) */
-		$description = $probe( $canonical, [ 'description' ] );
+		$description = $probe( $canonical, [ 'description' ] ) ?? $rawProbe( $raw, [ 'description', 'desc', 'longdescription', 'productdescription', 'shortdescription' ] );
 		if ( $description !== null ) { $snapshot['description'] = $description; }
 
-		/* Pricing - probe canonical 'msrp' for suggested retail. We do NOT
-		 * include dealer_price here - that's the dealer's selling price,
-		 * not the canonical MSRP. */
-		$msrp = $probe( $canonical, [ 'msrp' ] );
+		$msrp = $probe( $canonical, [ 'msrp' ] ) ?? $rawProbe( $raw, [ 'msrp', 'retailprice', 'listprice', 'rrp', 'suggestedretailprice' ] );
 		if ( $msrp !== null )
 		{
 			$cleanMsrp = preg_replace( '/[^0-9.]/', '', $msrp );
@@ -488,11 +502,10 @@ class Importer
 			}
 		}
 
-		/* Caliber, MSRP, category - helpful for firearm-specific records */
-		$caliber = $probe( $canonical, [ 'caliber' ] );
+		$caliber = $probe( $canonical, [ 'caliber' ] ) ?? $rawProbe( $raw, [ 'caliber', 'cal', 'gauge' ] );
 		if ( $caliber !== null ) { $snapshot['caliber'] = $caliber; }
 
-		$capacity = $probe( $canonical, [ 'capacity' ] );
+		$capacity = $probe( $canonical, [ 'capacity' ] ) ?? $rawProbe( $raw, [ 'capacity', 'magazinecapacity', 'roundcapacity' ] );
 		if ( $capacity !== null )
 		{
 			$cleanCapacity = preg_replace( '/[^0-9]/', '', $capacity );
