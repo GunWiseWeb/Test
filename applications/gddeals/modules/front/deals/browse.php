@@ -188,6 +188,11 @@ class _browse extends \IPS\Dispatcher\Controller
 			catch ( \Throwable ) {}
 			$coupons = $this->buildCouponCards( $couponDeals );
 		}
+		if ( !$couponMode && !( \IPS\Settings::i()->gddeals_show_coupon_strip ?? 1 ) )
+		{
+			$coupons = [];
+		}
+
 		$couponsAllUrl = (string) \IPS\Http\Url::internal( 'app=gddeals&module=coupons&controller=browse', 'front' );
 
 		$cats = [];

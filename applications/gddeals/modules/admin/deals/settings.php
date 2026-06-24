@@ -23,6 +23,9 @@ class _settings extends \IPS\Dispatcher\Controller
 	{
 		$form = new \IPS\Helpers\Form;
 
+		$form->addHeader( 'gddeals_settings_display' );
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gddeals_show_coupon_strip', \IPS\Settings::i()->gddeals_show_coupon_strip ?? 1 ) );
+
 		$form->addHeader( 'gddeals_colhdr_brand' );
 		$form->add( new \IPS\Helpers\Form\Color( 'gddeals_c_primary', \IPS\Settings::i()->gddeals_c_primary ) );
 		$form->add( new \IPS\Helpers\Form\Color( 'gddeals_c_primary_hover', \IPS\Settings::i()->gddeals_c_primary_hover ) );

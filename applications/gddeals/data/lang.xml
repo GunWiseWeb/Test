@@ -169,5 +169,8 @@
     <word key="module__gddeals_coupons"><![CDATA[Coupons]]></word>
     <word key="gddeals_coupons_page_title"><![CDATA[Coupons & Promo Codes]]></word>
     <word key="gddeals_coupons_empty"><![CDATA[No coupons available right now — check back soon!]]></word>
+    <word key="gddeals_settings_display"><![CDATA[Display]]></word>
+    <word key="gddeals_show_coupon_strip"><![CDATA[Show coupon strip on the deals page]]></word>
+    <word key="gddeals_show_coupon_strip_desc"><![CDATA[When off, the Coupons & promo codes strip is hidden above the deals list. The dedicated Coupons page is unaffected.]]></word>
   </app>
 </language>

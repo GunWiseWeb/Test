@@ -18,5 +18,6 @@
 	{"key":"gddeals_c_promo_text","default":"#8a5a00","report":"full"},
 	{"key":"gddeals_c_ship_bg","default":"#e7f4ec","report":"full"},
 	{"key":"gddeals_c_expired","default":"#c0392b","report":"full"},
-	{"key":"gddeals_c_expired_bg","default":"#fdecea","report":"full"}
+	{"key":"gddeals_c_expired_bg","default":"#fdecea","report":"full"},
+	{"key":"gddeals_show_coupon_strip","default":"1","report":"full"}
 ]

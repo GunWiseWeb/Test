@@ -168,4 +168,7 @@ $lang = [
     'module__gddeals_coupons'         => 'Coupons',
     'gddeals_coupons_page_title'      => 'Coupons & Promo Codes',
     'gddeals_coupons_empty'           => 'No coupons available right now — check back soon!',
+    'gddeals_settings_display'        => 'Display',
+    'gddeals_show_coupon_strip'       => 'Show coupon strip on the deals page',
+    'gddeals_show_coupon_strip_desc'  => 'When off, the Coupons & promo codes strip is hidden above the deals list. The dedicated Coupons page is unaffected.',
 ];
