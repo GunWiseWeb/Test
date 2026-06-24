@@ -2132,8 +2132,9 @@ TEMPLATE_EOT,
 
 	<p>{lang="gddealer_front_unmatched_intro"}</p>
 
-	<div class="ipsMessage ipsMessage--info" style="margin:0 0 16px 0">
-		{lang="gddealer_front_unmatched_60day"}
+	<div class="gdNote" role="note">
+		<span class="gdNote__icon" aria-hidden="true"><i class="fa-solid fa-circle-info"></i></span>
+		<span class="gdNote__text">{lang="gddealer_front_unmatched_60day"}</span>
 	</div>
 
 	<p style="margin:8px 0 16px 0">

@@ -5,7 +5,10 @@
 
 	<p>{lang="gddealer_front_unmatched_intro"}</p>
 
-	<div class="ipsMessage ipsMessage--info" style="margin:0 0 16px 0">{lang="gddealer_front_unmatched_60day"}</div>
+	<div class="gdNote" role="note">
+		<span class="gdNote__icon" aria-hidden="true"><i class="fa-solid fa-circle-info"></i></span>
+		<span class="gdNote__text">{lang="gddealer_front_unmatched_60day"}</span>
+	</div>
 
 	<p style="margin:8px 0 16px 0">
 		<a href="{$data['export_url']}" class="ipsButton ipsButton--normal ipsButton--small">{lang="gddealer_front_export_csv"}</a>
