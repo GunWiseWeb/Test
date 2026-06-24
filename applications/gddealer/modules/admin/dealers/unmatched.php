@@ -159,8 +159,10 @@ class _unmatched extends \IPS\Dispatcher\Controller
 		);
 
 		$prefill = array_merge(
-			[ 'title' => '', 'brand' => '', 'mpn' => '', 'model' => '', 'msrp' => '', 'caliber' => '', 'image_url' => '', 'description' => '' ],
-			array_intersect_key( $snapshot, array_flip( [ 'title', 'brand', 'mpn', 'model', 'msrp', 'caliber', 'image_url', 'description' ] ) )
+			[ 'title' => '', 'brand' => '', 'mpn' => '', 'model' => '', 'msrp' => '', 'caliber' => '', 'image_url' => '', 'description' => '',
+			  'product_type' => '', 'material' => '', 'color' => '', 'finish' => '', 'size' => '', 'mount_type' => '', 'fit' => '', 'battery_size' => '', 'nrr' => '', 'lock_type' => '', 'species' => '' ],
+			array_intersect_key( $snapshot, array_flip( [ 'title', 'brand', 'mpn', 'model', 'msrp', 'caliber', 'image_url', 'description',
+				'product_type', 'material', 'color', 'finish', 'size', 'mount_type', 'fit', 'battery_size', 'nrr', 'lock_type', 'species' ] ) )
 		);
 		if ( $prefill['brand'] === '' && !empty( $snapshot['manufacturer'] ) )
 		{
@@ -220,6 +222,17 @@ class _unmatched extends \IPS\Dispatcher\Controller
 			'msrp'           => (float) ( \IPS\Request::i()->msrp ?? 0 ) ?: null,
 			'description'    => trim( (string) ( \IPS\Request::i()->description ?? '' ) ) ?: null,
 			'image_url'      => trim( (string) ( \IPS\Request::i()->image_url ?? '' ) ) ?: null,
+			'product_type'   => mb_substr( trim( (string) ( \IPS\Request::i()->product_type ?? '' ) ), 0, 80 ) ?: null,
+			'material'       => mb_substr( trim( (string) ( \IPS\Request::i()->material ?? '' ) ), 0, 80 ) ?: null,
+			'color'          => mb_substr( trim( (string) ( \IPS\Request::i()->color ?? '' ) ), 0, 60 ) ?: null,
+			'finish'         => mb_substr( trim( (string) ( \IPS\Request::i()->finish ?? '' ) ), 0, 60 ) ?: null,
+			'size'           => mb_substr( trim( (string) ( \IPS\Request::i()->size ?? '' ) ), 0, 60 ) ?: null,
+			'mount_type'     => mb_substr( trim( (string) ( \IPS\Request::i()->mount_type ?? '' ) ), 0, 80 ) ?: null,
+			'fit'            => mb_substr( trim( (string) ( \IPS\Request::i()->fit ?? '' ) ), 0, 150 ) ?: null,
+			'battery_size'   => mb_substr( trim( (string) ( \IPS\Request::i()->battery_size ?? '' ) ), 0, 40 ) ?: null,
+			'nrr'            => mb_substr( trim( (string) ( \IPS\Request::i()->nrr ?? '' ) ), 0, 20 ) ?: null,
+			'lock_type'      => mb_substr( trim( (string) ( \IPS\Request::i()->lock_type ?? '' ) ), 0, 60 ) ?: null,
+			'species'        => mb_substr( trim( (string) ( \IPS\Request::i()->species ?? '' ) ), 0, 80 ) ?: null,
 			'requires_ffl'   => (int) ( \IPS\Request::i()->requires_ffl ?? 0 ),
 			'nfa_item'       => (int) ( \IPS\Request::i()->nfa_item ?? 0 ),
 			'is_ammo'        => (int) ( \IPS\Request::i()->is_ammo ?? 0 ),
