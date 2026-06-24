@@ -1,0 +1,66 @@
+<ips:template parameters="$coupons, $cats, $activeCat, $activeSort, $pagination, $total, $sortUrls" />
+{expression="\IPS\gddeals\Application::colorCss()" raw="1"}
+<div class="gd-deals-wrap">
+	<div class="gd-deals-header">
+		<h1>{lang="gddeals_coupons_page_title"}</h1>
+	</div>
+
+	<nav class="gd-cat-nav">
+		<a href="{url="app=gddeals&module=coupons&controller=browse" seoTemplate="gddeals_coupons"}"{{if !$activeCat}} class="gd-active"{{endif}}>{lang="gddeals_cat_all"}</a>
+		{{foreach $cats as $c}}
+			<a href="{$c['url']}"{{if $activeCat == $c['id']}} class="gd-active"{{endif}}>{$c['title']}</a>
+		{{endforeach}}
+	</nav>
+
+	<div class="gd-controls">
+		<span class="gd-control-label">{lang="gddeals_sort_label"}</span>
+		<div class="gd-seg">
+			<a href="{$sortUrls['newest']}"{{if $activeSort == 'newest'}} class="gd-active"{{endif}}>{lang="gddeals_sort_newest"}</a>
+			<a href="{$sortUrls['hottest']}"{{if $activeSort == 'hottest'}} class="gd-active"{{endif}}>{lang="gddeals_sort_hottest"}</a>
+			<a href="{$sortUrls['discount']}"{{if $activeSort == 'discount'}} class="gd-active"{{endif}}>{lang="gddeals_sort_discount"}</a>
+			<a href="{$sortUrls['expiring']}"{{if $activeSort == 'expiring'}} class="gd-active"{{endif}}>{lang="gddeals_sort_expiring"}</a>
+		</div>
+	</div>
+
+	{{if $total == 0}}
+		<div class="gd-empty">{lang="gddeals_coupons_empty"}</div>
+	{{else}}
+		<section class="gd-coupons gd-coupons--full">
+			<div class="gd-coupons-grid">
+				{{foreach $coupons as $d}}
+					<div class="gd-cpn{{if $d['source'] == 'dealer'}} gd-cpn--dealer{{endif}}">
+						{{if $d['source'] == 'dealer'}}<span class="gd-cpn-tag">{lang="gddeals_featured_dealer"}</span>{{endif}}
+						<div class="gd-cpn-head">
+							{{if $d['source'] == 'dealer' && $d['dealer_profile_url']}}
+								<a href="{$d['dealer_profile_url']}" class="gd-cpn-dealer">{$d['retailer']}</a>
+								<span class="gd-cpn-vf">{lang="gddeals_verified_dealer"}</span>
+							{{else}}
+								<span class="gd-cpn-dealer">{$d['retailer']}</span>
+							{{endif}}
+						</div>
+						<a class="gd-cpn-main" href="{$d['url']}">
+							<div class="gd-cpn-disc">{$d['headline']}</div>
+							{{if $d['desc']}}<div class="gd-cpn-desc">{$d['desc']}</div>{{endif}}
+						</a>
+						{{if $d['code']}}
+							<div class="gd-cpn-code">
+								<span class="gd-cpn-codeval">{$d['code']}</span>
+								<button type="button" class="gd-cpn-copy" data-code="{$d['code']}">{lang="gddeals_copy"}</button>
+							</div>
+						{{endif}}
+						<div class="gd-cpn-foot">
+							<span>{{if $d['expires']}}{lang="gddeals_expires"} {$d['expires']}{{endif}}</span>
+							<a class="gd-cpn-shop" href="{$d['shop_url']}" target="_blank" rel="nofollow noopener">{lang="gddeals_shop"}</a>
+						</div>
+						<div class="gd-vote" data-vote-url="{$d['vote_url']}" data-uservote="{$d['user_vote']}">
+							<button class="gd-vote-btn gd-vote-up{{if $d['user_vote'] == 1}} gd-voted{{endif}}" data-dir="up" title="Upvote">&#9650;</button>
+							<span class="gd-vote-score">{$d['heat_score']}</span>
+							<button class="gd-vote-btn gd-vote-down{{if $d['user_vote'] == -1}} gd-voted{{endif}}" data-dir="down" title="Downvote">&#9660;</button>
+						</div>
+					</div>
+				{{endforeach}}
+			</div>
+		</section>
+		{$pagination|raw}
+	{{endif}}
+</div>

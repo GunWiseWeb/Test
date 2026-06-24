@@ -186,7 +186,7 @@ class _browse extends \IPS\Dispatcher\Controller
 			catch ( \Throwable ) {}
 			$coupons = $this->buildCouponCards( $couponDeals );
 		}
-		$couponsAllUrl = (string) \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=browse', 'front' )->setQueryString( 'type', 'coupon' );
+		$couponsAllUrl = (string) \IPS\Http\Url::internal( 'app=gddeals&module=coupons&controller=browse', 'front' );
 
 		$cats = [];
 		foreach ( \IPS\gddeals\Category::roots() as $c )

@@ -12,6 +12,10 @@
 		"gddeals_browse": {
 			"friendly": "",
 			"real": "app=gddeals&module=deals&controller=browse"
+		},
+		"gddeals_coupons": {
+			"friendly": "coupons",
+			"real": "app=gddeals&module=coupons&controller=browse"
 		}
 	}
 }

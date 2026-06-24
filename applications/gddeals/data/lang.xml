@@ -166,5 +166,8 @@
     <word key="block_gdRecentDeals_desc"><![CDATA[Shows the newest deals, dealer deals first.]]></word>
     <word key="block_gdRecentCoupons_desc"><![CDATA[Shows the newest coupons and promo codes.]]></word>
     <word key="block_gdRecentComments_desc"><![CDATA[Shows the latest comments across all deals.]]></word>
+    <word key="module__gddeals_coupons"><![CDATA[Coupons]]></word>
+    <word key="gddeals_coupons_page_title"><![CDATA[Coupons & Promo Codes]]></word>
+    <word key="gddeals_coupons_empty"><![CDATA[No coupons available right now — check back soon!]]></word>
   </app>
 </language>

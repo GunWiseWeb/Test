@@ -165,4 +165,7 @@ $lang = [
     'block_gdRecentDeals_desc'        => 'Shows the newest deals, dealer deals first.',
     'block_gdRecentCoupons_desc'      => 'Shows the newest coupons and promo codes.',
     'block_gdRecentComments_desc'     => 'Shows the latest comments across all deals.',
+    'module__gddeals_coupons'         => 'Coupons',
+    'gddeals_coupons_page_title'      => 'Coupons & Promo Codes',
+    'gddeals_coupons_empty'           => 'No coupons available right now — check back soon!',
 ];

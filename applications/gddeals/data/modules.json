@@ -9,6 +9,10 @@
 		"deals": {
 			"default_controller": "browse",
 			"protected": false
+		},
+		"coupons": {
+			"default_controller": "browse",
+			"protected": false
 		}
 	}
 }
