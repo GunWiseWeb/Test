@@ -58,6 +58,40 @@ class Importer
 		return static::$gdCatalogColumns;
 	}
 
+	protected static ?array $gdCatalogColumnLengths = null;
+
+	protected static function catalogColumnLengths(): array
+	{
+		if ( static::$gdCatalogColumnLengths === null )
+		{
+			$lens = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->query( "SHOW COLUMNS FROM `" . \IPS\Db::i()->prefix . "gd_catalog`" ) as $row )
+				{
+					if ( preg_match( '/(?:var)?char\((\d+)\)/i', (string) $row['Type'], $m ) )
+					{
+						$lens[ $row['Field'] ] = (int) $m[1];
+					}
+				}
+			}
+			catch ( \Throwable ) {}
+			static::$gdCatalogColumnLengths = $lens;
+		}
+		return static::$gdCatalogColumnLengths;
+	}
+
+	protected static function clampToColumn( string $field, $value )
+	{
+		if ( !is_string( $value ) ) { return $value; }
+		$lens = static::catalogColumnLengths();
+		if ( isset( $lens[ $field ] ) && mb_strlen( $value ) > $lens[ $field ] )
+		{
+			return mb_substr( $value, 0, $lens[ $field ] );
+		}
+		return $value;
+	}
+
 	/** Accessory attribute extraction — slot meaning is category-specific (SS). */
 	public const ACCESSORY_ATTR_MAP = [
 		'holsters-carry' => [ 'holster_type'=>'ITATR1', 'holster_color'=>'ITATR2', 'holster_material'=>'ITATR3', 'holster_hand'=>'ITATR5' ],
@@ -1103,7 +1137,7 @@ class Importer
 		{
 			if ( $value !== null && $value !== '' && in_array( $field, $validColumns, true ) )
 			{
-				$product->$field = $value;
+				$product->$field = static::clampToColumn( $field, $value );
 			}
 		}
 
@@ -1174,6 +1208,8 @@ class Importer
 			{
 				continue;
 			}
+
+			$incomingValue = static::clampToColumn( $field, $incomingValue );
 
 			$result = $resolver->resolve( $field, $incomingValue );
 
