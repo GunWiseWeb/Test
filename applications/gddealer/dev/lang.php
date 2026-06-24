@@ -614,4 +614,9 @@ $lang = [
     'gddealer_cap_enterprise_desc'                                 => 'Maximum active listings for the Enterprise tier. 0 = unlimited.',
     'gddealer_cap_max'                                             => 'Max tier max listings',
     'gddealer_cap_max_desc'                                        => 'Maximum active listings for the Max tier. 0 = unlimited.',
+    'gddealer_front_unmatched_60day'                               => 'Unmatched UPCs are reviewed manually and may take up to 60 days to be added to our catalog.',
+    'gddealer_settings_announcement'                               => 'Dealer Announcement',
+    'gddealer_announce_enabled'                                    => 'Show announcement banner',
+    'gddealer_announce_style'                                      => 'Banner style',
+    'gddealer_announce_body'                                       => 'Announcement message',
 ];

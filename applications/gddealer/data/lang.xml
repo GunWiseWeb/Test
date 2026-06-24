@@ -638,5 +638,10 @@
     <word key="gddealer_cap_enterprise_desc"><![CDATA[Maximum active listings for the Enterprise tier. 0 = unlimited.]]></word>
     <word key="gddealer_cap_max"><![CDATA[Max tier max listings]]></word>
     <word key="gddealer_cap_max_desc"><![CDATA[Maximum active listings for the Max tier. 0 = unlimited.]]></word>
+    <word key="gddealer_front_unmatched_60day"><![CDATA[Unmatched UPCs are reviewed manually and may take up to 60 days to be added to our catalog.]]></word>
+    <word key="gddealer_settings_announcement"><![CDATA[Dealer Announcement]]></word>
+    <word key="gddealer_announce_enabled"><![CDATA[Show announcement banner]]></word>
+    <word key="gddealer_announce_style"><![CDATA[Banner style]]></word>
+    <word key="gddealer_announce_body"><![CDATA[Announcement message]]></word>
   </app>
 </language>

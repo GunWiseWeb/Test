@@ -136,5 +136,8 @@
 	{ "key": "gddealer_cap_basic", "default": "500" },
 	{ "key": "gddealer_cap_pro", "default": "2500" },
 	{ "key": "gddealer_cap_enterprise", "default": "6000" },
-	{ "key": "gddealer_cap_max", "default": "0" }
+	{ "key": "gddealer_cap_max", "default": "0" },
+	{ "key": "gddealer_announce_enabled", "default": "0", "report": "full" },
+	{ "key": "gddealer_announce_style", "default": "info", "report": "none" },
+	{ "key": "gddealer_announce_body", "default": "", "report": "none" }
 ]

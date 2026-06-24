@@ -10,7 +10,8 @@
 			"DealerNav": "IPS\\gddealer\\extensions\\core\\FrontNavigation\\DealerNav"
 		},
 		"EditorLocations": {
-			"Responses": "IPS\\gddealer\\extensions\\core\\EditorLocations\\Responses"
+			"Responses": "IPS\\gddealer\\extensions\\core\\EditorLocations\\Responses",
+			"Announcement": "IPS\\gddealer\\extensions\\core\\EditorLocations\\Announcement"
 		},
 		"FileStorage": {
 			"FeedUpload": "IPS\\gddealer\\extensions\\core\\FileStorage\\FeedUpload"

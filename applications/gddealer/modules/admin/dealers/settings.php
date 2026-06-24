@@ -43,6 +43,21 @@ class _settings extends \IPS\Dispatcher\Controller
 		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_group_max',
 			(int) \IPS\Settings::i()->gddealer_group_max, FALSE ) );
 
+		$form->addHeader( 'gddealer_settings_announcement' );
+
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gddealer_announce_enabled',
+			(bool) ( \IPS\Settings::i()->gddealer_announce_enabled ?? 0 ), FALSE ) );
+
+		$form->add( new \IPS\Helpers\Form\Select( 'gddealer_announce_style',
+			(string) ( \IPS\Settings::i()->gddealer_announce_style ?: 'info' ), FALSE, [
+				'options' => [ 'info' => 'Info (blue)', 'warning' => 'Warning (amber)' ],
+			] ) );
+
+		$form->add( new \IPS\Helpers\Form\Editor( 'gddealer_announce_body',
+			(string) ( \IPS\Settings::i()->gddealer_announce_body ?? '' ), FALSE, [
+				'app' => 'gddealer', 'key' => 'Announcement', 'autoSaveKey' => 'gddealer-announce',
+			] ) );
+
 		$form->addHeader( 'gddealer_settings_general' );
 
 		$form->add( new \IPS\Helpers\Form\Select( 'gddealer_default_import_schedule',
@@ -269,6 +284,9 @@ class _settings extends \IPS\Dispatcher\Controller
 				'gddealer_group_pro'                  => (int) $values['gddealer_group_pro'],
 				'gddealer_group_enterprise'           => (int) $values['gddealer_group_enterprise'],
 				'gddealer_group_max'                  => (int) $values['gddealer_group_max'],
+				'gddealer_announce_enabled'           => (int) $values['gddealer_announce_enabled'],
+				'gddealer_announce_style'             => (string) $values['gddealer_announce_style'],
+				'gddealer_announce_body'              => (string) $values['gddealer_announce_body'],
 				'gddealer_default_import_schedule'    => (string) $values['gddealer_default_import_schedule'],
 				'gddealer_out_of_stock_grace_hours'   => (int) $values['gddealer_out_of_stock_grace_hours'],
 				'gddealer_click_tracking_enabled'     => (int) $values['gddealer_click_tracking_enabled'],

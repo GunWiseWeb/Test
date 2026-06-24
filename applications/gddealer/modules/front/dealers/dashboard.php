@@ -300,9 +300,56 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'profile_url' => $dealerProfileUrl,
 		];
 
+		$ann = [ 'show' => false, 'body' => '', 'style' => 'info', 'version' => '' ];
+		$annBody = trim( (string) ( \IPS\Settings::i()->gddealer_announce_body ?? '' ) );
+		if ( ( \IPS\Settings::i()->gddealer_announce_enabled ?? 0 ) && $annBody !== '' )
+		{
+			$version = substr( md5( $annBody ), 0, 12 );
+			$dismissed = false;
+			try {
+				$dismissed = (bool) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_announce_dismiss',
+					[ 'member_id=? AND version=?', (int) \IPS\Member::loggedIn()->member_id, $version ] )->first();
+			} catch ( \Throwable ) {}
+			$ann = [
+				'show'    => !$dismissed,
+				'body'    => $annBody,
+				'style'   => ( \IPS\Settings::i()->gddealer_announce_style === 'warning' ? 'warning' : 'info' ),
+				'version' => $version,
+			];
+		}
+		$data['announcement'] = $ann;
+		$data['announce_dismiss_url'] = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=dismissAnnounce', 'front' );
+		$data['csrfKey'] = \IPS\Session::i()->csrfKey;
+
+		\IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'dismiss.js', 'gddealer', 'interface' ) );
+
 		$this->output( 'overview',
 			\IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->overview( $data )
 		);
+	}
+
+	/* ---------------- Dismiss announcement banner (AJAX) ---------------- */
+
+	protected function dismissAnnounce(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		$version = substr( preg_replace( '/[^a-f0-9]/', '', (string) ( \IPS\Request::i()->version ?? '' ) ), 0, 12 );
+		if ( $version !== '' && \IPS\Member::loggedIn()->member_id )
+		{
+			try {
+				\IPS\Db::i()->insert( 'gd_dealer_announce_dismiss', [
+					'member_id'    => (int) \IPS\Member::loggedIn()->member_id,
+					'version'      => $version,
+					'dismissed_at' => time(),
+				], TRUE );
+			} catch ( \Throwable ) {}
+		}
+		if ( \IPS\Request::i()->isAjax() )
+		{
+			\IPS\Output::i()->json( [ 'ok' => true ] );
+			return;
+		}
+		\IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard', 'front' ) );
 	}
 
 	/* ---------------- Tab: Edit Dealer Profile (was Customize) ---------------- */

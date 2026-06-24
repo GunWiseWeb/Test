@@ -4711,5 +4711,66 @@
 				]
 			}
 		}
+	},
+	"gd_dealer_announce_dismiss": {
+		"name": "gd_dealer_announce_dismiss",
+		"columns": {
+			"member_id": {
+				"name": "member_id",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": false,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"version": {
+				"name": "version",
+				"type": "VARCHAR",
+				"length": 12,
+				"decimals": null,
+				"allow_null": false,
+				"default": "",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
+			"dismissed_at": {
+				"name": "dismissed_at",
+				"type": "INT",
+				"length": 10,
+				"decimals": null,
+				"allow_null": false,
+				"default": "0",
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			}
+		},
+		"indexes": {
+			"PRIMARY": {
+				"type": "primary",
+				"name": "PRIMARY",
+				"length": [
+					null,
+					null
+				],
+				"columns": [
+					"member_id",
+					"version"
+				]
+			}
+		}
 	}
 }

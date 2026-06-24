@@ -1009,6 +1009,12 @@ TEMPLATE_EOT,
 		'template_name' => 'overview',
 		'template_data' => '$data',
 		'template_content' => <<<'TEMPLATE_EOT'
+{{if isset($data['announcement']) && $data['announcement']['show']}}
+<div class="ipsMessage ipsMessage--{$data['announcement']['style']} gdDealerAnnounce" data-gd-announce data-version="{$data['announcement']['version']}" data-dismissurl="{$data['announce_dismiss_url']}" data-csrfkey="{$data['csrfKey']}">
+	<div class="gdDealerAnnounce__body">{$data['announcement']['body']|raw}</div>
+	<button type="button" class="gdDealerAnnounce__close" data-gd-announce-close aria-label="Dismiss">&times;</button>
+</div>
+{{endif}}
 <div class="gdPageHeader">
     <div class="gdPageHeader__titleBlock">
         <h1 class="gdPageHeader__title">Overview</h1>
@@ -2125,6 +2131,10 @@ TEMPLATE_EOT,
 	<div class="i-padding_2" style="padding:18px">
 
 	<p>{lang="gddealer_front_unmatched_intro"}</p>
+
+	<div class="ipsMessage ipsMessage--info" style="margin:0 0 16px 0">
+		{lang="gddealer_front_unmatched_60day"}
+	</div>
 
 	<p style="margin:8px 0 16px 0">
 		<a href="{$data['export_url']}" class="ipsButton ipsButton--normal ipsButton--small">{lang="gddealer_front_export_csv"}</a>
