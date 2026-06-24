@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10293;
+namespace IPS\gddealer\setup\upg_10294;
 
 use function defined;
 
@@ -14,50 +14,54 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* ---- Create gd_dealer_announce_dismiss table if missing ---- */
-		if ( !\IPS\Db::i()->checkForTable( 'gd_dealer_announce_dismiss' ) )
+		/* ---- Create gd_dealer_announce_dismiss table if missing (belt-and-suspenders from v293) ---- */
+		try
 		{
-			\IPS\Db::i()->createTable( [
-				'name'    => 'gd_dealer_announce_dismiss',
-				'columns' => [
-					[
-						'name'           => 'member_id',
-						'type'           => 'INT',
-						'length'         => 10,
-						'unsigned'       => true,
-						'allow_null'     => false,
-						'auto_increment' => false,
+			if ( !\IPS\Db::i()->checkForTable( 'gd_dealer_announce_dismiss' ) )
+			{
+				\IPS\Db::i()->createTable( [
+					'name'    => 'gd_dealer_announce_dismiss',
+					'columns' => [
+						[
+							'name'           => 'member_id',
+							'type'           => 'INT',
+							'length'         => 10,
+							'unsigned'       => true,
+							'allow_null'     => false,
+							'auto_increment' => false,
+						],
+						[
+							'name'           => 'version',
+							'type'           => 'VARCHAR',
+							'length'         => 12,
+							'allow_null'     => false,
+							'default'        => '',
+							'auto_increment' => false,
+						],
+						[
+							'name'           => 'dismissed_at',
+							'type'           => 'INT',
+							'length'         => 10,
+							'unsigned'       => true,
+							'allow_null'     => false,
+							'default'        => '0',
+							'auto_increment' => false,
+						],
 					],
-					[
-						'name'           => 'version',
-						'type'           => 'VARCHAR',
-						'length'         => 12,
-						'allow_null'     => false,
-						'default'        => '',
-						'auto_increment' => false,
+					'indexes' => [
+						[
+							'type'    => 'primary',
+							'name'    => 'PRIMARY',
+							'columns' => [ 'member_id', 'version' ],
+							'length'  => [ null, null ],
+						],
 					],
-					[
-						'name'           => 'dismissed_at',
-						'type'           => 'INT',
-						'length'         => 10,
-						'unsigned'       => true,
-						'allow_null'     => false,
-						'default'        => '0',
-						'auto_increment' => false,
-					],
-				],
-				'indexes' => [
-					[
-						'type'    => 'primary',
-						'name'    => 'PRIMARY',
-						'columns' => [ 'member_id', 'version' ],
-						'length'  => [ null, null ],
-					],
-				],
-			] );
+				] );
+			}
 		}
+		catch ( \Throwable ) {}
 
-		/* ---- Seed new settings if missing ---- */
+		/* ---- Seed settings if missing ---- */
 		$newSettings = [
 			'gddealer_announce_enabled' => '0',
 			'gddealer_announce_style'   => 'info',
@@ -82,7 +86,7 @@ class _upgrade
 			catch ( \Throwable ) {}
 		}
 
-		/* ---- Seed new lang strings ---- */
+		/* ---- Seed lang strings ---- */
 		$newStrings = [
 			'gddealer_front_unmatched_60day' => 'Unmatched UPCs are reviewed manually and may take up to 60 days to be added to our catalog.',
 			'gddealer_settings_announcement' => 'Dealer Announcement',
@@ -109,8 +113,8 @@ class _upgrade
 			}
 		}
 
-		/* ---- Re-seed overview + unmatched templates ---- */
-		$overviewBody = <<<'TEMPLATE_EOT'
+		/* ---- Re-seed overview template with announcement banner ---- */
+		$overviewBanner = <<<'TEMPLATE_EOT'
 {{if isset($data['announcement']) && $data['announcement']['show']}}
 <div class="ipsMessage ipsMessage--{$data['announcement']['style']} gdDealerAnnounce" data-gd-announce data-version="{$data['announcement']['version']}" data-dismissurl="{$data['announce_dismiss_url']}" data-csrfkey="{$data['csrfKey']}">
 	<div class="gdDealerAnnounce__body">{$data['announcement']['body']|raw}</div>
@@ -129,9 +133,9 @@ TEMPLATE_EOT;
 			if ( strpos( $existing, 'data-gd-announce' ) === false )
 			{
 				\IPS\Db::i()->update( 'core_theme_templates', [
-					'template_content' => $overviewBody . "\n" . $existing,
+					'template_content' => $overviewBanner . "\n" . $existing,
 					'template_updated' => time(),
-					'template_version' => '1.0.293',
+					'template_version' => '1.0.294',
 				], [
 					'template_app=? AND template_name=? AND template_location=?',
 					'gddealer', 'overview', 'front',
@@ -140,6 +144,7 @@ TEMPLATE_EOT;
 		}
 		catch ( \Throwable ) {}
 
+		/* ---- Re-seed unmatched template with 60-day note ---- */
 		try
 		{
 			$unmatchedBody = \IPS\Db::i()->select( 'template_content', 'core_theme_templates', [
@@ -151,13 +156,13 @@ TEMPLATE_EOT;
 			{
 				$unmatchedBody = str_replace(
 					'{lang="gddealer_front_unmatched_intro"}</p>',
-					'{lang="gddealer_front_unmatched_intro"}</p>' . "\n\n" . '<div class="ipsMessage ipsMessage--info" style="margin:0 0 16px 0">' . "\n\t" . '{lang="gddealer_front_unmatched_60day"}' . "\n" . '</div>',
+					'{lang="gddealer_front_unmatched_intro"}</p>' . "\n\n" . '<div class="ipsMessage ipsMessage--info" style="margin:0 0 16px 0">{lang="gddealer_front_unmatched_60day"}</div>',
 					$unmatchedBody
 				);
 				\IPS\Db::i()->update( 'core_theme_templates', [
 					'template_content' => $unmatchedBody,
 					'template_updated' => time(),
-					'template_version' => '1.0.293',
+					'template_version' => '1.0.294',
 				], [
 					'template_app=? AND template_name=? AND template_location=?',
 					'gddealer', 'unmatched', 'front',
@@ -166,7 +171,7 @@ TEMPLATE_EOT;
 		}
 		catch ( \Throwable ) {}
 
-		/* ---- Heal extensions.json (rule #16) ---- */
+		/* ---- Heal extensions.json ---- */
 		try
 		{
 			$extFile = \IPS\ROOT_PATH . '/applications/gddealer/data/extensions.json';
@@ -188,7 +193,7 @@ TEMPLATE_EOT;
 		}
 		catch ( \Throwable ) {}
 
-		/* ---- Canonical template ensure + cache clear ---- */
+		/* ---- Canonical templates + cache clear ---- */
 		try
 		{
 			$canonical = \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
