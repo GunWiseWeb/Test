@@ -441,6 +441,14 @@ class _deals extends \IPS\Dispatcher\Controller
 		$deal = $this->loadDealOrError( $dealId, $dealerId );
 		if ( $deal === null ) { return; }
 
+		$communityPostId = (int) ( $deal['community_post_id'] ?? 0 );
+		if ( $communityPostId )
+		{
+			try { \IPS\gddeals\Deal::load( $communityPostId )->delete(); }
+			catch ( \OutOfRangeException $e ) {}
+			catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_deal_delete' ); } catch ( \Throwable $e2 ) {} }
+		}
+
 		try
 		{
 			\IPS\Db::i()->delete( 'gd_deals', [ 'deal_id=? AND dealer_id=?', $dealId, $dealerId ] );
