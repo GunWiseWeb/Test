@@ -166,9 +166,13 @@ class _feeds extends \IPS\Dispatcher\Controller
 
 		$csrfKey = \IPS\Session::i()->csrfKey;
 
+		$reExtractUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=feeds&do=reExtractAttributes'
+		)->csrf();
+
 		Output::i()->title  = $lang->addToStack( 'gdcatalog_feeds_title' );
 		Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->feedList(
-			$feeds, $feedCounts, $addUrl, $reorderUrl, $csrfKey
+			$feeds, $feedCounts, $addUrl, $reorderUrl, $csrfKey, $reExtractUrl
 		);
 	}
 
@@ -1050,6 +1054,61 @@ class _feeds extends \IPS\Dispatcher\Controller
 
 		Output::i()->title  = 'Sports South Category Attribute Labels';
 		Output::i()->output = $html;
+	}
+	protected function reExtractAttributes(): void
+	{
+		\IPS\Dispatcher::i()->checkAcpPermission( 'feeds_manage' );
+		\IPS\Session::i()->csrfCheck();
+
+		$attrCols = [
+			'product_type','material','color','finish','size','mount_type','fit','battery_size','nrr','lock_type','species',
+			'caliber','capacity','action_type','case_type','bullet_type',
+			'holster_type','holster_color','holster_material','holster_hand',
+			'apparel_pattern','apparel_size','apparel_material',
+			'hunt_call_type','hunt_game',
+			'blade_shape','blade_length','blade_material','blade_edge','knife_handle',
+			'optic_magnification','optic_objective',
+		];
+		$liveCols = \IPS\gdcatalog\Feed\Importer::catalogColumns();
+		$valid = array_values( array_filter( $attrCols, fn( $c ) => in_array( $c, $liveCols, true ) ) );
+
+		$updated = 0;
+		$scanned = 0;
+
+		foreach ( \IPS\Db::i()->select( 'upc, raw_distributor_data', 'gd_catalog', [ 'raw_distributor_data IS NOT NULL' ] ) as $row )
+		{
+			$scanned++;
+			$raw = json_decode( (string) $row['raw_distributor_data'], true );
+			if ( !is_array( $raw ) ) { continue; }
+
+			$ssCatId = (int) ( $raw['CATID'] ?? 0 );
+			if ( $ssCatId <= 0 ) { continue; }
+
+			$set = [];
+			for ( $i = 1; $i <= 20; $i++ )
+			{
+				$itatrKey = $i === 10 ? 'ITATR0' : 'ITATR' . $i;
+				$val = trim( (string) ( $raw[ $itatrKey ] ?? '' ) );
+				if ( $val === '' ) { continue; }
+
+				$col = \IPS\gdcatalog\Feed\Distributor\SportsSouthAttributeMap::resolve( $ssCatId, $i );
+				if ( $col !== null && in_array( $col, $valid, true ) && !isset( $set[ $col ] ) )
+				{
+					$set[ $col ] = mb_substr( $val, 0, 150 );
+				}
+			}
+
+			if ( $set )
+			{
+				\IPS\Db::i()->update( 'gd_catalog', $set, [ 'upc=?', $row['upc'] ] );
+				$updated++;
+			}
+		}
+
+		Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
+			"Re-extracted attributes: {$updated} of {$scanned} products updated."
+		);
 	}
 }
 

@@ -38,6 +38,26 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 
 class Importer
 {
+	protected static ?array $gdCatalogColumns = null;
+
+	public static function catalogColumns(): array
+	{
+		if ( static::$gdCatalogColumns === null )
+		{
+			$cols = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->query( "SHOW COLUMNS FROM `" . \IPS\Db::i()->prefix . "gd_catalog`" ) as $row )
+				{
+					$cols[] = $row['Field'];
+				}
+			}
+			catch ( \Throwable ) {}
+			static::$gdCatalogColumns = $cols;
+		}
+		return static::$gdCatalogColumns;
+	}
+
 	/** Accessory attribute extraction — slot meaning is category-specific (SS). */
 	public const ACCESSORY_ATTR_MAP = [
 		'holsters-carry' => [ 'holster_type'=>'ITATR1', 'holster_color'=>'ITATR2', 'holster_material'=>'ITATR3', 'holster_hand'=>'ITATR5' ],
@@ -1078,12 +1098,7 @@ class Importer
 		$product->upc = $upc;
 
 		/* Apply all mapped values — only set columns that actually exist in gd_catalog */
-		$validColumns = [];
-		try
-		{
-			$validColumns = array_keys( \IPS\Db::i()->getTableDefinition( 'gd_catalog' )['columns'] );
-		}
-		catch ( \Throwable ) {}
+		$validColumns = static::catalogColumns();
 		foreach ( $mapped as $field => $value )
 		{
 			if ( $value !== null && $value !== '' && in_array( $field, $validColumns, true ) )
@@ -1147,12 +1162,7 @@ class Importer
 			$this->log
 		);
 
-		$validColumns = [];
-		try
-		{
-			$validColumns = array_keys( \IPS\Db::i()->getTableDefinition( 'gd_catalog' )['columns'] );
-		}
-		catch ( \Throwable ) {}
+		$validColumns = static::catalogColumns();
 		foreach ( $mapped as $field => $incomingValue )
 		{
 			if ( $field === 'upc' || $incomingValue === null )

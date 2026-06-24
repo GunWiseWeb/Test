@@ -232,7 +232,7 @@ try {
 $gdcatalogTemplates = [
 	[
 		'template_name' => 'feedList',
-		'template_data' => '$feeds, $feedCounts',
+		'template_data' => '$feeds, $feedCounts, $addUrl, $reorderUrl, $csrfKey, $reExtractUrl',
 		'template_content' => <<<'TEMPLATE_EOT'
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
