@@ -97,8 +97,10 @@ class OpenSearchIndexer
 					'brand'        => [ 'type' => 'keyword' ],
 					'model'        => [ 'type' => 'text', 'analyzer' => 'product_analyzer' ],
 					'mpn'          => [ 'type' => 'text', 'analyzer' => 'product_analyzer', 'fields' => [ 'keyword' => [ 'type' => 'keyword' ] ] ],
-					'category'     => [ 'type' => 'keyword' ],
-					'subcategory'  => [ 'type' => 'keyword' ],
+					'category'        => [ 'type' => 'keyword' ],
+					'subcategory'     => [ 'type' => 'keyword' ],
+					'category_id'     => [ 'type' => 'integer' ],
+					'top_category_id' => [ 'type' => 'integer' ],
 					'caliber'      => [ 'type' => 'keyword' ],
 					'action_type'  => [ 'type' => 'keyword' ],
 					'barrel_length'=> [ 'type' => 'float' ],
@@ -460,18 +462,24 @@ class OpenSearchIndexer
 		$category    = $product->category();
 		$catName     = '';
 		$subcatName  = '';
+		$leafCatId   = 0;
+		$topCatId    = 0;
 
 		if ( $category !== null )
 		{
+			$leafCatId = (int) $category->id;
+
 			if ( $category->isTopLevel() )
 			{
-				$catName = $category->name;
+				$catName  = $category->name;
+				$topCatId = (int) $category->id;
 			}
 			else
 			{
-				$parent = $category->parent();
-				$catName    = $parent ? $parent->name : '';
+				$parent     = $category->parent();
+				$catName    = $parent ? $parent->name : $category->name;
 				$subcatName = $category->name;
+				$topCatId   = $parent ? (int) $parent->id : (int) $category->id;
 			}
 		}
 
@@ -481,8 +489,10 @@ class OpenSearchIndexer
 			'brand'         => $product->brand ?? '',
 			'model'         => $product->model ?? '',
 			'mpn'           => $product->mpn ?? '',
-			'category'      => $catName,
-			'subcategory'   => $subcatName ?: ( $product->subcategory ?? '' ),
+			'category'        => $catName,
+			'subcategory'     => $subcatName ?: ( $product->subcategory ?? '' ),
+			'category_id'     => $leafCatId,
+			'top_category_id' => $topCatId,
 			'caliber'       => $product->caliber ?? '',
 			'action_type'   => $product->action_type ?? '',
 			'barrel_length' => $product->barrel_length ? (float) $product->barrel_length : null,

@@ -99,7 +99,14 @@ class Searcher
                 $filter[] = [ 'term' => [ $field => $val ] ];
             }
         };
-        $facet( 'category.keyword',    $filters['category']    ?? '' );
+        $catId = (int) ( $filters['category_id'] ?? 0 );
+        if ( $catId > 0 )
+        {
+            $filter[] = [ 'bool' => [ 'should' => [
+                [ 'term' => [ 'category_id'     => $catId ] ],
+                [ 'term' => [ 'top_category_id' => $catId ] ],
+            ], 'minimum_should_match' => 1 ] ];
+        }
         $facet( 'subcategory.keyword', $filters['subcategory'] ?? '' );
         $facet( 'brand.keyword',       $filters['brand']       ?? '' );
         $facet( 'caliber.keyword',     $filters['caliber']     ?? '' );
@@ -179,7 +186,9 @@ class Searcher
 
         $mustNot = [];
         if ( !empty( $filters['excludeCategoryIds'] ) && is_array( $filters['excludeCategoryIds'] ) ) {
-            $mustNot[] = [ 'terms' => [ 'category_id' => array_values( $filters['excludeCategoryIds'] ) ] ];
+            $ids = array_values( array_map( 'intval', $filters['excludeCategoryIds'] ) );
+            $mustNot[] = [ 'terms' => [ 'category_id'     => $ids ] ];
+            $mustNot[] = [ 'terms' => [ 'top_category_id' => $ids ] ];
         }
 
         // Sort
