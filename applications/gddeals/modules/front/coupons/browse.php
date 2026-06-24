@@ -9,12 +9,9 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 	exit;
 }
 
-class _browse extends \IPS\gddeals\modules\front\deals\_browse
+class _browse extends \IPS\Dispatcher\Controller
 {
-	public function execute(): void
-	{
-		parent::execute();
-	}
+	use \IPS\gddeals\Coupons\CouponBuilderTrait;
 
 	protected function manage()
 	{
