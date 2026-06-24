@@ -1,21 +1,30 @@
 <ips:template parameters="$items, $orientation='', $carousel=false" />
 {expression="\IPS\gddeals\Application::colorCss()" raw="1"}
 {{if !empty($items)}}
-<h3 class='ipsWidget__title'>{lang="block_gdRecentDeals"}</h3>
+<header class='ipsWidget__header'>
+	<h3>{lang="block_gdRecentDeals"}</h3>
+</header>
 <div class='ipsWidget__content'>
-	<ul class='gd-widget__list'>
-		{{foreach $items as $d}}
-		<li class='gd-widget__row{{if $d['dealer']}} gd-widget__row--dealer{{endif}}'>
-			<a href='{$d['url']}' class='gd-widget__link'>
-				{{if $d['image']}}<span class='gd-widget__thumb' style="background-image:url('{$d['image']}')"></span>{{else}}<span class='gd-widget__thumb gd-widget__thumb--ph'></span>{{endif}}
-				<span class='gd-widget__main'>
-					<span class='gd-widget__name'>{$d['title']}</span>
-					<span class='gd-widget__meta'>{{if $d['dealer']}}<span class='gd-widget__badge'>Dealer</span>{{endif}}{$d['retailer']}</span>
-				</span>
-				<span class='gd-widget__price'>{$d['price']}{{if $d['discount']}}<span class='gd-widget__off'>{$d['discount']}</span>{{endif}}</span>
-			</a>
-		</li>
-		{{endforeach}}
-	</ul>
+	<i-data>
+		<ol class='ipsData ipsData--table ipsData--gd-deals'>
+			{{foreach $items as $d}}
+			<li class='ipsData__item'>
+				<a href='{$d['url']}' class='ipsLinkPanel' tabindex="-1" aria-hidden="true"><span>{$d['title']}</span></a>
+				<div class='ipsData__image' aria-hidden="true">
+					{{if $d['image']}}<img src='{$d['image']}' alt='' loading='lazy'>{{else}}<span class='ipsThumb ipsThumb--tiny'></span>{{endif}}
+				</div>
+				<div class='ipsData__content'>
+					<div class='ipsData__main'>
+						<h4 class='ipsData__title'><a href='{$d['url']}'>{$d['title']}</a></h4>
+						<p class='ipsData__meta'>{{if $d['dealer']}}<span class='gd-widget__badge'>Dealer</span> {{endif}}{$d['retailer']}</p>
+					</div>
+					<div class='ipsData__extra'>
+						<span class='gd-widget__price'>{$d['price']}</span>{{if $d['discount']}} <span class='gd-widget__off'>{$d['discount']}</span>{{endif}}
+					</div>
+				</div>
+			</li>
+			{{endforeach}}
+		</ol>
+	</i-data>
 </div>
 {{endif}}

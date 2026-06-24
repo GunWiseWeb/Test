@@ -1,21 +1,27 @@
 <ips:template parameters="$items, $orientation='', $carousel=false" />
 {expression="\IPS\gddeals\Application::colorCss()" raw="1"}
 {{if !empty($items)}}
-<h3 class='ipsWidget__title'>{lang="block_gdRecentCoupons"}</h3>
+<header class='ipsWidget__header'>
+	<h3>{lang="block_gdRecentCoupons"}</h3>
+</header>
 <div class='ipsWidget__content'>
-	<ul class='gd-widget__list'>
-		{{foreach $items as $c}}
-		<li class='gd-widget__row{{if $c['dealer']}} gd-widget__row--dealer{{endif}}'>
-			<a href='{$c['url']}' class='gd-widget__link'>
-				<span class='gd-widget__main'>
-					<span class='gd-widget__name'>{$c['title']}</span>
-					<span class='gd-widget__meta'>{{if $c['dealer']}}<span class='gd-widget__badge'>Dealer</span>{{endif}}{$c['retailer']}</span>
-				</span>
-				{{if $c['code']}}<span class='gd-widget__code'>{$c['code']}</span>{{endif}}
-				{{if $c['discount']}}<span class='gd-widget__off'>{$c['discount']}</span>{{endif}}
-			</a>
-		</li>
-		{{endforeach}}
-	</ul>
+	<i-data>
+		<ol class='ipsData ipsData--table ipsData--gd-coupons'>
+			{{foreach $items as $c}}
+			<li class='ipsData__item'>
+				<a href='{$c['url']}' class='ipsLinkPanel' tabindex="-1" aria-hidden="true"><span>{$c['title']}</span></a>
+				<div class='ipsData__content'>
+					<div class='ipsData__main'>
+						<h4 class='ipsData__title'><a href='{$c['url']}'>{$c['title']}</a></h4>
+						<p class='ipsData__meta'>{{if $c['dealer']}}<span class='gd-widget__badge'>Dealer</span> {{endif}}{$c['retailer']}</p>
+					</div>
+					<div class='ipsData__extra'>
+						{{if $c['code']}}<span class='gd-widget__code'>{$c['code']}</span>{{endif}}{{if $c['discount']}} <span class='gd-widget__off'>{$c['discount']}</span>{{endif}}
+					</div>
+				</div>
+			</li>
+			{{endforeach}}
+		</ol>
+	</i-data>
 </div>
 {{endif}}
