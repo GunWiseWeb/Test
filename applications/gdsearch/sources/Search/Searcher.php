@@ -157,9 +157,9 @@ class Searcher
             }
 
             if ( empty( $inStockUpcs ) ) {
-                $filter[] = [ 'terms' => [ 'upc.keyword' => [ '__none__' ] ] ];
+                $filter[] = [ 'terms' => [ 'upc' => [ '__none__' ] ] ];
             } else {
-                $filter[] = [ 'terms' => [ 'upc.keyword' => $inStockUpcs ] ];
+                $filter[] = [ 'terms' => [ 'upc' => $inStockUpcs ] ];
             }
         }
 
