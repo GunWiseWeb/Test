@@ -643,5 +643,13 @@
     <word key="gddealer_announce_enabled"><![CDATA[Show announcement banner]]></word>
     <word key="gddealer_announce_style"><![CDATA[Banner style]]></word>
     <word key="gddealer_announce_body"><![CDATA[Announcement message]]></word>
+    <word key="gddealer_store_info"><![CDATA[Store Information]]></word>
+    <word key="gddealer_visit_website"><![CDATA[Visit Website]]></word>
+    <word key="gddealer_sec_info"><![CDATA[Info]]></word>
+    <word key="gddealer_sec_deals"><![CDATA[Deals]]></word>
+    <word key="gddealer_sec_coupons"><![CDATA[Coupons]]></word>
+    <word key="gddealer_sec_listings"><![CDATA[Listings]]></word>
+    <word key="gddealer_sec_reviews"><![CDATA[Reviews]]></word>
+    <word key="gddealer_stats"><![CDATA[Stats]]></word>
   </app>
 </language>

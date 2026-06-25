@@ -619,4 +619,12 @@ $lang = [
     'gddealer_announce_enabled'                                    => 'Show announcement banner',
     'gddealer_announce_style'                                      => 'Banner style',
     'gddealer_announce_body'                                       => 'Announcement message',
+    'gddealer_store_info'                                          => 'Store Information',
+    'gddealer_visit_website'                                       => 'Visit Website',
+    'gddealer_sec_info'                                            => 'Info',
+    'gddealer_sec_deals'                                           => 'Deals',
+    'gddealer_sec_coupons'                                         => 'Coupons',
+    'gddealer_sec_listings'                                        => 'Listings',
+    'gddealer_sec_reviews'                                         => 'Reviews',
+    'gddealer_stats'                                               => 'Stats',
 ];

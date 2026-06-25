@@ -4226,3 +4226,72 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 .gdNote { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 16px 0; padding: 11px 14px; background: var(--i-background_2, #f4f7fb); border: 1px solid var(--i-border-color, #e2e8f0); border-inline-start: 3px solid var(--i-color-info, #3b82f6); border-radius: 8px; color: var(--i-foreground_3, #475569); font-size: .9em; line-height: 1.45; }
 .gdNote__icon { color: var(--i-color-info, #3b82f6); font-size: 1em; margin-top: 1px; flex: 0 0 auto; }
 .gdNote__text { flex: 1 1 auto; }
+
+/* ========================================================================
+   gdProfile2 — native IPS member-profile layout for public dealer profiles
+   ======================================================================== */
+.gdProfile2__coverFallback { width: 100%; height: 100%; background: var(--gd-dealer-brand, #1b2838); }
+.gdProfile2__monogram { display: flex; align-items: center; justify-content: center; background: var(--gd-dealer-brand, #1b2838); color: #fff; font-size: 2rem; font-weight: 700; }
+.gdProfile2__tierBadge { color: #fff !important; }
+
+.gdProfile2__disputeQuote { margin: 12px 0; padding: 10px 14px; border-left: 3px solid rgba(255,255,255,.3); background: rgba(0,0,0,.08); border-radius: 4px; }
+.gdProfile2__disputeQuoteLabel { font-weight: 600; margin-bottom: 4px; font-size: .85em; text-transform: uppercase; letter-spacing: .03em; opacity: .8; }
+
+/* Store Info widget */
+.gdStoreRow { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; font-size: .9em; line-height: 1.4; border-bottom: 1px solid var(--i-border-color-light, #f1f5f9); }
+.gdStoreRow:last-child { border-bottom: 0; }
+.gdStoreRow i { flex: 0 0 16px; text-align: center; color: var(--i-foreground_3, #64748b); margin-top: 2px; }
+.gdStoreRow a { color: var(--i-link-color, #1E40AF); text-decoration: none; }
+.gdStoreRow a:hover { text-decoration: underline; }
+.gdStoreRow--header { font-weight: 600; color: var(--i-foreground_2, #334155); border-bottom: 0; padding-bottom: 2px; }
+
+.gdStoreHours { margin-top: 4px; }
+.gdStoreHours__table { width: 100%; font-size: .85em; border-collapse: collapse; margin-top: 4px; }
+.gdStoreHours__table td { padding: 3px 0; }
+.gdStoreHours__table td:first-child { font-weight: 500; width: 70px; }
+.gdStoreHours__table td:last-child { text-align: right; color: var(--i-foreground_3, #64748b); }
+.gdStoreHours__today td { font-weight: 600; color: var(--i-color-positive, #16a34a); }
+
+.gdStorePm { display: inline-block; padding: 2px 8px; margin: 1px 2px; font-size: .8em; background: var(--i-background_2, #f1f5f9); border-radius: 4px; }
+
+.gdStoreSocials { display: flex; gap: 10px; padding: 8px 0 2px; }
+.gdStoreSocials__link { color: var(--i-foreground_3, #64748b); font-size: 1.15em; transition: color .15s; }
+.gdStoreSocials__link:hover { color: var(--i-link-color, #1E40AF); }
+
+/* Navigation widget */
+.gdNavList { list-style: none; margin: 0; padding: 0; }
+.gdNavList__item { border-bottom: 1px solid var(--i-border-color-light, #f1f5f9); }
+.gdNavList__item:last-child { border-bottom: 0; }
+.gdNavList__item a { display: flex; align-items: center; gap: 8px; padding: 10px 14px; color: var(--i-foreground_2, #334155); text-decoration: none; font-size: .9em; font-weight: 500; transition: background .15s, color .15s; }
+.gdNavList__item a:hover { background: var(--i-background_2, #f8fafc); }
+.gdNavList__item a i { width: 16px; text-align: center; color: var(--i-foreground_3, #64748b); }
+.gdNavList__item--active a { background: var(--i-background_2, #f0f4ff); color: var(--i-link-color, #1E40AF); border-left: 3px solid var(--i-link-color, #1E40AF); }
+.gdNavList__item--active a i { color: var(--i-link-color, #1E40AF); }
+.gdNavCount { margin-left: auto; font-size: .8em; color: var(--i-foreground_3, #94a3b8); font-weight: 400; }
+
+/* Stats widget */
+.gdStatsList { list-style: none; margin: 0; padding: 0; }
+.gdStatsList li { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: .88em; color: var(--i-foreground_2, #475569); border-bottom: 1px solid var(--i-border-color-light, #f1f5f9); }
+.gdStatsList li:last-child { border-bottom: 0; }
+.gdStatsList li i { width: 16px; text-align: center; color: var(--i-foreground_3, #64748b); flex: 0 0 16px; }
+
+/* Panel toggle */
+.gdPanel { display: none; padding: 20px; }
+.gdPanel--active { display: block; }
+
+/* Info panel cards */
+.gdProfile2__infoGrid { display: flex; flex-direction: column; gap: 20px; }
+.gdProfile2__infoCard { border: 1px solid var(--i-border-color-light, #e2e8f0); border-radius: 8px; padding: 16px 20px; }
+.gdProfile2__infoCardTitle { margin: 0 0 10px; font-size: 1em; font-weight: 600; color: var(--i-foreground_1, #1e293b); display: flex; align-items: center; gap: 8px; }
+.gdProfile2__infoCardTitle i { color: var(--i-foreground_3, #64748b); }
+.gdProfile2__infoCardBody { font-size: .93em; line-height: 1.6; color: var(--i-foreground_2, #475569); }
+
+/* Responsive: stack sidebar under header on narrow screens */
+@media (max-width: 880px) {
+	.gdProfile2 .ipsProfile.ipsProfile--profile { flex-direction: column; }
+	.gdProfile2 .ipsProfile__aside { width: 100%; }
+	.gdNavList { display: flex; overflow-x: auto; gap: 0; }
+	.gdNavList__item { border-bottom: 0; border-right: 1px solid var(--i-border-color-light, #f1f5f9); flex: 0 0 auto; }
+	.gdNavList__item:last-child { border-right: 0; }
+	.gdNavList__item--active a { border-left: 0; border-bottom: 3px solid var(--i-link-color, #1E40AF); }
+}
