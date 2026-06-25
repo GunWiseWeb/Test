@@ -171,4 +171,7 @@ $lang = [
     'gddeals_settings_display'        => 'Display',
     'gddeals_show_coupon_strip'       => 'Show coupon strip on the deals page',
     'gddeals_show_coupon_strip_desc'  => 'When off, the Coupons & promo codes strip is hidden above the deals list. The dedicated Coupons page is unaffected.',
+    'gddeals_submit_coupon_button'    => 'Post Coupon',
+    'gddeals_submit_coupon_title'     => 'Post a Coupon',
+    'gddeals_post_coupon_btn'         => 'Post a Coupon',
 ];

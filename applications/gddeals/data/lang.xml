@@ -172,5 +172,8 @@
     <word key="gddeals_settings_display"><![CDATA[Display]]></word>
     <word key="gddeals_show_coupon_strip"><![CDATA[Show coupon strip on the deals page]]></word>
     <word key="gddeals_show_coupon_strip_desc"><![CDATA[When off, the Coupons & promo codes strip is hidden above the deals list. The dedicated Coupons page is unaffected.]]></word>
+    <word key="gddeals_submit_coupon_button"><![CDATA[Post Coupon]]></word>
+    <word key="gddeals_submit_coupon_title"><![CDATA[Post a Coupon]]></word>
+    <word key="gddeals_post_coupon_btn"><![CDATA[Post a Coupon]]></word>
   </app>
 </language>

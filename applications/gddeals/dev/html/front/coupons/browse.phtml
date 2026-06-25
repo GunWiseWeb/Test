@@ -1,8 +1,9 @@
-<ips:template parameters="$coupons, $cats, $activeCat, $activeSort, $pagination, $total, $sortUrls" />
+<ips:template parameters="$coupons, $cats, $activeCat, $activeSort, $pagination, $total, $sortUrls, $postCouponUrl=''" />
 {expression="\IPS\gddeals\Application::colorCss()" raw="1"}
 <div class="gd-deals-wrap">
 	<div class="gd-deals-header">
 		<h1>{lang="gddeals_coupons_page_title"}</h1>
+		{{if $postCouponUrl}}<a class="gd-post-btn" href="{$postCouponUrl}">{lang="gddeals_post_coupon_btn"}</a>{{endif}}
 	</div>
 
 	<nav class="gd-cat-nav">

@@ -45,40 +45,59 @@ class _submit extends \IPS\Dispatcher\Controller
 			if ( !$canPost ) { \IPS\Output::i()->error( 'gddeals_submit_no_perm', '2GD100/1', 403 ); return; }
 		}
 
-		$form = new \IPS\Helpers\Form( 'gddeals_submit', $editing ? 'save' : 'gddeals_submit_button' );
+		$couponOnly = ( (string) ( \IPS\Request::i()->type ?? '' ) === 'coupon' );
+		if ( $editing && $editing->post_type === 'coupon' ) { $couponOnly = TRUE; }
+
+		$formUrl = \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=submit', 'front', 'gddeals_submit' );
+		if ( $couponOnly ) { $formUrl = $formUrl->setQueryString( 'type', 'coupon' ); }
+		if ( $editing ) { $formUrl = $formUrl->setQueryString( 'id', $editing->id ); }
+
+		$submitLabel = $couponOnly ? 'gddeals_submit_coupon_button' : ( $editing ? 'save' : 'gddeals_submit_button' );
+		$form = new \IPS\Helpers\Form( 'gddeals_submit', $submitLabel, $formUrl );
 
 		$form->add( new \IPS\Helpers\Form\Node( 'gddeals_f_category', $editing ? $editing->category_id : NULL, TRUE, [
 			'class' => 'IPS\\gddeals\\Category', 'permissionCheck' => 'add', 'subnodes' => FALSE,
 		] ) );
 		$form->add( new \IPS\Helpers\Form\Text( 'gddeals_f_title', $editing ? $editing->title : NULL, TRUE, [ 'maxLength' => 255 ] ) );
 
-		$postTypes = [
-			'product'     => $member->language()->addToStack( 'gddeals_posttype_product' ),
-			'bundle'      => $member->language()->addToStack( 'gddeals_posttype_bundle' ),
-			'storewide'   => $member->language()->addToStack( 'gddeals_posttype_storewide' ),
-			'clearance'   => $member->language()->addToStack( 'gddeals_posttype_clearance' ),
-			'coupon'      => $member->language()->addToStack( 'gddeals_posttype_coupon' ),
-			'price_error' => $member->language()->addToStack( 'gddeals_posttype_price_error' ),
-		];
-		$form->add( new \IPS\Helpers\Form\Select( 'gddeals_f_posttype', $editing ? $editing->post_type : 'product', TRUE, [ 'options' => $postTypes ] ) );
+		if ( !$couponOnly )
+		{
+			$postTypes = [
+				'product'     => $member->language()->addToStack( 'gddeals_posttype_product' ),
+				'bundle'      => $member->language()->addToStack( 'gddeals_posttype_bundle' ),
+				'storewide'   => $member->language()->addToStack( 'gddeals_posttype_storewide' ),
+				'clearance'   => $member->language()->addToStack( 'gddeals_posttype_clearance' ),
+				'coupon'      => $member->language()->addToStack( 'gddeals_posttype_coupon' ),
+				'price_error' => $member->language()->addToStack( 'gddeals_posttype_price_error' ),
+			];
+			$form->add( new \IPS\Helpers\Form\Select( 'gddeals_f_posttype', $editing ? $editing->post_type : 'product', TRUE, [ 'options' => $postTypes ] ) );
+		}
 
 		$form->add( new \IPS\Helpers\Form\Text( 'gddeals_f_retailer_name', $editing ? $editing->retailer_name : NULL, TRUE, [ 'maxLength' => 150 ] ) );
 
-		$retailerTypes = [
-			'online'  => $member->language()->addToStack( 'gddeals_retailertype_online' ),
-			'instore' => $member->language()->addToStack( 'gddeals_retailertype_instore' ),
-			'both'    => $member->language()->addToStack( 'gddeals_retailertype_both' ),
-		];
-		$form->add( new \IPS\Helpers\Form\Select( 'gddeals_f_retailer_type', $editing ? $editing->retailer_type : 'online', FALSE, [ 'options' => $retailerTypes ] ) );
+		if ( !$couponOnly )
+		{
+			$retailerTypes = [
+				'online'  => $member->language()->addToStack( 'gddeals_retailertype_online' ),
+				'instore' => $member->language()->addToStack( 'gddeals_retailertype_instore' ),
+				'both'    => $member->language()->addToStack( 'gddeals_retailertype_both' ),
+			];
+			$form->add( new \IPS\Helpers\Form\Select( 'gddeals_f_retailer_type', $editing ? $editing->retailer_type : 'online', FALSE, [ 'options' => $retailerTypes ] ) );
+			$form->add( new \IPS\Helpers\Form\Text( 'gddeals_f_store_location', $editing ? $editing->store_location : NULL, FALSE, [ 'maxLength' => 200 ] ) );
+			$form->add( new \IPS\Helpers\Form\Number( 'gddeals_f_deal_price', ( $editing and $editing->deal_price !== NULL ) ? $editing->deal_price : NULL, FALSE, [ 'decimals' => 2, 'min' => 0 ] ) );
+			$form->add( new \IPS\Helpers\Form\Number( 'gddeals_f_original_price', ( $editing and $editing->original_price !== NULL ) ? $editing->original_price : NULL, FALSE, [ 'decimals' => 2, 'min' => 0 ] ) );
+		}
 
-		$form->add( new \IPS\Helpers\Form\Text( 'gddeals_f_store_location', $editing ? $editing->store_location : NULL, FALSE, [ 'maxLength' => 200 ] ) );
-		$form->add( new \IPS\Helpers\Form\Number( 'gddeals_f_deal_price', ( $editing and $editing->deal_price !== NULL ) ? $editing->deal_price : NULL, FALSE, [ 'decimals' => 2, 'min' => 0 ] ) );
-		$form->add( new \IPS\Helpers\Form\Number( 'gddeals_f_original_price', ( $editing and $editing->original_price !== NULL ) ? $editing->original_price : NULL, FALSE, [ 'decimals' => 2, 'min' => 0 ] ) );
 		$form->add( new \IPS\Helpers\Form\Url( 'gddeals_f_deal_url', $editing ? $editing->deal_url : NULL, FALSE ) );
-		$form->add( new \IPS\Helpers\Form\Text( 'gddeals_f_promo_code', $editing ? $editing->promo_code : NULL, FALSE, [ 'maxLength' => 100 ] ) );
+		$form->add( new \IPS\Helpers\Form\Text( 'gddeals_f_promo_code', $editing ? $editing->promo_code : NULL, $couponOnly, [ 'maxLength' => 100 ] ) );
 		$form->add( new \IPS\Helpers\Form\Url( 'gddeals_f_image', $editing ? $editing->image_url : NULL, FALSE ) );
-		$form->add( new \IPS\Helpers\Form\YesNo( 'gddeals_f_free_shipping', $editing ? (bool) $editing->free_shipping : FALSE, FALSE ) );
-		$form->add( new \IPS\Helpers\Form\Number( 'gddeals_f_shipping_cost', ( $editing and $editing->shipping_cost !== NULL ) ? $editing->shipping_cost : NULL, FALSE, [ 'decimals' => 2, 'min' => 0 ] ) );
+
+		if ( !$couponOnly )
+		{
+			$form->add( new \IPS\Helpers\Form\YesNo( 'gddeals_f_free_shipping', $editing ? (bool) $editing->free_shipping : FALSE, FALSE ) );
+			$form->add( new \IPS\Helpers\Form\Number( 'gddeals_f_shipping_cost', ( $editing and $editing->shipping_cost !== NULL ) ? $editing->shipping_cost : NULL, FALSE, [ 'decimals' => 2, 'min' => 0 ] ) );
+		}
+
 		$form->add( new \IPS\Helpers\Form\TextArea( 'gddeals_f_description', $editing ? $editing->description : NULL, FALSE ) );
 		$form->add( new \IPS\Helpers\Form\Date( 'gddeals_f_expires', ( $editing and $editing->expires_at ) ? \IPS\DateTime::ts( $editing->expires_at ) : NULL, FALSE ) );
 
@@ -99,16 +118,16 @@ class _submit extends \IPS\Dispatcher\Controller
 
 			$deal->title          = $values['gddeals_f_title'];
 			$deal->description    = $values['gddeals_f_description'];
-			$deal->post_type      = $values['gddeals_f_posttype'];
+			$deal->post_type      = $couponOnly ? 'coupon' : $values['gddeals_f_posttype'];
 			$deal->retailer_name  = $values['gddeals_f_retailer_name'];
-			$deal->retailer_type  = $values['gddeals_f_retailer_type'];
-			$deal->store_location = $values['gddeals_f_store_location'];
-			$deal->deal_price     = $values['gddeals_f_deal_price'] ?: NULL;
-			$deal->original_price = $values['gddeals_f_original_price'] ?: NULL;
+			$deal->retailer_type  = $values['gddeals_f_retailer_type'] ?? 'online';
+			$deal->store_location = $values['gddeals_f_store_location'] ?? NULL;
+			$deal->deal_price     = ( $values['gddeals_f_deal_price'] ?? NULL ) ?: NULL;
+			$deal->original_price = ( $values['gddeals_f_original_price'] ?? NULL ) ?: NULL;
 			$deal->deal_url       = (string) $values['gddeals_f_deal_url'];
 			$deal->promo_code     = $values['gddeals_f_promo_code'];
-			$deal->free_shipping  = $values['gddeals_f_free_shipping'] ? 1 : 0;
-			$deal->shipping_cost  = $values['gddeals_f_shipping_cost'] ?: NULL;
+			$deal->free_shipping  = ( $values['gddeals_f_free_shipping'] ?? FALSE ) ? 1 : 0;
+			$deal->shipping_cost  = ( $values['gddeals_f_shipping_cost'] ?? NULL ) ?: NULL;
 			$deal->expires_at     = $values['gddeals_f_expires'] ? $values['gddeals_f_expires']->getTimestamp() : NULL;
 			$deal->image_url      = $values['gddeals_f_image'] ? (string) $values['gddeals_f_image'] : NULL;
 			if ( !$editing )
@@ -146,7 +165,7 @@ class _submit extends \IPS\Dispatcher\Controller
 			return;
 		}
 
-		\IPS\Output::i()->title  = $member->language()->addToStack( $editing ? 'gddeals_edit_title' : 'gddeals_submit_title' );
+		\IPS\Output::i()->title  = $member->language()->addToStack( $couponOnly ? 'gddeals_submit_coupon_title' : ( $editing ? 'gddeals_edit_title' : 'gddeals_submit_title' ) );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'deals', 'gddeals', 'front' )->submit( $form );
 	}
 }

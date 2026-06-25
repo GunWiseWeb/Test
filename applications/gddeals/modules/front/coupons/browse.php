@@ -98,8 +98,10 @@ class _browse extends \IPS\Dispatcher\Controller
 			'expiring' => (string) $sortBase->setQueryString( 'sort', 'expiring' ),
 		];
 
+		$postCouponUrl = (string) \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=submit', 'front', 'gddeals_submit' )->setQueryString( 'type', 'coupon' );
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddeals_coupons_page_title' );
-		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'coupons', 'gddeals', 'front' )->browse( $coupons, $cats, $catId, $sort, $pagination, $total, $sortUrls );
+		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'coupons', 'gddeals', 'front' )->browse( $coupons, $cats, $catId, $sort, $pagination, $total, $sortUrls, $postCouponUrl );
 	}
 }
 class browse extends _browse {}
