@@ -71,11 +71,11 @@ trait CouponBuilderTrait
 				}
 			}
 
-			if ( $deal->discount_pct )
+			if ( (float) $deal->discount_pct > 0 )
 			{
 				$headline = rtrim( rtrim( number_format( (float) $deal->discount_pct, 1 ), '0' ), '.' ) . '% ' . $me->language()->addToStack( 'gddeals_off' );
 			}
-			elseif ( $deal->free_shipping )
+			elseif ( (int) $deal->free_shipping )
 			{
 				$headline = $me->language()->addToStack( 'gddeals_free_ship' );
 			}
