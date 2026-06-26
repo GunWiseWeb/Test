@@ -130,7 +130,8 @@
 				</div>
 
 				<div class="ipsWidget ipsWidget--dealerNav">
-					<div class="ipsWidget__content">
+					<h3 class="ipsWidget__header">{lang="gddealer_nav"}</h3>
+					<div class="ipsWidget__content ipsWidget__padding">
 						<ul class="gdNavList">
 							<li class="gdNavList__item" data-gd-navitem="deals"><a href="#deals" data-gd-section="deals"><i class="fa-solid fa-tags"></i> {lang="gddealer_sec_deals"} <span class="gdNavCount">{expression="count($data['deals'])"}</span></a></li>
 							<li class="gdNavList__item" data-gd-navitem="coupons"><a href="#coupons" data-gd-section="coupons"><i class="fa-solid fa-ticket"></i> {lang="gddealer_sec_coupons"} <span class="gdNavCount">{expression="count($data['coupons'])"}</span></a></li>
@@ -167,8 +168,8 @@
 
 		<section class="ipsProfile__main ipsBox ipsBox--profileMain ipsPull">
 
+			{{if count($data['deals'] ?? []) > 0}}
 			<div data-gd-panel="deals" class="gdPanel">
-				{{if count($data['deals']) > 0}}
 				<div class="gdProfile__grid gdProfile__grid--deals">
 					{{foreach $data['deals'] as $deal}}
 					<div class="gdProfile__card gdProfile__dealCard">
@@ -206,16 +207,11 @@
 					</div>
 					{{endforeach}}
 				</div>
-				{{else}}
-				<div class="gdProfile__empty">
-					<i class="fa-solid fa-tags"></i>
-					<p>No active deals right now.</p>
-				</div>
-				{{endif}}
 			</div>
+			{{endif}}
 
+			{{if count($data['coupons'] ?? []) > 0}}
 			<div data-gd-panel="coupons" class="gdPanel">
-				{{if count($data['coupons']) > 0}}
 				<div class="gdProfile__grid gdProfile__grid--coupons">
 					{{foreach $data['coupons'] as $coupon}}
 					<div class="gdProfile__card gdProfile__couponCard">
@@ -241,13 +237,8 @@
 					</div>
 					{{endforeach}}
 				</div>
-				{{else}}
-				<div class="gdProfile__empty">
-					<i class="fa-solid fa-ticket"></i>
-					<p>No coupons right now.</p>
-				</div>
-				{{endif}}
 			</div>
+			{{endif}}
 
 			<div data-gd-panel="listings" class="gdPanel">
 				<div class="gdProfile__listingsToolbar">
