@@ -133,9 +133,9 @@
 					<h3 class="ipsWidget__header">{lang="gddealer_nav"}</h3>
 					<div class="ipsWidget__content ipsWidget__padding">
 						<ul class="gdNavList">
-							<li class="gdNavList__item" data-gd-navitem="deals"><a href="#deals" data-gd-section="deals"><i class="fa-solid fa-tags"></i> {lang="gddealer_sec_deals"} <span class="gdNavCount">{expression="count($data['deals'])"}</span></a></li>
+							<li class="gdNavList__item{{if !$data['open_listings_tab']}} gdNavList__item--active{{endif}}" data-gd-navitem="deals"><a href="#deals" data-gd-section="deals"><i class="fa-solid fa-tags"></i> {lang="gddealer_sec_deals"} <span class="gdNavCount">{expression="count($data['deals'])"}</span></a></li>
 							<li class="gdNavList__item" data-gd-navitem="coupons"><a href="#coupons" data-gd-section="coupons"><i class="fa-solid fa-ticket"></i> {lang="gddealer_sec_coupons"} <span class="gdNavCount">{expression="count($data['coupons'])"}</span></a></li>
-							<li class="gdNavList__item" data-gd-navitem="listings"><a href="#listings" data-gd-section="listings"><i class="fa-solid fa-box-open"></i> {lang="gddealer_sec_listings"} <span class="gdNavCount">{expression="number_format($data['listings_total'])"}</span></a></li>
+							<li class="gdNavList__item{{if $data['open_listings_tab']}} gdNavList__item--active{{endif}}" data-gd-navitem="listings"><a href="#listings" data-gd-section="listings"><i class="fa-solid fa-box-open"></i> {lang="gddealer_sec_listings"} <span class="gdNavCount">{expression="number_format($data['listings_total'])"}</span></a></li>
 							<li class="gdNavList__item" data-gd-navitem="reviews"><a href="#reviews" data-gd-section="reviews"><i class="fa-solid fa-star"></i> {lang="gddealer_sec_reviews"} <span class="gdNavCount">{expression="number_format($data['stats']['total'])"}</span></a></li>
 							<li class="gdNavList__item" data-gd-navitem="info"><a href="#info" data-gd-section="info"><i class="fa-solid fa-circle-info"></i> {lang="gddealer_sec_info"}</a></li>
 						</ul>
@@ -168,7 +168,7 @@
 
 		<section class="ipsProfile__main ipsBox ipsBox--profileMain ipsPull">
 
-			<div data-gd-panel="deals" class="gdPanel">
+			<div data-gd-panel="deals" class="gdPanel{{if !$data['open_listings_tab']}} gdPanel--active{{endif}}">
 				{{if count($data['deals'] ?? []) > 0}}
 				<div class="gdProfile__grid gdProfile__grid--deals">
 					{{foreach $data['deals'] as $deal}}
@@ -208,9 +208,9 @@
 					{{endforeach}}
 				</div>
 				{{else}}
-				<div class="gdProfile__empty gdProfile__empty--slim">
+				<div class="gdProfile__empty">
 					<i class="fa-solid fa-tags"></i>
-					<span>No active deals right now.</span>
+					<p>No active deals right now.</p>
 				</div>
 				{{endif}}
 			</div>
@@ -243,14 +243,14 @@
 					{{endforeach}}
 				</div>
 				{{else}}
-				<div class="gdProfile__empty gdProfile__empty--slim">
+				<div class="gdProfile__empty">
 					<i class="fa-solid fa-ticket"></i>
-					<span>No coupons right now.</span>
+					<p>No coupons right now.</p>
 				</div>
 				{{endif}}
 			</div>
 
-			<div data-gd-panel="listings" class="gdPanel">
+			<div data-gd-panel="listings" class="gdPanel{{if $data['open_listings_tab']}} gdPanel--active{{endif}}">
 				<div class="gdProfile__listingsToolbar">
 					<form method="get" class="gdProfile__listingsSearch">
 						<input type="hidden" name="app" value="gddealer">
