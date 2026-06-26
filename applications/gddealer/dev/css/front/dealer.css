@@ -3983,6 +3983,19 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
     border-radius: 999px;
 }
 .gdProfile__reviewedNotice i { font-size: 0.95em; }
+
+.gdProfile__reviewCta { margin: 4px 0 20px; }
+.gdProfile__reviewFormHead {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; gap: 12px;
+}
+.gdProfile__reviewCancel {
+    background: none; border: none; cursor: pointer;
+    color: var(--gd-text-muted, #475569); font-size: 0.85em; padding: 4px 8px;
+}
+.gdProfile__reviewCancel:hover { color: var(--gd-text, #0F172A); text-decoration: underline; }
+.gdProfile__reviewOpenBtn i { margin-right: 6px; }
+[data-gd-review-form][hidden] { display: none; }
 .gdProfile__reviewEditLink {
     font-size: 0.8em;
     color: var(--gd-brand, #1E40AF);

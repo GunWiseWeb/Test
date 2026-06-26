@@ -58,4 +58,31 @@ document.addEventListener('DOMContentLoaded', function() {
 			history.replaceState(null, '', '#' + sec);
 		});
 	}
+
+	/* ---- Submit-a-Review reveal/collapse ---- */
+	(function () {
+		var openBtn   = document.querySelector('[data-gd-review-open]');
+		var formWrap  = document.querySelector('[data-gd-review-form]');
+		var cancelBtn = document.querySelector('[data-gd-review-cancel]');
+		var ctaWrap   = document.querySelector('[data-gd-review-cta]');
+		if (!openBtn || !formWrap) return;
+
+		function openForm() {
+			formWrap.hidden = false;
+			if (ctaWrap) ctaWrap.hidden = true;
+			try {
+				if (window.jQuery) {
+					window.jQuery(document).trigger('initializeEditor', [{ editorID: 'gddealer_review_body' }]);
+				}
+			} catch (e) {}
+			try { formWrap.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { formWrap.scrollIntoView(); }
+		}
+		function closeForm() {
+			formWrap.hidden = true;
+			if (ctaWrap) ctaWrap.hidden = false;
+			try { if (ctaWrap) ctaWrap.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+		}
+		openBtn.addEventListener('click', openForm);
+		if (cancelBtn) cancelBtn.addEventListener('click', closeForm);
+	})();
 });

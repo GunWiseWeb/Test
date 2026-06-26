@@ -385,8 +385,16 @@
 						{{endif}}
 
 						{{if $data['can_rate']}}
-						<div class="gdProfile__reviewForm">
-							<h3 class="gdProfile__reviewFormTitle">Leave a Review</h3>
+						<div class="gdProfile__reviewCta" data-gd-review-cta>
+							<button type="button" class="ipsButton ipsButton--primary gdProfile__reviewOpenBtn" data-gd-review-open>
+								<i class="fa-solid fa-star"></i> Submit a Review
+							</button>
+						</div>
+						<div class="gdProfile__reviewForm" data-gd-review-form hidden>
+							<div class="gdProfile__reviewFormHead">
+								<h3 class="gdProfile__reviewFormTitle">Leave a Review</h3>
+								<button type="button" class="gdProfile__reviewCancel" data-gd-review-cancel>Cancel</button>
+							</div>
 							<form method="post" action="{$data['rate_url']}">
 								<input type="hidden" name="csrfKey" value="{$data['csrf_key']}">
 								<div class="gdProfile__ratingSelects">
