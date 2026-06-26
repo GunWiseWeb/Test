@@ -62,11 +62,11 @@
 			<input type="hidden" name="csrfKey" value="{$data['csrf_key']}">
 			<div class="i-margin-top_2">
 				<label><strong>Your response</strong></label>
-				{$data['customer_dispute']['response_editor_html']}
+				{$data['customer_dispute']['response_editor_html']|raw}
 			</div>
 			<div class="i-margin-top_2">
 				<label><strong>Supporting evidence (optional)</strong></label>
-				{$data['customer_dispute']['evidence_editor_html']}
+				{$data['customer_dispute']['evidence_editor_html']|raw}
 			</div>
 			<button type="submit" class="ipsButton ipsButton--primary i-margin-top_2">Submit My Response</button>
 		</form>
@@ -419,7 +419,7 @@
 									</div>
 								</div>
 								<div class="gdProfile__reviewEditor">
-									{$data['review_body_editor_html']}
+									{$data['review_body_editor_html']|raw}
 								</div>
 								<div class="gdProfile__reviewFormFooter">
 									<span class="gdProfile__guidelinesNote">By submitting you agree to our <a href="{$data['guidelines_url']}">review guidelines</a>.</span>
@@ -486,7 +486,7 @@
 								</div>
 
 								{{if $r['review_body']}}
-								<div class="gdProfile__reviewBody">{$r['review_body']}</div>
+								<div class="gdProfile__reviewBody">{$r['review_body']|raw}</div>
 								{{endif}}
 
 								{{if $r['dispute_status'] === 'pending_customer' || $r['dispute_status'] === 'pending_admin'}}
