@@ -5,23 +5,16 @@
  * @subpackage  GD Dealer Manager
  * @since       v1.0.213
  *
- * Maps 12 frequently-edited templates to the canonical overlay file(s)
- * that produce their correct body. `ensure()` re-runs those overlay
- * files. Used at the end of install.php (for fresh installs) and at
- * the end of every upgrade.php from v213 onward.
+ * The authoritative template bodies live in dev/html/front/dealers/*.phtml.
+ * IPS reads those files directly in dev mode.
  *
- * To change a managed template body:
- *   1. Edit the relevant overlay file (the one in SOURCES below)
- *   2. Bump version, ship
- *   3. ensure() will re-run the overlay automatically on the upgrade
+ * Historical overlay files (setup/templates_100XX.php) remain on disk for
+ * reference but are NO LONGER executed by ensure(). The overlay-write
+ * mechanism was the root cause of the v298 dashboard regression: stale
+ * overlay content overwrote current templates.
  *
- * If a new overlay version is added for a template:
- *   1. Update the SOURCES entry to point to the NEW overlay file
- *   2. The old overlay file stays on disk (history) but is no longer
- *      referenced by ensure().
- *
- * DO NOT embed template bodies in this class. The overlay files are
- * the source of truth.
+ * ensure() now PURGES any cached .tpl files from data/canonical_templates/
+ * and clears IPS template caches, forcing IPS to read from dev/html.
  */
 
 namespace IPS\gddealer\Setup;
@@ -37,161 +30,76 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 class _CanonicalTemplates
 {
     /**
-     * Map: template_name => [list of overlay files (relative to setup/)
-     *                       to require in order, last-wins].
+     * Purge stale .tpl cache files from data/canonical_templates/.
+     * IPS in dev mode reads these in preference to dev/html/*.phtml,
+     * so they must not exist if dev/html is the source of truth.
      *
-     * Empty array means the template's body is already canonical in
-     * install.php's $gddealerTemplates array — no overlay needed.
+     * @return array{deleted: string[], errors: string[]}
      */
-    public const SOURCES = [
-        'overview'            => [],
-        'unmatched'           => [],
-
-        'feedSettings'        => [ 'templates_10158_part3.php', 'templates_10158_part4.php' ],
-        'listings'            => [ 'templates_10074.php' ],
-        'analytics'           => [ 'templates_10078.php' ],
-        'dealerNavIcon'       => [ 'templates_10149_part3.php' ],
-        'dealerShell'         => [ 'templates_10071.php' ],
-        'dealerSidebar'       => [ 'templates_10071.php' ],
-        'dashboardCustomize'  => [ 'templates_10088.php' ],
-        'dealerProfile'       => [ 'templates_10296.php' ],
-        'help'                => [ 'templates_10147_help.php' ],
-        'supportTicketView'   => [ 'templates_10213_supportTicketView.php' ],
-    ];
-
-    /**
-     * Re-run every canonical overlay file in order. Deduped — files
-     * shared across templates (e.g. templates_10071 serves both
-     * dealerShell and dealerSidebar) run once.
-     *
-     * @return array{ran: string[], errors: string[]}
-     */
-    public static function ensure(): array
+    public static function purgeCanonicalTemplates(): array
     {
-        $setupDir = \IPS\ROOT_PATH . '/applications/gddealer/setup';
-        $ran      = [];
-        $errors   = [];
+        $dir     = \IPS\ROOT_PATH . '/applications/gddealer/data/canonical_templates';
+        $deleted = [];
+        $errors  = [];
 
-        $files = [];
-        foreach ( self::SOURCES as $tpl => $list ) {
-            foreach ( $list as $f ) {
-                if ( !in_array( $f, $files, true ) ) {
-                    $files[] = $f;
-                }
-            }
+        if ( !is_dir( $dir ) )
+        {
+            return [ 'deleted' => $deleted, 'errors' => $errors ];
         }
 
-        foreach ( $files as $relPath ) {
-            $absPath = $setupDir . '/' . $relPath;
-            if ( !is_readable( $absPath ) ) {
-                $errors[] = "missing: $relPath";
-                continue;
+        $files = glob( $dir . '/*.tpl' );
+        if ( !is_array( $files ) || empty( $files ) )
+        {
+            return [ 'deleted' => $deleted, 'errors' => $errors ];
+        }
+
+        foreach ( $files as $f )
+        {
+            try
+            {
+                if ( is_writable( $f ) )
+                {
+                    @unlink( $f );
+                    $deleted[] = basename( $f );
+                }
+                else
+                {
+                    $errors[] = 'not_writable: ' . basename( $f );
+                }
             }
-            try {
-                require $absPath;
-                $ran[] = $relPath;
-            }
-            catch ( \Throwable $e ) {
-                $errors[] = "$relPath: " . $e->getMessage();
+            catch ( \Throwable $e )
+            {
+                $errors[] = basename( $f ) . ': ' . $e->getMessage();
             }
         }
 
         try {
             \IPS\Log::log(
-                'CanonicalTemplates::ensure ran=' . count($ran)
-                . ' errors=' . count($errors)
-                . ( !empty($errors) ? ' details: ' . implode('; ', $errors) : '' ),
+                'CanonicalTemplates::purge deleted=' . count( $deleted )
+                . ' errors=' . count( $errors )
+                . ( !empty( $errors ) ? ' details: ' . implode( '; ', $errors ) : '' ),
                 'gddealer_canonical_templates'
             );
         } catch ( \Throwable ) {}
 
-        return [ 'ran' => $ran, 'errors' => $errors ];
+        return [ 'deleted' => $deleted, 'errors' => $errors ];
     }
 
     /**
-     * Hard-force a template to its canonical body. Used as a final
-     * safety net after ensure(). Reads body from the source overlay
-     * file (parses its nowdoc), then does REPLACE INTO with set_id=1.
-     * Deletes stray rows at other set_ids. Logs byte counts.
+     * Ensure templates are in a clean state: purge stale .tpl caches
+     * and clear IPS template caches so dev/html is the sole source.
+     *
+     * @return array{deleted: string[], errors: string[]}
      */
-    public static function verifyAndForce(): array
+    public static function ensure(): array
     {
-        $setupDir = \IPS\ROOT_PATH . '/applications/gddealer/setup';
-        $results = [];
-
-        $forced = [
-            'dealerNavIcon'      => [ 'templates_10149_part3.php', 'front', 'dealers', '$icon' ],
-            'feedSettings'       => [ 'templates_10158_part4.php', 'front', 'dealers', '$data' ],
-            'listings'           => [ 'templates_10074.php',       'front', 'dealers', '$data' ],
-            'analytics'          => [ 'templates_10078.php',       'front', 'dealers', '$data' ],
-            'dashboardCustomize' => [ 'templates_10088.php',       'front', 'dealers', '$data' ],
-            'dealerProfile'      => [ 'templates_10296.php',       'front', 'dealers', '$data' ],
-            'help'               => [ 'templates_10147_help.php',  'front', 'dealers', '$data' ],
-        ];
-
-        foreach ( $forced as $name => [ $sourceFile, $location, $group, $dataSig ] ) {
-            $path = $setupDir . '/' . $sourceFile;
-            if ( !is_readable( $path ) ) {
-                $results[ $name ] = [ 'status' => 'missing_source', 'bytes' => 0 ];
-                continue;
-            }
-
-            $src = file_get_contents( $path );
-
-            $body = null;
-            if ( preg_match( "/\\\$\\w+Tpl\\s*=\\s*<<<'TEMPLATE_EOT'\\n(.*?)\\nTEMPLATE_EOT;/s", $src, $m ) ) {
-                $body = $m[1];
-            }
-            elseif ( preg_match( "/'template_name'\\s*=>\\s*'" . preg_quote( $name, '/' ) . "'.*?'template_content'\\s*=>\\s*<<<'TEMPLATE_EOT'\\n(.*?)\\nTEMPLATE_EOT[,;]/s", $src, $m ) ) {
-                $body = $m[1];
-            }
-            elseif ( preg_match( "/'template_content'\\s*=>\\s*<<<'TEMPLATE_EOT'\\n(.*?)\\nTEMPLATE_EOT[,;]/s", $src, $m ) ) {
-                $body = $m[1];
-            }
-
-            if ( $body === null || $body === '' ) {
-                $results[ $name ] = [ 'status' => 'parse_failed', 'bytes' => 0 ];
-                continue;
-            }
-
-            try {
-                \IPS\Db::i()->delete( 'core_theme_templates', [
-                    'template_app=? AND template_location=? AND template_group=? AND template_name=? AND template_set_id<>?',
-                    'gddealer', $location, $group, $name, 1
-                ] );
-            } catch ( \Throwable ) {}
-
-            try {
-                \IPS\Db::i()->replace( 'core_theme_templates', [
-                    'template_set_id'   => 1,
-                    'template_app'      => 'gddealer',
-                    'template_location' => $location,
-                    'template_group'    => $group,
-                    'template_name'     => $name,
-                    'template_data'     => $dataSig,
-                    'template_content'  => $body,
-                    'template_updated'  => time(),
-                    'template_version'  => '1.0.214',
-                ] );
-                $results[ $name ] = [ 'status' => 'written', 'bytes' => strlen( $body ) ];
-            } catch ( \Throwable $e ) {
-                $results[ $name ] = [ 'status' => 'replace_failed', 'bytes' => strlen( $body ), 'error' => $e->getMessage() ];
-            }
-        }
-
-        try {
-            $summary = '';
-            foreach ( $results as $n => $r ) {
-                $summary .= "$n=" . $r['bytes'] . '/' . $r['status'] . ' ';
-            }
-            \IPS\Log::log( 'CanonicalTemplates::verifyAndForce ' . trim( $summary ), 'gddealer_canonical_templates' );
-        } catch ( \Throwable ) {}
-
-        return $results;
+        $result = self::purgeCanonicalTemplates();
+        self::clearCaches();
+        return $result;
     }
 
     /**
-     * Clear template-related caches. Call after ensure().
+     * Clear template-related caches.
      */
     public static function clearCaches(): void
     {
