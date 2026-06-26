@@ -652,5 +652,9 @@
     <word key="gddealer_sec_reviews"><![CDATA[Reviews]]></word>
     <word key="gddealer_stats"><![CDATA[Stats]]></word>
     <word key="gddealer_nav"><![CDATA[Navigation]]></word>
+    <word key="gddealer_analytics_upsell_title"><![CDATA[Unlock more analytics]]></word>
+    <word key="gddealer_analytics_upsell_basic"><![CDATA[Upgrade to Pro to see your daily clicks chart and top-clicked listings. Upgrade to Enterprise for price competitiveness, rank breakdown, and geographic distribution.]]></word>
+    <word key="gddealer_analytics_upsell_pro"><![CDATA[Upgrade to Enterprise to unlock price competitiveness counts, rank-tier breakdown, and geographic distribution of your click-throughs.]]></word>
+    <word key="gddealer_analytics_upsell_cta"><![CDATA[View plans]]></word>
   </app>
 </language>

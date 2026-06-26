@@ -4316,3 +4316,46 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 	.gdNavList__item:last-child { border-right: 0; }
 	.gdNavList__item--active a { border-left: 0; border-bottom: 3px solid var(--i-link-color, #1E40AF); }
 }
+
+/* Analytics tier upsell card */
+.gdAnalytics__upsell {
+	display: flex;
+	gap: 16px;
+	padding: 20px 24px;
+	margin: 16px 0 24px;
+	background: linear-gradient(135deg, #eff6ff 0%, #ede9fe 100%);
+	border: 1px solid #c7d2fe;
+	border-radius: 12px;
+	align-items: flex-start;
+}
+.gdAnalytics__upsellIcon {
+	font-size: 28px;
+	color: #4f46e5;
+	flex-shrink: 0;
+	line-height: 1;
+}
+.gdAnalytics__upsellBody { flex: 1; }
+.gdAnalytics__upsellTitle {
+	margin: 0 0 6px;
+	font-size: 1.05em;
+	font-weight: 700;
+	color: #312e81;
+}
+.gdAnalytics__upsellText {
+	margin: 0 0 12px;
+	font-size: 13.5px;
+	color: #3730a3;
+	line-height: 1.5;
+}
+.gdAnalytics__upsellBtn {
+	display: inline-block;
+	padding: 8px 18px;
+	background: #4f46e5;
+	color: #fff;
+	border-radius: 8px;
+	font-weight: 600;
+	font-size: 13.5px;
+	text-decoration: none;
+	transition: background .15s;
+}
+.gdAnalytics__upsellBtn:hover { background: #4338ca; color: #fff; }

@@ -971,6 +971,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'dealer'              => $this->dealerSummary(),
 			'tab_urls'            => $this->tabUrls(),
 			'delivery_mode'       => $currentMode,
+			'can_upload'          => ( $currentMode === 'manual' ) && !$wizardCompleted,
 			'feed_url'            => (string) ( $dealer->feed_url ?? '' ),
 			'feed_format'         => (string) ( $dealer->feed_format ?? '' ),
 			'auth_type'           => (string) ( $dealer->auth_type ?? 'none' ),
@@ -1545,6 +1546,21 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		$dealer   = $this->dealer;
 		$dealerId = (int) $dealer->dealer_id;
 
+		$isFoundingMember = $dealer->isFoundingMember();
+		$tier             = $isFoundingMember ? 'founding' : (string) $dealer->subscription_tier;
+		$isFull           = in_array( $tier, [ 'enterprise', 'max', 'founding' ], true );
+		$isPro            = $tier === 'pro';
+		$isBasic          = $tier === 'basic';
+		$canChart         = $isFull || $isPro;
+		$canTopListings   = $isFull || $isPro;
+		$canPriceCounts   = $isFull;
+		$canRankTiers     = $isFull;
+		$canGeo           = $isFull;
+		$showUpsell       = $isBasic || $isPro;
+		$upgradeUrl       = (string) \IPS\Http\Url::internal(
+			'app=gddealer&module=dealers&controller=dashboard&do=subscription'
+		);
+
 		$range = (string) ( \IPS\Request::i()->range ?? '30' );
 		if ( !in_array( $range, [ '7', '30', '90', 'ytd' ], true ) ) { $range = '30'; }
 
@@ -1573,164 +1589,178 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		$clickDeltaPct = $clicksPrev > 0 ? (int) round( ( ( $clicksNow - $clicksPrev ) / $clicksPrev ) * 100 ) : null;
 
 		$latestSnapDate = null;
-		try {
-			$latestSnapDate = (string) \IPS\Db::i()->select( 'MAX(snapshot_date)', 'gd_dealer_rank_snapshot',
-				[ 'dealer_id=?', $dealerId ]
-			)->first();
-		} catch ( \Throwable ) {}
-
 		$tierCounts    = [ 'lowest' => 0, 'close' => 0, 'overpriced' => 0, 'only' => 0 ];
 		$snapshotTotal = 0;
-		if ( $latestSnapDate ) {
+
+		if ( $canRankTiers || $canPriceCounts ) {
 			try {
-				foreach ( \IPS\Db::i()->select( 'tier, COUNT(*) AS cnt', 'gd_dealer_rank_snapshot',
-					[ 'dealer_id=? AND snapshot_date=?', $dealerId, $latestSnapDate ],
-					null, null, 'tier'
-				) as $row ) {
-					$t = (string) $row['tier'];
-					if ( isset( $tierCounts[ $t ] ) ) { $tierCounts[ $t ] = (int) $row['cnt']; }
-					$snapshotTotal += (int) $row['cnt'];
-				}
+				$latestSnapDate = (string) \IPS\Db::i()->select( 'MAX(snapshot_date)', 'gd_dealer_rank_snapshot',
+					[ 'dealer_id=?', $dealerId ]
+				)->first();
 			} catch ( \Throwable ) {}
+
+			if ( $latestSnapDate ) {
+				try {
+					foreach ( \IPS\Db::i()->select( 'tier, COUNT(*) AS cnt', 'gd_dealer_rank_snapshot',
+						[ 'dealer_id=? AND snapshot_date=?', $dealerId, $latestSnapDate ],
+						null, null, 'tier'
+					) as $row ) {
+						$t = (string) $row['tier'];
+						if ( isset( $tierCounts[ $t ] ) ) { $tierCounts[ $t ] = (int) $row['cnt']; }
+						$snapshotTotal += (int) $row['cnt'];
+					}
+				} catch ( \Throwable ) {}
+			}
 		}
 
 		$lowestCount     = $tierCounts['lowest'] + $tierCounts['only'];
 		$overpricedCount = $tierCounts['overpriced'];
 
 		$priceDrops = 0;
-		try {
-			$rangeStart = $startDate . ' 00:00:00';
-			$rangeEnd   = $endDate . ' 23:59:59';
-			$firstPrices = [];
-			$lastPrices  = [];
-			foreach ( \IPS\Db::i()->select(
-				'upc, price',
-				'gd_price_history',
-				[ 'dealer_id=? AND recorded_at >= ? AND recorded_at <= ?', $dealerId, $rangeStart, $rangeEnd ],
-				'recorded_at ASC'
-			) as $row ) {
-				$u = (string) $row['upc'];
-				if ( !isset( $firstPrices[ $u ] ) ) {
-					$firstPrices[ $u ] = (float) $row['price'];
+		if ( $canPriceCounts ) {
+			try {
+				$rangeStart = $startDate . ' 00:00:00';
+				$rangeEnd   = $endDate . ' 23:59:59';
+				$firstPrices = [];
+				$lastPrices  = [];
+				foreach ( \IPS\Db::i()->select(
+					'upc, price',
+					'gd_price_history',
+					[ 'dealer_id=? AND recorded_at >= ? AND recorded_at <= ?', $dealerId, $rangeStart, $rangeEnd ],
+					'recorded_at ASC'
+				) as $row ) {
+					$u = (string) $row['upc'];
+					if ( !isset( $firstPrices[ $u ] ) ) {
+						$firstPrices[ $u ] = (float) $row['price'];
+					}
+					$lastPrices[ $u ] = (float) $row['price'];
 				}
-				$lastPrices[ $u ] = (float) $row['price'];
+				foreach ( $firstPrices as $u => $first ) {
+					if ( $lastPrices[ $u ] < $first ) {
+						$priceDrops++;
+					}
+				}
+			} catch ( \Throwable $e ) {
+				try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
 			}
-			foreach ( $firstPrices as $u => $first ) {
-				if ( $lastPrices[ $u ] < $first ) {
-					$priceDrops++;
+		}
+
+		$chartSeries   = [];
+		$chartPolyline = '';
+		$chartArea     = '';
+		$chartXLabels  = [];
+		$chartYLabels  = [];
+
+		if ( $canChart ) {
+			$days = [];
+			for ( $i = 0; $i < $rangeDays; $i++ ) {
+				$d = date( 'Y-m-d', strtotime( $startDate . ' +' . $i . ' days' ) );
+				$days[ $d ] = 0;
+			}
+			try {
+				foreach ( \IPS\Db::i()->select(
+					'click_date, SUM(click_count) AS daily',
+					'gd_click_daily',
+					[ 'dealer_id=? AND click_date >= ? AND click_date <= ?', $dealerId, $startDate, $endDate ],
+					'click_date ASC', null, 'click_date'
+				) as $row ) {
+					$d = (string) $row['click_date'];
+					if ( isset( $days[ $d ] ) ) { $days[ $d ] = (int) $row['daily']; }
+				}
+			} catch ( \Throwable ) {}
+
+			foreach ( $days as $d => $n ) {
+				$chartSeries[] = [ 'date' => $d, 'label' => date( 'M j', strtotime( $d ) ), 'count' => $n ];
+			}
+			$chartMax = max( 1, !empty( $chartSeries ) ? max( array_column( $chartSeries, 'count' ) ) : 0 );
+
+			$chartPoints = [];
+			$plotLeft = 40; $plotRight = 590; $plotTop = 30; $plotBottom = 180;
+			$plotW = $plotRight - $plotLeft; $plotH = $plotBottom - $plotTop;
+			$n = count( $chartSeries );
+			foreach ( $chartSeries as $i => $pt ) {
+				$x = $plotLeft + ( $n <= 1 ? 0 : ( $i / ( $n - 1 ) ) * $plotW );
+				$y = $plotBottom - ( $pt['count'] / $chartMax ) * $plotH;
+				$chartPoints[] = round( $x, 1 ) . ',' . round( $y, 1 );
+			}
+			$chartPolyline = implode( ' ', $chartPoints );
+			$chartArea = count( $chartPoints ) > 0
+				? $chartPoints[0] . ' ' . implode( ' ', array_slice( $chartPoints, 1 ) ) . ' ' . $plotRight . ',' . $plotBottom . ' ' . $plotLeft . ',' . $plotBottom
+				: '';
+
+			if ( $n >= 2 ) {
+				$labelIdxs = $n >= 5 ? [ 0, (int) ( $n * 0.25 ), (int) ( $n * 0.5 ), (int) ( $n * 0.75 ), $n - 1 ] : range( 0, $n - 1 );
+				foreach ( $labelIdxs as $idx ) {
+					$x = $plotLeft + ( $idx / ( $n - 1 ) ) * $plotW;
+					$chartXLabels[] = [ 'x' => round( $x, 1 ), 'label' => $chartSeries[ $idx ]['label'] ];
 				}
 			}
-		} catch ( \Throwable $e ) {
-			try { \IPS\Log::log( $e, 'gddealer_listings' ); } catch ( \Throwable ) {}
-		}
 
-		$days = [];
-		for ( $i = 0; $i < $rangeDays; $i++ ) {
-			$d = date( 'Y-m-d', strtotime( $startDate . ' +' . $i . ' days' ) );
-			$days[ $d ] = 0;
-		}
-		try {
-			foreach ( \IPS\Db::i()->select(
-				'click_date, SUM(click_count) AS daily',
-				'gd_click_daily',
-				[ 'dealer_id=? AND click_date >= ? AND click_date <= ?', $dealerId, $startDate, $endDate ],
-				'click_date ASC', null, 'click_date'
-			) as $row ) {
-				$d = (string) $row['click_date'];
-				if ( isset( $days[ $d ] ) ) { $days[ $d ] = (int) $row['daily']; }
+			for ( $t = 0; $t <= 4; $t++ ) {
+				$value = $chartMax * ( 1 - $t / 4 );
+				$y = $plotTop + ( $t * $plotH / 4 );
+				$chartYLabels[] = [ 'y' => round( $y, 1 ) + 4, 'label' => number_format( round( $value ) ) ];
 			}
-		} catch ( \Throwable ) {}
-
-		$chartSeries = [];
-		foreach ( $days as $d => $n ) {
-			$chartSeries[] = [ 'date' => $d, 'label' => date( 'M j', strtotime( $d ) ), 'count' => $n ];
-		}
-		$chartMax = max( 1, !empty( $chartSeries ) ? max( array_column( $chartSeries, 'count' ) ) : 0 );
-
-		$chartPoints = [];
-		$plotLeft = 40; $plotRight = 590; $plotTop = 30; $plotBottom = 180;
-		$plotW = $plotRight - $plotLeft; $plotH = $plotBottom - $plotTop;
-		$n = count( $chartSeries );
-		foreach ( $chartSeries as $i => $pt ) {
-			$x = $plotLeft + ( $n <= 1 ? 0 : ( $i / ( $n - 1 ) ) * $plotW );
-			$y = $plotBottom - ( $pt['count'] / $chartMax ) * $plotH;
-			$chartPoints[] = round( $x, 1 ) . ',' . round( $y, 1 );
-		}
-		$chartPolyline = implode( ' ', $chartPoints );
-		$chartArea = count( $chartPoints ) > 0
-			? $chartPoints[0] . ' ' . implode( ' ', array_slice( $chartPoints, 1 ) ) . ' ' . $plotRight . ',' . $plotBottom . ' ' . $plotLeft . ',' . $plotBottom
-			: '';
-
-		$chartXLabels = [];
-		if ( $n >= 2 ) {
-			$labelIdxs = $n >= 5 ? [ 0, (int) ( $n * 0.25 ), (int) ( $n * 0.5 ), (int) ( $n * 0.75 ), $n - 1 ] : range( 0, $n - 1 );
-			foreach ( $labelIdxs as $idx ) {
-				$x = $plotLeft + ( $idx / ( $n - 1 ) ) * $plotW;
-				$chartXLabels[] = [ 'x' => round( $x, 1 ), 'label' => $chartSeries[ $idx ]['label'] ];
-			}
-		}
-
-		$chartYLabels = [];
-		for ( $t = 0; $t <= 4; $t++ ) {
-			$value = $chartMax * ( 1 - $t / 4 );
-			$y = $plotTop + ( $t * $plotH / 4 );
-			$chartYLabels[] = [ 'y' => round( $y, 1 ) + 4, 'label' => number_format( round( $value ) ) ];
 		}
 
 		$topListings = [];
-		try {
-			$i = 0;
-			foreach ( \IPS\Db::i()->select(
-				'upc, COUNT(*) AS clicks',
-				'gd_click_log',
-				[ 'dealer_id=? AND clicked_at >= ? AND clicked_at <= ?', $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59' ],
-				'clicks DESC',
-				[ 0, 10 ],
-				'upc'
-			) as $row ) {
-				$productName = '';
-				try {
-					$productName = (string) \IPS\Db::i()->select( 'title', 'gd_catalog',
-						[ 'upc=?', (string) $row['upc'] ], null, [ 0, 1 ]
-					)->first();
-				} catch ( \Throwable ) {}
-				$topListings[] = [
-					'rank'   => ++$i,
-					'upc'    => (string) $row['upc'],
-					'name'   => $productName !== '' ? $productName : ( 'UPC ' . $row['upc'] ),
-					'clicks' => (int) $row['clicks'],
-				];
+		if ( $canTopListings ) {
+			try {
+				$i = 0;
+				foreach ( \IPS\Db::i()->select(
+					'upc, COUNT(*) AS clicks',
+					'gd_click_log',
+					[ 'dealer_id=? AND clicked_at >= ? AND clicked_at <= ?', $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59' ],
+					'clicks DESC',
+					[ 0, 10 ],
+					'upc'
+				) as $row ) {
+					$productName = '';
+					try {
+						$productName = (string) \IPS\Db::i()->select( 'title', 'gd_catalog',
+							[ 'upc=?', (string) $row['upc'] ], null, [ 0, 1 ]
+						)->first();
+					} catch ( \Throwable ) {}
+					$topListings[] = [
+						'rank'   => ++$i,
+						'upc'    => (string) $row['upc'],
+						'name'   => $productName !== '' ? $productName : ( 'UPC ' . $row['upc'] ),
+						'clicks' => (int) $row['clicks'],
+					];
+				}
+			} catch ( \Throwable $e ) {
+				try { \IPS\Log::log( $e, 'gddealer_analytics' ); } catch ( \Throwable ) {}
 			}
-		} catch ( \Throwable $e ) {
-			try { \IPS\Log::log( $e, 'gddealer_analytics' ); } catch ( \Throwable ) {}
 		}
 
 		$geoDistribution = [];
 		$geoTotal = 0;
-		try {
-			foreach ( \IPS\Db::i()->select(
-				'user_state, COUNT(*) AS clicks',
-				'gd_click_log',
-				[ 'dealer_id=? AND clicked_at >= ? AND clicked_at <= ? AND user_state IS NOT NULL AND user_state != ?', $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59', '' ],
-				'clicks DESC',
-				[ 0, 10 ],
-				'user_state'
-			) as $row ) {
-				$geoTotal += (int) $row['clicks'];
-				$geoDistribution[] = [
-					'state'  => (string) $row['user_state'],
-					'clicks' => (int) $row['clicks'],
-					'pct'    => 0,
-				];
-			}
-			if ( $geoTotal > 0 ) {
-				foreach ( $geoDistribution as &$g ) {
-					$g['pct'] = round( ( $g['clicks'] / $geoTotal ) * 100, 1 );
+		if ( $canGeo ) {
+			try {
+				foreach ( \IPS\Db::i()->select(
+					'user_state, COUNT(*) AS clicks',
+					'gd_click_log',
+					[ 'dealer_id=? AND clicked_at >= ? AND clicked_at <= ? AND user_state IS NOT NULL AND user_state != ?', $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59', '' ],
+					'clicks DESC',
+					[ 0, 10 ],
+					'user_state'
+				) as $row ) {
+					$geoTotal += (int) $row['clicks'];
+					$geoDistribution[] = [
+						'state'  => (string) $row['user_state'],
+						'clicks' => (int) $row['clicks'],
+						'pct'    => 0,
+					];
 				}
-				unset( $g );
+				if ( $geoTotal > 0 ) {
+					foreach ( $geoDistribution as &$g ) {
+						$g['pct'] = round( ( $g['clicks'] / $geoTotal ) * 100, 1 );
+					}
+					unset( $g );
+				}
+			} catch ( \Throwable $e ) {
+				try { \IPS\Log::log( $e, 'gddealer_analytics' ); } catch ( \Throwable ) {}
 			}
-		} catch ( \Throwable $e ) {
-			try { \IPS\Log::log( $e, 'gddealer_analytics' ); } catch ( \Throwable ) {}
 		}
 
 		$rangeUrls = [];
@@ -1763,6 +1793,16 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'top_listings'      => $topListings,
 			'geo_distribution'  => $geoDistribution,
 			'geo_total'         => $geoTotal,
+			'cap'               => [
+				'chart' => $canChart,
+				'top'   => $canTopListings,
+				'price' => $canPriceCounts,
+				'rank'  => $canRankTiers,
+				'geo'   => $canGeo,
+			],
+			'tier'              => $tier,
+			'show_upsell'       => $showUpsell,
+			'upgrade_url'       => $upgradeUrl,
 		];
 
 		$data['tier_pct'] = [];
