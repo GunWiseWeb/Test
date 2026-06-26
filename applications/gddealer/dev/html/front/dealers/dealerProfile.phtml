@@ -378,6 +378,12 @@
 							{{endif}}
 						</div>
 
+						{{if $data['already_rated']}}
+						<div class="gdProfile__reviewedNotice">
+							<i class="fa-solid fa-circle-check"></i> You&rsquo;ve reviewed this dealer &mdash; thanks for your feedback!
+						</div>
+						{{endif}}
+
 						{{if $data['can_rate']}}
 						<div class="gdProfile__reviewForm">
 							<h3 class="gdProfile__reviewFormTitle">Leave a Review</h3>
@@ -426,10 +432,6 @@
 									<button type="submit" class="ipsButton ipsButton--primary">Submit Review</button>
 								</div>
 							</form>
-						</div>
-						{{elseif $data['already_rated']}}
-						<div class="ipsMessage ipsMessage--info">
-							You have already reviewed this dealer. Thank you for your feedback!
 						</div>
 						{{elseif $data['login_required']}}
 						<div class="gdProfile__reviewForm gdProfile__reviewForm--login">
@@ -517,6 +519,7 @@
 			</div>
 
 			<div data-gd-panel="info" class="gdPanel">
+				{{if $data['dealer']['about'] || $data['dealer']['tagline'] || $data['dealer']['shipping_policy'] || $data['dealer']['return_policy'] || $data['dealer']['additional_notes']}}
 				<div class="gdProfile2__infoGrid">
 					{{if $data['dealer']['about']}}
 					<div class="gdProfile2__infoCard">
@@ -553,6 +556,12 @@
 					</div>
 					{{endif}}
 				</div>
+				{{else}}
+				<div class="gdProfile__empty">
+					<i class="fa-solid fa-circle-info"></i>
+					<p>No additional information provided yet.</p>
+				</div>
+				{{endif}}
 			</div>
 
 		</section>
