@@ -4286,10 +4286,22 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 .gdProfile2__infoCardTitle i { color: var(--i-foreground_3, #64748b); }
 .gdProfile2__infoCardBody { font-size: .93em; line-height: 1.6; color: var(--i-foreground_2, #475569); }
 
-/* Responsive: stack sidebar under header on narrow screens */
-@media (max-width: 880px) {
-	.gdProfile2 .ipsProfile.ipsProfile--profile { flex-direction: column; }
-	.gdProfile2 .ipsProfile__aside { width: 100%; }
+/* Dealer profile: two-column grid (independent of native page context) */
+.gdProfile2 .ipsProfile--profile {
+	display: grid;
+	grid-template-columns: 320px minmax(0, 1fr);
+	gap: 20px;
+	align-items: start;
+}
+.gdProfile2 .ipsProfile__aside { width: auto; min-width: 0; }
+.gdProfile2 .ipsProfile__main { min-width: 0; }
+.gdProfile2 .ipsProfile__sticky-outer { position: relative; }
+.gdProfile2 .ipsProfile__sticky-inner { position: sticky; top: 20px; }
+
+/* Responsive: stack to single column on tablet/mobile */
+@media (max-width: 979px) {
+	.gdProfile2 .ipsProfile--profile { grid-template-columns: 1fr; }
+	.gdProfile2 .ipsProfile__sticky-inner { position: static; }
 	.gdNavList { display: flex; overflow-x: auto; gap: 0; }
 	.gdNavList__item { border-bottom: 0; border-right: 1px solid var(--i-border-color-light, #f1f5f9); flex: 0 0 auto; }
 	.gdNavList__item:last-child { border-right: 0; }
