@@ -627,5 +627,4 @@ $lang = [
     'gddealer_sec_listings'                                        => 'Listings',
     'gddealer_sec_reviews'                                         => 'Reviews',
     'gddealer_stats'                                               => 'Stats',
-    'gddealer_nav'                                                 => 'Navigation',
 ];

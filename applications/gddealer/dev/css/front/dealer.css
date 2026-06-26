@@ -4298,21 +4298,6 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 .gdProfile2 .ipsProfile__sticky-outer { position: relative; }
 .gdProfile2 .ipsProfile__sticky-inner { position: sticky; top: 20px; }
 
-/* Space between the left-column profile boxes */
-.gdProfile2 .ipsProfile__aside .ipsWidget { margin-bottom: 20px; }
-.gdProfile2 .ipsProfile__aside .ipsWidget:last-child { margin-bottom: 0; }
-
-/* Header badge vertical alignment */
-.gdProfile2 .ipsCoverPhoto__title {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 10px;
-	row-gap: 6px;
-}
-.gdProfile2 .ipsCoverPhoto__title h1 { margin: 0; line-height: 1.15; }
-.gdProfile2 .ipsCoverPhoto__title .ipsBadge { vertical-align: middle; white-space: nowrap; }
-
 /* Responsive: stack to single column on tablet/mobile */
 @media (max-width: 979px) {
 	.gdProfile2 .ipsProfile--profile { grid-template-columns: 1fr; }

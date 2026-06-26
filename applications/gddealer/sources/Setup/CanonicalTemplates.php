@@ -54,7 +54,7 @@ class _CanonicalTemplates
         'dealerShell'         => [ 'templates_10071.php' ],
         'dealerSidebar'       => [ 'templates_10071.php' ],
         'dashboardCustomize'  => [ 'templates_10088.php' ],
-        'dealerProfile'       => [ 'templates_10298.php' ],
+        'dealerProfile'       => [ 'templates_10296.php' ],
         'help'                => [ 'templates_10147_help.php' ],
         'supportTicketView'   => [ 'templates_10213_supportTicketView.php' ],
     ];
@@ -125,7 +125,7 @@ class _CanonicalTemplates
             'listings'           => [ 'templates_10074.php',       'front', 'dealers', '$data' ],
             'analytics'          => [ 'templates_10078.php',       'front', 'dealers', '$data' ],
             'dashboardCustomize' => [ 'templates_10088.php',       'front', 'dealers', '$data' ],
-            'dealerProfile'      => [ 'templates_10298.php',       'front', 'dealers', '$data' ],
+            'dealerProfile'      => [ 'templates_10296.php',       'front', 'dealers', '$data' ],
             'help'               => [ 'templates_10147_help.php',  'front', 'dealers', '$data' ],
         ];
 
