@@ -34,6 +34,17 @@ document.addEventListener('DOMContentLoaded', function() {
 				navs[j].classList.remove('gdNavList__item--active');
 			}
 		}
+
+		/* IPS editorv5 defers mounting when its container is display:none at load.
+		   The review editor sits inside the hidden reviews tab, so it never receives
+		   its initializeEditor jQuery event. Fire it ourselves when reviews is shown. */
+		if (section === 'reviews') {
+			try {
+				if (window.jQuery) {
+					window.jQuery(document).trigger('initializeEditor', [{ editorID: 'gddealer_review_body' }]);
+				}
+			} catch (err) { /* no-op */ }
+		}
 	}
 
 	activate(active);
