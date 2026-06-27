@@ -1,5 +1,24 @@
 <ips:template parameters="$sections, $canCreate, $builderUrl, $activeUseCase, $useCases, $myLoadoutsUrl, $copyUrl, $csrfKey" />
 <div class="gdlo-hub">
+    {{if \IPS\Settings::i()->gdloadout_beta_notice_enabled}}
+    <div class="gr-beta-notice" role="alert">
+        <div class="gr-beta-icon" aria-hidden="true">
+            <i class="fa-solid fa-flask"></i>
+        </div>
+        <div class="gr-beta-body">
+            <div class="gr-beta-title">
+                <span class="gr-beta-badge">BETA</span>
+                <strong>{expression="\IPS\Settings::i()->gdloadout_beta_notice_title"}</strong>
+            </div>
+            <p>{expression="\IPS\Settings::i()->gdloadout_beta_notice_body"}</p>
+            <p class="gr-beta-cta">
+                Spot something off?
+                <a href="{expression="\IPS\Settings::i()->gdloadout_beta_notice_url_contact"}">Let us know</a> &middot;
+                <a href="{expression="\IPS\Settings::i()->gdloadout_beta_notice_url_forums"}">Join the discussion</a>
+            </p>
+        </div>
+    </div>
+    {{endif}}
     <div class="gdlo-hub-hero">
         <div class="gdlo-hub-hero-text">
             <h1 class="gdlo-hub-title">{lang="gdloadout_hub_title"}</h1>

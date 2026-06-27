@@ -200,5 +200,11 @@
 <word key="gdloadout_sug_banner_pending" js="0"><![CDATA[pending suggestion(s) — tap to review]]></word>
 <word key="gdloadout_sug_accept" js="0"><![CDATA[Accept]]></word>
 <word key="gdloadout_sug_reject" js="0"><![CDATA[Reject]]></word>
+<word key="gdloadout_beta_notice_header" js="0"><![CDATA[Beta Notice]]></word>
+<word key="gdloadout_beta_notice_enabled" js="0"><![CDATA[Show beta notice on loadouts hub]]></word>
+<word key="gdloadout_beta_notice_title" js="0"><![CDATA[Beta notice title]]></word>
+<word key="gdloadout_beta_notice_body" js="0"><![CDATA[Beta notice body text]]></word>
+<word key="gdloadout_beta_notice_url_contact" js="0"><![CDATA["Let us know" link URL]]></word>
+<word key="gdloadout_beta_notice_url_forums" js="0"><![CDATA["Join the discussion" link URL]]></word>
 </app>
 </language>

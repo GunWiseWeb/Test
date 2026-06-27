@@ -200,4 +200,10 @@ $lang = array(
     'gdloadout_sug_banner_pending' => 'pending suggestion(s) — tap to review',
     'gdloadout_sug_accept' => 'Accept',
     'gdloadout_sug_reject' => 'Reject',
+    'gdloadout_beta_notice_header'      => 'Beta Notice',
+    'gdloadout_beta_notice_enabled'     => 'Show beta notice on loadouts hub',
+    'gdloadout_beta_notice_title'       => 'Beta notice title',
+    'gdloadout_beta_notice_body'        => 'Beta notice body text',
+    'gdloadout_beta_notice_url_contact' => '"Let us know" link URL',
+    'gdloadout_beta_notice_url_forums'  => '"Join the discussion" link URL',
 );

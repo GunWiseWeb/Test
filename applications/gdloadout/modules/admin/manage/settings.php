@@ -86,6 +86,29 @@ class _settings extends \IPS\Dispatcher\Controller
 		try { $suggestMinRep = (int) \IPS\Settings::i()->gdloadout_suggest_min_rep; } catch ( \Throwable ) {}
 		$form->add( new \IPS\Helpers\Form\Number( 'gdloadout_suggest_min_rep', $suggestMinRep, FALSE, [ 'min' => 0 ] ) );
 
+		/* ---- Beta notice ---- */
+		$form->addHeader( 'gdloadout_beta_notice_header' );
+
+		$betaEnabled = TRUE;
+		try { $betaEnabled = (bool) \IPS\Settings::i()->gdloadout_beta_notice_enabled; } catch ( \Throwable ) {}
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gdloadout_beta_notice_enabled', $betaEnabled, FALSE ) );
+
+		$betaTitle = 'Gun Rack Deals is in active development';
+		try { $betaTitle = (string) \IPS\Settings::i()->gdloadout_beta_notice_title; } catch ( \Throwable ) {}
+		$form->add( new \IPS\Helpers\Form\Text( 'gdloadout_beta_notice_title', $betaTitle, FALSE, [ 'maxLength' => 255 ] ) );
+
+		$betaBody = '';
+		try { $betaBody = (string) \IPS\Settings::i()->gdloadout_beta_notice_body; } catch ( \Throwable ) {}
+		$form->add( new \IPS\Helpers\Form\TextArea( 'gdloadout_beta_notice_body', $betaBody, FALSE, [ 'rows' => 4 ] ) );
+
+		$betaContact = '/contact/';
+		try { $betaContact = (string) \IPS\Settings::i()->gdloadout_beta_notice_url_contact; } catch ( \Throwable ) {}
+		$form->add( new \IPS\Helpers\Form\Text( 'gdloadout_beta_notice_url_contact', $betaContact, FALSE ) );
+
+		$betaForums = '/forums/';
+		try { $betaForums = (string) \IPS\Settings::i()->gdloadout_beta_notice_url_forums; } catch ( \Throwable ) {}
+		$form->add( new \IPS\Helpers\Form\Text( 'gdloadout_beta_notice_url_forums', $betaForums, FALSE ) );
+
 		if ( $values = $form->values() )
 		{
 			$forumId = 0;
@@ -95,11 +118,16 @@ class _settings extends \IPS\Dispatcher\Controller
 			}
 
 			$settingsToSave = [
-				'gdloadout_share_forum'        => $forumId,
-				'gdloadout_suggest_mode'       => $values['gdloadout_suggest_mode'] ?? 'anyone',
-				'gdloadout_suggest_groups'     => trim( (string) ( $values['gdloadout_suggest_groups'] ?? '' ) ),
-				'gdloadout_suggest_min_posts'  => (int) ( $values['gdloadout_suggest_min_posts'] ?? 0 ),
-				'gdloadout_suggest_min_rep'    => (int) ( $values['gdloadout_suggest_min_rep'] ?? 0 ),
+				'gdloadout_share_forum'             => $forumId,
+				'gdloadout_suggest_mode'            => $values['gdloadout_suggest_mode'] ?? 'anyone',
+				'gdloadout_suggest_groups'          => trim( (string) ( $values['gdloadout_suggest_groups'] ?? '' ) ),
+				'gdloadout_suggest_min_posts'       => (int) ( $values['gdloadout_suggest_min_posts'] ?? 0 ),
+				'gdloadout_suggest_min_rep'         => (int) ( $values['gdloadout_suggest_min_rep'] ?? 0 ),
+				'gdloadout_beta_notice_enabled'     => !empty( $values['gdloadout_beta_notice_enabled'] ) ? '1' : '0',
+				'gdloadout_beta_notice_title'       => (string) ( $values['gdloadout_beta_notice_title'] ?? '' ),
+				'gdloadout_beta_notice_body'        => (string) ( $values['gdloadout_beta_notice_body'] ?? '' ),
+				'gdloadout_beta_notice_url_contact' => (string) ( $values['gdloadout_beta_notice_url_contact'] ?? '' ),
+				'gdloadout_beta_notice_url_forums'  => (string) ( $values['gdloadout_beta_notice_url_forums'] ?? '' ),
 			];
 
 			try

@@ -23,5 +23,30 @@
         "key": "gdloadout_suggest_min_rep",
         "default": "0",
         "report": "none"
+    },
+    {
+        "key": "gdloadout_beta_notice_enabled",
+        "default": "1",
+        "report": "none"
+    },
+    {
+        "key": "gdloadout_beta_notice_title",
+        "default": "Gun Rack Deals is in active development",
+        "report": "none"
+    },
+    {
+        "key": "gdloadout_beta_notice_body",
+        "default": "We're still building this thing out — some features may be incomplete or behave unexpectedly, and products may occasionally appear in the wrong category as we tune our catalog system. Pricing, availability, and listings are being verified continuously.",
+        "report": "none"
+    },
+    {
+        "key": "gdloadout_beta_notice_url_contact",
+        "default": "/contact/",
+        "report": "none"
+    },
+    {
+        "key": "gdloadout_beta_notice_url_forums",
+        "default": "/forums/",
+        "report": "none"
     }
 ]
