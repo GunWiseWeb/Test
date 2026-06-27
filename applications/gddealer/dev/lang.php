@@ -632,4 +632,5 @@ $lang = [
     'gddealer_analytics_upsell_basic'                              => 'Upgrade to Pro to see your daily clicks chart and top-clicked listings. Upgrade to Enterprise for price competitiveness, rank breakdown, and geographic distribution.',
     'gddealer_analytics_upsell_pro'                                => 'Upgrade to Enterprise to unlock price competitiveness counts, rank-tier breakdown, and geographic distribution of your click-throughs.',
     'gddealer_analytics_upsell_cta'                                => 'View plans',
+    'gddealer_directory_listed'                                    => 'List my dealership in the public directory',
 ];

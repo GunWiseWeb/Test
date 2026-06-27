@@ -1404,6 +1404,20 @@
 				"values": [],
 				"comment": ""
 			},
+			"directory_listed": {
+				"name": "directory_listed",
+				"type": "TINYINT",
+				"length": 3,
+				"decimals": null,
+				"allow_null": false,
+				"default": 1,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": true,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
 			"hours_json": {
 				"name": "hours_json",
 				"type": "TEXT",

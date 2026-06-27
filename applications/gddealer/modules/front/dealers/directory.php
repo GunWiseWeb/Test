@@ -36,99 +36,108 @@ class _directory extends \IPS\Dispatcher\Controller
 		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
 		$offset  = ( $page - 1 ) * $perPage;
 
-		$tier   = (string) ( \IPS\Request::i()->tier   ?? '' );
-		$sort   = (string) ( \IPS\Request::i()->sort   ?? 'rating' );
-		$search = trim( str_replace( '+', ' ', (string) ( \IPS\Request::i()->search ?? '' ) ) );
+		$sort       = (string) ( \IPS\Request::i()->sort   ?? 'featured' );
+		$search     = trim( str_replace( '+', ' ', (string) ( \IPS\Request::i()->search ?? '' ) ) );
+		$stateParam = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
+		$minRating  = (float) ( \IPS\Request::i()->min_rating ?? 0 );
+		if ( $minRating < 0 ) { $minRating = 0; }
+		if ( $minRating > 5 ) { $minRating = 5; }
 
-		$validTiers = [ 'founding', 'basic', 'pro', 'enterprise' ];
-		if ( $tier !== '' && !in_array( $tier, $validTiers, true ) )
-		{
-			$tier = '';
-		}
-
-		$validSorts = [ 'rating', 'listings', 'newest', 'alpha' ];
+		$validSorts = [ 'featured', 'rating', 'listings', 'newest', 'alpha' ];
 		if ( !in_array( $sort, $validSorts, true ) )
 		{
-			$sort = 'rating';
+			$sort = 'featured';
 		}
 
-		$whereMain  = [ [ 'd.active=?', 1 ] ];
-		$whereCount = [ [ 'active=?', 1 ] ];
-		if ( $tier !== '' )
-		{
-			$whereMain[]  = [ 'd.subscription_tier=?', $tier ];
-			$whereCount[] = [ 'subscription_tier=?', $tier ];
-		}
+		$daySeed = (int) date( 'Ymd' );
+		$orderBy = match( $sort ) {
+			'rating'   => 'avg_overall DESC, total_reviews DESC',
+			'listings' => 'listing_count DESC',
+			'newest'   => 'MAX(d.created_at) DESC',
+			'alpha'    => 'MAX(d.dealer_name) ASC',
+			default    => 'RAND(' . $daySeed . ')',
+		};
+
+		/* Build WHERE clause with bound params (no string interpolation of user input). */
+		$prefix     = \IPS\Db::i()->prefix;
+		$whereSql   = [ 'd.active = ?', 'd.directory_listed = ?' ];
+		$whereBinds = [ 1, 1 ];
 		if ( $search !== '' )
 		{
-			$whereMain[]  = [ 'd.dealer_name LIKE ?', '%' . $search . '%' ];
-			$whereCount[] = [ 'dealer_name LIKE ?', '%' . $search . '%' ];
+			$whereSql[]   = 'd.dealer_name LIKE ?';
+			$whereBinds[] = '%' . $search . '%';
 		}
+		if ( $stateParam !== '' && preg_match( '/^[A-Z]{2}$/', $stateParam ) )
+		{
+			$whereSql[]   = 'd.address_state = ?';
+			$whereBinds[] = $stateParam;
+		}
+		$whereClause = implode( ' AND ', $whereSql );
 
-		$orderBy = match( $sort ) {
-			'listings' => 'listing_count DESC',
-			'newest'   => 'd.created_at DESC',
-			'alpha'    => 'd.dealer_name ASC',
-			default    => 'avg_overall DESC, total_reviews DESC',
-		};
+		$havingClause = '';
+		$havingBinds  = [];
+		if ( $minRating > 0 )
+		{
+			$havingClause = ' HAVING COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) >= ?';
+			$havingBinds  = [ $minRating ];
+		}
 
 		$total = 0;
 		try
 		{
-			$total = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_feed_config', $whereCount )->first();
+			if ( $minRating > 0 )
+			{
+				$countSql = 'SELECT COUNT(*) AS c FROM (
+					SELECT d.dealer_id
+					FROM `' . $prefix . 'gd_dealer_feed_config` d
+					LEFT JOIN `' . $prefix . 'gd_dealer_ratings` r
+					  ON r.dealer_id = d.dealer_id AND r.status = "approved"
+					WHERE ' . $whereClause . '
+					GROUP BY d.dealer_id' . $havingClause . '
+				) t';
+				$row = \IPS\Db::i()->preparedQuery( $countSql, array_merge( $whereBinds, $havingBinds ) )->fetch_assoc();
+				$total = (int) ( $row['c'] ?? 0 );
+			}
+			else
+			{
+				$total = (int) \IPS\Db::i()->preparedQuery(
+					'SELECT COUNT(*) AS c FROM `' . $prefix . 'gd_dealer_feed_config` d WHERE ' . $whereClause,
+					$whereBinds
+				)->fetch_assoc()['c'];
+			}
 		}
-		catch ( \Exception ) {}
+		catch ( \Throwable ) {}
 
 		$dealers = [];
 		try
 		{
-			foreach ( \IPS\Db::i()->select(
-				'MAX(d.dealer_id) as dealer_id,
-				 MAX(d.dealer_name) as dealer_name,
-				 MAX(d.dealer_slug) as dealer_slug,
-				 MAX(d.subscription_tier) as subscription_tier,
-				 MAX(d.is_founding_member) as is_founding_member,
-				 MAX(d.created_at) as created_at,
-				 MAX(d.active) as active,
-				 COUNT(DISTINCT l.id) as listing_count,
-				 COUNT(DISTINCT r.id) as total_reviews,
-				 COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) as avg_overall',
-				[ 'gd_dealer_feed_config', 'd' ],
-				$whereMain,
-				$orderBy,
-				[ $offset, $perPage ],
-				'd.dealer_id'
-			)->join(
-				[ 'gd_dealer_listings', 'l' ],
-				"l.dealer_id = d.dealer_id AND l.listing_status = 'active'",
-				'LEFT'
-			)->join(
-				[ 'gd_dealer_ratings', 'r' ],
-				"r.dealer_id = d.dealer_id AND r.status = 'approved'",
-				'LEFT'
-			) as $row )
+			$mainSql = 'SELECT
+					MAX(d.dealer_id) AS dealer_id,
+					MAX(d.dealer_name) AS dealer_name,
+					MAX(d.dealer_slug) AS dealer_slug,
+					MAX(d.created_at) AS created_at,
+					MAX(d.address_city) AS address_city,
+					MAX(d.address_state) AS address_state,
+					MAX(d.address_public) AS address_public,
+					COUNT(DISTINCT l.id) AS listing_count,
+					COUNT(DISTINCT r.id) AS total_reviews,
+					COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) AS avg_overall
+				FROM `' . $prefix . 'gd_dealer_feed_config` d
+				LEFT JOIN `' . $prefix . 'gd_dealer_listings` l
+				  ON l.dealer_id = d.dealer_id AND l.listing_status = "active"
+				LEFT JOIN `' . $prefix . 'gd_dealer_ratings` r
+				  ON r.dealer_id = d.dealer_id AND r.status = "approved"
+				WHERE ' . $whereClause . '
+				GROUP BY d.dealer_id' . $havingClause . '
+				ORDER BY ' . $orderBy . '
+				LIMIT ' . (int) $offset . ', ' . (int) $perPage;
+
+			$result = \IPS\Db::i()->preparedQuery( $mainSql, array_merge( $whereBinds, $havingBinds ) );
+
+			while ( $row = $result->fetch_assoc() )
 			{
 				$avg = round( (float) $row['avg_overall'], 1 );
 				$ipsMember = \IPS\Member::load( (int) $row['dealer_id'] );
-
-				$isFoundingMember = !empty( $row['is_founding_member'] );
-				if ( $isFoundingMember )
-				{
-					$tierColor = (string) ( \IPS\Settings::i()->gddealer_founding_badge_color ?: '#b45309' );
-					$tierLabel = 'Founder';
-					$tierKey   = 'founding';
-				}
-				else
-				{
-					$tierColor = match( $row['subscription_tier'] ) {
-						'founding'   => (string) ( \IPS\Settings::i()->gddealer_founding_badge_color   ?: '#b45309' ),
-						'pro'        => (string) ( \IPS\Settings::i()->gddealer_pro_badge_color        ?: '#2563eb' ),
-						'enterprise' => (string) ( \IPS\Settings::i()->gddealer_enterprise_badge_color ?: '#7c3aed' ),
-						default      => (string) ( \IPS\Settings::i()->gddealer_basic_badge_color      ?: '#6b7280' ),
-					};
-					$tierLabel = ucfirst( (string) $row['subscription_tier'] );
-					$tierKey   = (string) $row['subscription_tier'];
-				}
 
 				$ratingColor = match( true ) {
 					$avg >= 4.0 => '#16a34a',
@@ -147,23 +156,22 @@ class _directory extends \IPS\Dispatcher\Controller
 							'gddealer', 'dealer', (int) $row['dealer_id'], (int) $member->member_id,
 						] )->first();
 					}
-					catch ( \Exception ) {}
+					catch ( \Throwable ) {}
 				}
 
+				$addressPublic = (int) ( $row['address_public'] ?? 1 ) === 1;
 				$dealers[] = [
 					'dealer_id'     => (int) $row['dealer_id'],
 					'dealer_name'   => (string) $row['dealer_name'],
 					'dealer_slug'   => (string) $row['dealer_slug'],
-					'tier'          => $tierKey,
-					'tier_label'    => $tierLabel,
-					'tier_color'    => $tierColor,
-					'is_founding'   => $isFoundingMember,
 					'avatar'        => (string) ( $ipsMember->get_photo( true, false ) ?? '' ),
 					'listing_count' => (int) $row['listing_count'],
 					'total_reviews' => (int) $row['total_reviews'],
 					'avg_overall'   => $avg,
 					'rating_color'  => $ratingColor,
 					'member_since'  => $ipsMember->joined ? $ipsMember->joined->format( 'M Y' ) : '',
+					'state'         => (string) ( $row['address_state'] ?? '' ),
+					'city'          => $addressPublic ? (string) ( $row['address_city'] ?? '' ) : '',
 					'profile_url'   => (string) \IPS\Http\Url::internal(
 						'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) $row['dealer_slug'] ),
 						'front', 'dealers_profile', (string) $row['dealer_slug']
@@ -176,7 +184,22 @@ class _directory extends \IPS\Dispatcher\Controller
 				];
 			}
 		}
-		catch ( \Exception ) {}
+		catch ( \Throwable ) {}
+
+		$states = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select(
+				'DISTINCT address_state',
+				'gd_dealer_feed_config',
+				[ 'active=? AND directory_listed=? AND address_state IS NOT NULL AND address_state != ?', 1, 1, '' ],
+				'address_state ASC'
+			) as $s )
+			{
+				$states[] = (string) $s;
+			}
+		}
+		catch ( \Throwable ) {}
 
 		$pagination = '';
 		if ( $total > $perPage )
@@ -195,7 +218,7 @@ class _directory extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_directory_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->dealerDirectory(
 			$dealers, $total, $page, $perPage, $pagination,
-			$tier, $sort, $search,
+			$sort, $search, $stateParam, $minRating, $states,
 			$member->member_id ? true : false,
 			$joinUrl, $directoryUrl
 		);

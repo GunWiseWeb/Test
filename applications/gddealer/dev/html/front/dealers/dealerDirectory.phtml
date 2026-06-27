@@ -1,0 +1,305 @@
+<ips:template parameters="$dealers, $total, $page, $perPage, $pagination, $sort, $search, $stateParam, $minRating, $states, $loggedIn, $joinUrl, $directoryUrl" />
+<div class="gd-directory">
+<style>
+.gd-directory {
+    --gd-brand: #1E40AF;
+    --gd-brand-hover: #1E3A8A;
+    --gd-brand-light: #EFF6FF;
+    --gd-brand-border: #BFDBFE;
+    --gd-bg: #F6F8FA;
+    --gd-surface: #FFFFFF;
+    --gd-surface-muted: #F8FAFC;
+    --gd-border: #E5E7EB;
+    --gd-border-strong: #CBD5E1;
+    --gd-border-subtle: #F1F5F9;
+    --gd-text: #0F172A;
+    --gd-text-muted: #475569;
+    --gd-text-subtle: #64748B;
+    --gd-text-faint: #94A3B8;
+    --gd-rating-great: #16A34A;
+    --gd-rating-ok: #D97706;
+    --gd-star: #F59E0B;
+    --gd-r-md: 6px;
+    --gd-r-lg: 10px;
+    --gd-r-xl: 14px;
+    --gd-r-pill: 999px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--gd-text);
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 1446px;
+    margin: 0 auto;
+    padding: 2rem 24px;
+    box-sizing: border-box;
+}
+.gd-directory *, .gd-directory *::before, .gd-directory *::after { box-sizing: border-box; }
+.gd-directory a { color: inherit; text-decoration: none; }
+.gd-directory h1, .gd-directory h2, .gd-directory h3 { margin: 0; font-weight: 600; }
+.gd-directory p { margin: 0; }
+
+.gd-directory .directory-hero { background: linear-gradient(135deg, var(--gd-surface) 0%, #EFF4FA 100%); border: 1px solid var(--gd-border); border-radius: var(--gd-r-xl); padding: 2.5rem 2.5rem 2rem; margin-bottom: 1.5rem; position: relative; overflow: hidden; }
+.gd-directory .directory-hero::after { content: ''; position: absolute; top: -40%; right: -10%; width: 420px; height: 420px; background: radial-gradient(circle, rgba(30, 64, 175, 0.08) 0%, transparent 60%); pointer-events: none; }
+.gd-directory .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; margin-bottom: 1.5rem; position: relative; z-index: 1; }
+.gd-directory .hero-title-block { flex: 1; min-width: 0; }
+.gd-directory .hero-eyebrow { font-size: 12px; font-weight: 600; color: var(--gd-brand); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.gd-directory .hero-title { font-size: 36px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.15; margin-bottom: 10px; margin-top: 0; }
+.gd-directory .hero-sub { font-size: 15px; color: var(--gd-text-muted); max-width: 560px; line-height: 1.6; margin: 0; }
+.gd-directory .hero-stats { display: flex; gap: 2rem; align-items: center; flex-shrink: 0; }
+.gd-directory .hero-stat { text-align: center; }
+.gd-directory .hero-stat-value { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; color: var(--gd-text); line-height: 1; }
+.gd-directory .hero-stat-label { font-size: 11px; color: var(--gd-text-subtle); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-top: 6px; }
+
+.gd-directory .search-row { display: flex; gap: 10px; align-items: center; position: relative; z-index: 1; }
+.gd-directory .search-input { flex: 1; position: relative; min-width: 0; }
+.gd-directory .search-input input { width: 100%; font-family: inherit; font-size: 14px; padding: 12px 16px 12px 44px; border-radius: var(--gd-r-lg); border: 1px solid var(--gd-border); background: var(--gd-surface); color: var(--gd-text); transition: all 0.15s; box-sizing: border-box; }
+.gd-directory .search-input input:focus { outline: none; border-color: var(--gd-brand); box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1); }
+.gd-directory .search-input input::placeholder { color: var(--gd-text-faint); }
+.gd-directory .search-input svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--gd-text-faint); }
+.gd-directory .search-submit { padding: 12px 20px; border-radius: var(--gd-r-lg); background: var(--gd-brand); color: white; border: none; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+.gd-directory .search-submit:hover { background: var(--gd-brand-hover); }
+
+.gd-directory .filters-bar { background: var(--gd-surface); border: 1px solid var(--gd-border); border-radius: var(--gd-r-lg); padding: 14px 18px; margin-bottom: 1.25rem; display: flex; gap: 16px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.gd-directory .filters-right { display: flex; gap: 10px; align-items: center; }
+.gd-directory .sort-label { font-size: 12px; color: var(--gd-text-subtle); font-weight: 500; }
+.gd-directory .select-sort { font-family: inherit; font-size: 13px; padding: 7px 28px 7px 10px; border-radius: var(--gd-r-md); border: 1px solid var(--gd-border); background: var(--gd-surface); cursor: pointer; color: var(--gd-text); appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2364748B' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+
+.gd-directory .results-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 13px; color: var(--gd-text-subtle); gap: 12px; flex-wrap: wrap; }
+.gd-directory .results-count strong { color: var(--gd-text); font-weight: 600; }
+.gd-directory .view-toggle { display: inline-flex; gap: 2px; padding: 2px; background: var(--gd-border-subtle); border-radius: var(--gd-r-md); }
+.gd-directory .view-toggle button { font-family: inherit; font-size: 12px; padding: 5px 10px; border-radius: 4px; border: none; background: transparent; cursor: pointer; color: var(--gd-text-subtle); font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+.gd-directory .view-toggle button.active { background: var(--gd-surface); color: var(--gd-text); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.gd-directory .view-toggle button svg { width: 12px; height: 12px; }
+
+.gd-directory .dealer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 2rem; }
+.gd-directory .dealer-grid.list-view { grid-template-columns: 1fr; gap: 12px; }
+.gd-directory .dealer-card { background: var(--gd-surface); border: 1px solid var(--gd-border); border-radius: var(--gd-r-lg); padding: 1.25rem; transition: all 0.15s; display: flex; flex-direction: column; }
+.gd-directory .dealer-card:hover { border-color: var(--gd-border-strong); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+
+/* List view: card becomes a horizontal row */
+.gd-directory .dealer-grid.list-view .dealer-card { flex-direction: row; align-items: center; gap: 24px; padding: 1rem 1.25rem; }
+.gd-directory .dealer-grid.list-view .dealer-head { flex: 0 0 280px; margin-bottom: 0; }
+.gd-directory .dealer-grid.list-view .dealer-rating-row { flex: 0 0 200px; margin-bottom: 0; }
+.gd-directory .dealer-grid.list-view .dealer-stats { flex: 1; min-width: 0; padding: 0; border: none; margin-bottom: 0; }
+.gd-directory .dealer-grid.list-view .dealer-actions { flex: 0 0 auto; margin-top: 0; min-width: 240px; }
+
+.gd-directory .dealer-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+.gd-directory .dealer-avatar { width: 48px; height: 48px; border-radius: var(--gd-r-lg); background: var(--gd-brand); color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 18px; flex-shrink: 0; overflow: hidden; }
+.gd-directory .dealer-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.gd-directory .dealer-identity { flex: 1; min-width: 0; }
+.gd-directory .dealer-name-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.gd-directory .dealer-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--gd-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-directory .dealer-location { font-size: 12px; color: var(--gd-text-subtle); }
+
+.gd-directory .dealer-rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 13px; flex-wrap: wrap; }
+.gd-directory .dealer-rating-stars { display: inline-flex; gap: 2px; color: var(--gd-star); }
+.gd-directory .dealer-rating-stars svg { width: 13px; height: 13px; }
+.gd-directory .dealer-rating-value { font-weight: 600; color: var(--gd-text); font-variant-numeric: tabular-nums; }
+.gd-directory .dealer-rating-count { color: var(--gd-text-subtle); font-size: 12px; }
+
+.gd-directory .dealer-stats { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--gd-border-subtle); border-bottom: 1px solid var(--gd-border-subtle); margin-bottom: 14px; }
+.gd-directory .dealer-stat { flex: 1; min-width: 0; }
+.gd-directory .dealer-stat-value { font-size: 15px; font-weight: 600; color: var(--gd-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-directory .dealer-stat-label { font-size: 11px; color: var(--gd-text-subtle); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+
+.gd-directory .dealer-actions { display: flex; gap: 6px; margin-top: auto; }
+.gd-directory .dealer-btn { flex: 1; font-family: inherit; font-size: 12px; font-weight: 500; padding: 8px 10px; border-radius: var(--gd-r-md); border: 1px solid var(--gd-border); background: var(--gd-surface); color: var(--gd-text); cursor: pointer; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s; text-decoration: none; }
+.gd-directory .dealer-btn:hover { background: var(--gd-surface-muted); border-color: var(--gd-border-strong); }
+.gd-directory .dealer-btn.primary { background: var(--gd-brand); color: white; border-color: var(--gd-brand); }
+.gd-directory .dealer-btn.primary:hover { background: var(--gd-brand-hover); }
+.gd-directory .dealer-btn.following { background: var(--gd-brand-light); color: var(--gd-brand); border-color: var(--gd-brand-border); }
+
+.gd-directory .gd-pagination { display: flex; justify-content: center; margin-top: 1rem; }
+
+.gd-directory .gd-empty { text-align: center; padding: 4rem 2rem; background: var(--gd-surface); border: 1px solid var(--gd-border); border-radius: var(--gd-r-lg); color: var(--gd-text-subtle); }
+.gd-directory .gd-empty h3 { font-size: 16px; font-weight: 600; color: var(--gd-text); margin: 0 0 6px; }
+.gd-directory .gd-empty p { font-size: 13px; margin: 0; }
+
+.gd-directory .join-banner { background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); border-radius: var(--gd-r-xl); padding: 2rem 2.5rem; margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; color: white; }
+.gd-directory .join-banner-content { flex: 1; min-width: 0; }
+.gd-directory .join-banner-title { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; margin-bottom: 6px; color: white; }
+.gd-directory .join-banner-sub { font-size: 14px; color: #CBD5E1; line-height: 1.5; max-width: 480px; margin: 0; }
+.gd-directory .join-banner-cta { padding: 10px 20px; background: white; color: var(--gd-text); border-radius: var(--gd-r-md); font-weight: 500; font-size: 14px; text-decoration: none; transition: all 0.15s; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.gd-directory .join-banner-cta:hover { background: var(--gd-surface-muted); }
+.gd-directory .join-banner-cta svg { width: 14px; height: 14px; }
+
+@media (max-width: 1100px) {
+    .gd-directory .dealer-grid.list-view .dealer-head { flex: 0 0 240px; }
+    .gd-directory .dealer-grid.list-view .dealer-rating-row { flex: 0 0 160px; }
+    .gd-directory .dealer-grid.list-view .dealer-actions { min-width: 200px; }
+}
+@media (max-width: 900px) {
+    .gd-directory .hero-top { flex-direction: column; gap: 1.5rem; }
+    .gd-directory .hero-stats { width: 100%; justify-content: space-around; }
+    .gd-directory .join-banner { flex-direction: column; align-items: flex-start; padding: 1.5rem; }
+    .gd-directory .dealer-grid.list-view .dealer-card { flex-direction: column; align-items: stretch; gap: 14px; padding: 1.25rem; }
+    .gd-directory .dealer-grid.list-view .dealer-head,
+    .gd-directory .dealer-grid.list-view .dealer-rating-row,
+    .gd-directory .dealer-grid.list-view .dealer-actions { flex: 1 1 auto; min-width: 0; }
+    .gd-directory .dealer-grid.list-view .dealer-stats { padding: 12px 0; border-top: 1px solid var(--gd-border-subtle); border-bottom: 1px solid var(--gd-border-subtle); }
+    .gd-directory .dealer-grid.list-view .dealer-rating-row,
+    .gd-directory .dealer-grid.list-view .dealer-head { margin-bottom: 0; }
+}
+@media (max-width: 640px) {
+    .gd-directory { padding: 1rem; }
+    .gd-directory .directory-hero { padding: 1.5rem; }
+    .gd-directory .hero-title { font-size: 28px; }
+    .gd-directory .dealer-grid { grid-template-columns: 1fr; }
+    .gd-directory .search-row { flex-direction: column; align-items: stretch; }
+    .gd-directory .search-submit { width: 100%; }
+    .gd-directory .filters-bar { justify-content: stretch; }
+    .gd-directory .filters-right { width: 100%; justify-content: space-between; }
+    .gd-directory .select-sort { flex: 1; }
+}
+</style>
+
+    <form method="get" action="{$directoryUrl}">
+    <input type="hidden" name="sort" value="{$sort}">
+    <div class="directory-hero">
+        <div class="hero-top">
+            <div class="hero-title-block">
+                <div class="hero-eyebrow">Dealer directory</div>
+                <h1 class="hero-title">Find a trusted FFL dealer</h1>
+                <p class="hero-sub">Every dealer on GunRack is a verified FFL holder. Browse, compare, and shop from the dealer that fits your needs.</p>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-value">{$total}</div>
+                    <div class="hero-stat-label">Dealers</div>
+                </div>
+            </div>
+        </div>
+        <div class="search-row">
+            <div class="search-input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" name="search" value="{$search}" placeholder="Search dealers by name&hellip;">
+            </div>
+            <button type="submit" class="search-submit">Search</button>
+        </div>
+    </div>
+    </form>
+
+    <form method="get" action="{$directoryUrl}">
+    <input type="hidden" name="search" value="{$search}">
+    <div class="filters-bar">
+        <div class="filters-right">
+            <span class="sort-label">Sort by</span>
+            <select name="sort" class="select-sort" onchange="this.form.submit()">
+                <option value="featured"{{if $sort === 'featured'}} selected{{endif}}>Featured</option>
+                <option value="rating"{{if $sort === 'rating'}} selected{{endif}}>Highest rated</option>
+                <option value="listings"{{if $sort === 'listings'}} selected{{endif}}>Most listings</option>
+                <option value="newest"{{if $sort === 'newest'}} selected{{endif}}>Newest</option>
+                <option value="alpha"{{if $sort === 'alpha'}} selected{{endif}}>A&ndash;Z</option>
+            </select>
+        </div>
+    </div>
+    </form>
+
+    <div class="results-meta">
+        <div class="results-count"><strong>{$total} dealers</strong></div>
+        <div class="view-toggle" id="gdDirView">
+            <button type="button" data-view="grid" class="active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Grid
+            </button>
+            <button type="button" data-view="list">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                List
+            </button>
+        </div>
+    </div>
+
+{{if count($dealers) === 0}}
+    <div class="gd-empty">
+        <h3>No dealers found</h3>
+        <p>Try adjusting your search or filters.</p>
+    </div>
+{{else}}
+    <div class="dealer-grid" id="gdDirGrid">
+    {{foreach $dealers as $d}}
+        <div class="dealer-card">
+            <div class="dealer-head">
+                <a href="{$d['profile_url']}" class="dealer-avatar"><img src="{$d['avatar']}" alt="" loading="lazy"></a>
+                <div class="dealer-identity">
+                    <div class="dealer-name-row">
+                        <a href="{$d['profile_url']}" class="dealer-name">{$d['dealer_name']}</a>
+                    </div>
+                    {{if $d['city'] || $d['state']}}
+                    <div class="dealer-location">{{if $d['city']}}{$d['city']}{{if $d['state']}}, {$d['state']}{{endif}}{{else}}{$d['state']}{{endif}}</div>
+                    {{endif}}
+                </div>
+            </div>
+            <div class="dealer-rating-row">
+                <span class="dealer-rating-stars">
+                    <svg viewBox="0 0 24 24" fill="currentColor"{{if floor($d['avg_overall']) < 1}} opacity="0.3"{{endif}}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"{{if floor($d['avg_overall']) < 2}} opacity="0.3"{{endif}}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"{{if floor($d['avg_overall']) < 3}} opacity="0.3"{{endif}}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"{{if floor($d['avg_overall']) < 4}} opacity="0.3"{{endif}}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor"{{if floor($d['avg_overall']) < 5}} opacity="0.3"{{endif}}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </span>
+                <span class="dealer-rating-value" style="color:{$d['rating_color']}">{expression="number_format($d['avg_overall'], 1)"}</span>
+                <span class="dealer-rating-count">&middot; {$d['total_reviews']} reviews</span>
+            </div>
+            <div class="dealer-stats">
+                <div class="dealer-stat">
+                    <div class="dealer-stat-value">{expression="number_format($d['listing_count'])"}</div>
+                    <div class="dealer-stat-label">Listings</div>
+                </div>
+                <div class="dealer-stat">
+                    <div class="dealer-stat-value">{$d['member_since']}</div>
+                    <div class="dealer-stat-label">Member since</div>
+                </div>
+            </div>
+            <div class="dealer-actions">
+                {{if $loggedIn}}
+                <a href="{$d['follow_url']}" class="dealer-btn{{if $d['is_following']}} following{{endif}}">{{if $d['is_following']}}Following{{else}}Follow{{endif}}</a>
+                {{endif}}
+                <a href="{$d['profile_url']}" class="dealer-btn primary">View profile</a>
+            </div>
+        </div>
+    {{endforeach}}
+    </div>
+
+    {{if $pagination}}
+    <div class="gd-pagination">{$pagination|raw}</div>
+    {{endif}}
+{{endif}}
+
+    <div class="join-banner">
+        <div class="join-banner-content">
+            <h2 class="join-banner-title">Are you an FFL dealer?</h2>
+            <p class="join-banner-sub">Join GunRack to list your inventory, reach thousands of buyers, and grow your business.</p>
+        </div>
+        <a href="{$joinUrl}" class="join-banner-cta">Apply to join</a>
+    </div>
+
+<script>
+(function(){
+    var grid = document.getElementById('gdDirGrid');
+    var toggle = document.getElementById('gdDirView');
+    if ( !toggle ) return;
+    var buttons = toggle.querySelectorAll('button[data-view]');
+    var STORAGE_KEY = 'gdDirView';
+    function applyView( view ) {
+        if ( grid ) {
+            if ( view === 'list' ) { grid.classList.add('list-view'); }
+            else { grid.classList.remove('list-view'); }
+        }
+        buttons.forEach(function( b ) {
+            if ( b.getAttribute('data-view') === view ) { b.classList.add('active'); }
+            else { b.classList.remove('active'); }
+        });
+    }
+    var saved = 'grid';
+    try { saved = localStorage.getItem( STORAGE_KEY ) || 'grid'; } catch ( e ) {}
+    applyView( saved );
+    buttons.forEach(function( b ) {
+        b.addEventListener( 'click', function() {
+            var v = b.getAttribute('data-view');
+            applyView( v );
+            try { localStorage.setItem( STORAGE_KEY, v ); } catch ( e ) {}
+        });
+    });
+})();
+</script>
+
+</div>
