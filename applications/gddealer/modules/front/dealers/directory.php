@@ -137,53 +137,62 @@ class _directory extends \IPS\Dispatcher\Controller
 
 			while ( $row = $result->fetch_assoc() )
 			{
-				$avg = round( (float) $row['avg_overall'], 1 );
-				$ipsMember = \IPS\Member::load( (int) $row['dealer_id'] );
-
-				$ratingColor = match( true ) {
-					$avg >= 4.0 => '#16a34a',
-					$avg >= 3.0 => '#d97706',
-					$avg > 0    => '#dc2626',
-					default     => '#9ca3af',
-				};
-
-				$isFollowing = false;
-				if ( $member->member_id )
+				try
 				{
-					try
-					{
-						$isFollowing = (bool) \IPS\Db::i()->select( 'COUNT(*)', 'core_follow', [
-							'follow_app=? AND follow_area=? AND follow_rel_id=? AND follow_member_id=?',
-							'gddealer', 'dealer', (int) $row['dealer_id'], (int) $member->member_id,
-						] )->first();
-					}
-					catch ( \Throwable ) {}
-				}
+					$avg = round( (float) $row['avg_overall'], 1 );
+					$ipsMember = \IPS\Member::load( (int) $row['dealer_id'] );
 
-				$addressPublic = (int) ( $row['address_public'] ?? 1 ) === 1;
-				$dealers[] = [
-					'dealer_id'     => (int) $row['dealer_id'],
-					'dealer_name'   => (string) $row['dealer_name'],
-					'dealer_slug'   => (string) $row['dealer_slug'],
-					'logo_url'      => (string) ( $row['logo_url'] ?? '' ),
-					'avatar'        => (string) ( $ipsMember->get_photo( true, false ) ?? '' ),
-					'listing_count' => (int) $row['listing_count'],
-					'total_reviews' => (int) $row['total_reviews'],
-					'avg_overall'   => $avg,
-					'rating_color'  => $ratingColor,
-					'member_since'  => $ipsMember->joined ? $ipsMember->joined->format( 'M Y' ) : '',
-					'state'         => (string) ( $row['address_state'] ?? '' ),
-					'city'          => $addressPublic ? (string) ( $row['address_city'] ?? '' ) : '',
-					'profile_url'   => (string) \IPS\Http\Url::internal(
-						'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) $row['dealer_slug'] ),
-						'front', 'dealers_profile', (string) $row['dealer_slug']
-					),
-					'follow_url'    => (string) \IPS\Http\Url::internal(
-						'app=gddealer&module=dealers&controller=directory&do=follow&id=' . (int) $row['dealer_id'],
-						'front', 'dealers_directory'
-					)->csrf(),
-					'is_following'  => $isFollowing,
-				];
+					$ratingColor = match( true ) {
+						$avg >= 4.0 => '#16a34a',
+						$avg >= 3.0 => '#d97706',
+						$avg > 0    => '#dc2626',
+						default     => '#9ca3af',
+					};
+
+					$isFollowing = false;
+					if ( $member->member_id )
+					{
+						try
+						{
+							$isFollowing = (bool) \IPS\Db::i()->select( 'COUNT(*)', 'core_follow', [
+								'follow_app=? AND follow_area=? AND follow_rel_id=? AND follow_member_id=?',
+								'gddealer', 'dealer', (int) $row['dealer_id'], (int) $member->member_id,
+							] )->first();
+						}
+						catch ( \Throwable ) {}
+					}
+
+					$addressPublic = (int) ( $row['address_public'] ?? 1 ) === 1;
+					$dealers[] = [
+						'dealer_id'     => (int) $row['dealer_id'],
+						'dealer_name'   => (string) $row['dealer_name'],
+						'dealer_slug'   => (string) $row['dealer_slug'],
+						'logo_url'      => (string) ( $row['logo_url'] ?? '' ),
+						'avatar'        => (string) ( $ipsMember->get_photo( true, false ) ?? '' ),
+						'listing_count' => (int) $row['listing_count'],
+						'total_reviews' => (int) $row['total_reviews'],
+						'avg_overall'   => $avg,
+						'rating_color'  => $ratingColor,
+						'member_since'  => $ipsMember->joined ? $ipsMember->joined->format( 'M Y' ) : '',
+						'state'         => (string) ( $row['address_state'] ?? '' ),
+						'city'          => $addressPublic ? (string) ( $row['address_city'] ?? '' ) : '',
+						'profile_url'   => (string) \IPS\Http\Url::internal(
+							'app=gddealer&module=dealers&controller=profile&dealer_slug=' . urlencode( (string) $row['dealer_slug'] ),
+							'front', 'dealers_profile', (string) $row['dealer_slug']
+						),
+						'follow_url'    => (string) \IPS\Http\Url::internal(
+							'app=gddealer&module=dealers&controller=directory&do=follow&id=' . (int) $row['dealer_id'],
+							'front', 'dealers_directory'
+						)->csrf(),
+						'is_following'  => $isFollowing,
+					];
+				}
+				catch ( \Throwable $e )
+				{
+					/* Skip dealers with no valid member record / bad data — never
+					   let one bad row blank the whole directory. */
+					continue;
+				}
 			}
 		}
 		catch ( \Throwable ) {}
