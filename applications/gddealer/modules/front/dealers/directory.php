@@ -58,9 +58,8 @@ class _directory extends \IPS\Dispatcher\Controller
 			default    => 'RAND(' . $daySeed . ')',
 		};
 
-		/* Build WHERE clause with bound params (no string interpolation of user input). */
-		$prefix     = \IPS\Db::i()->prefix;
-		$whereSql   = [ 'd.active = ?', 'd.directory_listed = ?' ];
+		/* Build WHERE as a single combined condition string + binds for native select(). */
+		$whereSql   = [ 'd.active=?', 'd.directory_listed=?' ];
 		$whereBinds = [ 1, 1 ];
 		if ( $search !== '' )
 		{
@@ -69,17 +68,18 @@ class _directory extends \IPS\Dispatcher\Controller
 		}
 		if ( $stateParam !== '' && preg_match( '/^[A-Z]{2}$/', $stateParam ) )
 		{
-			$whereSql[]   = 'd.address_state = ?';
+			$whereSql[]   = 'd.address_state=?';
 			$whereBinds[] = $stateParam;
 		}
-		$whereClause = implode( ' AND ', $whereSql );
+		$whereArg = array_merge( [ implode( ' AND ', $whereSql ) ], $whereBinds );
 
-		$havingClause = '';
-		$havingBinds  = [];
+		$havingArg = null;
 		if ( $minRating > 0 )
 		{
-			$havingClause = ' HAVING COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) >= ?';
-			$havingBinds  = [ $minRating ];
+			$havingArg = [
+				'COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) >= ?',
+				$minRating
+			];
 		}
 
 		$total = 0;
@@ -87,23 +87,30 @@ class _directory extends \IPS\Dispatcher\Controller
 		{
 			if ( $minRating > 0 )
 			{
-				$countSql = 'SELECT COUNT(*) AS c FROM (
-					SELECT d.dealer_id
-					FROM `' . $prefix . 'gd_dealer_feed_config` d
-					LEFT JOIN `' . $prefix . 'gd_dealer_ratings` r
-					  ON r.dealer_id = d.dealer_id AND r.status = "approved"
-					WHERE ' . $whereClause . '
-					GROUP BY d.dealer_id' . $havingClause . '
-				) t';
-				$row = \IPS\Db::i()->preparedQuery( $countSql, array_merge( $whereBinds, $havingBinds ) )->fetch_assoc();
-				$total = (int) ( $row['c'] ?? 0 );
+				/* min_rating filter operates on the AVG aggregate — count by iterating
+				   the grouped+having result rather than COUNT(*) over an aggregated set. */
+				$countQuery = \IPS\Db::i()->select(
+					'd.dealer_id',
+					[ 'gd_dealer_feed_config', 'd' ],
+					$whereArg,
+					null,
+					null,
+					'd.dealer_id',
+					$havingArg
+				)->join(
+					[ 'gd_dealer_ratings', 'r' ],
+					"r.dealer_id=d.dealer_id AND r.status='approved'",
+					'LEFT'
+				);
+				$total = iterator_count( $countQuery );
 			}
 			else
 			{
-				$total = (int) \IPS\Db::i()->preparedQuery(
-					'SELECT COUNT(*) AS c FROM `' . $prefix . 'gd_dealer_feed_config` d WHERE ' . $whereClause,
-					$whereBinds
-				)->fetch_assoc()['c'];
+				$total = (int) \IPS\Db::i()->select(
+					'COUNT(*)',
+					[ 'gd_dealer_feed_config', 'd' ],
+					$whereArg
+				)->first();
 			}
 		}
 		catch ( \Throwable ) {}
@@ -111,31 +118,35 @@ class _directory extends \IPS\Dispatcher\Controller
 		$dealers = [];
 		try
 		{
-			$mainSql = 'SELECT
-					MAX(d.dealer_id) AS dealer_id,
-					MAX(d.dealer_name) AS dealer_name,
-					MAX(d.dealer_slug) AS dealer_slug,
-					MAX(d.created_at) AS created_at,
-					MAX(d.address_city) AS address_city,
-					MAX(d.address_state) AS address_state,
-					MAX(d.address_public) AS address_public,
-					MAX(d.logo_url) AS logo_url,
-					COUNT(DISTINCT l.id) AS listing_count,
-					COUNT(DISTINCT r.id) AS total_reviews,
-					COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) AS avg_overall
-				FROM `' . $prefix . 'gd_dealer_feed_config` d
-				LEFT JOIN `' . $prefix . 'gd_dealer_listings` l
-				  ON l.dealer_id = d.dealer_id AND l.listing_status = "active"
-				LEFT JOIN `' . $prefix . 'gd_dealer_ratings` r
-				  ON r.dealer_id = d.dealer_id AND r.status = "approved"
-				WHERE ' . $whereClause . '
-				GROUP BY d.dealer_id' . $havingClause . '
-				ORDER BY ' . $orderBy . '
-				LIMIT ' . (int) $offset . ', ' . (int) $perPage;
+			$rows = \IPS\Db::i()->select(
+				"MAX(d.dealer_id) AS dealer_id,
+				 MAX(d.dealer_name) AS dealer_name,
+				 MAX(d.dealer_slug) AS dealer_slug,
+				 MAX(d.created_at) AS created_at,
+				 MAX(d.address_city) AS address_city,
+				 MAX(d.address_state) AS address_state,
+				 MAX(d.address_public) AS address_public,
+				 MAX(d.logo_url) AS logo_url,
+				 COUNT(DISTINCT l.id) AS listing_count,
+				 COUNT(DISTINCT r.id) AS total_reviews,
+				 COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) AS avg_overall",
+				[ 'gd_dealer_feed_config', 'd' ],
+				$whereArg,
+				$orderBy,
+				[ $offset, $perPage ],
+				'd.dealer_id',
+				$havingArg
+			)->join(
+				[ 'gd_dealer_listings', 'l' ],
+				"l.dealer_id=d.dealer_id AND l.listing_status='active'",
+				'LEFT'
+			)->join(
+				[ 'gd_dealer_ratings', 'r' ],
+				"r.dealer_id=d.dealer_id AND r.status='approved'",
+				'LEFT'
+			);
 
-			$result = \IPS\Db::i()->preparedQuery( $mainSql, array_merge( $whereBinds, $havingBinds ) );
-
-			while ( $row = $result->fetch_assoc() )
+			foreach ( $rows as $row )
 			{
 				try
 				{
