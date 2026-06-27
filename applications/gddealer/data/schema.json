@@ -3592,6 +3592,20 @@
 				"values": [],
 				"comment": ""
 			},
+			"ip_hash": {
+				"name": "ip_hash",
+				"type": "CHAR",
+				"length": 64,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
 			"user_state": {
 				"name": "user_state",
 				"type": "VARCHAR",
@@ -3674,6 +3688,16 @@
 					"member_id",
 					"dealer_id",
 					"upc"
+				]
+			},
+			"idx_ip_hash": {
+				"type": "key",
+				"name": "idx_ip_hash",
+				"length": [
+					null
+				],
+				"columns": [
+					"ip_hash"
 				]
 			}
 		}

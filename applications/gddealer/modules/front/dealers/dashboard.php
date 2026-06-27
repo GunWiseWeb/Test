@@ -1588,6 +1588,17 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		} catch ( \Throwable ) {}
 		$clickDeltaPct = $clicksPrev > 0 ? (int) round( ( ( $clicksNow - $clicksPrev ) / $clicksPrev ) * 100 ) : null;
 
+		$uniqueClicks = 0;
+		try {
+			$uniqueClicks = (int) \IPS\Db::i()->select(
+				'COUNT(DISTINCT CONCAT(upc, "|", CASE WHEN member_id IS NOT NULL THEN CONCAT("m", member_id) WHEN ip_hash IS NOT NULL AND ip_hash != "" THEN CONCAT("i", ip_hash) ELSE CONCAT("r", id) END))',
+				'gd_click_log',
+				[ 'dealer_id=? AND clicked_at >= ? AND clicked_at <= ?', $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59' ]
+			)->first();
+		} catch ( \Throwable $e ) {
+			try { \IPS\Log::log( $e, 'gddealer_analytics' ); } catch ( \Throwable ) {}
+		}
+
 		$latestSnapDate = null;
 		$tierCounts    = [ 'lowest' => 0, 'close' => 0, 'overpriced' => 0, 'only' => 0 ];
 		$snapshotTotal = 0;
@@ -1779,6 +1790,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'clicks_now'        => $clicksNow,
 			'clicks_prev'       => $clicksPrev,
 			'clicks_delta_pct'  => $clickDeltaPct,
+			'unique_clicks'     => $uniqueClicks,
 			'lowest_count'      => $lowestCount,
 			'overpriced_count'  => $overpricedCount,
 			'price_drops'       => $priceDrops,

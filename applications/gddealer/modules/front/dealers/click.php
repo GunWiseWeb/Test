@@ -100,10 +100,20 @@ class _click extends \IPS\Dispatcher\Controller
 				}
 			} catch ( \Throwable ) { /* geo unavailable — leave NULL, never block the click */ }
 
+			/* Hashed IP for unique-clicks dedup (never store raw IP). */
+			$ipHash = NULL;
+			try {
+				$ip = (string) \IPS\Request::i()->ipAddress();
+				if ( $ip !== '' ) {
+					$ipHash = hash( 'sha256', $ip . '|' . \IPS\SUITE_UNIQUE_KEY );
+				}
+			} catch ( \Throwable ) {}
+
 			\IPS\Db::i()->insert( 'gd_click_log', [
 				'dealer_id'  => $dealerId,
 				'upc'        => $upc,
 				'member_id'  => $memberId,
+				'ip_hash'    => $ipHash,
 				'user_state' => $userState,
 				'clicked_at' => date( 'Y-m-d H:i:s' ),
 			] );

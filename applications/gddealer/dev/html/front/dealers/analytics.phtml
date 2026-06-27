@@ -32,6 +32,12 @@
         {{endif}}
     </div>
 
+    <div class="gdKpi">
+        <div class="gdKpi__label">Unique clicks</div>
+        <div class="gdKpi__value">{expression="number_format($data['unique_clicks'])"}</div>
+        <div class="gdKpi__delta">distinct shoppers per item</div>
+    </div>
+
     {{if $data['cap']['price']}}
     <div class="gdKpi">
         <div class="gdKpi__label">Lowest price</div>
