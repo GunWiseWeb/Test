@@ -392,3 +392,25 @@
   .gdlo-suggestion-swap{flex-direction:column;align-items:flex-start}
   .gdlo-suggestion-arrow{transform:rotate(90deg)}
 }
+
+/* ---- Beta notice (top of loadouts hub) ---- */
+.gr-beta-notice { position: relative; max-width: 1400px; margin: 16px auto; padding: 16px 20px;
+    background: linear-gradient(135deg, #FEF3C7 0%, #FEF9E7 100%);
+    border: 1px solid #FCD34D; border-left: 4px solid #F59E0B; border-radius: 10px;
+    display: flex; align-items: flex-start; gap: 16px; color: #78350F; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.gr-beta-icon { flex-shrink: 0; width: 40px; height: 40px; background: #F59E0B; color: #fff; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 2px 6px -1px rgba(245,158,11,0.4); }
+.gr-beta-body { flex: 1 1 auto; min-width: 0; }
+.gr-beta-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; font-size: 15px; color: #78350F; }
+.gr-beta-title strong { font-weight: 700; }
+.gr-beta-badge { display: inline-block; background: #F59E0B; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; padding: 3px 8px; border-radius: 4px; line-height: 1; }
+.gr-beta-body p { margin: 4px 0 0; font-size: 13.5px; line-height: 1.55; color: #78350F; }
+.gr-beta-cta { font-size: 13px !important; }
+.gr-beta-cta a { color: #B45309; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.gr-beta-cta a:hover { color: #78350F; }
+@media (max-width: 640px) {
+    .gr-beta-notice { margin: 12px; padding: 14px; gap: 12px; }
+    .gr-beta-icon { width: 34px; height: 34px; font-size: 14px; }
+    .gr-beta-title { font-size: 14px; }
+    .gr-beta-body p { font-size: 12.5px; }
+}

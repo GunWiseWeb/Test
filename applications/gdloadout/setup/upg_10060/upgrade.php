@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gdloadout\setup\upg_10059;
+namespace IPS\gdloadout\setup\upg_10060;
 
 use function defined;
 
