@@ -69,7 +69,36 @@ class _click extends \IPS\Dispatcher\Controller
 		try {
 			$member    = \IPS\Member::loggedIn();
 			$memberId  = $member->member_id ? (int) $member->member_id : NULL;
+
+			/* Resolve US state (2-char) from IP via IPS GeoLocation. Best-effort: any
+			   failure (geo disabled, no license, private/unknown IP) leaves it NULL. */
 			$userState = NULL;
+			try {
+				$geo    = \IPS\GeoLocation::getByIp( \IPS\Request::i()->ipAddress() );
+				$region = trim( (string) ( $geo->region ?? '' ) );
+				if ( $region !== '' ) {
+					if ( strlen( $region ) === 2 && ctype_alpha( $region ) ) {
+						$userState = strtoupper( $region );
+					} else {
+						$map = [
+							'alabama'=>'AL','alaska'=>'AK','arizona'=>'AZ','arkansas'=>'AR','california'=>'CA',
+							'colorado'=>'CO','connecticut'=>'CT','delaware'=>'DE','district of columbia'=>'DC',
+							'florida'=>'FL','georgia'=>'GA','hawaii'=>'HI','idaho'=>'ID','illinois'=>'IL',
+							'indiana'=>'IN','iowa'=>'IA','kansas'=>'KS','kentucky'=>'KY','louisiana'=>'LA',
+							'maine'=>'ME','maryland'=>'MD','massachusetts'=>'MA','michigan'=>'MI','minnesota'=>'MN',
+							'mississippi'=>'MS','missouri'=>'MO','montana'=>'MT','nebraska'=>'NE','nevada'=>'NV',
+							'new hampshire'=>'NH','new jersey'=>'NJ','new mexico'=>'NM','new york'=>'NY',
+							'north carolina'=>'NC','north dakota'=>'ND','ohio'=>'OH','oklahoma'=>'OK','oregon'=>'OR',
+							'pennsylvania'=>'PA','rhode island'=>'RI','south carolina'=>'SC','south dakota'=>'SD',
+							'tennessee'=>'TN','texas'=>'TX','utah'=>'UT','vermont'=>'VT','virginia'=>'VA',
+							'washington'=>'WA','west virginia'=>'WV','wisconsin'=>'WI','wyoming'=>'WY',
+							'puerto rico'=>'PR','guam'=>'GU','american samoa'=>'AS','virgin islands'=>'VI',
+							'northern mariana islands'=>'MP',
+						];
+						$userState = $map[ strtolower( $region ) ] ?? NULL;
+					}
+				}
+			} catch ( \Throwable ) { /* geo unavailable — leave NULL, never block the click */ }
 
 			\IPS\Db::i()->insert( 'gd_click_log', [
 				'dealer_id'  => $dealerId,
