@@ -76,6 +76,10 @@
         "dealers_coupons_action": {
             "friendly": "coupons/{@do}",
             "real": "app=gddealer&module=dealers&controller=coupons"
+        },
+        "dealers_click": {
+            "friendly": "click",
+            "real": "app=gddealer&module=dealers&controller=click"
         }
     }
 }

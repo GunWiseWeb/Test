@@ -260,7 +260,7 @@
 					</td>
 					<td style="padding:14px 16px;text-align:center">
 						{{if $listing['listing_url']}}
-						<a href="{$listing['listing_url']}" target="_blank" rel="nofollow noopener" class="ipsButton ipsButton--primary ipsButton--small">{lang="gdsearch_buy_now"}</a>
+						<a href="{expression="(string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=click&d=' . (int) $listing['dealer_id'] . '&u=' . urlencode( $product['upc'] ), 'front', 'dealers_click' )"}" target="_blank" rel="nofollow noopener sponsored" class="ipsButton ipsButton--primary ipsButton--small">{lang="gdsearch_buy_now"}</a>
 						{{else}}
 						<a href="{url="app=gddealer&module=dealers&controller=profile&dealer_slug={$listing['dealer_slug']}"}" class="ipsButton ipsButton--secondary ipsButton--small">{lang="gdsearch_view_dealer"}</a>
 						{{endif}}
