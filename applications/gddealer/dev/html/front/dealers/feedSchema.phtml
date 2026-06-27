@@ -63,8 +63,7 @@
 				<table class="gd-fs__table">
 					<thead><tr><th>Field</th><th>Type</th><th>Constraints</th><th>Description</th></tr></thead>
 					<tbody>
-						<tr><td><code>free_shipping</code></td><td>boolean</td><td>1/0 or true/false</td><td>Whether shipping is included in the price. Optional.</td></tr>
-						<tr><td><code>shipping_cost</code></td><td>decimal</td><td>greater than or equal to 0</td><td>Shipping cost in USD if not free. Optional.</td></tr>
+						<tr><td><code>shipping_info</code></td><td>text</td><td>max 60 chars</td><td>Free-text shipping details shown on the listing (e.g. "Free shipping", "Flat $9.95", "$5 / free over $99"). Optional.</td></tr>
 						<tr><td><code>in_stock</code></td><td>boolean</td><td>1/0 or true/false</td><td>Whether the listing is currently available. Defaults to truthy if omitted or the value is ambiguous.</td></tr>
 						<tr><td><code>sku</code></td><td>string</td><td>max 100 chars</td><td>Your internal SKU. Useful for reconciling listings with your inventory.</td></tr>
 						<tr><td><code>map_price</code></td><td>decimal</td><td>greater than price</td><td>Manufacturer's MAP. When set, listing displays MAP and shows a "Click to see price" CTA pointing to your URL.</td></tr>
@@ -76,6 +75,7 @@
 					</tbody>
 				</table>
 			</div>
+			<p class="gd-fs__note">Legacy shipping fields are still accepted: <code>free_shipping</code>, <code>shipping_cost</code>, and aliases such as <code>shipping</code>, <code>shippingPrice</code>, <code>shippingFee</code>, <code>deliveryFee</code> are automatically folded into <code>shipping_info</code> on import, so existing feeds keep working. <code>shipping_info</code> is the current field &mdash; prefer it in new feeds.</p>
 		</section>
 
 		<section id="categories" class="gd-fs__section">
@@ -203,8 +203,7 @@
       &lt;map_price&gt;619.99&lt;/map_price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/glock-19-gen5-mos&lt;/url&gt;
-      &lt;free_shipping&gt;0&lt;/free_shipping&gt;
-      &lt;shipping_cost&gt;15.00&lt;/shipping_cost&gt;
+      &lt;shipping_info&gt;Flat $15.00&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;stock_qty&gt;3&lt;/stock_qty&gt;
       &lt;firearm&gt;
@@ -222,7 +221,7 @@
       &lt;price&gt;22.99&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/federal-9mm-50ct&lt;/url&gt;
-      &lt;free_shipping&gt;1&lt;/free_shipping&gt;
+      &lt;shipping_info&gt;Free shipping&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;stock_qty&gt;120&lt;/stock_qty&gt;
       &lt;ammo&gt;
@@ -241,8 +240,7 @@
       &lt;price&gt;449.00&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/vortex-viper-pst&lt;/url&gt;
-      &lt;free_shipping&gt;0&lt;/free_shipping&gt;
-      &lt;shipping_cost&gt;9.95&lt;/shipping_cost&gt;
+      &lt;shipping_info&gt;Flat $9.95&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;optic&gt;
         &lt;type&gt;lpvo&lt;/type&gt;
@@ -258,8 +256,7 @@
       &lt;price&gt;89.99&lt;/price&gt;
       &lt;condition&gt;used&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/used-ar15-bcg&lt;/url&gt;
-      &lt;free_shipping&gt;0&lt;/free_shipping&gt;
-      &lt;shipping_cost&gt;7.50&lt;/shipping_cost&gt;
+      &lt;shipping_info&gt;$7.50 flat&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;part&gt;
         &lt;type&gt;AR-15 bolt carrier group&lt;/type&gt;
@@ -273,7 +270,7 @@
       &lt;price&gt;14.99&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/magpul-pmag-30&lt;/url&gt;
-      &lt;free_shipping&gt;1&lt;/free_shipping&gt;
+      &lt;shipping_info&gt;Free shipping&lt;/shipping_info&gt;
       &lt;in_stock&gt;0&lt;/in_stock&gt;
     &lt;/listing&gt;
     &lt;listing&gt;
@@ -284,8 +281,7 @@
       &lt;price&gt;54.99&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/hornady-xtp-9mm&lt;/url&gt;
-      &lt;free_shipping&gt;0&lt;/free_shipping&gt;
-      &lt;shipping_cost&gt;12.00&lt;/shipping_cost&gt;
+      &lt;shipping_info&gt;Flat $12.00&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;reloading&gt;
         &lt;type&gt;bullet&lt;/type&gt;
@@ -301,7 +297,7 @@
       &lt;price&gt;165.00&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/benchmade-535&lt;/url&gt;
-      &lt;free_shipping&gt;1&lt;/free_shipping&gt;
+      &lt;shipping_info&gt;Free shipping&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
       &lt;knife&gt;
         &lt;type&gt;folding&lt;/type&gt;
@@ -317,8 +313,7 @@
       &lt;price&gt;24.99&lt;/price&gt;
       &lt;condition&gt;new&lt;/condition&gt;
       &lt;url&gt;https://example-dealer.com/p/vortex-tshirt&lt;/url&gt;
-      &lt;free_shipping&gt;0&lt;/free_shipping&gt;
-      &lt;shipping_cost&gt;5.99&lt;/shipping_cost&gt;
+      &lt;shipping_info&gt;Flat $5.99&lt;/shipping_info&gt;
       &lt;in_stock&gt;1&lt;/in_stock&gt;
     &lt;/listing&gt;
   &lt;/listings&gt;
@@ -338,8 +333,7 @@
       "map_price": 619.99,
       "condition": "new",
       "url": "https://example-dealer.com/p/glock-19-gen5-mos",
-      "free_shipping": false,
-      "shipping_cost": 15.00,
+      "shipping_info": "Flat $15.00",
       "in_stock": true,
       "stock_qty": 3,
       "firearm": {
@@ -357,7 +351,7 @@
       "price": 22.99,
       "condition": "new",
       "url": "https://example-dealer.com/p/federal-9mm-50ct",
-      "free_shipping": true,
+      "shipping_info": "Free shipping",
       "in_stock": true,
       "stock_qty": 120,
       "ammo": {
@@ -376,8 +370,7 @@
       "price": 449.00,
       "condition": "new",
       "url": "https://example-dealer.com/p/vortex-viper-pst",
-      "free_shipping": false,
-      "shipping_cost": 9.95,
+      "shipping_info": "Flat $9.95",
       "in_stock": true,
       "optic": {
         "type": "lpvo",
@@ -393,8 +386,7 @@
       "price": 89.99,
       "condition": "used",
       "url": "https://example-dealer.com/p/used-ar15-bcg",
-      "free_shipping": false,
-      "shipping_cost": 7.50,
+      "shipping_info": "$7.50 flat",
       "in_stock": true,
       "part": { "type": "AR-15 bolt carrier group" }
     },
@@ -406,7 +398,7 @@
       "price": 14.99,
       "condition": "new",
       "url": "https://example-dealer.com/p/magpul-pmag-30",
-      "free_shipping": true,
+      "shipping_info": "Free shipping",
       "in_stock": false
     },
     {
@@ -417,8 +409,7 @@
       "price": 54.99,
       "condition": "new",
       "url": "https://example-dealer.com/p/hornady-xtp-9mm",
-      "free_shipping": false,
-      "shipping_cost": 12.00,
+      "shipping_info": "Flat $12.00",
       "in_stock": true,
       "reloading": { "type": "bullet", "rounds": 100, "bullet_caliber": ".355" }
     },
@@ -430,7 +421,7 @@
       "price": 165.00,
       "condition": "new",
       "url": "https://example-dealer.com/p/benchmade-535",
-      "free_shipping": true,
+      "shipping_info": "Free shipping",
       "in_stock": true,
       "knife": { "type": "folding", "blade_length_in": 3.24, "blade_steel": "S30V" }
     },
@@ -442,8 +433,7 @@
       "price": 24.99,
       "condition": "new",
       "url": "https://example-dealer.com/p/vortex-tshirt",
-      "free_shipping": false,
-      "shipping_cost": 5.99,
+      "shipping_info": "Flat $5.99",
       "in_stock": true
     }
   ]
@@ -451,15 +441,15 @@
 			</div>
 
 			<div class="gd-fs__tabPanel" data-panel="csv">
-<pre class="gd-fs__code">upc,sku,name,brand,category,price,map_price,condition,url,free_shipping,shipping_cost,in_stock,stock_qty,ammo.caliber,ammo.rounds,ammo.fire_type,ammo.bullet_design,ammo.case_material,firearm.model,firearm.type,firearm.action,firearm.caliber,part.type,reloading.type,reloading.rounds,reloading.bullet_caliber,optic.type,optic.magnification,optic.reticle,optic.objective_mm,knife.type,knife.blade_length_in,knife.blade_steel
-764503913051,GLK-19-G5-MOS,"Glock 19 Gen5 MOS 9mm",Glock,firearm,549.99,619.99,new,https://example-dealer.com/p/glock-19-gen5-mos,0,15.00,1,3,,,,,,Glock 19,handgun,semi-auto,9mm Luger,,,,,,,,,,,
-076683081124,,"Federal Champion 9mm 115gr FMJ 50rd",Federal,ammo,22.99,,new,https://example-dealer.com/p/federal-9mm-50ct,1,,1,120,9mm Luger,50,centerfire,fmj,brass,,,,,,,,,,,,,,
-610563272730,,"Vortex Viper PST Gen II 1-6x24",Vortex,optic,449.00,,new,https://example-dealer.com/p/vortex-viper-pst,0,9.95,1,,,,,,,,,,,,,,,,lpvo,1-6x,MOA,24,,,
-851561006033,,"Used AR-15 Bolt Carrier Group",,part,89.99,,used,https://example-dealer.com/p/used-ar15-bcg,0,7.50,1,,,,,,,,,,AR-15 bolt carrier group,,,,,,,,,,
-699618782301,,"Magpul PMAG 30 AR/M4 GEN M3",Magpul,accessory,14.99,,new,https://example-dealer.com/p/magpul-pmag-30,1,,0,,,,,,,,,,,,,,,,,,,,
-662410500358,,"Hornady XTP 9mm 115gr Bullets, 100ct",Hornady,reloading,54.99,,new,https://example-dealer.com/p/hornady-xtp-9mm,0,12.00,1,,,,,,,,,,,bullet,100,.355,,,,,,,
-610953154295,,"Benchmade Bugout 535",Benchmade,knife,165.00,,new,https://example-dealer.com/p/benchmade-535,1,,1,,,,,,,,,,,,,,,,,,,folding,3.24,S30V
-889912345678,,"Vortex Logo T-Shirt, Black, XL",Vortex,apparel,24.99,,new,https://example-dealer.com/p/vortex-tshirt,0,5.99,1,,,,,,,,,,,,,,,,,,,</pre>
+<pre class="gd-fs__code">upc,sku,name,brand,category,price,map_price,condition,url,shipping_info,in_stock,stock_qty,ammo.caliber,ammo.rounds,ammo.fire_type,ammo.bullet_design,ammo.case_material,firearm.model,firearm.type,firearm.action,firearm.caliber,part.type,reloading.type,reloading.rounds,reloading.bullet_caliber,optic.type,optic.magnification,optic.reticle,optic.objective_mm,knife.type,knife.blade_length_in,knife.blade_steel
+764503913051,GLK-19-G5-MOS,"Glock 19 Gen5 MOS 9mm",Glock,firearm,549.99,619.99,new,https://example-dealer.com/p/glock-19-gen5-mos,"Flat $15.00",1,3,,,,,,Glock 19,handgun,semi-auto,9mm Luger,,,,,,,,,,,
+076683081124,,"Federal Champion 9mm 115gr FMJ 50rd",Federal,ammo,22.99,,new,https://example-dealer.com/p/federal-9mm-50ct,"Free shipping",1,120,9mm Luger,50,centerfire,fmj,brass,,,,,,,,,,,,,,
+610563272730,,"Vortex Viper PST Gen II 1-6x24",Vortex,optic,449.00,,new,https://example-dealer.com/p/vortex-viper-pst,"Flat $9.95",1,,,,,,,,,,,,,,,,lpvo,1-6x,MOA,24,,,
+851561006033,,"Used AR-15 Bolt Carrier Group",,part,89.99,,used,https://example-dealer.com/p/used-ar15-bcg,"$7.50 flat",1,,,,,,,,,,,AR-15 bolt carrier group,,,,,,,,,,
+699618782301,,"Magpul PMAG 30 AR/M4 GEN M3",Magpul,accessory,14.99,,new,https://example-dealer.com/p/magpul-pmag-30,"Free shipping",0,,,,,,,,,,,,,,,,,,,,
+662410500358,,"Hornady XTP 9mm 115gr Bullets, 100ct",Hornady,reloading,54.99,,new,https://example-dealer.com/p/hornady-xtp-9mm,"Flat $12.00",1,,,,,,,,,,,bullet,100,.355,,,,,,,
+610953154295,,"Benchmade Bugout 535",Benchmade,knife,165.00,,new,https://example-dealer.com/p/benchmade-535,"Free shipping",1,,,,,,,,,,,,,,,,,,,folding,3.24,S30V
+889912345678,,"Vortex Logo T-Shirt, Black, XL",Vortex,apparel,24.99,,new,https://example-dealer.com/p/vortex-tshirt,"Flat $5.99",1,,,,,,,,,,,,,,,,,,,</pre>
 			</div>
 		</section>
 

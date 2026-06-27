@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10308;
+namespace IPS\gddealer\setup\upg_10309;
 
 use function defined;
 
@@ -46,12 +46,12 @@ class _upgrade
 						'template_data'     => '',
 						'template_content'  => $body,
 						'template_updated'  => time(),
-						'template_version'  => '1.0.308',
+						'template_version'  => '1.0.309',
 					] );
 				}
 				catch ( \Throwable $e )
 				{
-					try { \IPS\Log::log( 'upg_10308 reseed feedSchema failed: ' . $e->getMessage(), 'gddealer_upg_10308' ); } catch ( \Throwable ) {}
+					try { \IPS\Log::log( 'upg_10309 reseed feedSchema failed: ' . $e->getMessage(), 'gddealer_upg_10309' ); } catch ( \Throwable ) {}
 				}
 			}
 		}
