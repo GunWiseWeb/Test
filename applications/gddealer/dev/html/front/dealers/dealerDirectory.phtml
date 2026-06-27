@@ -1,4 +1,4 @@
-<ips:template parameters="$dealers, $total, $page, $perPage, $pagination, $sort, $search, $stateParam, $minRating, $states, $loggedIn, $joinUrl, $directoryUrl" />
+<ips:template parameters="$dealers, $total, $page, $perPage, $pagination, $sort, $search, $stateParam, $minRating, $states, $stateCounts, $stateList, $loggedIn, $joinUrl, $directoryUrl" />
 <div class="gd-directory">
 <style>
 .gd-directory {
@@ -16,8 +16,6 @@
     --gd-text-muted: #475569;
     --gd-text-subtle: #64748B;
     --gd-text-faint: #94A3B8;
-    --gd-rating-great: #16A34A;
-    --gd-rating-ok: #D97706;
     --gd-star: #F59E0B;
     --gd-r-md: 6px;
     --gd-r-lg: 10px;
@@ -37,32 +35,65 @@
 .gd-directory h1, .gd-directory h2, .gd-directory h3 { margin: 0; font-weight: 600; }
 .gd-directory p { margin: 0; }
 
-.gd-directory .directory-hero { background: linear-gradient(135deg, var(--gd-surface) 0%, #EFF4FA 100%); border: 1px solid var(--gd-border); border-radius: var(--gd-r-xl); padding: 2.5rem 2.5rem 2rem; margin-bottom: 1.5rem; position: relative; overflow: hidden; }
-.gd-directory .directory-hero::after { content: ''; position: absolute; top: -40%; right: -10%; width: 420px; height: 420px; background: radial-gradient(circle, rgba(30, 64, 175, 0.08) 0%, transparent 60%); pointer-events: none; }
-.gd-directory .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; margin-bottom: 1.5rem; position: relative; z-index: 1; }
+.gd-directory .directory-hero { background: linear-gradient(135deg, var(--gd-surface) 0%, #EFF4FA 100%); border: 1px solid var(--gd-border); border-radius: var(--gd-r-xl); padding: 2.25rem 2.5rem 1.75rem; margin-bottom: 1.25rem; position: relative; overflow: hidden; }
+.gd-directory .directory-hero::after { content: ''; position: absolute; top: -40%; right: -10%; width: 420px; height: 420px; background: radial-gradient(circle, rgba(30,64,175,0.08) 0%, transparent 60%); pointer-events: none; }
+.gd-directory .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; position: relative; z-index: 1; }
 .gd-directory .hero-title-block { flex: 1; min-width: 0; }
 .gd-directory .hero-eyebrow { font-size: 12px; font-weight: 600; color: var(--gd-brand); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-.gd-directory .hero-title { font-size: 36px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.15; margin-bottom: 10px; margin-top: 0; }
-.gd-directory .hero-sub { font-size: 15px; color: var(--gd-text-muted); max-width: 560px; line-height: 1.6; margin: 0; }
+.gd-directory .hero-title { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 10px; }
+.gd-directory .hero-sub { font-size: 14.5px; color: var(--gd-text-muted); max-width: 560px; line-height: 1.6; margin: 0; }
 .gd-directory .hero-stats { display: flex; gap: 2rem; align-items: center; flex-shrink: 0; }
-.gd-directory .hero-stat { text-align: center; }
-.gd-directory .hero-stat-value { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; color: var(--gd-text); line-height: 1; }
-.gd-directory .hero-stat-label { font-size: 11px; color: var(--gd-text-subtle); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-top: 6px; }
+.gd-directory .hero-stat-value { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; color: var(--gd-text); line-height: 1; text-align: center; }
+.gd-directory .hero-stat-label { font-size: 11px; color: var(--gd-text-subtle); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-top: 6px; text-align: center; }
 
-.gd-directory .search-row { display: flex; gap: 10px; align-items: center; position: relative; z-index: 1; }
-.gd-directory .search-input { flex: 1; position: relative; min-width: 0; }
-.gd-directory .search-input input { width: 100%; font-family: inherit; font-size: 14px; padding: 12px 16px 12px 44px; border-radius: var(--gd-r-lg); border: 1px solid var(--gd-border); background: var(--gd-surface); color: var(--gd-text); transition: all 0.15s; box-sizing: border-box; }
-.gd-directory .search-input input:focus { outline: none; border-color: var(--gd-brand); box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1); }
-.gd-directory .search-input input::placeholder { color: var(--gd-text-faint); }
-.gd-directory .search-input svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--gd-text-faint); }
-.gd-directory .search-submit { padding: 12px 20px; border-radius: var(--gd-r-lg); background: var(--gd-brand); color: white; border: none; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
-.gd-directory .search-submit:hover { background: var(--gd-brand-hover); }
+/* Map panel */
+.gd-mapPanel { background: var(--gd-surface); border: 1px solid var(--gd-border); border-radius: var(--gd-r-xl); padding: 1.25rem 1.5rem 1.5rem; margin-bottom: 1.25rem; }
+.gd-mapPanel__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.gd-mapPanel__title { font-size: 14px; font-weight: 600; color: var(--gd-text); }
+.gd-mapPanel__sub { font-size: 12px; color: var(--gd-text-subtle); }
+.gd-mapPanel__clear { font-size: 12px; color: var(--gd-brand); font-weight: 500; }
+.gd-mapPanel__clear:hover { text-decoration: underline; }
+.gd-stateMap {
+    display: grid;
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+    grid-template-rows: repeat(8, minmax(34px, 1fr));
+    gap: 4px;
+    max-width: 720px;
+    margin: 0 auto;
+    grid-template-areas:
+        ".  .  .  .  .  .  .  .  .  me ."
+        "ak .  .  .  .  .  .  .  vt nh ."
+        ".  .  .  .  wi .  .  mi ny ma ."
+        "wa id mt nd mn il in oh pa nj ct"
+        "or nv wy sd ia mo ky wv va md ri"
+        "ca ut co ne ar tn nc sc de dc ."
+        "hi az nm ks ok ms al ga .  .  ."
+        ".  .  .  tx la .  .  fl .  pr .";
+}
+.gd-stateTile { display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: var(--gd-r-md); background: var(--gd-border-subtle); color: var(--gd-text-subtle); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; padding: 4px 2px; min-height: 34px; transition: transform 0.1s, background 0.1s, color 0.1s; cursor: pointer; }
+.gd-stateTile:hover { transform: translateY(-1px); }
+.gd-stateTile small { display: block; font-size: 9px; font-weight: 500; margin-top: 1px; opacity: 0.75; }
+.gd-stateTile.is-empty { cursor: default; opacity: 0.6; }
+.gd-stateTile.is-bucket-1 { background: #DBEAFE; color: #1E40AF; }
+.gd-stateTile.is-bucket-2 { background: #93C5FD; color: #1E3A8A; }
+.gd-stateTile.is-bucket-3 { background: #3B82F6; color: #FFFFFF; }
+.gd-stateTile.is-bucket-4 { background: #1E40AF; color: #FFFFFF; }
+.gd-stateTile.is-active { outline: 3px solid var(--gd-brand); outline-offset: 1px; }
 
-.gd-directory .filters-bar { background: var(--gd-surface); border: 1px solid var(--gd-border); border-radius: var(--gd-r-lg); padding: 14px 18px; margin-bottom: 1.25rem; display: flex; gap: 16px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
-.gd-directory .filters-right { display: flex; gap: 10px; align-items: center; }
-.gd-directory .sort-label { font-size: 12px; color: var(--gd-text-subtle); font-weight: 500; }
-.gd-directory .select-sort { font-family: inherit; font-size: 13px; padding: 7px 28px 7px 10px; border-radius: var(--gd-r-md); border: 1px solid var(--gd-border); background: var(--gd-surface); cursor: pointer; color: var(--gd-text); appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2364748B' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+/* Filter bar */
+.gd-filters { background: var(--gd-surface); border: 1px solid var(--gd-border); border-radius: var(--gd-r-lg); padding: 14px 18px; margin-bottom: 1rem; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; align-items: end; }
+.gd-filter-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.gd-filter-field label { font-size: 11px; color: var(--gd-text-subtle); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.gd-filter-field input, .gd-filter-field select { font-family: inherit; font-size: 13px; padding: 8px 10px; border-radius: var(--gd-r-md); border: 1px solid var(--gd-border); background: var(--gd-surface); color: var(--gd-text); width: 100%; box-sizing: border-box; }
+.gd-filter-field input:focus, .gd-filter-field select:focus { outline: none; border-color: var(--gd-brand); box-shadow: 0 0 0 3px rgba(30,64,175,0.08); }
+.gd-filter-actions { display: flex; gap: 8px; }
+.gd-filter-actions button, .gd-filter-actions a { padding: 8px 16px; border-radius: var(--gd-r-md); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; }
+.gd-filter-actions button { background: var(--gd-brand); color: #fff; border-color: var(--gd-brand); }
+.gd-filter-actions button:hover { background: var(--gd-brand-hover); border-color: var(--gd-brand-hover); }
+.gd-filter-actions a { background: var(--gd-surface); color: var(--gd-text-muted); border-color: var(--gd-border); display: inline-flex; align-items: center; }
+.gd-filter-actions a:hover { background: var(--gd-surface-muted); }
 
+/* Results meta + view toggle */
 .gd-directory .results-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 13px; color: var(--gd-text-subtle); gap: 12px; flex-wrap: wrap; }
 .gd-directory .results-count strong { color: var(--gd-text); font-weight: 600; }
 .gd-directory .view-toggle { display: inline-flex; gap: 2px; padding: 2px; background: var(--gd-border-subtle); border-radius: var(--gd-r-md); }
@@ -70,25 +101,24 @@
 .gd-directory .view-toggle button.active { background: var(--gd-surface); color: var(--gd-text); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 .gd-directory .view-toggle button svg { width: 12px; height: 12px; }
 
-.gd-directory .dealer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 2rem; }
-.gd-directory .dealer-grid.list-view { grid-template-columns: 1fr; gap: 12px; }
+/* Dealer cards */
+.gd-directory .dealer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 1.5rem; }
+.gd-directory .dealer-grid.list-view { grid-template-columns: 1fr; gap: 10px; }
 .gd-directory .dealer-card { background: var(--gd-surface); border: 1px solid var(--gd-border); border-radius: var(--gd-r-lg); padding: 1.25rem; transition: all 0.15s; display: flex; flex-direction: column; }
 .gd-directory .dealer-card:hover { border-color: var(--gd-border-strong); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
-
-/* List view: card becomes a horizontal row */
 .gd-directory .dealer-grid.list-view .dealer-card { flex-direction: row; align-items: center; gap: 24px; padding: 1rem 1.25rem; }
-.gd-directory .dealer-grid.list-view .dealer-head { flex: 0 0 280px; margin-bottom: 0; }
+.gd-directory .dealer-grid.list-view .dealer-head { flex: 0 0 260px; margin-bottom: 0; }
 .gd-directory .dealer-grid.list-view .dealer-rating-row { flex: 0 0 200px; margin-bottom: 0; }
 .gd-directory .dealer-grid.list-view .dealer-stats { flex: 1; min-width: 0; padding: 0; border: none; margin-bottom: 0; }
-.gd-directory .dealer-grid.list-view .dealer-actions { flex: 0 0 auto; margin-top: 0; min-width: 240px; }
+.gd-directory .dealer-grid.list-view .dealer-actions { flex: 0 0 auto; margin-top: 0; min-width: 220px; }
 
 .gd-directory .dealer-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
-.gd-directory .dealer-avatar { width: 48px; height: 48px; border-radius: var(--gd-r-lg); background: var(--gd-brand); color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 18px; flex-shrink: 0; overflow: hidden; }
+.gd-directory .dealer-avatar { width: 48px; height: 48px; border-radius: var(--gd-r-lg); background: var(--gd-brand); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 18px; flex-shrink: 0; overflow: hidden; }
 .gd-directory .dealer-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .gd-directory .dealer-identity { flex: 1; min-width: 0; }
-.gd-directory .dealer-name-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-.gd-directory .dealer-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--gd-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gd-directory .dealer-location { font-size: 12px; color: var(--gd-text-subtle); }
+.gd-directory .dealer-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--gd-text); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-directory .dealer-location { font-size: 12px; color: var(--gd-text-subtle); margin-top: 2px; display: inline-flex; align-items: center; gap: 4px; }
+.gd-directory .dealer-location svg { width: 11px; height: 11px; opacity: 0.7; }
 
 .gd-directory .dealer-rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 13px; flex-wrap: wrap; }
 .gd-directory .dealer-rating-stars { display: inline-flex; gap: 2px; color: var(--gd-star); }
@@ -109,10 +139,10 @@
 .gd-directory .dealer-btn.following { background: var(--gd-brand-light); color: var(--gd-brand); border-color: var(--gd-brand-border); }
 
 .gd-directory .gd-pagination { display: flex; justify-content: center; margin-top: 1rem; }
-
 .gd-directory .gd-empty { text-align: center; padding: 4rem 2rem; background: var(--gd-surface); border: 1px solid var(--gd-border); border-radius: var(--gd-r-lg); color: var(--gd-text-subtle); }
 .gd-directory .gd-empty h3 { font-size: 16px; font-weight: 600; color: var(--gd-text); margin: 0 0 6px; }
-.gd-directory .gd-empty p { font-size: 13px; margin: 0; }
+.gd-directory .gd-empty p { font-size: 13px; margin: 0 0 12px; }
+.gd-directory .gd-empty a { color: var(--gd-brand); font-weight: 500; }
 
 .gd-directory .join-banner { background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); border-radius: var(--gd-r-xl); padding: 2rem 2.5rem; margin-top: 2rem; display: flex; justify-content: space-between; align-items: center; gap: 2rem; color: white; }
 .gd-directory .join-banner-content { flex: 1; min-width: 0; }
@@ -120,70 +150,97 @@
 .gd-directory .join-banner-sub { font-size: 14px; color: #CBD5E1; line-height: 1.5; max-width: 480px; margin: 0; }
 .gd-directory .join-banner-cta { padding: 10px 20px; background: white; color: var(--gd-text); border-radius: var(--gd-r-md); font-weight: 500; font-size: 14px; text-decoration: none; transition: all 0.15s; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .gd-directory .join-banner-cta:hover { background: var(--gd-surface-muted); }
-.gd-directory .join-banner-cta svg { width: 14px; height: 14px; }
 
-@media (max-width: 1100px) {
-    .gd-directory .dealer-grid.list-view .dealer-head { flex: 0 0 240px; }
-    .gd-directory .dealer-grid.list-view .dealer-rating-row { flex: 0 0 160px; }
-    .gd-directory .dealer-grid.list-view .dealer-actions { min-width: 200px; }
-}
-@media (max-width: 900px) {
-    .gd-directory .hero-top { flex-direction: column; gap: 1.5rem; }
-    .gd-directory .hero-stats { width: 100%; justify-content: space-around; }
-    .gd-directory .join-banner { flex-direction: column; align-items: flex-start; padding: 1.5rem; }
-    .gd-directory .dealer-grid.list-view .dealer-card { flex-direction: column; align-items: stretch; gap: 14px; padding: 1.25rem; }
-    .gd-directory .dealer-grid.list-view .dealer-head,
-    .gd-directory .dealer-grid.list-view .dealer-rating-row,
-    .gd-directory .dealer-grid.list-view .dealer-actions { flex: 1 1 auto; min-width: 0; }
-    .gd-directory .dealer-grid.list-view .dealer-stats { padding: 12px 0; border-top: 1px solid var(--gd-border-subtle); border-bottom: 1px solid var(--gd-border-subtle); }
-    .gd-directory .dealer-grid.list-view .dealer-rating-row,
-    .gd-directory .dealer-grid.list-view .dealer-head { margin-bottom: 0; }
+@media (max-width: 960px) {
+    .gd-filters { grid-template-columns: 1fr 1fr; }
+    .gd-stateMap { font-size: 10px; }
 }
 @media (max-width: 640px) {
     .gd-directory { padding: 1rem; }
     .gd-directory .directory-hero { padding: 1.5rem; }
-    .gd-directory .hero-title { font-size: 28px; }
+    .gd-directory .hero-top { flex-direction: column; gap: 1rem; }
+    .gd-directory .hero-title { font-size: 24px; }
+    .gd-filters { grid-template-columns: 1fr; }
     .gd-directory .dealer-grid { grid-template-columns: 1fr; }
-    .gd-directory .search-row { flex-direction: column; align-items: stretch; }
-    .gd-directory .search-submit { width: 100%; }
-    .gd-directory .filters-bar { justify-content: stretch; }
-    .gd-directory .filters-right { width: 100%; justify-content: space-between; }
-    .gd-directory .select-sort { flex: 1; }
+    .gd-directory .join-banner { flex-direction: column; align-items: flex-start; padding: 1.5rem; }
+    .gd-stateMap { grid-template-rows: repeat(8, minmax(28px, 1fr)); }
+    .gd-stateTile { font-size: 9px; }
+    .gd-stateTile small { display: none; }
 }
 </style>
 
-    <form method="get" action="{$directoryUrl}">
-    <input type="hidden" name="sort" value="{$sort}">
     <div class="directory-hero">
         <div class="hero-top">
             <div class="hero-title-block">
                 <div class="hero-eyebrow">Dealer directory</div>
                 <h1 class="hero-title">Find a trusted FFL dealer</h1>
-                <p class="hero-sub">Every dealer on GunRack is a verified FFL holder. Browse, compare, and shop from the dealer that fits your needs.</p>
+                <p class="hero-sub">Every dealer on GunRack is a verified FFL holder. Browse by state, search by name, or filter by rating.</p>
             </div>
             <div class="hero-stats">
-                <div class="hero-stat">
+                <div>
                     <div class="hero-stat-value">{$total}</div>
                     <div class="hero-stat-label">Dealers</div>
                 </div>
             </div>
         </div>
-        <div class="search-row">
-            <div class="search-input">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" name="search" value="{$search}" placeholder="Search dealers by name&hellip;">
-            </div>
-            <button type="submit" class="search-submit">Search</button>
-        </div>
     </div>
-    </form>
 
-    <form method="get" action="{$directoryUrl}">
-    <input type="hidden" name="search" value="{$search}">
-    <div class="filters-bar">
-        <div class="filters-right">
-            <span class="sort-label">Sort by</span>
-            <select name="sort" class="select-sort" onchange="this.form.submit()">
+    <section class="gd-mapPanel">
+        <div class="gd-mapPanel__head">
+            <div>
+                <div class="gd-mapPanel__title">Browse by state</div>
+                <div class="gd-mapPanel__sub">{{if $stateParam}}Currently filtered to {$stateParam}{{else}}Tap a state to filter the directory{{endif}}</div>
+            </div>
+            {{if $stateParam}}<a href="{$directoryUrl}" class="gd-mapPanel__clear">Clear state filter &times;</a>{{endif}}
+        </div>
+        <div class="gd-stateMap" id="gdStateMap">
+            {{foreach $stateList as $code}}
+                {{$count = isset($stateCounts[$code]) ? (int) $stateCounts[$code] : 0;}}
+                {{$gridArea = strtolower($code);}}
+                {{$bucketClass = '';}}
+                {{if $count <= 0}}{{$bucketClass = 'is-empty';}}
+                {{elseif $count <= 2}}{{$bucketClass = 'is-bucket-1';}}
+                {{elseif $count <= 5}}{{$bucketClass = 'is-bucket-2';}}
+                {{elseif $count <= 10}}{{$bucketClass = 'is-bucket-3';}}
+                {{else}}{{$bucketClass = 'is-bucket-4';}}{{endif}}
+                {{$activeClass = ( $stateParam === $code ) ? ' is-active' : '';}}
+                {{if $count > 0}}
+                <a class="gd-stateTile {$bucketClass}{$activeClass}" style="grid-area: {$gridArea}" data-state="{$code}" href="{expression="(string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=directory&state=' . $code, 'front', 'dealers_directory' )"}" title="{$count} dealer(s)">
+                    {$code}<small>{$count}</small>
+                </a>
+                {{else}}
+                <span class="gd-stateTile is-empty" style="grid-area: {$gridArea}" title="no dealers">{$code}</span>
+                {{endif}}
+            {{endforeach}}
+        </div>
+    </section>
+
+    <form method="get" action="{$directoryUrl}" class="gd-filters">
+        <div class="gd-filter-field">
+            <label for="gdSearch">Search</label>
+            <input id="gdSearch" type="text" name="search" value="{$search}" placeholder="Search by dealer name&hellip;">
+        </div>
+        <div class="gd-filter-field">
+            <label for="gdState">State</label>
+            <select id="gdState" name="state">
+                <option value="">All states</option>
+                {{foreach $states as $code}}
+                <option value="{$code}"{{if $stateParam === $code}} selected{{endif}}>{$code}</option>
+                {{endforeach}}
+            </select>
+        </div>
+        <div class="gd-filter-field">
+            <label for="gdMinRating">Min rating</label>
+            <select id="gdMinRating" name="min_rating">
+                <option value="0"{{if $minRating < 1}} selected{{endif}}>Any rating</option>
+                <option value="3"{{if $minRating >= 3 && $minRating < 4}} selected{{endif}}>3&#9733; &amp; up</option>
+                <option value="4"{{if $minRating >= 4 && $minRating < 4.5}} selected{{endif}}>4&#9733; &amp; up</option>
+                <option value="4.5"{{if $minRating >= 4.5}} selected{{endif}}>4.5&#9733; &amp; up</option>
+            </select>
+        </div>
+        <div class="gd-filter-field">
+            <label for="gdSort">Sort by</label>
+            <select id="gdSort" name="sort">
                 <option value="featured"{{if $sort === 'featured'}} selected{{endif}}>Featured</option>
                 <option value="rating"{{if $sort === 'rating'}} selected{{endif}}>Highest rated</option>
                 <option value="listings"{{if $sort === 'listings'}} selected{{endif}}>Most listings</option>
@@ -191,11 +248,16 @@
                 <option value="alpha"{{if $sort === 'alpha'}} selected{{endif}}>A&ndash;Z</option>
             </select>
         </div>
-    </div>
+        <div class="gd-filter-actions" style="grid-column: 1 / -1; justify-content: flex-end">
+            {{if $search || $stateParam || $minRating > 0 || $sort !== 'featured'}}
+            <a href="{$directoryUrl}">Clear all</a>
+            {{endif}}
+            <button type="submit">Apply filters</button>
+        </div>
     </form>
 
     <div class="results-meta">
-        <div class="results-count"><strong>{$total} dealers</strong></div>
+        <div class="results-count"><strong>{$total}</strong> {{if $total === 1}}dealer{{else}}dealers{{endif}}{{if $stateParam}} in {$stateParam}{{endif}}{{if $minRating > 0}}, rated {expression="number_format($minRating, 1)"}&#9733; or higher{{endif}}</div>
         <div class="view-toggle" id="gdDirView">
             <button type="button" data-view="grid" class="active">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -210,21 +272,23 @@
 
 {{if count($dealers) === 0}}
     <div class="gd-empty">
-        <h3>No dealers found</h3>
-        <p>Try adjusting your search or filters.</p>
+        <h3>No dealers match these filters</h3>
+        <p>Try a different state, lower the minimum rating, or clear the search.</p>
+        <a href="{$directoryUrl}">Clear all filters &rarr;</a>
     </div>
 {{else}}
     <div class="dealer-grid" id="gdDirGrid">
     {{foreach $dealers as $d}}
         <div class="dealer-card">
             <div class="dealer-head">
-                <a href="{$d['profile_url']}" class="dealer-avatar"><img src="{$d['avatar']}" alt="" loading="lazy"></a>
+                <a href="{$d['profile_url']}" class="dealer-avatar"><img src="{{if $d['logo_url']}}{$d['logo_url']}{{else}}{$d['avatar']}{{endif}}" alt="" loading="lazy"></a>
                 <div class="dealer-identity">
-                    <div class="dealer-name-row">
-                        <a href="{$d['profile_url']}" class="dealer-name">{$d['dealer_name']}</a>
-                    </div>
+                    <a href="{$d['profile_url']}" class="dealer-name">{$d['dealer_name']}</a>
                     {{if $d['city'] || $d['state']}}
-                    <div class="dealer-location">{{if $d['city']}}{$d['city']}{{if $d['state']}}, {$d['state']}{{endif}}{{else}}{$d['state']}{{endif}}</div>
+                    <div class="dealer-location">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {{if $d['city']}}{$d['city']}{{if $d['state']}}, {$d['state']}{{endif}}{{else}}{$d['state']}{{endif}}
+                    </div>
                     {{endif}}
                 </div>
             </div>
@@ -242,7 +306,7 @@
             <div class="dealer-stats">
                 <div class="dealer-stat">
                     <div class="dealer-stat-value">{expression="number_format($d['listing_count'])"}</div>
-                    <div class="dealer-stat-label">Listings</div>
+                    <div class="dealer-stat-label">Active listings</div>
                 </div>
                 <div class="dealer-stat">
                     <div class="dealer-stat-value">{$d['member_since']}</div>
@@ -276,29 +340,30 @@
 (function(){
     var grid = document.getElementById('gdDirGrid');
     var toggle = document.getElementById('gdDirView');
-    if ( !toggle ) return;
-    var buttons = toggle.querySelectorAll('button[data-view]');
-    var STORAGE_KEY = 'gdDirView';
-    function applyView( view ) {
-        if ( grid ) {
-            if ( view === 'list' ) { grid.classList.add('list-view'); }
-            else { grid.classList.remove('list-view'); }
+    if ( toggle ) {
+        var buttons = toggle.querySelectorAll('button[data-view]');
+        var STORAGE_KEY = 'gdDirView';
+        function applyView( view ) {
+            if ( grid ) {
+                if ( view === 'list' ) { grid.classList.add('list-view'); }
+                else { grid.classList.remove('list-view'); }
+            }
+            buttons.forEach(function( b ) {
+                if ( b.getAttribute('data-view') === view ) { b.classList.add('active'); }
+                else { b.classList.remove('active'); }
+            });
         }
+        var saved = 'grid';
+        try { saved = localStorage.getItem( STORAGE_KEY ) || 'grid'; } catch ( e ) {}
+        applyView( saved );
         buttons.forEach(function( b ) {
-            if ( b.getAttribute('data-view') === view ) { b.classList.add('active'); }
-            else { b.classList.remove('active'); }
+            b.addEventListener( 'click', function() {
+                var v = b.getAttribute('data-view');
+                applyView( v );
+                try { localStorage.setItem( STORAGE_KEY, v ); } catch ( e ) {}
+            });
         });
     }
-    var saved = 'grid';
-    try { saved = localStorage.getItem( STORAGE_KEY ) || 'grid'; } catch ( e ) {}
-    applyView( saved );
-    buttons.forEach(function( b ) {
-        b.addEventListener( 'click', function() {
-            var v = b.getAttribute('data-view');
-            applyView( v );
-            try { localStorage.setItem( STORAGE_KEY, v ); } catch ( e ) {}
-        });
-    });
 })();
 </script>
 

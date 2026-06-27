@@ -1,0 +1,378 @@
+<ips:template parameters="$data" />
+<div class="gdPageHeader">
+    <div class="gdPageHeader__titleBlock">
+        <h1 class="gdPageHeader__title">Edit dealer profile</h1>
+        <p class="gdPageHeader__sub">This is what customers see on your public storefront. Take a few minutes to make it yours.</p>
+    </div>
+    <div class="gdPageHeader__actions">
+        <a href="{$data['public_profile_url']}" target="_blank" class="gdBtn gdBtn--secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            View public profile
+        </a>
+    </div>
+</div>
+
+<form method="post" action="{$data['save_url']}" class="gdProfileForm">
+    <input type="hidden" name="csrfKey" value="{$data['csrf_key']}">
+
+    <div class="gdPanel">
+        <div class="gdPanel__head">
+            <div>
+                <div class="gdPanel__title">Identity</div>
+                <div class="gdPanel__sub">Business name, logo, cover photo, and tagline.</div>
+            </div>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label gdField__label--required">Business name</label>
+            <input type="text" name="dealer_name" value="{$data['profile']['dealer_name']}" maxlength="150" class="gdInput" required>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">Tagline</label>
+            <input type="text" name="tagline" value="{$data['profile']['tagline']}" maxlength="160" class="gdInput" placeholder="One short sentence about what makes you different">
+            <div class="gdField__hint">Appears under your business name on the public profile. Keep it brief.</div>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">Logo URL</label>
+            <input type="url" name="logo_url" value="{$data['profile']['logo_url']}" maxlength="500" class="gdInput gdInput--mono" placeholder="https://example.com/logo.png">
+            <div class="gdField__hint">Square image recommended, 200x200 or larger. Paste a direct image URL.</div>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">Cover photo URL</label>
+            <input type="url" name="cover_url" value="{$data['profile']['cover_url']}" maxlength="500" class="gdInput gdInput--mono" placeholder="https://example.com/cover.jpg">
+            <div class="gdField__hint">Wide banner image, 1600x400 recommended.</div>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">About / description</label>
+            <textarea name="about" rows="5" class="gdTextarea" placeholder="Tell customers about your shop — history, specialties, what makes you different.">{$data['profile']['about']}</textarea>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">Brand accent color</label>
+            <div class="gdColorPicker">
+                <input type="color" name="brand_color_picker" value="{$data['profile']['brand_color']}" class="gdColorPicker__swatch">
+                <input type="text" name="brand_color" value="{$data['profile']['brand_color']}" class="gdInput gdInput--mono" style="max-width:120px" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$">
+            </div>
+            <div class="gdField__hint">Used as the accent color on your public profile.</div>
+        </div>
+    </div>
+
+    <div class="gdPanel">
+        <div class="gdPanel__head">
+            <div>
+                <div class="gdPanel__title">Contact</div>
+                <div class="gdPanel__sub">How customers reach you.</div>
+            </div>
+        </div>
+
+        <div class="gdField gdField--split">
+            <div>
+                <label class="gdField__label">Phone</label>
+                <input type="tel" name="public_phone" value="{$data['profile']['public_phone']}" maxlength="32" class="gdInput" placeholder="(555) 123-4567">
+            </div>
+            <div>
+                <label class="gdField__label">Email</label>
+                <input type="email" name="public_email" value="{$data['profile']['public_email']}" maxlength="160" class="gdInput" placeholder="sales@yourshop.com">
+            </div>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">Website</label>
+            <input type="url" name="website_url" value="{$data['profile']['website_url']}" maxlength="500" class="gdInput" placeholder="https://yourshop.com">
+        </div>
+    </div>
+
+    <div class="gdPanel">
+        <div class="gdPanel__head">
+            <div>
+                <div class="gdPanel__title">Location</div>
+                <div class="gdPanel__sub">Helps customers find you. You can show just city &amp; state publicly if you prefer.</div>
+            </div>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">Street address</label>
+            <input type="text" name="address_street" value="{$data['profile']['address_street']}" maxlength="255" class="gdInput" placeholder="123 Main St">
+        </div>
+
+        <div class="gdField gdField--split3">
+            <div style="flex:2">
+                <label class="gdField__label">City</label>
+                <input type="text" name="address_city" value="{$data['profile']['address_city']}" maxlength="100" class="gdInput">
+            </div>
+            <div>
+                <label class="gdField__label">State</label>
+                <select name="address_state" class="gdSelect">
+                    <option value="">&mdash;</option>
+                    {{foreach $data['states'] as $code => $name}}
+                    <option value="{$code}" {expression="$data['profile']['address_state'] === $code ? 'selected' : ''"}>{$code}</option>
+                    {{endforeach}}
+                </select>
+            </div>
+            <div>
+                <label class="gdField__label">ZIP</label>
+                <input type="text" name="address_zip" value="{$data['profile']['address_zip']}" maxlength="10" class="gdInput">
+            </div>
+        </div>
+
+        <label class="gdCheckbox">
+            <input type="checkbox" name="address_public" value="1" {expression="$data['profile']['address_public'] ? 'checked' : ''"}>
+            <span>Show full street address on my public profile</span>
+        </label>
+        <div class="gdField__hint" style="margin-top:2px;margin-left:24px">When off, customers see only city &amp; state.</div>
+
+        <label class="gdCheckbox" style="margin-top:14px">
+            <input type="checkbox" name="directory_listed" value="1" {expression="isset($data['profile']['directory_listed']) && $data['profile']['directory_listed'] ? 'checked' : ''"}>
+            <span>List my dealership in the public directory</span>
+        </label>
+        <div class="gdField__hint" style="margin-top:2px;margin-left:24px">When off, your dealership won&rsquo;t appear in the /dealers directory. Your profile page and listings still work.</div>
+    </div>
+
+    <div class="gdPanel">
+        <div class="gdPanel__head">
+            <div>
+                <div class="gdPanel__title">Hours</div>
+                <div class="gdPanel__sub">When customers can reach you or visit your storefront.</div>
+            </div>
+        </div>
+
+        <div class="gdHoursGrid">
+            {{foreach $data['profile']['hours'] as $dayKey => $d}}
+            <div class="gdHoursRow">
+                <div class="gdHoursRow__day">{$d['label']}</div>
+                <label class="gdCheckbox gdCheckbox--inline">
+                    <input type="checkbox" name="hours_{$dayKey}_closed" value="1" {expression="$d['closed'] ? 'checked' : ''"}>
+                    <span>Closed</span>
+                </label>
+                <input type="time" name="hours_{$dayKey}_open" value="{$d['open']}" class="gdInput gdInput--sm" {expression="$d['closed'] ? 'disabled' : ''"}>
+                <span class="gdHoursRow__sep">to</span>
+                <input type="time" name="hours_{$dayKey}_close" value="{$d['close']}" class="gdInput gdInput--sm" {expression="$d['closed'] ? 'disabled' : ''"}>
+            </div>
+            {{endforeach}}
+        </div>
+    </div>
+
+    <div class="gdPanel">
+        <div class="gdPanel__head">
+            <div>
+                <div class="gdPanel__title">Social links</div>
+                <div class="gdPanel__sub">Paste full URLs to your social profiles. Blank fields won't display.</div>
+            </div>
+        </div>
+
+        <div class="gdField gdField--split">
+            <div>
+                <label class="gdField__label">Facebook</label>
+                <input type="url" name="social_facebook" value="{$data['profile']['social_facebook']}" maxlength="500" class="gdInput" placeholder="https://facebook.com/yourshop">
+            </div>
+            <div>
+                <label class="gdField__label">Instagram</label>
+                <input type="url" name="social_instagram" value="{$data['profile']['social_instagram']}" maxlength="500" class="gdInput" placeholder="https://instagram.com/yourshop">
+            </div>
+        </div>
+
+        <div class="gdField gdField--split">
+            <div>
+                <label class="gdField__label">YouTube</label>
+                <input type="url" name="social_youtube" value="{$data['profile']['social_youtube']}" maxlength="500" class="gdInput" placeholder="https://youtube.com/@yourshop">
+            </div>
+            <div>
+                <label class="gdField__label">X (Twitter)</label>
+                <input type="url" name="social_twitter" value="{$data['profile']['social_twitter']}" maxlength="500" class="gdInput" placeholder="https://x.com/yourshop">
+            </div>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">TikTok</label>
+            <input type="url" name="social_tiktok" value="{$data['profile']['social_tiktok']}" maxlength="500" class="gdInput" placeholder="https://tiktok.com/@yourshop">
+        </div>
+    </div>
+
+    <div class="gdPanel">
+        <div class="gdPanel__head">
+            <div>
+                <div class="gdPanel__title">Payment methods accepted</div>
+                <div class="gdPanel__sub">Shown as icons on your public profile.</div>
+            </div>
+        </div>
+
+        <div class="gdCheckboxGrid">
+            {{foreach $data['payment_options'] as $key => $name}}
+            <label class="gdCheckbox gdCheckbox--card">
+                <input type="checkbox" name="payment_methods[]" value="{$key}" {expression="in_array($key, $data['profile']['payment_methods'], true) ? 'checked' : ''"}>
+                <span>{$name}</span>
+            </label>
+            {{endforeach}}
+        </div>
+    </div>
+
+    <div class="gdPanel">
+        <div class="gdPanel__head">
+            <div>
+                <div class="gdPanel__title">Policies</div>
+                <div class="gdPanel__sub">Shown on your public profile. Be specific so customers know what to expect.</div>
+            </div>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">Shipping policy</label>
+            <textarea name="shipping_policy" rows="4" class="gdTextarea" placeholder="Carriers, transit times, signature requirements, FFL shipping details...">{$data['profile']['shipping_policy']}</textarea>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">Return policy</label>
+            <textarea name="return_policy" rows="4" class="gdTextarea" placeholder="Return window, restocking fees, conditions...">{$data['profile']['return_policy']}</textarea>
+        </div>
+
+        <div class="gdField">
+            <label class="gdField__label">Additional notes <span style="color:var(--gd-text-faint);font-weight:400">(optional)</span></label>
+            <textarea name="additional_notes" rows="3" class="gdTextarea" placeholder="Anything else customers should know?">{$data['profile']['additional_notes']}</textarea>
+        </div>
+    </div>
+
+    <div class="gdPanel">
+        <div class="gdPanel__head">
+            <div>
+                <div class="gdPanel__title">Dashboard preferences</div>
+                <div class="gdPanel__sub">Control what you see on your Overview tab.</div>
+            </div>
+        </div>
+
+        <div class="gdSubsection__label">Overview cards</div>
+
+        <label class="gdWidgetRow">
+            <span class="gdWidgetRow__icon" style="background:var(--gd-success-bg);color:var(--gd-success)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+            <div class="gdWidgetRow__body"><div class="gdWidgetRow__title">Active listings</div><div class="gdWidgetRow__desc">Your active, in-stock listings</div></div>
+            <span class="gdToggle"><input type="checkbox" name="show_active" value="1" {expression="$data['prefs']['show_active'] ? 'checked' : ''"}><span class="gdToggle__slider"></span></span>
+        </label>
+
+        <label class="gdWidgetRow">
+            <span class="gdWidgetRow__icon" style="background:var(--gd-warn-bg);color:var(--gd-warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span>
+            <div class="gdWidgetRow__body"><div class="gdWidgetRow__title">Out of stock</div><div class="gdWidgetRow__desc">Listings marked out of stock</div></div>
+            <span class="gdToggle"><input type="checkbox" name="show_outofstock" value="1" {expression="$data['prefs']['show_outofstock'] ? 'checked' : ''"}><span class="gdToggle__slider"></span></span>
+        </label>
+
+        <label class="gdWidgetRow">
+            <span class="gdWidgetRow__icon" style="background:var(--gd-danger-bg);color:var(--gd-danger)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+            <div class="gdWidgetRow__body"><div class="gdWidgetRow__title">Unmatched UPCs</div><div class="gdWidgetRow__desc">Feed products not matched to catalog</div></div>
+            <span class="gdToggle"><input type="checkbox" name="show_unmatched" value="1" {expression="$data['prefs']['show_unmatched'] ? 'checked' : ''"}><span class="gdToggle__slider"></span></span>
+        </label>
+
+        <label class="gdWidgetRow">
+            <span class="gdWidgetRow__icon" style="background:var(--gd-brand-light);color:var(--gd-brand)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/></svg></span>
+            <div class="gdWidgetRow__body"><div class="gdWidgetRow__title">Clicks &mdash; 7 days</div><div class="gdWidgetRow__desc">Click-throughs last week</div></div>
+            <span class="gdToggle"><input type="checkbox" name="show_clicks_7d" value="1" {expression="$data['prefs']['show_clicks_7d'] ? 'checked' : ''"}><span class="gdToggle__slider"></span></span>
+        </label>
+
+        <label class="gdWidgetRow">
+            <span class="gdWidgetRow__icon" style="background:var(--gd-brand-light);color:var(--gd-brand)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/></svg></span>
+            <div class="gdWidgetRow__body"><div class="gdWidgetRow__title">Clicks &mdash; 30 days</div><div class="gdWidgetRow__desc">Click-throughs last month</div></div>
+            <span class="gdToggle"><input type="checkbox" name="show_clicks_30d" value="1" {expression="$data['prefs']['show_clicks_30d'] ? 'checked' : ''"}><span class="gdToggle__slider"></span></span>
+        </label>
+
+        <label class="gdWidgetRow">
+            <span class="gdWidgetRow__icon" style="background:var(--gd-surface-muted);color:var(--gd-text-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+            <div class="gdWidgetRow__body"><div class="gdWidgetRow__title">Last import</div><div class="gdWidgetRow__desc">Most recent feed import summary</div></div>
+            <span class="gdToggle"><input type="checkbox" name="show_last_import" value="1" {expression="$data['prefs']['show_last_import'] ? 'checked' : ''"}><span class="gdToggle__slider"></span></span>
+        </label>
+
+        <label class="gdWidgetRow">
+            <span class="gdWidgetRow__icon" style="background:var(--gd-surface-muted);color:var(--gd-text-muted)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/></svg></span>
+            <div class="gdWidgetRow__body"><div class="gdWidgetRow__title">Profile URL</div><div class="gdWidgetRow__desc">Quick-copy public profile link</div></div>
+            <span class="gdToggle"><input type="checkbox" name="show_profile_url" value="1" {expression="$data['prefs']['show_profile_url'] ? 'checked' : ''"}><span class="gdToggle__slider"></span></span>
+        </label>
+
+        <div class="gdSubsection__label" style="margin-top:20px">Card theme</div>
+
+        <div class="gdThemePicker">
+            <label class="gdThemeOption {expression="$data['prefs']['card_theme'] === 'default' ? 'is-selected' : ''"}">
+                <input type="radio" name="card_theme" value="default" {expression="$data['prefs']['card_theme'] === 'default' ? 'checked' : ''"}>
+                <div class="gdThemeOption__preview gdThemeOption__preview--default"><div class="gdThemeOption__kpi"><div class="gdThemeOption__label">Active</div><div class="gdThemeOption__value">1,234</div></div></div>
+                <div class="gdThemeOption__name">Default</div>
+                <div class="gdThemeOption__desc">Clean and neutral</div>
+            </label>
+            <label class="gdThemeOption {expression="$data['prefs']['card_theme'] === 'dark' ? 'is-selected' : ''"}">
+                <input type="radio" name="card_theme" value="dark" {expression="$data['prefs']['card_theme'] === 'dark' ? 'checked' : ''"}>
+                <div class="gdThemeOption__preview gdThemeOption__preview--dark"><div class="gdThemeOption__kpi"><div class="gdThemeOption__label">Active</div><div class="gdThemeOption__value">1,234</div></div></div>
+                <div class="gdThemeOption__name">Dark</div>
+                <div class="gdThemeOption__desc">High contrast</div>
+            </label>
+            <label class="gdThemeOption {expression="$data['prefs']['card_theme'] === 'accent' ? 'is-selected' : ''"}">
+                <input type="radio" name="card_theme" value="accent" {expression="$data['prefs']['card_theme'] === 'accent' ? 'checked' : ''"}>
+                <div class="gdThemeOption__preview gdThemeOption__preview--accent"><div class="gdThemeOption__kpi"><div class="gdThemeOption__label">Active</div><div class="gdThemeOption__value">1,234</div></div></div>
+                <div class="gdThemeOption__name">Accent</div>
+                <div class="gdThemeOption__desc">Brand-colored</div>
+            </label>
+        </div>
+    </div>
+
+    <div class="gdProfileForm__footer">
+        <a href="{$data['forum_profile_url']}" class="gdProfileForm__footerLink">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Edit your forum profile &rarr;
+        </a>
+    </div>
+
+    <div class="gdCustomizeActions">
+        <a href="{$data['cancel_url']}" class="gdBtn gdBtn--secondary">Cancel</a>
+        <button type="submit" class="gdBtn gdBtn--primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save changes
+        </button>
+    </div>
+
+</form>
+
+{{if isset($data['reset_action_url']) && $data['reset_action_url']}}
+<div class="gdPanel" style="margin-top:32px;border-left:4px solid #dc2626;background:#fef2f2">
+    <div class="gdPanel__head">
+        <div>
+            <div class="gdPanel__title" style="color:#dc2626">{lang="gddealer_front_customize_danger_zone_title"}</div>
+            <div class="gdPanel__sub">{lang="gddealer_front_customize_danger_zone_desc"}</div>
+        </div>
+    </div>
+
+    <div style="font-size:13px;line-height:1.6;margin-bottom:16px">
+        <strong style="color:#dc2626">{lang="gddealer_front_customize_danger_zone_wiped"}</strong> feed URL, feed mapping, all listings, all unmatched UPCs, all category mappings, all import logs, all price history.<br>
+        <strong style="color:#16a34a">{lang="gddealer_front_customize_danger_zone_kept"}</strong> dealer profile info, FFL information, subscription, founding status.
+    </div>
+
+    <form method="post" action="{$data['reset_action_url']}">
+        <input type="hidden" name="csrfKey" value="{$data['csrf_key']}">
+        <div class="gdField">
+            <label class="gdField__label">{lang="gddealer_front_customize_danger_zone_confirm_label"}</label>
+            <div class="gdField__hint" style="margin-bottom:6px">{$data['dealer_name_escaped']}</div>
+            <input type="text" name="confirm_name" class="gdInput" style="max-width:360px" autocomplete="off" required>
+        </div>
+        <button type="submit" class="gdBtn" style="background:#dc2626;color:#fff;border:none;margin-top:8px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            {lang="gddealer_front_customize_danger_zone_button"}
+        </button>
+    </form>
+</div>
+{{endif}}
+
+<script>
+(function(){
+    document.querySelectorAll('.gdColorPicker').forEach(function(wrap){
+        var swatch = wrap.querySelector('input[type="color"]');
+        var text   = wrap.querySelector('input[type="text"]');
+        if ( !swatch || !text ) return;
+        swatch.addEventListener('input', function(){ text.value = swatch.value.toUpperCase(); });
+        text.addEventListener('input', function(){
+            if ( /^#[0-9A-Fa-f]{6}$/.test(text.value) ) swatch.value = text.value;
+        });
+    });
+    document.querySelectorAll('.gdHoursRow').forEach(function(row){
+        var closedCb = row.querySelector('input[type="checkbox"][name$="_closed"]');
+        var timeInputs = row.querySelectorAll('input[type="time"]');
+        if ( !closedCb ) return;
+        function sync(){ timeInputs.forEach(function(i){ i.disabled = closedCb.checked; }); }
+        closedCb.addEventListener('change', sync);
+    });
+})();
+</script>

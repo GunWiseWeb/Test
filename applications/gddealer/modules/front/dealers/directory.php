@@ -119,6 +119,7 @@ class _directory extends \IPS\Dispatcher\Controller
 					MAX(d.address_city) AS address_city,
 					MAX(d.address_state) AS address_state,
 					MAX(d.address_public) AS address_public,
+					MAX(d.logo_url) AS logo_url,
 					COUNT(DISTINCT l.id) AS listing_count,
 					COUNT(DISTINCT r.id) AS total_reviews,
 					COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) AS avg_overall
@@ -164,6 +165,7 @@ class _directory extends \IPS\Dispatcher\Controller
 					'dealer_id'     => (int) $row['dealer_id'],
 					'dealer_name'   => (string) $row['dealer_name'],
 					'dealer_slug'   => (string) $row['dealer_slug'],
+					'logo_url'      => (string) ( $row['logo_url'] ?? '' ),
 					'avatar'        => (string) ( $ipsMember->get_photo( true, false ) ?? '' ),
 					'listing_count' => (int) $row['listing_count'],
 					'total_reviews' => (int) $row['total_reviews'],
@@ -186,17 +188,23 @@ class _directory extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
-		$states = [];
+		$states      = [];
+		$stateCounts = [];
 		try
 		{
 			foreach ( \IPS\Db::i()->select(
-				'DISTINCT address_state',
+				'address_state, COUNT(*) AS c',
 				'gd_dealer_feed_config',
 				[ 'active=? AND directory_listed=? AND address_state IS NOT NULL AND address_state != ?', 1, 1, '' ],
-				'address_state ASC'
-			) as $s )
+				'address_state ASC',
+				null,
+				'address_state'
+			) as $row )
 			{
-				$states[] = (string) $s;
+				$code = strtoupper( (string) $row['address_state'] );
+				if ( $code === '' ) { continue; }
+				$states[]            = $code;
+				$stateCounts[ $code ] = (int) $row['c'];
 			}
 		}
 		catch ( \Throwable ) {}
@@ -216,9 +224,15 @@ class _directory extends \IPS\Dispatcher\Controller
 		$directoryUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=directory', 'front', 'dealers_directory' );
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_directory_title' );
+		$stateList = [
+			'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA',
+			'ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR',
+			'PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','PR'
+		];
+
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->dealerDirectory(
 			$dealers, $total, $page, $perPage, $pagination,
-			$sort, $search, $stateParam, $minRating, $states,
+			$sort, $search, $stateParam, $minRating, $states, $stateCounts, $stateList,
 			$member->member_id ? true : false,
 			$joinUrl, $directoryUrl
 		);
