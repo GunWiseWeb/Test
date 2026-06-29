@@ -51,13 +51,13 @@ class _DealPublisher
 		{
 			$sql = "SELECT
 					l.dealer_id, l.upc, l.dealer_price, l.shipping_info, l.in_stock,
+					l.category AS listing_category,
 					l.deal_msrp_pct, l.deal_drop_pct,
 					l.deal_lowest_ever, l.deal_lowest_30d, l.deal_msrp_off,
 					l.deal_price_drop, l.deal_back_in_stock, l.deal_rare_find,
 					l.deal_free_ship_steal,
 					c.title AS catalog_title, c.msrp AS catalog_msrp,
 					c.image_url AS catalog_image, c.image_validated,
-					c.category AS catalog_category,
 					d.dealer_name, d.dealer_slug,
 					(
 						l.deal_msrp_pct * 1.0
@@ -133,12 +133,32 @@ class _DealPublisher
 		}
 		catch ( \Throwable ) {}
 
-		$defaultCategoryId = 0;
-		try
+		/* Map gd_dealer_listings.category → gd_deal_categories.id.
+		   Every auto-deal MUST land in a real container or it won't show
+		   in the moderation queue. */
+		$catMap = [
+			'firearm'   => 1,   /* handguns (default firearm bucket) */
+			'ammo'      => 4,   /* ammunition */
+			'optic'     => 5,   /* optics */
+			'accessory' => 6,   /* gun-accessories */
+			'part'      => 6,   /* gun-accessories */
+			'knife'     => 10,  /* knives */
+			'apparel'   => 6,   /* gun-accessories fallback */
+			'reloading' => 4,   /* ammunition (reloading components) */
+		];
+		$defaultCategoryId = 6; /* gun-accessories — safe catch-all */
+
+		/* Resolve and cache category nodes up-front so create/update doesn't
+		   re-load each row. */
+		$categoryNodes = [];
+		foreach ( array_unique( array_merge( array_values( $catMap ), [ $defaultCategoryId ] ) ) as $cid )
 		{
-			$defaultCategoryId = (int) \IPS\Db::i()->select( 'id', 'gd_deal_categories', NULL, 'id ASC' )->first();
+			try
+			{
+				$categoryNodes[ (int) $cid ] = \IPS\gddeals\Category::load( (int) $cid );
+			}
+			catch ( \Throwable ) {}
 		}
-		catch ( \Throwable ) {}
 
 		/* 5. Upsert each top-N row. */
 		foreach ( $rows as $r )
@@ -150,6 +170,16 @@ class _DealPublisher
 				$key      = $upc . '|' . $dealerId;
 				$price    = (float) $r['dealer_price'];
 				$msrp     = (float) $r['catalog_msrp'];
+
+				$catKey      = strtolower( (string) $r['listing_category'] );
+				$categoryId  = $catMap[ $catKey ] ?? $defaultCategoryId;
+				$container   = $categoryNodes[ $categoryId ] ?? ( $categoryNodes[ $defaultCategoryId ] ?? null );
+				if ( $container === null )
+				{
+					$counts['errors']++;
+					try { \IPS\Log::log( "DealPublisher: no category container available for id $categoryId", 'gddealer_deals' ); } catch ( \Throwable ) {}
+					continue;
+				}
 
 				$catTitle = trim( (string) ( $r['catalog_title'] ?? '' ) );
 				$dealerNm = trim( (string) ( $r['dealer_name'] ?? '' ) );
@@ -219,6 +249,7 @@ class _DealPublisher
 					try
 					{
 						$post = \IPS\gddeals\Deal::load( (int) $existingByKey[ $key ]['id'] );
+						$post->category_id    = $categoryId;
 						$post->title          = $title;
 						$post->upc            = $upc;
 						$post->dealer_id      = $dealerId;
@@ -245,24 +276,17 @@ class _DealPublisher
 				}
 				else
 				{
-					/* CREATE via the canonical pattern. */
+					/* CREATE via the canonical pattern from submit.php — pass TRUE
+					   as the 5th arg so IPS creates the item as hidden/pending,
+					   then register an Approval row so the mod queue surfaces it.
+					   Just setting approved=0 on the column is NOT enough — the
+					   moderation UI keys off core_approvals. */
 					try
 					{
-						$category = null;
-						if ( $defaultCategoryId > 0 )
-						{
-							try { $category = \IPS\gddeals\Category::load( $defaultCategoryId ); }
-							catch ( \Throwable ) { $category = null; }
-						}
-						if ( !$category )
-						{
-							throw new \RuntimeException( 'No default gd_deal_categories row available' );
-						}
-
 						$ip = '127.0.0.1';
 						try { $ip = (string) \IPS\Request::i()->ipAddress(); } catch ( \Throwable ) {}
 
-						$post = \IPS\gddeals\Deal::createItem( $author, $ip, \IPS\DateTime::create(), $category, FALSE );
+						$post = \IPS\gddeals\Deal::createItem( $author, $ip, \IPS\DateTime::create(), $container, TRUE );
 						$post->title          = $title;
 						$post->upc            = $upc;
 						$post->dealer_id      = $dealerId;
@@ -277,9 +301,20 @@ class _DealPublisher
 						$post->heat_label     = $hl;
 						$post->free_shipping  = $freeSh;
 						$post->expired        = 0;
-						$post->approved       = self::APPROVED;
 						$post->post_type      = 'product';
 						$post->save();
+
+						/* Register a core_approvals row so the moderation queue
+						   surfaces it. Mirrors submit.php lines 149-162. */
+						try
+						{
+							\IPS\core\Approval::loadFromContent( get_class( $post ), $post->id );
+						}
+						catch ( \OutOfRangeException )
+						{
+							try { \IPS\core\Approval::create( $post, 'node' ); } catch ( \Throwable ) {}
+						}
+
 						$counts['created']++;
 					}
 					catch ( \Throwable $e )

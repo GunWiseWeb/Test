@@ -1,6 +1,6 @@
 <?php
 
-namespace IPS\gddealer\setup\upg_10320;
+namespace IPS\gddealer\setup\upg_10321;
 
 use function defined;
 
@@ -14,26 +14,17 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* Recompute deal flags first (Phase 1 engine), then publish (Phase 2). */
-		try
-		{
-			require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Deals/DealEngine.php';
-			\IPS\gddealer\Deals\DealEngine::computeAll();
-		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10320 DealEngine::computeAll: ' . $e->getMessage(), 'gddealer_upgrade' ); } catch ( \Throwable ) {}
-		}
-
+		/* Re-run publish with the fixed column reference + category mapping +
+		   proper mod-queue Approval registration. Wrapped — never fatal. */
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Deals/DealPublisher.php';
 			$counts = \IPS\gddealer\Deals\DealPublisher::publish();
-			try { \IPS\Log::log( 'upg_10320 initial publish: ' . json_encode( $counts ), 'gddealer_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10321 publish: ' . json_encode( $counts ), 'gddealer_upgrade' ); } catch ( \Throwable ) {}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10320 DealPublisher::publish: ' . $e->getMessage(), 'gddealer_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10321 DealPublisher::publish: ' . $e->getMessage(), 'gddealer_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		require_once \IPS\ROOT_PATH . '/applications/gddealer/sources/Setup/CanonicalTemplates.php';
