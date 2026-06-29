@@ -175,5 +175,8 @@
     <word key="gddeals_submit_coupon_button"><![CDATA[Post Coupon]]></word>
     <word key="gddeals_submit_coupon_title"><![CDATA[Post a Coupon]]></word>
     <word key="gddeals_post_coupon_btn"><![CDATA[Post a Coupon]]></word>
+    <word key="gddeals_badge_auto"><![CDATA[Auto Deal]]></word>
+    <word key="gddeals_badge_community"><![CDATA[Community]]></word>
+    <word key="gddeals_auto_explainer"><![CDATA[Automatically detected from live dealer prices.]]></word>
   </app>
 </language>

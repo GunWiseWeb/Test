@@ -174,4 +174,7 @@ $lang = [
     'gddeals_submit_coupon_button'    => 'Post Coupon',
     'gddeals_submit_coupon_title'     => 'Post a Coupon',
     'gddeals_post_coupon_btn'         => 'Post a Coupon',
+    'gddeals_badge_auto'              => 'Auto Deal',
+    'gddeals_badge_community'         => 'Community',
+    'gddeals_auto_explainer'          => 'Automatically detected from live dealer prices.',
 ];

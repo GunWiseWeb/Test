@@ -245,6 +245,17 @@ class Importer
 				try { \IPS\Log::log( $e, 'gddealer_deals' ); } catch ( \Throwable ) {}
 			}
 
+			/* Publish/refresh the top-N auto deals to gd_deal_posts. Same
+			   wrapper rule: a publisher failure never breaks the import. */
+			try
+			{
+				\IPS\gddealer\Deals\DealPublisher::publish();
+			}
+			catch ( \Throwable $e )
+			{
+				try { \IPS\Log::log( $e, 'gddealer_deals' ); } catch ( \Throwable ) {}
+			}
+
 			$log->complete( $stats );
 			return $log;
 		}
