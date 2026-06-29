@@ -68,9 +68,9 @@
         ".  .  .  .  wi .  .  mi ny ma ."
         "wa id mt nd mn il in oh pa nj ct"
         "or nv wy sd ia mo ky wv va md ri"
-        "ca ut co ne ar tn nc sc de dc ."
+        "ca ut co ne ar tn nc sc de .  ."
         "hi az nm ks ok ms al ga .  .  ."
-        ".  .  .  tx la .  .  fl .  pr .";
+        ".  .  .  tx la .  .  fl .  .  .";
 }
 .gd-stateTile { display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: var(--gd-r-md); background: var(--gd-border-subtle); color: var(--gd-text-subtle); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; padding: 4px 2px; min-height: 34px; transition: transform 0.1s, background 0.1s, color 0.1s; cursor: pointer; }
 .gd-stateTile:hover { transform: translateY(-1px); }
@@ -182,9 +182,9 @@
     <div class="directory-hero">
         <div class="hero-top">
             <div class="hero-title-block">
-                <div class="hero-eyebrow">Dealer directory</div>
-                <h1 class="hero-title">Find a trusted FFL dealer</h1>
-                <p class="hero-sub">Every dealer on GunRack is a verified FFL holder. Browse by state, search by name, or filter by rating.</p>
+                <div class="hero-eyebrow">{setting="gddealer_dir_hero_eyebrow"}</div>
+                <h1 class="hero-title">{setting="gddealer_dir_hero_title"}</h1>
+                <p class="hero-sub">{setting="gddealer_dir_hero_sub"}</p>
             </div>
             <div class="hero-stats">
                 {{if \IPS\Member::loggedIn()->member_id}}
@@ -201,6 +201,7 @@
         </div>
     </div>
 
+    {{if \IPS\Settings::i()->gddealer_dir_map_enabled}}
     <section class="gd-mapPanel">
         <div class="gd-mapPanel__head">
             <div>
@@ -230,12 +231,17 @@
             {{endforeach}}
         </div>
     </section>
+    {{endif}}
 
+    {{if \IPS\Settings::i()->gddealer_dir_show_search || \IPS\Settings::i()->gddealer_dir_show_state_filter || \IPS\Settings::i()->gddealer_dir_show_rating_filter || \IPS\Settings::i()->gddealer_dir_show_sort}}
     <form method="get" action="{$directoryUrl}" class="gd-filters">
+        {{if \IPS\Settings::i()->gddealer_dir_show_search}}
         <div class="gd-filter-field">
             <label for="gdSearch">Search</label>
             <input id="gdSearch" type="text" name="search" value="{$search}" placeholder="Search by dealer name&hellip;">
         </div>
+        {{endif}}
+        {{if \IPS\Settings::i()->gddealer_dir_show_state_filter}}
         <div class="gd-filter-field">
             <label for="gdState">State</label>
             <select id="gdState" name="state">
@@ -245,6 +251,8 @@
                 {{endforeach}}
             </select>
         </div>
+        {{endif}}
+        {{if \IPS\Settings::i()->gddealer_dir_show_rating_filter}}
         <div class="gd-filter-field">
             <label for="gdMinRating">Min rating</label>
             <select id="gdMinRating" name="min_rating">
@@ -254,6 +262,8 @@
                 <option value="4.5"{{if $minRating >= 4.5}} selected{{endif}}>4.5&#9733; &amp; up</option>
             </select>
         </div>
+        {{endif}}
+        {{if \IPS\Settings::i()->gddealer_dir_show_sort}}
         <div class="gd-filter-field">
             <label for="gdSort">Sort by</label>
             <select id="gdSort" name="sort">
@@ -264,6 +274,7 @@
                 <option value="alpha"{{if $sort === 'alpha'}} selected{{endif}}>A&ndash;Z</option>
             </select>
         </div>
+        {{endif}}
         <div class="gd-filter-actions" style="grid-column: 1 / -1; justify-content: flex-end">
             {{if $search || $stateParam || $minRating > 0 || $sort !== 'featured'}}
             <a href="{$directoryUrl}">Clear all</a>
@@ -271,15 +282,16 @@
             <button type="submit">Apply filters</button>
         </div>
     </form>
+    {{endif}}
 
     <div class="results-meta">
         <div class="results-count"><strong>{$total}</strong> {{if $total === 1}}dealer{{else}}dealers{{endif}}{{if $stateParam}} in {$stateParam}{{endif}}{{if $minRating > 0}}, rated {expression="number_format($minRating, 1)"}&#9733; or higher{{endif}}</div>
-        <div class="view-toggle" id="gdDirView">
-            <button type="button" data-view="grid" class="active">
+        <div class="view-toggle" id="gdDirView" data-gd-default-view="{setting="gddealer_dir_default_view"}">
+            <button type="button" data-view="grid" class="{{if \IPS\Settings::i()->gddealer_dir_default_view !== 'list'}}active{{endif}}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                 Grid
             </button>
-            <button type="button" data-view="list">
+            <button type="button" data-view="list" class="{{if \IPS\Settings::i()->gddealer_dir_default_view === 'list'}}active{{endif}}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 List
             </button>
@@ -293,7 +305,7 @@
         <a href="{$directoryUrl}">Clear all filters &rarr;</a>
     </div>
 {{else}}
-    <div class="dealer-grid" id="gdDirGrid">
+    <div class="dealer-grid{{if \IPS\Settings::i()->gddealer_dir_default_view === 'list'}} list-view{{endif}}" id="gdDirGrid">
     {{foreach $dealers as $d}}
         <div class="dealer-card">
             <div class="dealer-head">
@@ -349,7 +361,7 @@
             <h2 class="join-banner-title">Are you an FFL dealer?</h2>
             <p class="join-banner-sub">Join GunRack to list your inventory, reach thousands of buyers, and grow your business.</p>
         </div>
-        <a href="https://gunrack.deals/dealer-memberships/" class="join-banner-cta">Apply to join</a>
+        <a href="{setting="gddealer_dir_join_url"}" class="join-banner-cta">{setting="gddealer_dir_join_text"}</a>
     </div>
 
 <script>
@@ -369,8 +381,9 @@
                 else { b.classList.remove('active'); }
             });
         }
-        var saved = 'grid';
-        try { saved = localStorage.getItem( STORAGE_KEY ) || 'grid'; } catch ( e ) {}
+        var defaultView = toggle.getAttribute('data-gd-default-view') || 'grid';
+        var saved = defaultView;
+        try { saved = localStorage.getItem( STORAGE_KEY ) || defaultView; } catch ( e ) {}
         applyView( saved );
         buttons.forEach(function( b ) {
             b.addEventListener( 'click', function() {

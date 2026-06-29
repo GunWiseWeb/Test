@@ -659,5 +659,19 @@
     <word key="gddealer_directory_listed"><![CDATA[List my dealership in the public directory]]></word>
     <word key="profile_gddealer_MyDealers"><![CDATA[My Dealers]]></word>
     <word key="gddealer_my_dealers_link"><![CDATA[Dealers I Follow]]></word>
+    <word key="gddealer_settings_directory"><![CDATA[Directory]]></word>
+    <word key="gddealer_dir_map_enabled"><![CDATA[Show state map]]></word>
+    <word key="gddealer_dir_default_sort"><![CDATA[Default sort order]]></word>
+    <word key="gddealer_dir_per_page"><![CDATA[Dealers per page]]></word>
+    <word key="gddealer_dir_default_view"><![CDATA[Default view]]></word>
+    <word key="gddealer_dir_hero_eyebrow"><![CDATA[Hero eyebrow text]]></word>
+    <word key="gddealer_dir_hero_title"><![CDATA[Hero title]]></word>
+    <word key="gddealer_dir_hero_sub"><![CDATA[Hero subtitle]]></word>
+    <word key="gddealer_dir_join_url"><![CDATA[Join CTA link URL]]></word>
+    <word key="gddealer_dir_join_text"><![CDATA[Join CTA button text]]></word>
+    <word key="gddealer_dir_show_search"><![CDATA[Show search box]]></word>
+    <word key="gddealer_dir_show_state_filter"><![CDATA[Show state filter]]></word>
+    <word key="gddealer_dir_show_rating_filter"><![CDATA[Show rating filter]]></word>
+    <word key="gddealer_dir_show_sort"><![CDATA[Show sort dropdown]]></word>
   </app>
 </language>

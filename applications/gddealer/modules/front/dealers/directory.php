@@ -32,11 +32,13 @@ class _directory extends \IPS\Dispatcher\Controller
 	protected function manage(): void
 	{
 		$member  = \IPS\Member::loggedIn();
-		$perPage = 24;
+		$perPage = max( 1, (int) ( \IPS\Settings::i()->gddealer_dir_per_page ?: 24 ) );
 		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
 		$offset  = ( $page - 1 ) * $perPage;
 
-		$sort       = (string) ( \IPS\Request::i()->sort   ?? 'featured' );
+		$defaultSort = (string) ( \IPS\Settings::i()->gddealer_dir_default_sort ?: 'featured' );
+
+		$sort       = (string) ( \IPS\Request::i()->sort ?? $defaultSort );
 		$search     = trim( str_replace( '+', ' ', (string) ( \IPS\Request::i()->search ?? '' ) ) );
 		$stateParam = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
 		$minRating  = (float) ( \IPS\Request::i()->min_rating ?? 0 );
@@ -46,7 +48,7 @@ class _directory extends \IPS\Dispatcher\Controller
 		$validSorts = [ 'featured', 'rating', 'listings', 'newest', 'alpha' ];
 		if ( !in_array( $sort, $validSorts, true ) )
 		{
-			$sort = 'featured';
+			$sort = in_array( $defaultSort, $validSorts, true ) ? $defaultSort : 'featured';
 		}
 
 		$daySeed = (int) date( 'Ymd' );
@@ -245,9 +247,9 @@ class _directory extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_directory_title' );
 		$stateList = [
-			'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA',
+			'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA',
 			'ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR',
-			'PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','PR'
+			'PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'
 		];
 
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'front' )->dealerDirectory(

@@ -77,6 +77,56 @@ class _settings extends \IPS\Dispatcher\Controller
 		$form->add( new \IPS\Helpers\Form\YesNo( 'gddealer_click_tracking_enabled',
 			(bool) \IPS\Settings::i()->gddealer_click_tracking_enabled, FALSE ) );
 
+		/* ---- Directory ---- */
+		$form->addHeader( 'gddealer_settings_directory' );
+
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gddealer_dir_map_enabled',
+			(bool) \IPS\Settings::i()->gddealer_dir_map_enabled, FALSE ) );
+
+		$form->add( new \IPS\Helpers\Form\Select( 'gddealer_dir_default_sort',
+			(string) ( \IPS\Settings::i()->gddealer_dir_default_sort ?: 'featured' ), FALSE,
+			[ 'options' => [
+				'featured' => 'Featured (rotating)',
+				'rating'   => 'Highest rated',
+				'listings' => 'Most listings',
+				'newest'   => 'Newest',
+				'alpha'    => 'A–Z',
+			] ] ) );
+
+		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_dir_per_page',
+			(int) ( \IPS\Settings::i()->gddealer_dir_per_page ?: 24 ), FALSE, [ 'min' => 1 ] ) );
+
+		$form->add( new \IPS\Helpers\Form\Select( 'gddealer_dir_default_view',
+			(string) ( \IPS\Settings::i()->gddealer_dir_default_view ?: 'grid' ), FALSE,
+			[ 'options' => [ 'grid' => 'Grid', 'list' => 'List' ] ] ) );
+
+		$form->add( new \IPS\Helpers\Form\Text( 'gddealer_dir_hero_eyebrow',
+			(string) \IPS\Settings::i()->gddealer_dir_hero_eyebrow, FALSE ) );
+
+		$form->add( new \IPS\Helpers\Form\Text( 'gddealer_dir_hero_title',
+			(string) \IPS\Settings::i()->gddealer_dir_hero_title, FALSE ) );
+
+		$form->add( new \IPS\Helpers\Form\TextArea( 'gddealer_dir_hero_sub',
+			(string) \IPS\Settings::i()->gddealer_dir_hero_sub, FALSE, [ 'rows' => 3 ] ) );
+
+		$form->add( new \IPS\Helpers\Form\Url( 'gddealer_dir_join_url',
+			(string) \IPS\Settings::i()->gddealer_dir_join_url, FALSE ) );
+
+		$form->add( new \IPS\Helpers\Form\Text( 'gddealer_dir_join_text',
+			(string) \IPS\Settings::i()->gddealer_dir_join_text, FALSE ) );
+
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gddealer_dir_show_search',
+			(bool) \IPS\Settings::i()->gddealer_dir_show_search, FALSE ) );
+
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gddealer_dir_show_state_filter',
+			(bool) \IPS\Settings::i()->gddealer_dir_show_state_filter, FALSE ) );
+
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gddealer_dir_show_rating_filter',
+			(bool) \IPS\Settings::i()->gddealer_dir_show_rating_filter, FALSE ) );
+
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gddealer_dir_show_sort',
+			(bool) \IPS\Settings::i()->gddealer_dir_show_sort, FALSE ) );
+
 		$form->addHeader( 'gddealer_commerce_header' );
 
 		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_commerce_basic_id',
@@ -333,6 +383,19 @@ class _settings extends \IPS\Dispatcher\Controller
 				'gddealer_cap_pro'                   => (int) $values['gddealer_cap_pro'],
 				'gddealer_cap_enterprise'            => (int) $values['gddealer_cap_enterprise'],
 				'gddealer_cap_max'                   => (int) $values['gddealer_cap_max'],
+				'gddealer_dir_map_enabled'           => (int) $values['gddealer_dir_map_enabled'],
+				'gddealer_dir_default_sort'          => (string) $values['gddealer_dir_default_sort'],
+				'gddealer_dir_per_page'              => (int) $values['gddealer_dir_per_page'],
+				'gddealer_dir_default_view'          => (string) $values['gddealer_dir_default_view'],
+				'gddealer_dir_hero_eyebrow'          => (string) $values['gddealer_dir_hero_eyebrow'],
+				'gddealer_dir_hero_title'            => (string) $values['gddealer_dir_hero_title'],
+				'gddealer_dir_hero_sub'              => (string) $values['gddealer_dir_hero_sub'],
+				'gddealer_dir_join_url'              => (string) $values['gddealer_dir_join_url'],
+				'gddealer_dir_join_text'             => (string) $values['gddealer_dir_join_text'],
+				'gddealer_dir_show_search'           => (int) $values['gddealer_dir_show_search'],
+				'gddealer_dir_show_state_filter'     => (int) $values['gddealer_dir_show_state_filter'],
+				'gddealer_dir_show_rating_filter'    => (int) $values['gddealer_dir_show_rating_filter'],
+				'gddealer_dir_show_sort'             => (int) $values['gddealer_dir_show_sort'],
 			]);
 
 			if ( isset( $values['gddealer_quicklinks_json'] ) )
