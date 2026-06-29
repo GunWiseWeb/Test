@@ -233,6 +233,18 @@ class Importer
 			$dealer->save();
 
 			UnmatchedUpc::sweepMatched();
+
+			/* Recompute deal flags across all active listings. Wrapped so a
+			   DealEngine failure never breaks the import. */
+			try
+			{
+				\IPS\gddealer\Deals\DealEngine::computeAll();
+			}
+			catch ( \Throwable $e )
+			{
+				try { \IPS\Log::log( $e, 'gddealer_deals' ); } catch ( \Throwable ) {}
+			}
+
 			$log->complete( $stats );
 			return $log;
 		}

@@ -840,6 +840,61 @@
 				"zerofill": false,
 				"values": [],
 				"comment": ""
+			},
+			"deal_lowest_ever": {
+				"name": "deal_lowest_ever", "type": "TINYINT", "length": 1, "decimals": null,
+				"allow_null": false, "default": 0, "auto_increment": false, "binary": false,
+				"unsigned": false, "zerofill": false, "values": [], "comment": ""
+			},
+			"deal_lowest_30d": {
+				"name": "deal_lowest_30d", "type": "TINYINT", "length": 1, "decimals": null,
+				"allow_null": false, "default": 0, "auto_increment": false, "binary": false,
+				"unsigned": false, "zerofill": false, "values": [], "comment": ""
+			},
+			"deal_msrp_off": {
+				"name": "deal_msrp_off", "type": "TINYINT", "length": 1, "decimals": null,
+				"allow_null": false, "default": 0, "auto_increment": false, "binary": false,
+				"unsigned": false, "zerofill": false, "values": [], "comment": ""
+			},
+			"deal_msrp_pct": {
+				"name": "deal_msrp_pct", "type": "DECIMAL", "length": 5, "decimals": 2,
+				"allow_null": false, "default": 0, "auto_increment": false, "binary": false,
+				"unsigned": false, "zerofill": false, "values": [], "comment": ""
+			},
+			"deal_price_drop": {
+				"name": "deal_price_drop", "type": "TINYINT", "length": 1, "decimals": null,
+				"allow_null": false, "default": 0, "auto_increment": false, "binary": false,
+				"unsigned": false, "zerofill": false, "values": [], "comment": ""
+			},
+			"deal_drop_pct": {
+				"name": "deal_drop_pct", "type": "DECIMAL", "length": 5, "decimals": 2,
+				"allow_null": false, "default": 0, "auto_increment": false, "binary": false,
+				"unsigned": false, "zerofill": false, "values": [], "comment": ""
+			},
+			"deal_back_in_stock": {
+				"name": "deal_back_in_stock", "type": "TINYINT", "length": 1, "decimals": null,
+				"allow_null": false, "default": 0, "auto_increment": false, "binary": false,
+				"unsigned": false, "zerofill": false, "values": [], "comment": ""
+			},
+			"deal_rare_find": {
+				"name": "deal_rare_find", "type": "TINYINT", "length": 1, "decimals": null,
+				"allow_null": false, "default": 0, "auto_increment": false, "binary": false,
+				"unsigned": false, "zerofill": false, "values": [], "comment": ""
+			},
+			"deal_dealer_count": {
+				"name": "deal_dealer_count", "type": "INT", "length": 10, "decimals": null,
+				"allow_null": false, "default": 0, "auto_increment": false, "binary": false,
+				"unsigned": true, "zerofill": false, "values": [], "comment": ""
+			},
+			"deal_free_ship_steal": {
+				"name": "deal_free_ship_steal", "type": "TINYINT", "length": 1, "decimals": null,
+				"allow_null": false, "default": 0, "auto_increment": false, "binary": false,
+				"unsigned": false, "zerofill": false, "values": [], "comment": ""
+			},
+			"deals_computed_at": {
+				"name": "deals_computed_at", "type": "DATETIME", "length": null, "decimals": null,
+				"allow_null": true, "default": null, "auto_increment": false, "binary": false,
+				"unsigned": false, "zerofill": false, "values": [], "comment": ""
 			}
 		},
 		"indexes": {
@@ -894,6 +949,12 @@
 				"columns": [
 					"category"
 				]
+			},
+			"idx_deals": {
+				"type": "key",
+				"name": "idx_deals",
+				"length": [ null, null ],
+				"columns": [ "listing_status", "in_stock" ]
 			}
 		}
 	},
