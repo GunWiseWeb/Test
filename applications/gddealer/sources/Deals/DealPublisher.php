@@ -37,6 +37,65 @@ class _DealPublisher
 	const APPROVED = 0;         /* gated — admin approves */
 	const BADGE    = 'auto';    /* source_badge value */
 
+	/* gd_deal_categories id used when nothing else matches. */
+	const DEAL_CAT_DEFAULT = 6; /* gun-accessories */
+
+	/* gd_categories top-level (parent_id=0) id → gd_deal_categories.id.
+	   Anything not listed falls back to DEAL_CAT_DEFAULT (gun-accessories). */
+	protected static array $topLevelToDeal = [
+		1   => 1,   /* Handguns           */
+		7   => 2,   /* Rifles             */
+		16  => 3,   /* Shotguns           */
+		23  => 4,   /* Ammunition         */
+		44  => 5,   /* Optics             */
+		72  => 7,   /* Holsters & Carry   */
+		83  => 8,   /* Storage & Safety   */
+		31  => 9,   /* NFA Items          */
+		138 => 10,  /* Knives             */
+		135 => 1,   /* Air Guns -> handguns (mixed; default) */
+		137 => 2,   /* Muzzleloading -> rifles */
+		136 => 4,   /* Reloading -> ammunition */
+	];
+
+	/* Per-publish cache of catalog_category_id → deal_category_id resolutions. */
+	protected static array $resolveCache = [];
+
+	/**
+	 * Walk a gd_catalog.category_id up the gd_categories parent chain to its
+	 * top-level parent (parent_id=0), then map to a gd_deal_categories.id.
+	 * Falls back to DEAL_CAT_DEFAULT (6, gun-accessories) on missing data.
+	 */
+	protected static function resolveDealCategory( int $catalogCategoryId ): int
+	{
+		if ( $catalogCategoryId <= 0 ) { return self::DEAL_CAT_DEFAULT; }
+		if ( isset( self::$resolveCache[ $catalogCategoryId ] ) )
+		{
+			return self::$resolveCache[ $catalogCategoryId ];
+		}
+
+		$id    = $catalogCategoryId;
+		$topId = $catalogCategoryId;
+		$guard = 0;
+		try
+		{
+			while ( $guard++ < 12 )
+			{
+				$row = \IPS\Db::i()->select( 'id, parent_id', 'gd_categories', [ 'id=?', $id ] )->first();
+				if ( (int) $row['parent_id'] === 0 ) { $topId = (int) $row['id']; break; }
+				$id    = (int) $row['parent_id'];
+				$topId = $id;
+			}
+		}
+		catch ( \Throwable )
+		{
+			/* missing row → default */
+		}
+
+		$deal = self::$topLevelToDeal[ $topId ] ?? self::DEAL_CAT_DEFAULT;
+		self::$resolveCache[ $catalogCategoryId ] = $deal;
+		return $deal;
+	}
+
 	/**
 	 * Publish/refresh the top-N auto deals. Returns counts for logging.
 	 * @return array{created:int,updated:int,expired:int,considered:int,errors:int}
@@ -84,6 +143,7 @@ class _DealPublisher
 					l.deal_free_ship_steal,
 					c.title AS catalog_title, c.msrp AS catalog_msrp,
 					c.image_url AS catalog_image, c.image_validated,
+					c.category_id AS catalog_category_id,
 					d.dealer_name, d.dealer_slug,
 					(
 						l.deal_msrp_pct * {$w['msrp']}
@@ -159,25 +219,15 @@ class _DealPublisher
 		}
 		catch ( \Throwable ) {}
 
-		/* Map gd_dealer_listings.category → gd_deal_categories.id.
-		   Every auto-deal MUST land in a real container or it won't show
-		   in the moderation queue. */
-		$catMap = [
-			'firearm'   => 1,   /* handguns (default firearm bucket) */
-			'ammo'      => 4,   /* ammunition */
-			'optic'     => 5,   /* optics */
-			'accessory' => 6,   /* gun-accessories */
-			'part'      => 6,   /* gun-accessories */
-			'knife'     => 10,  /* knives */
-			'apparel'   => 6,   /* gun-accessories fallback */
-			'reloading' => 4,   /* ammunition (reloading components) */
-		];
-		$defaultCategoryId = 6; /* gun-accessories — safe catch-all */
+		/* Resolve deal category from the catalog hierarchy (granular: rifle vs
+		   handgun vs shotgun). The coarse listing.category can't distinguish
+		   firearm types. See self::resolveDealCategory(). */
+		$defaultCategoryId = self::DEAL_CAT_DEFAULT;
 
-		/* Resolve and cache category nodes up-front so create/update doesn't
-		   re-load each row. */
+		/* Pre-load every possible deal-category container we might assign so
+		   the per-row loop doesn't re-load each one. */
 		$categoryNodes = [];
-		foreach ( array_unique( array_merge( array_values( $catMap ), [ $defaultCategoryId ] ) ) as $cid )
+		foreach ( array_unique( array_merge( array_values( self::$topLevelToDeal ), [ $defaultCategoryId ] ) ) as $cid )
 		{
 			try
 			{
@@ -197,8 +247,7 @@ class _DealPublisher
 				$price    = (float) $r['dealer_price'];
 				$msrp     = (float) $r['catalog_msrp'];
 
-				$catKey      = strtolower( (string) $r['listing_category'] );
-				$categoryId  = $catMap[ $catKey ] ?? $defaultCategoryId;
+				$categoryId  = self::resolveDealCategory( (int) ( $r['catalog_category_id'] ?? 0 ) );
 				$container   = $categoryNodes[ $categoryId ] ?? ( $categoryNodes[ $defaultCategoryId ] ?? null );
 				if ( $container === null )
 				{
