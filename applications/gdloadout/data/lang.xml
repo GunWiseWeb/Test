@@ -206,5 +206,7 @@
 <word key="gdloadout_beta_notice_body" js="0"><![CDATA[Beta notice body text]]></word>
 <word key="gdloadout_beta_notice_url_contact" js="0"><![CDATA["Let us know" link URL]]></word>
 <word key="gdloadout_beta_notice_url_forums" js="0"><![CDATA["Join the discussion" link URL]]></word>
+<word key="notifications__gdloadout_Loadouts" js="0"><![CDATA[Community Loadouts]]></word>
+<word key="notifications__gdloadout_Loadouts_desc" js="0"><![CDATA[These notifications are sent about loadouts you follow or created — updates, upvotes, follows, and suggestions.]]></word>
 </app>
 </language>

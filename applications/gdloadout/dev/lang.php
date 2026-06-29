@@ -206,4 +206,6 @@ $lang = array(
     'gdloadout_beta_notice_body'        => 'Beta notice body text',
     'gdloadout_beta_notice_url_contact' => '"Let us know" link URL',
     'gdloadout_beta_notice_url_forums'  => '"Join the discussion" link URL',
+    'notifications__gdloadout_Loadouts'      => 'Community Loadouts',
+    'notifications__gdloadout_Loadouts_desc' => 'These notifications are sent about loadouts you follow or created — updates, upvotes, follows, and suggestions.',
 );
