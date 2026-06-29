@@ -178,7 +178,7 @@
     <word key="gddeals_badge_auto"><![CDATA[Auto Deal]]></word>
     <word key="gddeals_badge_community"><![CDATA[Community]]></word>
     <word key="gddeals_auto_explainer"><![CDATA[Automatically detected from live dealer prices.]]></word>
-    <word key="menu__deals_autodeals"><![CDATA[Auto Deals]]></word>
+    <word key="menu__gddeals_deals_autodeals"><![CDATA[Auto Deals]]></word>
     <word key="gddeals_ad_title"><![CDATA[Auto Deals]]></word>
     <word key="gddeals_ad_recompute"><![CDATA[Recompute now]]></word>
     <word key="gddeals_ad_recompute_hint"><![CDATA[Apply changes immediately without waiting for the next import.]]></word>
