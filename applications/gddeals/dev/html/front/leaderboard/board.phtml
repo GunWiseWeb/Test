@@ -1,0 +1,153 @@
+<ips:template parameters="$rows, $activeBoard, $activeWindow, $enabledBoards, $boardUrls, $windowUrls" />
+<div class="gd-lb">
+<style>
+.gd-lb { max-width: 1200px; margin: 0 auto; padding: 4px 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+.gd-lb-header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 18px; flex-wrap: wrap; }
+.gd-lb-header h1 { margin: 0; font-size: 24px; font-weight: 700; color: var(--gd-heading, #1a2b4a); letter-spacing: -0.015em; }
+.gd-lb-header .gd-lb-sub { font-size: 13px; color: var(--gd-text_muted, #6b7480); }
+.gd-lb-tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 12px; border-bottom: 1px solid var(--gd-border, #e6e9ee); }
+.gd-lb-tab { padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--gd-text_muted, #6b7480); text-decoration: none; border-bottom: 3px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; }
+.gd-lb-tab:hover { color: var(--gd-primary, #1f3a63); }
+.gd-lb-tab.is-active { color: var(--gd-primary, #1f3a63); border-bottom-color: var(--gd-primary, #1f3a63); }
+.gd-lb-windows { display: inline-flex; gap: 2px; padding: 2px; background: var(--gd-surface_alt, #f1f3f5); border-radius: 6px; margin: 0 0 18px; }
+.gd-lb-window { padding: 6px 14px; font-size: 12px; font-weight: 600; color: var(--gd-text_muted, #6b7480); text-decoration: none; border-radius: 4px; transition: background .15s, color .15s; }
+.gd-lb-window.is-active { background: var(--gd-surface, #fff); color: var(--gd-text, #16181d); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.gd-lb-list { display: flex; flex-direction: column; gap: 8px; }
+.gd-lb-row { display: grid; grid-template-columns: 50px 56px 1fr auto; gap: 14px; align-items: center; padding: 12px 16px; background: var(--gd-surface, #fff); border: 1px solid var(--gd-border, #e6e9ee); border-radius: 10px; transition: border-color .15s, transform .15s; }
+.gd-lb-row:hover { border-color: var(--gd-border_hover, #d3d9e0); transform: translateY(-1px); }
+.gd-lb-rank { font-size: 18px; font-weight: 800; color: var(--gd-text_faint, #8a93a0); text-align: center; }
+.gd-lb-row--gold   { border-color: #f59e0b; background: linear-gradient(90deg, rgba(245,158,11,0.06) 0%, rgba(255,255,255,1) 60%); }
+.gd-lb-row--silver { border-color: #94a3b8; background: linear-gradient(90deg, rgba(148,163,184,0.06) 0%, rgba(255,255,255,1) 60%); }
+.gd-lb-row--bronze { border-color: #b45309; background: linear-gradient(90deg, rgba(180,83,9,0.06) 0%, rgba(255,255,255,1) 60%); }
+.gd-lb-medal { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; font-weight: 800; color: #fff; margin: 0 auto; }
+.gd-lb-medal--gold   { background: #f59e0b; }
+.gd-lb-medal--silver { background: #94a3b8; }
+.gd-lb-medal--bronze { background: #b45309; }
+.gd-lb-thumb { width: 56px; height: 56px; border-radius: 8px; background: var(--gd-surface_alt, #f1f3f5); overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--gd-text_faint, #8a93a0); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.gd-lb-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.gd-lb-body { min-width: 0; }
+.gd-lb-title { font-size: 14px; font-weight: 600; color: var(--gd-text, #16181d); text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-lb-title:hover { color: var(--gd-primary, #1f3a63); }
+.gd-lb-meta { font-size: 12px; color: var(--gd-text_muted, #6b7480); margin-top: 3px; display: flex; gap: 12px; flex-wrap: wrap; }
+.gd-lb-metric { text-align: right; display: flex; flex-direction: column; gap: 2px; min-width: 80px; }
+.gd-lb-metric-value { font-size: 18px; font-weight: 700; color: var(--gd-primary, #1f3a63); font-variant-numeric: tabular-nums; }
+.gd-lb-metric-label { font-size: 10px; color: var(--gd-text_muted, #6b7480); text-transform: uppercase; letter-spacing: 0.04em; }
+.gd-lb-discount { display: inline-block; background: var(--gd-discount, #d97706); color: #fff; font-size: 11px; font-weight: 800; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.02em; }
+.gd-lb-strike { color: var(--gd-text_strike, #9aa3ad); text-decoration: line-through; font-size: 11px; }
+.gd-lb-empty { text-align: center; padding: 4rem 2rem; background: var(--gd-surface, #fff); border: 1px dashed var(--gd-border, #e6e9ee); border-radius: 10px; color: var(--gd-text_muted, #6b7480); }
+.gd-lb-empty h3 { font-size: 15px; color: var(--gd-text, #16181d); margin: 0 0 6px; font-weight: 600; }
+@media (max-width: 640px) {
+	.gd-lb-row { grid-template-columns: 40px 48px 1fr auto; gap: 10px; padding: 10px; }
+	.gd-lb-thumb { width: 48px; height: 48px; }
+	.gd-lb-metric-value { font-size: 15px; }
+}
+</style>
+
+	<div class="gd-lb-header">
+		<div>
+			<h1>{lang="gddeals_lb_title"}</h1>
+			<div class="gd-lb-sub">{lang="gddeals_lb_subtitle"}</div>
+		</div>
+		<div class="gd-lb-windows">
+			<a href="{$windowUrls['week']}"  class="gd-lb-window{{if $activeWindow == 'week'}} is-active{{endif}}">{lang="gddeals_lb_window_week"}</a>
+			<a href="{$windowUrls['month']}" class="gd-lb-window{{if $activeWindow == 'month'}} is-active{{endif}}">{lang="gddeals_lb_window_month"}</a>
+			<a href="{$windowUrls['all']}"   class="gd-lb-window{{if $activeWindow == 'all'}} is-active{{endif}}">{lang="gddeals_lb_window_all"}</a>
+		</div>
+	</div>
+
+	<div class="gd-lb-tabs">
+		{{foreach $enabledBoards as $b}}
+			<a href="{$boardUrls[$b]}" class="gd-lb-tab{{if $activeBoard == $b}} is-active{{endif}}">{lang="gddeals_lb_board_{$b}"}</a>
+		{{endforeach}}
+	</div>
+
+	{{if count($rows) === 0}}
+		<div class="gd-lb-empty">
+			<h3>{lang="gddeals_lb_empty_title"}</h3>
+			<p>{lang="gddeals_lb_empty_body"}</p>
+		</div>
+	{{else}}
+		<div class="gd-lb-list">
+			{{foreach $rows as $i => $row}}
+				{{$rank = $i + 1;}}
+				{{$rankClass = '';}}
+				{{if $rank === 1}}{{$rankClass = ' gd-lb-row--gold';}}
+				{{elseif $rank === 2}}{{$rankClass = ' gd-lb-row--silver';}}
+				{{elseif $rank === 3}}{{$rankClass = ' gd-lb-row--bronze';}}{{endif}}
+				<div class="gd-lb-row{$rankClass}">
+					<div class="gd-lb-rank">
+						{{if $rank === 1}}<span class="gd-lb-medal gd-lb-medal--gold">1</span>
+						{{elseif $rank === 2}}<span class="gd-lb-medal gd-lb-medal--silver">2</span>
+						{{elseif $rank === 3}}<span class="gd-lb-medal gd-lb-medal--bronze">3</span>
+						{{else}}{$rank}{{endif}}
+					</div>
+
+					{{if $row['kind'] === 'deal'}}
+						<div class="gd-lb-thumb">{{if $row['image_url']}}<img src="{$row['image_url']}" alt="">{{else}}DEAL{{endif}}</div>
+						<div class="gd-lb-body">
+							<a class="gd-lb-title" href="{$row['url']}">{$row['title']}</a>
+							<div class="gd-lb-meta">
+								{{if $row['retailer']}}<span>{$row['retailer']}</span>{{endif}}
+								{{if $row['deal_price'] !== null}}<span><strong>${expression="number_format($row['deal_price'], 2)"}</strong>{{if $row['original'] !== null}} <span class="gd-lb-strike">${expression="number_format($row['original'], 2)"}</span>{{endif}}</span>{{endif}}
+								{{if $row['discount_pct'] > 0}}<span class="gd-lb-discount">&minus;{expression="number_format($row['discount_pct'], 0)"}%</span>{{endif}}
+								<span>{$row['click_count']} {lang="gddeals_lb_clicks"}</span>
+							</div>
+						</div>
+						<div class="gd-lb-metric">
+							{{if $activeBoard === 'best_savings'}}
+								<div class="gd-lb-metric-value">{expression="number_format($row['discount_pct'], 0)"}%</div>
+								<div class="gd-lb-metric-label">{lang="gddeals_lb_off"}</div>
+							{{elseif $activeBoard === 'most_clicked'}}
+								<div class="gd-lb-metric-value">{expression="number_format($row['click_count'])"}</div>
+								<div class="gd-lb-metric-label">{lang="gddeals_lb_clicks"}</div>
+							{{else}}
+								<div class="gd-lb-metric-value">{$row['score']}</div>
+								<div class="gd-lb-metric-label">{lang="gddeals_lb_score"}</div>
+							{{endif}}
+						</div>
+					{{elseif $row['kind'] === 'dealer'}}
+						<div class="gd-lb-thumb">DEALER</div>
+						<div class="gd-lb-body">
+							{{if $row['profile_url']}}<a class="gd-lb-title" href="{$row['profile_url']}">{$row['name']}</a>{{else}}<span class="gd-lb-title">{$row['name']}</span>{{endif}}
+							<div class="gd-lb-meta">
+								<span>&#9733; {expression="number_format($row['avg_rating'], 1)"} ({$row['review_count']})</span>
+								<span>{expression="number_format($row['listing_count'])"} {lang="gddeals_lb_listings"}</span>
+								<span>{expression="number_format($row['click_total'])"} {lang="gddeals_lb_clicks"}</span>
+							</div>
+						</div>
+						<div class="gd-lb-metric">
+							<div class="gd-lb-metric-value">{expression="number_format($row['avg_rating'], 1)"}</div>
+							<div class="gd-lb-metric-label">{lang="gddeals_lb_rating"}</div>
+						</div>
+					{{elseif $row['kind'] === 'best_value'}}
+						<div class="gd-lb-thumb">VALUE</div>
+						<div class="gd-lb-body">
+							{{if $row['profile_url']}}<a class="gd-lb-title" href="{$row['profile_url']}">{$row['name']}</a>{{else}}<span class="gd-lb-title">{$row['name']}</span>{{endif}}
+							<div class="gd-lb-meta">
+								<span>{$row['ranked_items']} {lang="gddeals_lb_items"}</span>
+								<span>{lang="gddeals_lb_avg_delta"}: {expression="number_format($row['avg_delta_pct'], 1)"}%</span>
+							</div>
+						</div>
+						<div class="gd-lb-metric">
+							<div class="gd-lb-metric-value">{expression="number_format($row['times_cheapest'])"}</div>
+							<div class="gd-lb-metric-label">{lang="gddeals_lb_cheapest"}</div>
+						</div>
+					{{elseif $row['kind'] === 'member'}}
+						<div class="gd-lb-thumb">{{if $row['photo']}}<img src="{$row['photo']}" alt="">{{else}}MEMB{{endif}}</div>
+						<div class="gd-lb-body">
+							<a class="gd-lb-title" href="{$row['profile_url']}">{$row['name']}</a>
+							<div class="gd-lb-meta">
+								<span>{$row['post_count']} {lang="gddeals_lb_posts"}</span>
+							</div>
+						</div>
+						<div class="gd-lb-metric">
+							<div class="gd-lb-metric-value">{expression="number_format($row['post_count'])"}</div>
+							<div class="gd-lb-metric-label">{lang="gddeals_lb_posts"}</div>
+						</div>
+					{{endif}}
+				</div>
+			{{endforeach}}
+		</div>
+	{{endif}}
+
+</div>

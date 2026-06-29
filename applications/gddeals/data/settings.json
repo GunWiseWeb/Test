@@ -51,5 +51,15 @@
 	{"key":"gddeals_front_price_drop","default":"1","report":"full"},
 	{"key":"gddeals_front_back_in_stock","default":"1","report":"full"},
 	{"key":"gddeals_front_rare_find","default":"1","report":"full"},
-	{"key":"gddeals_front_free_ship","default":"1","report":"full"}
+	{"key":"gddeals_front_free_ship","default":"1","report":"full"},
+	{"key":"gddeals_lb_enabled","default":"1","report":"full"},
+	{"key":"gddeals_lb_default_window","default":"month","report":"full"},
+	{"key":"gddeals_lb_per_board","default":"25","report":"full"},
+	{"key":"gddeals_lb_show_top_deals","default":"1","report":"full"},
+	{"key":"gddeals_lb_show_best_savings","default":"1","report":"full"},
+	{"key":"gddeals_lb_show_most_clicked","default":"1","report":"full"},
+	{"key":"gddeals_lb_show_top_dealers","default":"1","report":"full"},
+	{"key":"gddeals_lb_show_best_value","default":"1","report":"full"},
+	{"key":"gddeals_lb_show_top_members","default":"1","report":"full"},
+	{"key":"gddeals_lb_members_exclude_auto","default":"1","report":"full"}
 ]

@@ -13,6 +13,10 @@
 		"coupons": {
 			"default_controller": "browse",
 			"protected": false
+		},
+		"leaderboard": {
+			"default_controller": "leaderboard",
+			"protected": false
 		}
 	}
 }

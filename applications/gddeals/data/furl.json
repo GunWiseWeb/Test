@@ -16,6 +16,10 @@
 		"gddeals_coupons": {
 			"friendly": "coupons",
 			"real": "app=gddeals&module=coupons&controller=browse"
+		},
+		"gddeals_leaderboard": {
+			"friendly": "top",
+			"real": "app=gddeals&module=leaderboard&controller=leaderboard"
 		}
 	}
 }
