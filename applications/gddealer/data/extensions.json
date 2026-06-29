@@ -7,7 +7,8 @@
 			"DealerEmails": "IPS\\gddealer\\extensions\\core\\EmailTemplates\\DealerEmails"
 		},
 		"FrontNavigation": {
-			"DealerNav": "IPS\\gddealer\\extensions\\core\\FrontNavigation\\DealerNav"
+			"DealerNav": "IPS\\gddealer\\extensions\\core\\FrontNavigation\\DealerNav",
+			"MyDealersNav": "IPS\\gddealer\\extensions\\core\\FrontNavigation\\MyDealersNav"
 		},
 		"EditorLocations": {
 			"Responses": "IPS\\gddealer\\extensions\\core\\EditorLocations\\Responses",

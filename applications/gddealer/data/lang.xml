@@ -657,5 +657,7 @@
     <word key="gddealer_analytics_upsell_pro"><![CDATA[Upgrade to Enterprise to unlock price competitiveness counts, rank-tier breakdown, and geographic distribution of your click-throughs.]]></word>
     <word key="gddealer_analytics_upsell_cta"><![CDATA[View plans]]></word>
     <word key="gddealer_directory_listed"><![CDATA[List my dealership in the public directory]]></word>
+    <word key="profile_gddealer_MyDealers"><![CDATA[My Dealers]]></word>
+    <word key="gddealer_my_dealers_link"><![CDATA[Dealers I Follow]]></word>
   </app>
 </language>

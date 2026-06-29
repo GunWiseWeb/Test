@@ -43,6 +43,8 @@
 .gd-directory .hero-title { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 10px; }
 .gd-directory .hero-sub { font-size: 14.5px; color: var(--gd-text-muted); max-width: 560px; line-height: 1.6; margin: 0; }
 .gd-directory .hero-stats { display: flex; gap: 2rem; align-items: center; flex-shrink: 0; }
+.gd-directory .gd-mydealers-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--gd-surface); border: 1px solid var(--gd-border); border-radius: var(--gd-r-md); font-size: 13px; font-weight: 500; color: var(--gd-text); text-decoration: none; transition: all .15s; white-space: nowrap; }
+.gd-directory .gd-mydealers-link:hover { border-color: var(--gd-border-strong); background: var(--gd-surface-muted); }
 .gd-directory .hero-stat-value { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; color: var(--gd-text); line-height: 1; text-align: center; }
 .gd-directory .hero-stat-label { font-size: 11px; color: var(--gd-text-subtle); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-top: 6px; text-align: center; }
 
@@ -166,6 +168,14 @@
     .gd-stateMap { grid-template-rows: repeat(8, minmax(28px, 1fr)); }
     .gd-stateTile { font-size: 9px; }
     .gd-stateTile small { display: none; }
+    /* Mobile list-view: stack cards vertically — the desktop row layout with fixed-width
+       children (~680px) overflows phone widths. */
+    .gd-directory .dealer-grid.list-view .dealer-card { flex-direction: column; align-items: stretch; gap: 12px; padding: 1.25rem; }
+    .gd-directory .dealer-grid.list-view .dealer-head,
+    .gd-directory .dealer-grid.list-view .dealer-rating-row,
+    .gd-directory .dealer-grid.list-view .dealer-stats,
+    .gd-directory .dealer-grid.list-view .dealer-actions { flex: 1 1 auto; min-width: 0; }
+    .gd-directory .dealer-grid.list-view .dealer-stats { padding: 12px 0; border-top: 1px solid var(--gd-border-subtle); border-bottom: 1px solid var(--gd-border-subtle); }
 }
 </style>
 
@@ -177,6 +187,12 @@
                 <p class="hero-sub">Every dealer on GunRack is a verified FFL holder. Browse by state, search by name, or filter by rating.</p>
             </div>
             <div class="hero-stats">
+                {{if \IPS\Member::loggedIn()->member_id}}
+                <a href="{expression="(string) \IPS\Http\Url::internal( 'app=core&module=members&controller=profile&id=' . (int) \IPS\Member::loggedIn()->member_id . '&tab=node_gddealer_MyDealers', 'front', 'profile' )"}" class="gd-mydealers-link">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    {lang="gddealer_my_dealers_link"}
+                </a>
+                {{endif}}
                 <div>
                     <div class="hero-stat-value">{$total}</div>
                     <div class="hero-stat-label">Dealers</div>
