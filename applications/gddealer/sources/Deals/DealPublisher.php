@@ -45,6 +45,32 @@ class _DealPublisher
 	{
 		$counts = [ 'created' => 0, 'updated' => 0, 'expired' => 0, 'considered' => 0, 'errors' => 0 ];
 
+		/* Read settings with constant fallback. Empty setting → original default. */
+		$S = \IPS\Settings::i();
+
+		/* Master switch — when disabled, do nothing (and don't disturb existing
+		   auto posts; admin re-enables to resume). */
+		$enabled = $S->gddeals_auto_enabled;
+		if ( $enabled !== null && $enabled !== '' && (int) $enabled === 0 )
+		{
+			return $counts;
+		}
+
+		$cap          = ( $S->gddeals_auto_cap !== null && $S->gddeals_auto_cap !== '' ) ? (int)   $S->gddeals_auto_cap : (int)   self::CAP;
+		$approveLive  = ( $S->gddeals_auto_approve !== null && $S->gddeals_auto_approve !== '' ) ? (int) $S->gddeals_auto_approve : (int) self::APPROVED;
+		if ( $cap < 1 ) { $cap = (int) self::CAP; }
+
+		$w = [
+			'msrp'  => ( $S->gddeals_wt_msrp        !== null && $S->gddeals_wt_msrp        !== '' ) ? (float) $S->gddeals_wt_msrp        : 1.0,
+			'drop'  => ( $S->gddeals_wt_drop        !== null && $S->gddeals_wt_drop        !== '' ) ? (float) $S->gddeals_wt_drop        : 0.8,
+			'dropf' => ( $S->gddeals_wt_drop_flag   !== null && $S->gddeals_wt_drop_flag   !== '' ) ? (float) $S->gddeals_wt_drop_flag   : 10,
+			'back'  => ( $S->gddeals_wt_back        !== null && $S->gddeals_wt_back        !== '' ) ? (float) $S->gddeals_wt_back        : 8,
+			'fs'    => ( $S->gddeals_wt_freeship    !== null && $S->gddeals_wt_freeship    !== '' ) ? (float) $S->gddeals_wt_freeship    : 6,
+			'le'    => ( $S->gddeals_wt_lowest_ever !== null && $S->gddeals_wt_lowest_ever !== '' ) ? (float) $S->gddeals_wt_lowest_ever : 4,
+			'l30'   => ( $S->gddeals_wt_lowest_30d  !== null && $S->gddeals_wt_lowest_30d  !== '' ) ? (float) $S->gddeals_wt_lowest_30d  : 2,
+			'rare'  => ( $S->gddeals_wt_rare        !== null && $S->gddeals_wt_rare        !== '' ) ? (float) $S->gddeals_wt_rare        : 2,
+		];
+
 		/* 1. Score qualifying listings — those with at least one deal flag set. */
 		$rows = [];
 		try
@@ -60,14 +86,14 @@ class _DealPublisher
 					c.image_url AS catalog_image, c.image_validated,
 					d.dealer_name, d.dealer_slug,
 					(
-						l.deal_msrp_pct * 1.0
-						+ l.deal_drop_pct * 0.8
-						+ ( l.deal_price_drop * 10 )
-						+ ( l.deal_back_in_stock * 8 )
-						+ ( l.deal_free_ship_steal * 6 )
-						+ ( l.deal_lowest_ever * 4 )
-						+ ( l.deal_lowest_30d * 2 )
-						+ ( l.deal_rare_find * 2 )
+						l.deal_msrp_pct * {$w['msrp']}
+						+ l.deal_drop_pct * {$w['drop']}
+						+ ( l.deal_price_drop * {$w['dropf']} )
+						+ ( l.deal_back_in_stock * {$w['back']} )
+						+ ( l.deal_free_ship_steal * {$w['fs']} )
+						+ ( l.deal_lowest_ever * {$w['le']} )
+						+ ( l.deal_lowest_30d * {$w['l30']} )
+						+ ( l.deal_rare_find * {$w['rare']} )
 					) AS deal_score
 				FROM " . \IPS\Db::i()->prefix . "gd_dealer_listings l
 				JOIN " . \IPS\Db::i()->prefix . "gd_catalog c ON c.upc = l.upc
@@ -82,7 +108,7 @@ class _DealPublisher
 						OR l.deal_free_ship_steal = 1
 					)
 				ORDER BY deal_score DESC
-				LIMIT " . (int) self::CAP;
+				LIMIT " . (int) $cap;
 
 			$result = \IPS\Db::i()->query( $sql );
 			while ( $row = $result->fetch_assoc() )
@@ -276,17 +302,18 @@ class _DealPublisher
 				}
 				else
 				{
-					/* CREATE via the canonical pattern from submit.php — pass TRUE
-					   as the 5th arg so IPS creates the item as hidden/pending,
-					   then register an Approval row so the mod queue surfaces it.
-					   Just setting approved=0 on the column is NOT enough — the
-					   moderation UI keys off core_approvals. */
+					/* CREATE via the canonical pattern from submit.php. When the
+					   admin's auto-approve setting is 1, create the item as
+					   visible/approved (5th arg FALSE). When 0 (gated), create
+					   as hidden/pending and register a core_approvals row so
+					   the moderation queue surfaces it. */
 					try
 					{
 						$ip = '127.0.0.1';
 						try { $ip = (string) \IPS\Request::i()->ipAddress(); } catch ( \Throwable ) {}
 
-						$post = \IPS\gddeals\Deal::createItem( $author, $ip, \IPS\DateTime::create(), $container, TRUE );
+						$hidden = $approveLive ? FALSE : TRUE;
+						$post = \IPS\gddeals\Deal::createItem( $author, $ip, \IPS\DateTime::create(), $container, $hidden );
 						$post->title          = $title;
 						$post->upc            = $upc;
 						$post->dealer_id      = $dealerId;
@@ -304,15 +331,19 @@ class _DealPublisher
 						$post->post_type      = 'product';
 						$post->save();
 
-						/* Register a core_approvals row so the moderation queue
-						   surfaces it. Mirrors submit.php lines 149-162. */
-						try
+						/* Only register the approval row when gated. When auto-
+						   approve is on, the item is visible and doesn't belong
+						   in the mod queue. */
+						if ( !$approveLive )
 						{
-							\IPS\core\Approval::loadFromContent( get_class( $post ), $post->id );
-						}
-						catch ( \OutOfRangeException )
-						{
-							try { \IPS\core\Approval::create( $post, 'node' ); } catch ( \Throwable ) {}
+							try
+							{
+								\IPS\core\Approval::loadFromContent( get_class( $post ), $post->id );
+							}
+							catch ( \OutOfRangeException )
+							{
+								try { \IPS\core\Approval::create( $post, 'node' ); } catch ( \Throwable ) {}
+							}
 						}
 
 						$counts['created']++;

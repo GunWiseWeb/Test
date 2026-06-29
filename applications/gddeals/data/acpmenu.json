@@ -11,6 +11,12 @@
             "controller": "settings",
             "do": "",
             "restriction": "settings_manage"
+        },
+        "autodeals": {
+            "tab": "gddeals",
+            "controller": "autodeals",
+            "do": "",
+            "restriction": "settings_manage"
         }
     }
 }

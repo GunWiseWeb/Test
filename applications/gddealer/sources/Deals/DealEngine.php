@@ -50,6 +50,28 @@ class _DealEngine
 		$p       = \IPS\Db::i()->prefix;
 		$results = [];
 
+		/* Read settings with constant fallback. Empty settings can never break
+		   the pipeline — they just fall back to the original Phase 1 defaults. */
+		$S         = \IPS\Settings::i();
+		$msrpPct   = self::settingFloat( $S, 'gddeals_thr_msrp_pct',   self::MSRP_OFF_PCT );
+		$dropPct   = self::settingFloat( $S, 'gddeals_thr_drop_pct',   self::DROP_PCT );
+		$dropHours = self::settingInt(   $S, 'gddeals_thr_drop_hours', self::DROP_HOURS );
+		$rareMax   = self::settingInt(   $S, 'gddeals_thr_rare_max',   self::RARE_MAX );
+		$backDays  = self::settingInt(   $S, 'gddeals_thr_back_days',  self::BACK_IN_DAYS );
+		$d30       = self::settingInt(   $S, 'gddeals_thr_30d_days',   30 );
+
+		/* Per-type enable gates. When disabled, the reset still zeroes the
+		   flag, but the UPDATE that would set it is skipped. */
+		$enabled = [
+			'lowest_ever'     => self::settingBool( $S, 'gddeals_type_lowest_ever',    true ),
+			'lowest_30d'      => self::settingBool( $S, 'gddeals_type_lowest_30d',     true ),
+			'msrp_off'        => self::settingBool( $S, 'gddeals_type_msrp_off',       true ),
+			'price_drop'      => self::settingBool( $S, 'gddeals_type_price_drop',     true ),
+			'back_in_stock'   => self::settingBool( $S, 'gddeals_type_back_in_stock',  true ),
+			'rare_find'       => self::settingBool( $S, 'gddeals_type_rare_find',      true ),
+			'free_ship_steal' => self::settingBool( $S, 'gddeals_type_free_ship',      true ),
+		];
+
 		/* 0. Reset all deal flags on active listings — so dealers that no longer
 		   qualify stop flying the flag from the previous run. */
 		$results['reset'] = self::run(
@@ -62,31 +84,38 @@ class _DealEngine
 		);
 
 		/* A. lowest_ever */
-		$results['lowest_ever'] = self::run(
-			'lowest_ever',
-			"UPDATE `{$p}gd_dealer_listings` l
-			 JOIN ( SELECT upc, dealer_id, MIN(price) AS lo
-			        FROM `{$p}gd_price_history` GROUP BY upc, dealer_id ) h
-			   ON h.upc = l.upc AND h.dealer_id = l.dealer_id
-			 SET l.deal_lowest_ever = 1
-			 WHERE l.listing_status = 'active' AND l.dealer_price <= h.lo"
-		);
+		if ( $enabled['lowest_ever'] )
+		{
+			$results['lowest_ever'] = self::run(
+				'lowest_ever',
+				"UPDATE `{$p}gd_dealer_listings` l
+				 JOIN ( SELECT upc, dealer_id, MIN(price) AS lo
+				        FROM `{$p}gd_price_history` GROUP BY upc, dealer_id ) h
+				   ON h.upc = l.upc AND h.dealer_id = l.dealer_id
+				 SET l.deal_lowest_ever = 1
+				 WHERE l.listing_status = 'active' AND l.dealer_price <= h.lo"
+			);
+		}
 
 		/* B. lowest_30d */
-		$results['lowest_30d'] = self::run(
-			'lowest_30d',
-			"UPDATE `{$p}gd_dealer_listings` l
-			 JOIN ( SELECT upc, dealer_id, MIN(price) AS lo
-			        FROM `{$p}gd_price_history`
-			        WHERE recorded_at >= ( NOW() - INTERVAL 30 DAY )
-			        GROUP BY upc, dealer_id ) h
-			   ON h.upc = l.upc AND h.dealer_id = l.dealer_id
-			 SET l.deal_lowest_30d = 1
-			 WHERE l.listing_status = 'active' AND l.dealer_price <= h.lo"
-		);
+		if ( $enabled['lowest_30d'] )
+		{
+			$results['lowest_30d'] = self::run(
+				'lowest_30d',
+				"UPDATE `{$p}gd_dealer_listings` l
+				 JOIN ( SELECT upc, dealer_id, MIN(price) AS lo
+				        FROM `{$p}gd_price_history`
+				        WHERE recorded_at >= ( NOW() - INTERVAL {$d30} DAY )
+				        GROUP BY upc, dealer_id ) h
+				   ON h.upc = l.upc AND h.dealer_id = l.dealer_id
+				 SET l.deal_lowest_30d = 1
+				 WHERE l.listing_status = 'active' AND l.dealer_price <= h.lo"
+			);
+		}
 
 		/* C. msrp_off (sets pct on all matching rows; flag only when >= threshold) */
-		$msrpPct = (float) self::MSRP_OFF_PCT;
+		if ( $enabled['msrp_off'] )
+		{
 		$results['msrp_off'] = self::run(
 			'msrp_off',
 			"UPDATE `{$p}gd_dealer_listings` l
@@ -98,72 +127,81 @@ class _DealEngine
 			   AND l.dealer_price > 0
 			   AND l.dealer_price < c.msrp"
 		);
+		}
 
-		/* D. price_drop (15%+ in 48h, vs latest price at or before that cutoff) */
-		$dropHours = (int) self::DROP_HOURS;
-		$dropPct   = (float) self::DROP_PCT;
-		$results['price_drop'] = self::run(
-			'price_drop',
-			"UPDATE `{$p}gd_dealer_listings` l
-			 JOIN (
-			   SELECT ph.upc, ph.dealer_id, ph.price AS old_price
-			   FROM `{$p}gd_price_history` ph
-			   JOIN ( SELECT upc, dealer_id, MAX(recorded_at) AS mx
-			          FROM `{$p}gd_price_history`
-			          WHERE recorded_at <= ( NOW() - INTERVAL {$dropHours} HOUR )
-			          GROUP BY upc, dealer_id ) m
-			     ON m.upc = ph.upc AND m.dealer_id = ph.dealer_id AND m.mx = ph.recorded_at
-			 ) b ON b.upc = l.upc AND b.dealer_id = l.dealer_id
-			 SET l.deal_drop_pct   = ROUND( ((b.old_price - l.dealer_price) / b.old_price) * 100, 2 ),
-			     l.deal_price_drop = ( b.old_price > 0 AND ((b.old_price - l.dealer_price) / b.old_price) * 100 >= {$dropPct} )
-			 WHERE l.listing_status = 'active' AND b.old_price > 0 AND l.dealer_price < b.old_price"
-		);
+		/* D. price_drop */
+		if ( $enabled['price_drop'] )
+		{
+			$results['price_drop'] = self::run(
+				'price_drop',
+				"UPDATE `{$p}gd_dealer_listings` l
+				 JOIN (
+				   SELECT ph.upc, ph.dealer_id, ph.price AS old_price
+				   FROM `{$p}gd_price_history` ph
+				   JOIN ( SELECT upc, dealer_id, MAX(recorded_at) AS mx
+				          FROM `{$p}gd_price_history`
+				          WHERE recorded_at <= ( NOW() - INTERVAL {$dropHours} HOUR )
+				          GROUP BY upc, dealer_id ) m
+				     ON m.upc = ph.upc AND m.dealer_id = ph.dealer_id AND m.mx = ph.recorded_at
+				 ) b ON b.upc = l.upc AND b.dealer_id = l.dealer_id
+				 SET l.deal_drop_pct   = ROUND( ((b.old_price - l.dealer_price) / b.old_price) * 100, 2 ),
+				     l.deal_price_drop = ( b.old_price > 0 AND ((b.old_price - l.dealer_price) / b.old_price) * 100 >= {$dropPct} )
+				 WHERE l.listing_status = 'active' AND b.old_price > 0 AND l.dealer_price < b.old_price"
+			);
+		}
 
 		/* E. back_in_stock */
-		$backDays = (int) self::BACK_IN_DAYS;
-		$results['back_in_stock'] = self::run(
-			'back_in_stock',
-			"UPDATE `{$p}gd_dealer_listings` l
-			 SET l.deal_back_in_stock = 1
-			 WHERE l.listing_status = 'active' AND l.in_stock = 1
-			   AND EXISTS (
-			     SELECT 1 FROM `{$p}gd_price_history` ph
-			     WHERE ph.upc = l.upc AND ph.dealer_id = l.dealer_id
-			       AND ph.in_stock = 0
-			       AND ph.recorded_at >= ( NOW() - INTERVAL {$backDays} DAY )
-			   )"
-		);
+		if ( $enabled['back_in_stock'] )
+		{
+			$results['back_in_stock'] = self::run(
+				'back_in_stock',
+				"UPDATE `{$p}gd_dealer_listings` l
+				 SET l.deal_back_in_stock = 1
+				 WHERE l.listing_status = 'active' AND l.in_stock = 1
+				   AND EXISTS (
+				     SELECT 1 FROM `{$p}gd_price_history` ph
+				     WHERE ph.upc = l.upc AND ph.dealer_id = l.dealer_id
+				       AND ph.in_stock = 0
+				       AND ph.recorded_at >= ( NOW() - INTERVAL {$backDays} DAY )
+				   )"
+			);
+		}
 
 		/* F. rare_find — sets count + flag */
-		$rareMax = (int) self::RARE_MAX;
-		$results['rare_find'] = self::run(
-			'rare_find',
-			"UPDATE `{$p}gd_dealer_listings` l
-			 JOIN ( SELECT upc, COUNT(DISTINCT dealer_id) AS dc
-			        FROM `{$p}gd_dealer_listings`
-			        WHERE listing_status = 'active' AND in_stock = 1
-			        GROUP BY upc ) d
-			   ON d.upc = l.upc
-			 SET l.deal_dealer_count = d.dc,
-			     l.deal_rare_find    = ( d.dc <= {$rareMax} )
-			 WHERE l.listing_status = 'active'"
-		);
+		if ( $enabled['rare_find'] )
+		{
+			$results['rare_find'] = self::run(
+				'rare_find',
+				"UPDATE `{$p}gd_dealer_listings` l
+				 JOIN ( SELECT upc, COUNT(DISTINCT dealer_id) AS dc
+				        FROM `{$p}gd_dealer_listings`
+				        WHERE listing_status = 'active' AND in_stock = 1
+				        GROUP BY upc ) d
+				   ON d.upc = l.upc
+				 SET l.deal_dealer_count = d.dc,
+				     l.deal_rare_find    = ( d.dc <= {$rareMax} )
+				 WHERE l.listing_status = 'active'"
+			);
+		}
 
 		/* G. free_ship_steal — free shipping AND tied-for-lowest active in-stock price */
-		$results['free_ship_steal'] = self::run(
-			'free_ship_steal',
-			"UPDATE `{$p}gd_dealer_listings` l
-			 JOIN ( SELECT upc, MIN(dealer_price) AS lo
-			        FROM `{$p}gd_dealer_listings`
-			        WHERE listing_status = 'active' AND in_stock = 1
-			        GROUP BY upc ) p
-			   ON p.upc = l.upc
-			 SET l.deal_free_ship_steal = 1
-			 WHERE l.listing_status = 'active' AND l.in_stock = 1
-			   AND l.dealer_price <= p.lo
-			   AND l.shipping_info IS NOT NULL
-			   AND LOWER(l.shipping_info) LIKE '%free%'"
-		);
+		if ( $enabled['free_ship_steal'] )
+		{
+			$results['free_ship_steal'] = self::run(
+				'free_ship_steal',
+				"UPDATE `{$p}gd_dealer_listings` l
+				 JOIN ( SELECT upc, MIN(dealer_price) AS lo
+				        FROM `{$p}gd_dealer_listings`
+				        WHERE listing_status = 'active' AND in_stock = 1
+				        GROUP BY upc ) p
+				   ON p.upc = l.upc
+				 SET l.deal_free_ship_steal = 1
+				 WHERE l.listing_status = 'active' AND l.in_stock = 1
+				   AND l.dealer_price <= p.lo
+				   AND l.shipping_info IS NOT NULL
+				   AND LOWER(l.shipping_info) LIKE '%free%'"
+			);
+		}
 
 		/* Timestamp the computation. */
 		$results['computed_at'] = self::run(
@@ -186,6 +224,27 @@ class _DealEngine
 		catch ( \Throwable ) {}
 
 		return $results;
+	}
+
+	protected static function settingFloat( \IPS\Settings $S, string $key, float $default ): float
+	{
+		try { $v = $S->$key; } catch ( \Throwable ) { return $default; }
+		if ( $v === null || $v === '' ) { return $default; }
+		return (float) $v;
+	}
+
+	protected static function settingInt( \IPS\Settings $S, string $key, int $default ): int
+	{
+		try { $v = $S->$key; } catch ( \Throwable ) { return $default; }
+		if ( $v === null || $v === '' ) { return $default; }
+		return (int) $v;
+	}
+
+	protected static function settingBool( \IPS\Settings $S, string $key, bool $default ): bool
+	{
+		try { $v = $S->$key; } catch ( \Throwable ) { return $default; }
+		if ( $v === null || $v === '' ) { return $default; }
+		return (bool) (int) $v;
 	}
 
 	/**
