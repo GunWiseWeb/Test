@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language>
+<app key="gdbills">
+<word key="__app_gdbills" js="0"><![CDATA[Firearms Bill Tracker]]></word>
+<word key="menutab__gdbills" js="0"><![CDATA[Bills]]></word>
+<word key="menutab__gdbills_icon" js="0"><![CDATA[gavel]]></word>
+<word key="menu__gdbills_bills_bills" js="0"><![CDATA[Bills]]></word>
+<word key="menu__gdbills_bills_settings" js="0"><![CDATA[Settings]]></word>
+<word key="menu__gdbills_bills_import" js="0"><![CDATA[CSV Import]]></word>
+<word key="menu__gdbills_bills_sync" js="0"><![CDATA[LegiScan Sync]]></word>
+<word key="module__gdbills_bills" js="0"><![CDATA[Bill Tracker]]></word>
+<word key="frontnavigation_gdbills_bills" js="0"><![CDATA[Bill Tracker]]></word>
+<word key="gdbills_page_title" js="0"><![CDATA[Firearms Bill Tracker]]></word>
+<word key="gdbills_page_subtitle" js="0"><![CDATA[Pending and enacted firearms legislation by state]]></word>
+<word key="gdbills_state_map_title" js="0"><![CDATA[Browse by state]]></word>
+<word key="gdbills_state_map_hint" js="0"><![CDATA[Tap a state to view the bills currently active there.]]></word>
+<word key="gdbills_enacted_heading" js="0"><![CDATA[Enacted Laws]]></word>
+<word key="gdbills_pending_heading" js="0"><![CDATA[Pending Bills]]></word>
+<word key="gdbills_no_bills" js="0"><![CDATA[No bills tracked for this state right now.]]></word>
+<word key="gdbills_no_bills_overall" js="0"><![CDATA[No bills tracked yet. Configure your LegiScan API key in the ACP and run Sync to populate.]]></word>
+<word key="gdbills_modal_close" js="0"><![CDATA[Close]]></word>
+<word key="gdbills_view_full_text" js="0"><![CDATA[View full text]]></word>
+<word key="gdbills_last_action" js="0"><![CDATA[Last action]]></word>
+<word key="gdbills_sponsor" js="0"><![CDATA[Sponsor]]></word>
+<word key="gdbills_introduced" js="0"><![CDATA[Introduced]]></word>
+<word key="gdbills_signed" js="0"><![CDATA[Signed]]></word>
+<word key="gdbills_passed_house" js="0"><![CDATA[Passed House]]></word>
+<word key="gdbills_passed_senate" js="0"><![CDATA[Passed Senate]]></word>
+<word key="gdbills_type_pending" js="0"><![CDATA[Pending]]></word>
+<word key="gdbills_type_enacted" js="0"><![CDATA[Enacted]]></word>
+<word key="gdbills_type_law" js="0"><![CDATA[Law]]></word>
+<word key="gdbills_filter_state" js="0"><![CDATA[State]]></word>
+<word key="gdbills_filter_type" js="0"><![CDATA[Type]]></word>
+<word key="gdbills_filter_all_states" js="0"><![CDATA[All states]]></word>
+<word key="gdbills_filter_all_types" js="0"><![CDATA[All types]]></word>
+<word key="gdbills_filter_apply" js="0"><![CDATA[Apply]]></word>
+<word key="gdbills_filter_clear" js="0"><![CDATA[Clear]]></word>
+<word key="gdbills_acp_bills_title" js="0"><![CDATA[Tracked Bills]]></word>
+<word key="gdbills_acp_bills_intro" js="0"><![CDATA[Add, edit, or remove tracked legislation. Bills can also be sourced from LegiScan or CSV.]]></word>
+<word key="gdbills_acp_bills_add" js="0"><![CDATA[Add bill]]></word>
+<word key="gdbills_acp_bills_edit" js="0"><![CDATA[Edit bill]]></word>
+<word key="gdbills_acp_bills_delete" js="0"><![CDATA[Delete bill]]></word>
+<word key="gdbills_acp_bills_count" js="0"><![CDATA[Total tracked]]></word>
+<word key="gdbills_f_bill_number" js="0"><![CDATA[Bill number]]></word>
+<word key="gdbills_f_bill_title" js="0"><![CDATA[Bill title]]></word>
+<word key="gdbills_f_state_code" js="0"><![CDATA[State (2-letter)]]></word>
+<word key="gdbills_f_bill_type" js="0"><![CDATA[Bill type]]></word>
+<word key="gdbills_f_status" js="0"><![CDATA[Status]]></word>
+<word key="gdbills_f_progress_stage" js="0"><![CDATA[Progress stage]]></word>
+<word key="gdbills_f_sponsor_name" js="0"><![CDATA[Sponsor name]]></word>
+<word key="gdbills_f_sponsor_party" js="0"><![CDATA[Sponsor party]]></word>
+<word key="gdbills_f_description" js="0"><![CDATA[Description]]></word>
+<word key="gdbills_f_url" js="0"><![CDATA[Full-text URL]]></word>
+<word key="gdbills_f_date_introduced" js="0"><![CDATA[Date introduced]]></word>
+<word key="gdbills_f_last_action_date" js="0"><![CDATA[Last action date]]></word>
+<word key="gdbills_f_last_action" js="0"><![CDATA[Last action]]></word>
+<word key="gdbills_f_passed_senate_date" js="0"><![CDATA[Passed Senate date]]></word>
+<word key="gdbills_f_passed_house_date" js="0"><![CDATA[Passed House date]]></word>
+<word key="gdbills_f_signed_date" js="0"><![CDATA[Signed date]]></word>
+<word key="gdbills_f_legiscan_id" js="0"><![CDATA[LegiScan bill id]]></word>
+<word key="gdbills_f_source" js="0"><![CDATA[Source]]></word>
+<word key="gdbills_acp_settings_title" js="0"><![CDATA[Settings]]></word>
+<word key="gdbills_settings_general" js="0"><![CDATA[General]]></word>
+<word key="gdbills_settings_legiscan" js="0"><![CDATA[LegiScan API]]></word>
+<word key="gdbills_settings_keywords" js="0"><![CDATA[Search Keywords]]></word>
+<word key="gdbills_legiscan_key" js="0"><![CDATA[LegiScan API key]]></word>
+<word key="gdbills_autosync_enabled" js="0"><![CDATA[Enable daily auto-sync]]></word>
+<word key="gdbills_search_keywords" js="0"><![CDATA[Search keywords (one per line)]]></word>
+<word key="gdbills_relevance_keywords" js="0"><![CDATA[Relevance allowlist (one per line)]]></word>
+<word key="gdbills_exclusion_keywords" js="0"><![CDATA[Exclusion list (one per line)]]></word>
+<word key="gdbills_session_note" js="0"><![CDATA[Session note shown to visitors]]></word>
+<word key="gdbills_acp_import_title" js="0"><![CDATA[CSV Import]]></word>
+<word key="gdbills_acp_import_intro" js="0"><![CDATA[Upload a CSV with columns: bill_number, bill_title, state_code, bill_type, status, sponsor_name, description, url, date_introduced, last_action_date, last_action.]]></word>
+<word key="gdbills_acp_import_file" js="0"><![CDATA[CSV file]]></word>
+<word key="gdbills_acp_import_run" js="0"><![CDATA[Import]]></word>
+<word key="gdbills_acp_import_summary" js="0"><![CDATA[Imported %s bills (%s new, %s updated, %s errors).]]></word>
+<word key="gdbills_acp_sync_title" js="0"><![CDATA[LegiScan Sync]]></word>
+<word key="gdbills_acp_sync_intro" js="0"><![CDATA[Manually trigger a sync against the LegiScan API. The daily task will also run automatically.]]></word>
+<word key="gdbills_acp_sync_button" js="0"><![CDATA[Sync now]]></word>
+<word key="gdbills_acp_sync_last" js="0"><![CDATA[Last sync]]></word>
+<word key="gdbills_acp_sync_never" js="0"><![CDATA[Never]]></word>
+<word key="gdbills_acp_sync_done" js="0"><![CDATA[Sync complete: %s bills processed.]]></word>
+<word key="gdbills_acp_sync_no_key" js="0"><![CDATA[Set your LegiScan API key in Settings before syncing.]]></word>
+<word key="gdbills_acp_sync_disabled" js="0"><![CDATA[Auto-sync is disabled. Manual sync still works.]]></word>
+<word key="task__gdbills_syncBills" js="0"><![CDATA[Sync firearms bills from LegiScan]]></word>
+<word key="block__gdbills_billMap" js="0"><![CDATA[Bill Tracker Map]]></word>
+<word key="block__gdbills_billList" js="0"><![CDATA[Bill List]]></word>
+<word key="gdbills_w_state" js="0"><![CDATA[State filter (blank = all)]]></word>
+<word key="gdbills_w_type" js="0"><![CDATA[Type filter (blank = all)]]></word>
+<word key="gdbills_w_limit" js="0"><![CDATA[Rows to show]]></word>
+</app>
+</language>

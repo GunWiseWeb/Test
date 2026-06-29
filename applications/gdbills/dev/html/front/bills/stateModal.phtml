@@ -1,0 +1,24 @@
+<ips:template parameters="$state, $enacted, $pending" />
+<div class="gd-bills__modalHeader">
+	<h2>{$state}</h2>
+</div>
+{{if count($enacted) === 0 && count($pending) === 0}}
+	<p class="gd-bills__empty">{lang="gdbills_no_bills"}</p>
+{{else}}
+	{{if count($enacted) > 0}}
+	<section class="gd-bills__section">
+		<h3 class="gd-bills__sectionTitle">{lang="gdbills_enacted_heading"}</h3>
+		<div class="gd-bills__list">
+			{{foreach $enacted as $b}}{template="billRow" group="bills" app="gdbills" params="$b"}{{endforeach}}
+		</div>
+	</section>
+	{{endif}}
+	{{if count($pending) > 0}}
+	<section class="gd-bills__section">
+		<h3 class="gd-bills__sectionTitle">{lang="gdbills_pending_heading"}</h3>
+		<div class="gd-bills__list">
+			{{foreach $pending as $b}}{template="billRow" group="bills" app="gdbills" params="$b"}{{endforeach}}
+		</div>
+	</section>
+	{{endif}}
+{{endif}}

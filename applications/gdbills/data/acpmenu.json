@@ -1,0 +1,28 @@
+{
+	"bills": {
+		"bills": {
+			"tab": "gdbills",
+			"controller": "bills",
+			"do": "",
+			"restriction": "bills_manage"
+		},
+		"settings": {
+			"tab": "gdbills",
+			"controller": "settings",
+			"do": "",
+			"restriction": "bills_manage"
+		},
+		"import": {
+			"tab": "gdbills",
+			"controller": "import",
+			"do": "",
+			"restriction": "bills_manage"
+		},
+		"sync": {
+			"tab": "gdbills",
+			"controller": "sync",
+			"do": "",
+			"restriction": "bills_manage"
+		}
+	}
+}

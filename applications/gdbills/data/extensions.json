@@ -1,0 +1,7 @@
+{
+	"core": {
+		"FrontNavigation": {
+			"BillsNav": "IPS\\gdbills\\extensions\\core\\FrontNavigation\\BillsNav"
+		}
+	}
+}

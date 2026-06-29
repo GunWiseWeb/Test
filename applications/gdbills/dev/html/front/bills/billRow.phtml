@@ -1,0 +1,25 @@
+<ips:template parameters="$b" />
+<article class="gd-bills__row">
+	<div class="gd-bills__rowHead">
+		<span class="gd-bills__badge gd-bills__badge--state">{$b['state_code']}</span>
+		<span class="gd-bills__badge gd-bills__badge--type gd-bills__badge--{$b['bill_type']}">{lang="gdbills_type_{$b['bill_type']}"}</span>
+		<strong class="gd-bills__num">{$b['bill_number']}</strong>
+	</div>
+	<h3 class="gd-bills__title">
+		{{if $b['url']}}<a href="{$b['url']}" target="_blank" rel="nofollow noopener">{$b['bill_title']}</a>{{else}}{$b['bill_title']}{{endif}}
+	</h3>
+	{{if $b['last_action']}}
+	<p class="gd-bills__action">
+		<strong>{lang="gdbills_last_action"}:</strong> {$b['last_action']}{{if $b['last_action_date']}} <span class="gd-bills__date">({$b['last_action_date']})</span>{{endif}}
+	</p>
+	{{endif}}
+	{{if $b['sponsor_name']}}
+	<p class="gd-bills__sponsor"><strong>{lang="gdbills_sponsor"}:</strong> {$b['sponsor_name']}{{if $b['sponsor_party']}} ({$b['sponsor_party']}){{endif}}</p>
+	{{endif}}
+	{{if $b['description']}}
+	<p class="gd-bills__desc">{$b['description']}</p>
+	{{endif}}
+	{{if $b['url']}}
+	<p class="gd-bills__link"><a href="{$b['url']}" target="_blank" rel="nofollow noopener">{lang="gdbills_view_full_text"} &rarr;</a></p>
+	{{endif}}
+</article>

@@ -1,0 +1,9 @@
+[
+	{"key": "gdbills_legiscan_key",       "default": "",      "report": "none"},
+	{"key": "gdbills_autosync_enabled",   "default": "1",     "report": "full"},
+	{"key": "gdbills_search_keywords",    "default": "firearm\ngun\nrifle\npistol\nhandgun\nshotgun\nconcealed carry\nopen carry\nsecond amendment\nassault weapon\nmagazine capacity\nbackground check firearm\nglock\nsig sauer\nsmith wesson\nruger\nremington\ncolt\nberetta\nspringfield armory\nar-15\nar15\nak-47\nak47\nglock switch\nauto sear\nbump stock\nghost gun\npistol brace\nlarge capacity magazine\nmachine gun\nsuppressor\nsilencer\n50 caliber", "report": "none"},
+	{"key": "gdbills_relevance_keywords", "default": "firearm\ngun\nrifle\npistol\nhandgun\nshotgun\nammunition\nammo\nbullet\ncartridge\nholster\nsuppressor\nsilencer\nconcealed carry\nopen carry\nsecond amendment\n2nd amendment\nweapon\nself defense\nself-defense\nhunting\nsporting purpose\nffl\nfederal firearms license\nglock\nsig sauer\nsmith wesson\nruger\nremington\ncolt\nberetta\nspringfield armory\nar-15\nar15\nak-47\nak47\nauto sear\nbump stock\nghost gun\npistol brace\nlarge capacity magazine\nmachine gun\nassault weapon\n50 caliber", "report": "none"},
+	{"key": "gdbills_exclusion_keywords", "default": "nuclear\nchemical weapon\nbiological weapon\nknife\nsword\ntaser\nstun gun\npepper spray\nschool incident report\nincident report only", "report": "none"},
+	{"key": "gdbills_session_note",       "default": "This tracker displays legislation from the current session.", "report": "none"},
+	{"key": "gdbills_last_sync",          "default": "",      "report": "none"}
+]

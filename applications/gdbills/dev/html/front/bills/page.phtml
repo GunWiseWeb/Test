@@ -1,0 +1,80 @@
+<ips:template parameters="$counts, $total, $stateList, $enacted, $pending, $activeState, $activeType, $pageUrl, $ajaxStateUrl, $ajaxMapUrl, $sessionNote" />
+<div class="gd-bills" data-ajax-state-url="{$ajaxStateUrl}" data-ajax-map-url="{$ajaxMapUrl}">
+
+	<header class="gd-bills__hero">
+		<h1>{lang="gdbills_page_title"}</h1>
+		<p class="gd-bills__sub">{lang="gdbills_page_subtitle"}</p>
+		{{if $sessionNote}}
+		<p class="gd-bills__note">{$sessionNote}</p>
+		{{endif}}
+	</header>
+
+	<section class="gd-bills__mapPanel">
+		<div class="gd-bills__mapHead">
+			<div>
+				<h2 class="gd-bills__mapTitle">{lang="gdbills_state_map_title"}</h2>
+				<p class="gd-bills__mapHint">{lang="gdbills_state_map_hint"}</p>
+			</div>
+			<div class="gd-bills__totalCount">
+				<div class="gd-bills__totalValue">{expression="number_format($total)"}</div>
+				<div class="gd-bills__totalLabel">tracked</div>
+			</div>
+		</div>
+
+		<div class="gd-bills__map" id="gdBillsMap">
+			{{foreach $stateList as $code}}
+				{{$c = isset($counts[$code]) ? (int) $counts[$code] : 0;}}
+				{{$bucket = '';}}
+				{{if $c <= 0}}{{$bucket = 'is-empty';}}
+				{{elseif $c <= 2}}{{$bucket = 'is-bucket-1';}}
+				{{elseif $c <= 5}}{{$bucket = 'is-bucket-2';}}
+				{{elseif $c <= 10}}{{$bucket = 'is-bucket-3';}}
+				{{else}}{{$bucket = 'is-bucket-4';}}{{endif}}
+				{{$activeCls = ( $activeState === $code ) ? ' is-active' : '';}}
+				{{$ga = strtolower($code);}}
+				{{if $c > 0}}
+				<a class="gd-bills__tile {$bucket}{$activeCls}" style="grid-area: {$ga}" data-state="{$code}" href="{$pageUrl}?state={$code}" title="{$code}: {$c}">{$code}<small>{$c}</small></a>
+				{{else}}
+				<span class="gd-bills__tile is-empty" style="grid-area: {$ga}" title="{$code}: 0">{$code}</span>
+				{{endif}}
+			{{endforeach}}
+		</div>
+	</section>
+
+	{{if count($enacted) === 0 && count($pending) === 0}}
+		<div class="gd-bills__empty">
+			<p>{lang="gdbills_no_bills_overall"}</p>
+		</div>
+	{{else}}
+		{{if count($enacted) > 0}}
+		<section class="gd-bills__section">
+			<h2 class="gd-bills__sectionTitle">{lang="gdbills_enacted_heading"}{{if $activeState}} &mdash; {$activeState}{{endif}}</h2>
+			<div class="gd-bills__list">
+				{{foreach $enacted as $b}}
+					{template="billRow" group="bills" app="gdbills" params="$b"}
+				{{endforeach}}
+			</div>
+		</section>
+		{{endif}}
+
+		{{if count($pending) > 0}}
+		<section class="gd-bills__section">
+			<h2 class="gd-bills__sectionTitle">{lang="gdbills_pending_heading"}{{if $activeState}} &mdash; {$activeState}{{endif}}</h2>
+			<div class="gd-bills__list">
+				{{foreach $pending as $b}}
+					{template="billRow" group="bills" app="gdbills" params="$b"}
+				{{endforeach}}
+			</div>
+		</section>
+		{{endif}}
+	{{endif}}
+
+	<div class="gd-bills__modal" id="gdBillsModal" hidden>
+		<div class="gd-bills__modalBackdrop" data-close-modal="1"></div>
+		<div class="gd-bills__modalPanel">
+			<button type="button" class="gd-bills__modalClose" data-close-modal="1" aria-label="{lang="gdbills_modal_close"}">&times;</button>
+			<div class="gd-bills__modalBody" id="gdBillsModalBody"></div>
+		</div>
+	</div>
+
+</div>

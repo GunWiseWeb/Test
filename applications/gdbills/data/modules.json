@@ -1,0 +1,14 @@
+{
+	"admin": {
+		"bills": {
+			"default_controller": "bills",
+			"protected": false
+		}
+	},
+	"front": {
+		"bills": {
+			"default_controller": "bills",
+			"protected": false
+		}
+	}
+}

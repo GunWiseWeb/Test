@@ -1,0 +1,51 @@
+{
+	"gd_bills": {
+		"name": "gd_bills",
+		"columns": {
+			"id":                 { "name": "id", "type": "BIGINT", "length": 20, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"bill_number":        { "name": "bill_number", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"bill_title":         { "name": "bill_title", "type": "TEXT", "length": 0, "decimals": null, "allow_null": false, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"state_code":         { "name": "state_code", "type": "VARCHAR", "length": 2, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"bill_type":          { "name": "bill_type", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": false, "default": "pending", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"status":             { "name": "status", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": false, "default": "introduced", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"progress_stage":     { "name": "progress_stage", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": true, "default": "introduced", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"sponsor_name":       { "name": "sponsor_name", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"sponsor_party":      { "name": "sponsor_party", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"cosponsors":         { "name": "cosponsors", "type": "TEXT", "length": 0, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"description":        { "name": "description", "type": "TEXT", "length": 0, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"url":                { "name": "url", "type": "VARCHAR", "length": 500, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"date_introduced":    { "name": "date_introduced", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"last_action_date":   { "name": "last_action_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"last_action":        { "name": "last_action", "type": "TEXT", "length": 0, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"passed_senate_date": { "name": "passed_senate_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"passed_house_date":  { "name": "passed_house_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"signed_date":        { "name": "signed_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"legiscan_id":        { "name": "legiscan_id", "type": "BIGINT", "length": 20, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"source":             { "name": "source", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": false, "default": "manual", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"created_at":         { "name": "created_at", "type": "DATETIME", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"updated_at":         { "name": "updated_at", "type": "DATETIME", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":            { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"uq_bill":            { "type": "unique", "name": "uq_bill", "length": [ null, null, null ], "columns": [ "bill_number", "state_code", "legiscan_id" ] },
+			"idx_state":          { "type": "key", "name": "idx_state", "length": [ null ], "columns": [ "state_code" ] },
+			"idx_type":           { "type": "key", "name": "idx_type", "length": [ null ], "columns": [ "bill_type" ] },
+			"idx_status":         { "type": "key", "name": "idx_status", "length": [ null ], "columns": [ "status" ] },
+			"idx_progress":       { "type": "key", "name": "idx_progress", "length": [ null ], "columns": [ "progress_stage" ] },
+			"idx_legiscan":       { "type": "key", "name": "idx_legiscan", "length": [ null ], "columns": [ "legiscan_id" ] }
+		}
+	},
+	"gd_bills_meta": {
+		"name": "gd_bills_meta",
+		"columns": {
+			"id":         { "name": "id", "type": "BIGINT", "length": 20, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"meta_key":   { "name": "meta_key", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"meta_value": { "name": "meta_value", "type": "MEDIUMTEXT", "length": 0, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"updated_at": { "name": "updated_at", "type": "DATETIME", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":      { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"uq_meta_key":  { "type": "unique", "name": "uq_meta_key", "length": [ null ], "columns": [ "meta_key" ] }
+		}
+	}
+}

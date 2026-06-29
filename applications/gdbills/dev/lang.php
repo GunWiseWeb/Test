@@ -1,0 +1,116 @@
+<?php
+
+$lang = array(
+	/* App + tabs */
+	'__app_gdbills'                     => 'Firearms Bill Tracker',
+	'menutab__gdbills'                  => 'Bills',
+	'menutab__gdbills_icon'             => 'gavel',
+
+	/* ACP menu items */
+	'menu__gdbills_bills_bills'         => 'Bills',
+	'menu__gdbills_bills_settings'      => 'Settings',
+	'menu__gdbills_bills_import'        => 'CSV Import',
+	'menu__gdbills_bills_sync'          => 'LegiScan Sync',
+
+	/* Front module + FrontNavigation */
+	'module__gdbills_bills'             => 'Bill Tracker',
+	'frontnavigation_gdbills_bills'     => 'Bill Tracker',
+
+	/* Page */
+	'gdbills_page_title'                => 'Firearms Bill Tracker',
+	'gdbills_page_subtitle'             => 'Pending and enacted firearms legislation by state',
+	'gdbills_state_map_title'           => 'Browse by state',
+	'gdbills_state_map_hint'            => 'Tap a state to view the bills currently active there.',
+	'gdbills_enacted_heading'           => 'Enacted Laws',
+	'gdbills_pending_heading'           => 'Pending Bills',
+	'gdbills_no_bills'                  => 'No bills tracked for this state right now.',
+	'gdbills_no_bills_overall'          => 'No bills tracked yet. Configure your LegiScan API key in the ACP and run Sync to populate.',
+	'gdbills_modal_close'               => 'Close',
+	'gdbills_view_full_text'            => 'View full text',
+	'gdbills_last_action'               => 'Last action',
+	'gdbills_sponsor'                   => 'Sponsor',
+	'gdbills_introduced'                => 'Introduced',
+	'gdbills_signed'                    => 'Signed',
+	'gdbills_passed_house'              => 'Passed House',
+	'gdbills_passed_senate'             => 'Passed Senate',
+
+	/* Badges */
+	'gdbills_type_pending'              => 'Pending',
+	'gdbills_type_enacted'              => 'Enacted',
+	'gdbills_type_law'                  => 'Law',
+
+	/* Filters */
+	'gdbills_filter_state'              => 'State',
+	'gdbills_filter_type'               => 'Type',
+	'gdbills_filter_all_states'         => 'All states',
+	'gdbills_filter_all_types'          => 'All types',
+	'gdbills_filter_apply'              => 'Apply',
+	'gdbills_filter_clear'              => 'Clear',
+
+	/* ACP — Bills list */
+	'gdbills_acp_bills_title'           => 'Tracked Bills',
+	'gdbills_acp_bills_intro'           => 'Add, edit, or remove tracked legislation. Bills can also be sourced from LegiScan or CSV.',
+	'gdbills_acp_bills_add'             => 'Add bill',
+	'gdbills_acp_bills_edit'            => 'Edit bill',
+	'gdbills_acp_bills_delete'          => 'Delete bill',
+	'gdbills_acp_bills_count'           => 'Total tracked',
+
+	/* ACP — Bill form fields */
+	'gdbills_f_bill_number'             => 'Bill number',
+	'gdbills_f_bill_title'              => 'Bill title',
+	'gdbills_f_state_code'              => 'State (2-letter)',
+	'gdbills_f_bill_type'               => 'Bill type',
+	'gdbills_f_status'                  => 'Status',
+	'gdbills_f_progress_stage'          => 'Progress stage',
+	'gdbills_f_sponsor_name'            => 'Sponsor name',
+	'gdbills_f_sponsor_party'           => 'Sponsor party',
+	'gdbills_f_description'             => 'Description',
+	'gdbills_f_url'                     => 'Full-text URL',
+	'gdbills_f_date_introduced'         => 'Date introduced',
+	'gdbills_f_last_action_date'        => 'Last action date',
+	'gdbills_f_last_action'             => 'Last action',
+	'gdbills_f_passed_senate_date'      => 'Passed Senate date',
+	'gdbills_f_passed_house_date'       => 'Passed House date',
+	'gdbills_f_signed_date'             => 'Signed date',
+	'gdbills_f_legiscan_id'             => 'LegiScan bill id',
+	'gdbills_f_source'                  => 'Source',
+
+	/* ACP — Settings */
+	'gdbills_acp_settings_title'        => 'Settings',
+	'gdbills_settings_general'          => 'General',
+	'gdbills_settings_legiscan'         => 'LegiScan API',
+	'gdbills_settings_keywords'         => 'Search Keywords',
+	'gdbills_legiscan_key'              => 'LegiScan API key',
+	'gdbills_autosync_enabled'          => 'Enable daily auto-sync',
+	'gdbills_search_keywords'           => 'Search keywords (one per line)',
+	'gdbills_relevance_keywords'        => 'Relevance allowlist (one per line)',
+	'gdbills_exclusion_keywords'        => 'Exclusion list (one per line)',
+	'gdbills_session_note'              => 'Session note shown to visitors',
+
+	/* ACP — Import */
+	'gdbills_acp_import_title'          => 'CSV Import',
+	'gdbills_acp_import_intro'          => 'Upload a CSV with columns: bill_number, bill_title, state_code, bill_type, status, sponsor_name, description, url, date_introduced, last_action_date, last_action.',
+	'gdbills_acp_import_file'           => 'CSV file',
+	'gdbills_acp_import_run'            => 'Import',
+	'gdbills_acp_import_summary'        => 'Imported {1} bills ({2} new, {3} updated, {4} errors).',
+
+	/* ACP — Sync */
+	'gdbills_acp_sync_title'            => 'LegiScan Sync',
+	'gdbills_acp_sync_intro'            => 'Manually trigger a sync against the LegiScan API. The daily task will also run automatically.',
+	'gdbills_acp_sync_button'           => 'Sync now',
+	'gdbills_acp_sync_last'             => 'Last sync',
+	'gdbills_acp_sync_never'            => 'Never',
+	'gdbills_acp_sync_done'             => 'Sync complete: {1} bills processed.',
+	'gdbills_acp_sync_no_key'           => 'Set your LegiScan API key in Settings before syncing.',
+	'gdbills_acp_sync_disabled'         => 'Auto-sync is disabled. Manual sync still works.',
+
+	/* Task */
+	'task__gdbills_syncBills'           => 'Sync firearms bills from LegiScan',
+
+	/* Widgets */
+	'block__gdbills_billMap'            => 'Bill Tracker Map',
+	'block__gdbills_billList'           => 'Bill List',
+	'gdbills_w_state'                   => 'State filter (blank = all)',
+	'gdbills_w_type'                    => 'Type filter (blank = all)',
+	'gdbills_w_limit'                   => 'Rows to show',
+);
