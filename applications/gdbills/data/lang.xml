@@ -29,6 +29,13 @@
 <word key="gdbills_type_pending" js="0"><![CDATA[Pending]]></word>
 <word key="gdbills_type_enacted" js="0"><![CDATA[Enacted]]></word>
 <word key="gdbills_type_law" js="0"><![CDATA[Law]]></word>
+<word key="gdbills_stage_introduced" js="0"><![CDATA[Introduced]]></word>
+<word key="gdbills_stage_house" js="0"><![CDATA[House]]></word>
+<word key="gdbills_stage_senate" js="0"><![CDATA[Senate]]></word>
+<word key="gdbills_stage_governor" js="0"><![CDATA[Governor]]></word>
+<word key="gdbills_stage_law" js="0"><![CDATA[Law]]></word>
+<word key="gdbills_failed" js="0"><![CDATA[Failed]]></word>
+<word key="gdbills_vetoed" js="0"><![CDATA[Vetoed]]></word>
 <word key="gdbills_filter_state" js="0"><![CDATA[State]]></word>
 <word key="gdbills_filter_type" js="0"><![CDATA[Type]]></word>
 <word key="gdbills_filter_all_states" js="0"><![CDATA[All states]]></word>

@@ -292,13 +292,15 @@ class _LegiScan
 		if ( !is_array( $lastAction ) ) { $lastAction = []; }
 
 		/* progress comes as a sequence of {date, event} entries — map LegiScan
-		   event codes to friendlier stages. Use word-boundary-aware comparisons
-		   so "assigned" doesn't trigger "signed". */
+		   event codes to the tracker vocabulary the front template understands:
+		   introduced → passed_house → passed_senate → to_governor → became_law.
+		   Event 6 is vetoed; treat as a terminal failure state. */
 		$progressStage  = 'introduced';
 		$signedDate     = null;
 		$passedHouse    = null;
 		$passedSenate   = null;
 		$dateIntro      = null;
+		$isVetoed       = false;
 
 		if ( isset( $bill['progress'] ) && is_array( $bill['progress'] ) )
 		{
@@ -312,16 +314,26 @@ class _LegiScan
 					case 1: $dateIntro    = $dateIntro    ?: $pdate; $progressStage = 'introduced'; break;
 					case 2: $passedHouse  = $passedHouse  ?: $pdate; $progressStage = 'passed_house'; break;
 					case 3: $passedSenate = $passedSenate ?: $pdate; $progressStage = 'passed_senate'; break;
-					case 4: $progressStage = 'passed_both'; break;
-					case 5: $signedDate = $signedDate ?: $pdate; $progressStage = 'signed'; break;
-					case 6: $progressStage = 'vetoed'; break;
+					case 4: $progressStage = 'to_governor'; break;
+					case 5: $signedDate   = $signedDate   ?: $pdate; $progressStage = 'became_law'; break;
+					case 6: $isVetoed = true; $progressStage = 'vetoed'; break;
 				}
 			}
 		}
 
 		$billType = 'pending';
-		if ( $signedDate ) { $billType = 'enacted'; }
-		$status = (string) ( $lastAction['action'] ?? $progressStage );
+		if ( $signedDate )    { $billType = 'enacted'; }
+		/* Status carries the machine-readable failure marker when vetoed, so the
+		   template's failed-notice branch lights up. Otherwise prefer the
+		   human-readable last_action text. */
+		if ( $isVetoed )
+		{
+			$status = 'vetoed';
+		}
+		else
+		{
+			$status = (string) ( $lastAction['action'] ?? $progressStage );
+		}
 
 		$sponsorName = null;
 		$sponsorParty = null;

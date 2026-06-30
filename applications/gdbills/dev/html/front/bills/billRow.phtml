@@ -2,19 +2,58 @@
 <article class="gd-bills__row">
 	<div class="gd-bills__rowHead">
 		<span class="gd-bills__badge gd-bills__badge--state">{$b['state_code']}</span>
+		{{if $b['status'] === 'vetoed' || $b['status'] === 'failed'}}
+		<span class="gd-bills__badge gd-bills__badge--type gd-bills__badge--failed">{{if $b['status'] === 'vetoed'}}{lang="gdbills_vetoed"}{{else}}{lang="gdbills_failed"}{{endif}}</span>
+		{{else}}
 		<span class="gd-bills__badge gd-bills__badge--type gd-bills__badge--{$b['bill_type']}">{lang="gdbills_type_{$b['bill_type']}"}</span>
+		{{endif}}
 		<strong class="gd-bills__num">{$b['bill_number']}</strong>
 	</div>
 	<h3 class="gd-bills__title">
 		{{if $b['url']}}<a href="{$b['url']}" target="_blank" rel="nofollow noopener">{$b['bill_title']}</a>{{else}}{$b['bill_title']}{{endif}}
 	</h3>
+
+	{{if $b['status'] === 'vetoed' || $b['status'] === 'failed'}}
+	<div class="gd-bills__failed">
+		<span class="gd-bills__failedIcon" aria-hidden="true">&#10005;</span>
+		<strong>{{if $b['status'] === 'vetoed'}}{lang="gdbills_vetoed"}{{else}}{lang="gdbills_failed"}{{endif}}</strong>
+	</div>
+	{{else}}
+	<div class="gd-bills__steps" aria-label="Progress">
+		<div class="gd-bills__step gd-bills__step--done">
+			<div class="gd-bills__stepDot">1</div>
+			<div class="gd-bills__stepLabel">{lang="gdbills_stage_introduced"}</div>
+		</div>
+		<div class="gd-bills__connector{{if $b['progress_stage'] === 'passed_house' || $b['progress_stage'] === 'passed_senate' || $b['progress_stage'] === 'to_governor' || $b['progress_stage'] === 'became_law'}} gd-bills__connector--done{{endif}}"></div>
+		<div class="gd-bills__step{{if $b['progress_stage'] === 'passed_house' || $b['progress_stage'] === 'passed_senate' || $b['progress_stage'] === 'to_governor' || $b['progress_stage'] === 'became_law'}} gd-bills__step--done{{endif}}">
+			<div class="gd-bills__stepDot">2</div>
+			<div class="gd-bills__stepLabel">{lang="gdbills_stage_house"}</div>
+		</div>
+		<div class="gd-bills__connector{{if $b['progress_stage'] === 'passed_senate' || $b['progress_stage'] === 'to_governor' || $b['progress_stage'] === 'became_law'}} gd-bills__connector--done{{endif}}"></div>
+		<div class="gd-bills__step{{if $b['progress_stage'] === 'passed_senate' || $b['progress_stage'] === 'to_governor' || $b['progress_stage'] === 'became_law'}} gd-bills__step--done{{endif}}">
+			<div class="gd-bills__stepDot">3</div>
+			<div class="gd-bills__stepLabel">{lang="gdbills_stage_senate"}</div>
+		</div>
+		<div class="gd-bills__connector{{if $b['progress_stage'] === 'to_governor' || $b['progress_stage'] === 'became_law'}} gd-bills__connector--done{{endif}}"></div>
+		<div class="gd-bills__step{{if $b['progress_stage'] === 'to_governor' || $b['progress_stage'] === 'became_law'}} gd-bills__step--done{{endif}}">
+			<div class="gd-bills__stepDot">4</div>
+			<div class="gd-bills__stepLabel">{lang="gdbills_stage_governor"}</div>
+		</div>
+		<div class="gd-bills__connector{{if $b['progress_stage'] === 'became_law'}} gd-bills__connector--done{{endif}}"></div>
+		<div class="gd-bills__step{{if $b['progress_stage'] === 'became_law'}} gd-bills__step--done{{endif}}">
+			<div class="gd-bills__stepDot">5</div>
+			<div class="gd-bills__stepLabel">{lang="gdbills_stage_law"}</div>
+		</div>
+	</div>
+	{{endif}}
+
 	{{if $b['last_action']}}
 	<p class="gd-bills__action">
 		<strong>{lang="gdbills_last_action"}:</strong> {$b['last_action']}{{if $b['last_action_date']}} <span class="gd-bills__date">({$b['last_action_date']})</span>{{endif}}
 	</p>
 	{{endif}}
 	{{if $b['sponsor_name']}}
-	<p class="gd-bills__sponsor"><strong>{lang="gdbills_sponsor"}:</strong> {$b['sponsor_name']}{{if $b['sponsor_party']}} ({$b['sponsor_party']}){{endif}}</p>
+	<p class="gd-bills__sponsor"><strong>{lang="gdbills_sponsor"}:</strong> {$b['sponsor_name']}{{if $b['sponsor_party']}} <span class="gd-bills__party gd-bills__party--{$b['sponsor_party']}">{$b['sponsor_party']}</span>{{endif}}</p>
 	{{endif}}
 	{{if $b['description']}}
 	<p class="gd-bills__desc">{$b['description']}</p>

@@ -39,6 +39,15 @@ $lang = array(
 	'gdbills_type_enacted'              => 'Enacted',
 	'gdbills_type_law'                  => 'Law',
 
+	/* Progress tracker (Introduced → House → Senate → Governor → Law) */
+	'gdbills_stage_introduced'          => 'Introduced',
+	'gdbills_stage_house'               => 'House',
+	'gdbills_stage_senate'              => 'Senate',
+	'gdbills_stage_governor'            => 'Governor',
+	'gdbills_stage_law'                 => 'Law',
+	'gdbills_failed'                    => 'Failed',
+	'gdbills_vetoed'                    => 'Vetoed',
+
 	/* Filters */
 	'gdbills_filter_state'              => 'State',
 	'gdbills_filter_type'               => 'Type',
