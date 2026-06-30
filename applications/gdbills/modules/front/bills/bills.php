@@ -2,10 +2,12 @@
 /**
  * @brief  GD Bills — Front controller (/bills/)
  *
- * manage()    → renders the page (map + filter bar + list).
- * mapData()   → JSON: getCountsByState() for the map.
- * stateBills()→ HTML fragment: laws + enacted + pending for one state
- *               (used as the modal content).
+ * manage()    → renders the page (map + filter bar + inline state list).
+ * mapData()   → JSON: getCountsByState() (kept for potential map refresh).
+ * stateBills()→ deprecated; no popup any more. Tile clicks now navigate to
+ *               ?state=XX which manage() renders inline. The action is
+ *               kept as a redirect-only stub so any cached AJAX URL still
+ *               sends the user to the inline page instead of 404ing.
  */
 
 namespace IPS\gdbills\modules\front\bills;
@@ -33,6 +35,8 @@ class _bills extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->cssFiles = array_merge( \IPS\Output::i()->cssFiles,
 			\IPS\Theme::i()->css( 'bills.css', 'gdbills', 'interface' )
 		);
+		/* map.js is a no-op now that tiles navigate via href and there's no
+		   modal. Kept enqueued so any future tile enhancement has a mount. */
 		\IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles,
 			\IPS\Output::i()->js( 'map.js', 'gdbills', 'interface' )
 		);
@@ -90,14 +94,6 @@ class _bills extends \IPS\Dispatcher\Controller
 		$pageUrl = (string) \IPS\Http\Url::internal(
 			'app=gdbills&module=bills&controller=bills', 'front', 'gdbills_page'
 		);
-		$ajaxStateUrl = (string) \IPS\Http\Url::internal(
-			'app=gdbills&module=bills&controller=bills&do=stateBills',
-			'front', 'gdbills_action', [ 'stateBills' ]
-		);
-		$ajaxMapUrl = (string) \IPS\Http\Url::internal(
-			'app=gdbills&module=bills&controller=bills&do=mapData',
-			'front', 'gdbills_action', [ 'mapData' ]
-		);
 
 		/* Build the 4 type-button URLs + a clear-dates URL, preserving the other
 		   active filter params. Templates only render plain {$var} interpolation. */
@@ -129,7 +125,6 @@ class _bills extends \IPS\Dispatcher\Controller
 			$state, $type, $dateFrom, $dateTo,
 			$lastUpdatedDisplay, $shownLabel,
 			$pageUrl, $typeUrls, $clearUrl,
-			$ajaxStateUrl, $ajaxMapUrl,
 			(string) ( \IPS\Settings::i()->gdbills_session_note ?? '' )
 		);
 	}
@@ -140,19 +135,19 @@ class _bills extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->json( [ 'counts' => $counts ] );
 	}
 
+	/* Deprecated — no popup. Redirects any lingering AJAX/cached link to
+	   the inline state view so old URLs don't 404. */
 	protected function stateBills(): void
 	{
 		$state = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
-		if ( !preg_match( '/^[A-Z]{2}$/', $state ) )
-		{
-			\IPS\Output::i()->json( [ 'ok' => false, 'error' => 'bad_state' ] );
-			return;
-		}
-		$buckets = \IPS\gdbills\Bill::getThreeBuckets( $state );
-		$html = (string) \IPS\Theme::i()->getTemplate( 'bills', 'gdbills', 'front' )->stateModal(
-			$state, $buckets['law'], $buckets['enacted'], $buckets['pending']
+		$url   = \IPS\Http\Url::internal(
+			'app=gdbills&module=bills&controller=bills', 'front', 'gdbills_page'
 		);
-		\IPS\Output::i()->json( [ 'ok' => true, 'state' => $state, 'html' => $html ] );
+		if ( preg_match( '/^[A-Z]{2}$/', $state ) )
+		{
+			$url = $url->setQueryString( 'state', $state );
+		}
+		\IPS\Output::i()->redirect( $url );
 	}
 
 	/* YYYY-MM-DD only — empty string passes through; invalid input is rejected. */

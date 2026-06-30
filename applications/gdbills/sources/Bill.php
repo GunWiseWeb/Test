@@ -145,6 +145,36 @@ class _Bill
 		return $buckets;
 	}
 
+	/* Shared where-clause builder for getAll / getTotalCount so list and
+	   count use IDENTICAL filters (pagination totals stay correct). Accepts:
+	     state    exact match on state_code (uppercased)
+	     type     exact match on bill_type (any string allowed; caller validates)
+	     status   exact match on status
+	     q        LIKE %q% on bill_title OR bill_number (free-text search)
+	     date_from/date_to  last_action_date >= / <= (YYYY-MM-DD only) */
+	protected static function buildWhere( array $args ): array
+	{
+		$state    = isset( $args['state'] )   ? strtoupper( (string) $args['state'] ) : '';
+		$type     = isset( $args['type'] )    ? (string) $args['type']    : '';
+		$status   = isset( $args['status'] )  ? (string) $args['status']  : '';
+		$q        = isset( $args['q'] )       ? trim( (string) $args['q'] ) : '';
+		$dateFrom = self::validDate( isset( $args['date_from'] ) ? (string) $args['date_from'] : null );
+		$dateTo   = self::validDate( isset( $args['date_to'] )   ? (string) $args['date_to']   : null );
+
+		$where = [];
+		if ( $state  !== '' ) { $where[] = [ 'state_code=?', $state ]; }
+		if ( $type   !== '' ) { $where[] = [ 'bill_type=?', $type ]; }
+		if ( $status !== '' ) { $where[] = [ 'status=?', $status ]; }
+		if ( $q      !== '' )
+		{
+			$like = '%' . $q . '%';
+			$where[] = [ '(bill_title LIKE ? OR bill_number LIKE ?)', $like, $like ];
+		}
+		if ( $dateFrom !== null ) { $where[] = [ 'last_action_date >= ?', $dateFrom ]; }
+		if ( $dateTo   !== null ) { $where[] = [ 'last_action_date <= ?', $dateTo   ]; }
+		return $where;
+	}
+
 	/* Validate a YYYY-MM-DD string; return canonical form or null. */
 	protected static function validDate( ?string $v ): ?string
 	{
@@ -157,22 +187,11 @@ class _Bill
 
 	public static function getAll( array $args = [] ): array
 	{
-		$state   = isset( $args['state'] )   ? strtoupper( (string) $args['state'] ) : '';
-		$type    = isset( $args['type'] )    ? (string) $args['type']    : '';
-		$status  = isset( $args['status'] )  ? (string) $args['status']  : '';
+		$where = self::buildWhere( $args );
 		$limit   = isset( $args['limit'] )   ? (int)    $args['limit']   : 50;
 		$offset  = isset( $args['offset'] )  ? (int)    $args['offset']  : 0;
 		$orderby = isset( $args['orderby'] ) ? (string) $args['orderby'] : 'last_action_date';
 		$order   = isset( $args['order'] )   && strtolower( (string) $args['order'] ) === 'asc' ? 'ASC' : 'DESC';
-		$dateFrom = self::validDate( isset( $args['date_from'] ) ? (string) $args['date_from'] : null );
-		$dateTo   = self::validDate( isset( $args['date_to'] )   ? (string) $args['date_to']   : null );
-
-		$where = [];
-		if ( $state !== '' )  { $where[] = [ 'state_code=?', $state ]; }
-		if ( $type !== '' )   { $where[] = [ 'bill_type=?', $type ]; }
-		if ( $status !== '' ) { $where[] = [ 'status=?', $status ]; }
-		if ( $dateFrom !== null ) { $where[] = [ 'last_action_date >= ?', $dateFrom ]; }
-		if ( $dateTo !== null )   { $where[] = [ 'last_action_date <= ?', $dateTo   ]; }
 
 		$allowedOrderby = [ 'last_action_date', 'date_introduced', 'state_code', 'bill_number' ];
 		if ( !in_array( $orderby, $allowedOrderby, true ) ) { $orderby = 'last_action_date'; }
@@ -194,13 +213,7 @@ class _Bill
 
 	public static function getTotalCount( array $args = [] ): int
 	{
-		$state   = isset( $args['state'] )  ? strtoupper( (string) $args['state'] ) : '';
-		$type    = isset( $args['type'] )   ? (string) $args['type']    : '';
-		$status  = isset( $args['status'] ) ? (string) $args['status']  : '';
-		$where = [];
-		if ( $state !== '' )  { $where[] = [ 'state_code=?', $state ]; }
-		if ( $type !== '' )   { $where[] = [ 'bill_type=?', $type ]; }
-		if ( $status !== '' ) { $where[] = [ 'status=?', $status ]; }
+		$where = self::buildWhere( $args );
 		try
 		{
 			return (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_bills', $where ?: null )->first();

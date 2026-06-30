@@ -65,6 +65,7 @@ $lang = array(
 	'gdbills_filter_to'                 => 'To',
 	'gdbills_last_updated'              => 'Last Updated',
 	'gdbills_showing_count'             => 'Showing %d items',
+	'gdbills_back_all_states'           => 'All states',
 
 	/* ACP — Bills list */
 	'gdbills_acp_bills_title'           => 'Tracked Bills',
@@ -73,6 +74,13 @@ $lang = array(
 	'gdbills_acp_bills_edit'            => 'Edit bill',
 	'gdbills_acp_bills_delete'          => 'Delete bill',
 	'gdbills_acp_bills_count'           => 'Total tracked',
+	'gdbills_acp_bills_none'            => 'No bills match the current filters.',
+	'gdbills_acp_search'                => 'Search bills',
+	'gdbills_acp_search_state'          => 'State',
+	'gdbills_acp_search_type'           => 'Type',
+	'gdbills_acp_search_q'              => 'Title or bill number',
+	'gdbills_acp_search_go'             => 'Search',
+	'gdbills_acp_search_reset'          => 'Reset',
 
 	/* ACP — Bill form fields */
 	'gdbills_f_bill_number'             => 'Bill number',

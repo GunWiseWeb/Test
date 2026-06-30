@@ -1,5 +1,5 @@
-<ips:template parameters="$counts, $total, $stateList, $laws, $enacted, $pending, $activeState, $activeType, $dateFrom, $dateTo, $lastUpdated, $shownLabel, $pageUrl, $typeUrls, $clearUrl, $ajaxStateUrl, $ajaxMapUrl, $sessionNote" />
-<div class="gd-bills" data-ajax-state-url="{$ajaxStateUrl}" data-ajax-map-url="{$ajaxMapUrl}">
+<ips:template parameters="$counts, $total, $stateList, $laws, $enacted, $pending, $activeState, $activeType, $dateFrom, $dateTo, $lastUpdated, $shownLabel, $pageUrl, $typeUrls, $clearUrl, $sessionNote" />
+<div class="gd-bills">
 
 	<header class="gd-bills__hero">
 		<h1>{lang="gdbills_page_title"}</h1>
@@ -40,6 +40,13 @@
 		</form>
 	</section>
 
+	{{if $activeState}}
+	<div class="gd-bills__breadcrumb">
+		<a href="{$pageUrl}" class="gd-bills__back">&larr; {lang="gdbills_back_all_states"}</a>
+		<span class="gd-bills__breadcrumbActive">{$activeState}</span>
+	</div>
+	{{endif}}
+
 	{{if $activeState || $activeType !== 'all' || $dateFrom || $dateTo}}
 	<div class="gd-bills__showing">{$shownLabel}</div>
 	{{endif}}
@@ -68,7 +75,7 @@
 				{{$activeCls = ( $activeState === $code ) ? ' is-active' : '';}}
 				{{$ga = strtolower($code);}}
 				{{if $c > 0}}
-				<a class="gd-bills__tile {$bucket}{$activeCls}" style="grid-area: {$ga}" data-state="{$code}" href="{$pageUrl}?state={$code}" title="{$code}: {$c}">{$code}<small>{$c}</small></a>
+				<a class="gd-bills__tile {$bucket}{$activeCls}" style="grid-area: {$ga}" href="{$pageUrl}?state={$code}" title="{$code}: {$c}">{$code}<small>{$c}</small></a>
 				{{else}}
 				<span class="gd-bills__tile is-empty" style="grid-area: {$ga}" title="{$code}: 0">{$code}</span>
 				{{endif}}
@@ -116,13 +123,5 @@
 			{{endif}}
 		{{endif}}
 	{{endif}}
-
-	<div class="gd-bills__modal" id="gdBillsModal" hidden>
-		<div class="gd-bills__modalBackdrop" data-close-modal="1"></div>
-		<div class="gd-bills__modalPanel">
-			<button type="button" class="gd-bills__modalClose" data-close-modal="1" aria-label="{lang="gdbills_modal_close"}">&times;</button>
-			<div class="gd-bills__modalBody" id="gdBillsModalBody"></div>
-		</div>
-	</div>
 
 </div>

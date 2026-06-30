@@ -52,6 +52,14 @@
 <word key="gdbills_filter_to" js="0"><![CDATA[To]]></word>
 <word key="gdbills_last_updated" js="0"><![CDATA[Last Updated]]></word>
 <word key="gdbills_showing_count" js="0"><![CDATA[Showing %d items]]></word>
+<word key="gdbills_back_all_states" js="0"><![CDATA[All states]]></word>
+<word key="gdbills_acp_bills_none" js="0"><![CDATA[No bills match the current filters.]]></word>
+<word key="gdbills_acp_search" js="0"><![CDATA[Search bills]]></word>
+<word key="gdbills_acp_search_state" js="0"><![CDATA[State]]></word>
+<word key="gdbills_acp_search_type" js="0"><![CDATA[Type]]></word>
+<word key="gdbills_acp_search_q" js="0"><![CDATA[Title or bill number]]></word>
+<word key="gdbills_acp_search_go" js="0"><![CDATA[Search]]></word>
+<word key="gdbills_acp_search_reset" js="0"><![CDATA[Reset]]></word>
 <word key="gdbills_acp_bills_title" js="0"><![CDATA[Tracked Bills]]></word>
 <word key="gdbills_acp_bills_intro" js="0"><![CDATA[Add, edit, or remove tracked legislation. Bills can also be sourced from LegiScan or CSV.]]></word>
 <word key="gdbills_acp_bills_add" js="0"><![CDATA[Add bill]]></word>
