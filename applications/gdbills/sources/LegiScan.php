@@ -287,60 +287,174 @@ class _LegiScan
 	 */
 	public static function parseBill( array $bill, string $stateCode ): array
 	{
-		$lastAction = isset( $bill['history'] ) && is_array( $bill['history'] )
-			? end( $bill['history'] ) : null;
+		$history = ( isset( $bill['history'] ) && is_array( $bill['history'] ) ) ? $bill['history'] : [];
+		$lastAction = $history ? end( $history ) : [];
 		if ( !is_array( $lastAction ) ) { $lastAction = []; }
 
-		/* progress comes as a sequence of {date, event} entries — map LegiScan
-		   event codes to the tracker vocabulary the front template understands:
-		   introduced → passed_house → passed_senate → to_governor → became_law.
-		   Event 6 is vetoed; treat as a terminal failure state. */
-		$progressStage  = 'introduced';
-		$signedDate     = null;
-		$passedHouse    = null;
-		$passedSenate   = null;
-		$dateIntro      = null;
-		$isVetoed       = false;
+		/* ============================================================
+		 * Status & progress detection — port of the WordPress plugin's
+		 * parse_bill_from_get_bill. Two-stage:
+		 *
+		 *   (1) LegiScan status_code (authoritative): maps codes 4/5/6
+		 *       to enacted/vetoed/failed unambiguously.
+		 *   (2) History-text refinement (advance-only): walks each
+		 *       action's lowercase text and lifts the stage upward —
+		 *       NEVER downgrades a became_law/vetoed/failed result.
+		 *
+		 * The signed-detection guard (excludes "assigned"/"reassigned"/
+		 * "designated") is the CRITICAL piece that prevents a bill that
+		 * was merely "assigned to a committee" from being mis-flagged
+		 * as signed into law.
+		 * ============================================================ */
+		$statusCode = (int) ( $bill['status'] ?? 0 );
 
-		if ( isset( $bill['progress'] ) && is_array( $bill['progress'] ) )
+		$progressStage     = 'introduced';
+		$status            = 'introduced';
+		$billType          = 'pending';
+		$signedDate        = null;
+		$passedHouseDate   = null;
+		$passedSenateDate  = null;
+		$dateIntroduced    = self::cleanDate( $bill['status_date'] ?? null );
+
+		/* (1) status_code → coarse classification.
+		 *   1=Intro, 2=Engrossed, 3=Enrolled — leave pending, let history refine.
+		 *   4=Passed/Signed, 5=Vetoed, 6=Failed — terminal, win over history. */
+		if ( $statusCode === 4 )
 		{
-			foreach ( $bill['progress'] as $p )
+			$billType      = 'enacted';
+			$status        = 'enacted';
+			$progressStage = 'became_law';
+			$signedDate    = self::cleanDate( $bill['status_date'] ?? null );
+		}
+		elseif ( $statusCode === 5 )
+		{
+			$status        = 'vetoed';
+			$progressStage = 'vetoed';
+		}
+		elseif ( $statusCode === 6 )
+		{
+			$status        = 'failed';
+			$progressStage = 'failed';
+		}
+
+		/* Track which terminal states we've already locked into so history
+		 * parsing can advance the bar but never downgrade it. */
+		$isTerminal = in_array( $progressStage, [ 'became_law', 'vetoed', 'failed' ], true );
+
+		/* (2) Walk history actions oldest→newest. Capture chamber-pass dates
+		 *     and an explicit "signed by governor" event (with the assigned
+		 *     guard) so we can refine status_code 1/2/3 bills to passed_senate/
+		 *     passed_house/to_governor/became_law. */
+		foreach ( $history as $h )
+		{
+			if ( !is_array( $h ) ) { continue; }
+			$actionText = strtolower( (string) ( $h['action'] ?? '' ) );
+			$actionDate = self::cleanDate( $h['date'] ?? null );
+			if ( $actionText === '' ) { continue; }
+
+			$mentionsSenate = ( strpos( $actionText, 'senate' ) !== false );
+			$mentionsHouse  = ( strpos( $actionText, 'house' )  !== false );
+			$thirdReadPass  = ( strpos( $actionText, 'third reading passed' ) !== false );
+
+			/* Senate-pass detection (capture date even on terminal bills) */
+			if (
+				strpos( $actionText, 'passed senate' ) !== false
+				|| strpos( $actionText, 'senate passed' ) !== false
+				|| ( $thirdReadPass && $mentionsSenate )
+			)
 			{
-				if ( !is_array( $p ) ) { continue; }
-				$event = (int) ( $p['event'] ?? 0 );
-				$pdate = self::cleanDate( $p['date'] ?? null );
-				switch ( $event )
+				$passedSenateDate = $passedSenateDate ?: $actionDate;
+				if ( !$isTerminal && in_array( $progressStage, [ 'introduced', 'in_committee' ], true ) )
 				{
-					case 1: $dateIntro    = $dateIntro    ?: $pdate; $progressStage = 'introduced'; break;
-					case 2: $passedHouse  = $passedHouse  ?: $pdate; $progressStage = 'passed_house'; break;
-					case 3: $passedSenate = $passedSenate ?: $pdate; $progressStage = 'passed_senate'; break;
-					case 4: $progressStage = 'to_governor'; break;
-					case 5: $signedDate   = $signedDate   ?: $pdate; $progressStage = 'became_law'; break;
-					case 6: $isVetoed = true; $progressStage = 'vetoed'; break;
+					$progressStage = 'passed_senate';
 				}
+			}
+
+			/* House-pass detection */
+			if (
+				strpos( $actionText, 'passed house' ) !== false
+				|| strpos( $actionText, 'house passed' ) !== false
+				|| ( $thirdReadPass && $mentionsHouse )
+			)
+			{
+				$passedHouseDate = $passedHouseDate ?: $actionDate;
+				if ( !$isTerminal && in_array( $progressStage, [ 'introduced', 'in_committee', 'passed_senate' ], true ) )
+				{
+					$progressStage = 'passed_house';
+				}
+			}
+
+			/* To-governor — delivered/sent/presented. Advance unless terminal. */
+			if (
+				strpos( $actionText, 'delivered to governor' )  !== false
+				|| strpos( $actionText, 'sent to governor' )     !== false
+				|| strpos( $actionText, 'presented to governor' ) !== false
+			)
+			{
+				if ( !$isTerminal )
+				{
+					$progressStage = 'to_governor';
+				}
+			}
+
+			/* Signed-into-law — strict whitelist of phrases combined with the
+			   CRITICAL guard (exclude "assigned"/"reassigned"/"designated") so
+			   "assigned by governor" or "reassigned to ..." can't false-match. */
+			$looksSigned = (
+				strpos( $actionText, 'signed by governor' )  !== false
+				|| strpos( $actionText, 'governor signed' )   !== false
+				|| strpos( $actionText, 'approved by governor' ) !== false
+				|| strpos( $actionText, 'governor approved' )    !== false
+				|| strpos( $actionText, 'signed into law' )      !== false
+				|| strpos( $actionText, 'became law' )           !== false
+			);
+			$assignedGuard = (
+				strpos( $actionText, 'assigned' )   !== false
+				|| strpos( $actionText, 'reassigned' ) !== false
+				|| strpos( $actionText, 'designated' ) !== false
+			);
+			if ( $looksSigned && !$assignedGuard )
+			{
+				$signedDate    = $signedDate ?: $actionDate;
+				$progressStage = 'became_law';
+				$billType      = 'enacted';
+				$status        = 'enacted';
+				$isTerminal    = true;
 			}
 		}
 
-		$billType = 'pending';
-		if ( $signedDate )    { $billType = 'enacted'; }
-		/* Status carries the machine-readable failure marker when vetoed, so the
-		   template's failed-notice branch lights up. Otherwise prefer the
-		   human-readable last_action text. */
-		if ( $isVetoed )
+		/* Date introduced — fall back to first history entry if status_date
+		   wasn't useful. */
+		if ( !$dateIntroduced && isset( $history[0]['date'] ) )
 		{
-			$status = 'vetoed';
-		}
-		else
-		{
-			$status = (string) ( $lastAction['action'] ?? $progressStage );
+			$dateIntroduced = self::cleanDate( $history[0]['date'] );
 		}
 
-		$sponsorName = null;
+		/* ============================================================
+		 * Sponsor — primary is the entry with sponsor_type_id == 1
+		 * (NOT just sponsors[0] which can be a co-sponsor). Co-sponsors
+		 * stashed as JSON in cosponsors_json for future use; current
+		 * schema doesn't carry that column so we just keep the primary.
+		 * ============================================================ */
+		$sponsorName  = null;
 		$sponsorParty = null;
-		if ( isset( $bill['sponsors'][0] ) && is_array( $bill['sponsors'][0] ) )
+		if ( isset( $bill['sponsors'] ) && is_array( $bill['sponsors'] ) )
 		{
-			$sponsorName  = (string) ( $bill['sponsors'][0]['name']  ?? '' ) ?: null;
-			$sponsorParty = (string) ( $bill['sponsors'][0]['party'] ?? '' ) ?: null;
+			foreach ( $bill['sponsors'] as $sp )
+			{
+				if ( !is_array( $sp ) ) { continue; }
+				if ( (int) ( $sp['sponsor_type_id'] ?? 0 ) === 1 )
+				{
+					$sponsorName  = (string) ( $sp['name']  ?? '' ) ?: null;
+					$sponsorParty = (string) ( $sp['party'] ?? '' ) ?: null;
+					break;
+				}
+			}
+			if ( !$sponsorName && isset( $bill['sponsors'][0] ) && is_array( $bill['sponsors'][0] ) )
+			{
+				$sponsorName  = (string) ( $bill['sponsors'][0]['name']  ?? '' ) ?: null;
+				$sponsorParty = (string) ( $bill['sponsors'][0]['party'] ?? '' ) ?: null;
+			}
 		}
 
 		return [
@@ -358,11 +472,11 @@ class _LegiScan
 			   authoritative source. Falls back to LegiScan url only when the
 			   feed didn't return a state_link. */
 			'url'                => (string) ( $bill['state_link'] ?? ( $bill['url'] ?? '' ) ),
-			'date_introduced'    => $dateIntro,
+			'date_introduced'    => $dateIntroduced,
 			'last_action_date'   => self::cleanDate( $lastAction['date'] ?? null ),
 			'last_action'        => (string) ( $lastAction['action'] ?? '' ),
-			'passed_senate_date' => $passedSenate,
-			'passed_house_date'  => $passedHouse,
+			'passed_senate_date' => $passedSenateDate,
+			'passed_house_date'  => $passedHouseDate,
 			'signed_date'        => $signedDate,
 			'legiscan_id'        => (int) ( $bill['bill_id'] ?? 0 ),
 			'source'             => 'legiscan',
