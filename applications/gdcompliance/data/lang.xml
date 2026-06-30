@@ -52,7 +52,20 @@
 <word key="gdcompliance_acp_roster_current" js="0"><![CDATA[Current]]></word>
 <word key="gdcompliance_acp_roster_expired" js="0"><![CDATA[Expired]]></word>
 <word key="gdcompliance_acp_roster_refresh" js="0"><![CDATA[Refresh CA Roster]]></word>
-<word key="gdcompliance_acp_roster_done" js="0"><![CDATA[Roster refreshed: {1} rows ({2} current, {3} expired) across {4} pages.]]></word>
+<word key="gdcompliance_acp_roster_refresh_ma" js="0"><![CDATA[Refresh MA Roster]]></word>
+<word key="gdcompliance_acp_roster_import_md" js="0"><![CDATA[Import MD CSV]]></word>
+<word key="gdcompliance_acp_roster_md_help" js="0"><![CDATA[MD's live roster is in a Tableau dashboard (not fetchable) and uses "All models approved" blanket entries. Export from the MD portal, save as CSV with columns: manufacturer, model (literal "ALL" / "*" / blank → blanket-approved for the whole manufacturer), caliber (optional).]]></word>
+<word key="gdcompliance_acp_roster_tab_all" js="0"><![CDATA[All states]]></word>
+<word key="gdcompliance_acp_roster_tab_ca" js="0"><![CDATA[CA]]></word>
+<word key="gdcompliance_acp_roster_tab_ma" js="0"><![CDATA[MA]]></word>
+<word key="gdcompliance_acp_roster_tab_md" js="0"><![CDATA[MD]]></word>
+<word key="gdcompliance_acp_roster_done" js="0"><![CDATA[CA roster refreshed: {1} rows ({2} current, {3} expired) across {4} pages.]]></word>
+<word key="gdcompliance_acp_roster_ma_done" js="0"><![CDATA[MA roster refreshed: {1} rows (extractor: {2}, {3} errors).]]></word>
+<word key="gdcompliance_acp_roster_md_done" js="0"><![CDATA[MD roster imported: {1} rows ({2} blanket, {3} errors).]]></word>
+<word key="gdcompliance_acp_roster_col_roster_state" js="0"><![CDATA[State]]></word>
+<word key="gdcompliance_acp_roster_col_blanket" js="0"><![CDATA[Blanket]]></word>
+<word key="gdcompliance_acp_roster_col_date_approved" js="0"><![CDATA[Approved]]></word>
+<word key="gdcompliance_acp_review_col_roster_state" js="0"><![CDATA[State]]></word>
 <word key="gdcompliance_acp_roster_col_manufacturer" js="0"><![CDATA[Manufacturer]]></word>
 <word key="gdcompliance_acp_roster_col_model_raw" js="0"><![CDATA[Model]]></word>
 <word key="gdcompliance_acp_roster_col_caliber" js="0"><![CDATA[Caliber]]></word>

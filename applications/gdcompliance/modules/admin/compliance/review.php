@@ -25,34 +25,76 @@ class _review extends \IPS\Dispatcher\Controller
 		$h    = fn( string $k ) => htmlspecialchars( (string) $lang->addToStack( $k ), ENT_QUOTES, 'UTF-8' );
 
 		$showResolved = (int) ( \IPS\Request::i()->resolved ?? 0 ) === 1;
+		$stateFilter  = strtoupper( trim( (string) ( \IPS\Request::i()->roster_state ?? '' ) ) );
+		if ( !in_array( $stateFilter, [ 'CA', 'MA', 'MD', 'DC' ], true ) ) { $stateFilter = ''; }
 
 		$pending = $resolved = 0;
 		try { $pending  = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_review', [ 'resolved=0' ] )->first(); } catch ( \Throwable ) {}
 		try { $resolved = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_review', [ 'resolved=1' ] )->first(); } catch ( \Throwable ) {}
 
+		/* Per-state pending counts for the state tabs. */
+		$perState = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( "roster_state, COUNT(*) AS c", 'gd_compliance_review', [ 'resolved=?', $showResolved ? 1 : 0 ], null, null, 'roster_state' ) as $row )
+			{
+				$perState[ (string) $row['roster_state'] ] = (int) $row['c'];
+			}
+		}
+		catch ( \Throwable ) {}
+
 		$baseUrl = \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=review' );
-		$tabs    = '<div style="margin:0 0 14px">'
+		$tabs    = '<div style="margin:0 0 10px">'
 			. "<a class='ipsButton ipsButton--small" . ( $showResolved ? ' ipsButton--soft' : ' ipsButton--primary' ) . "' href='"
 			. htmlspecialchars( (string) $baseUrl, ENT_QUOTES, 'UTF-8' ) . "'>" . $h( 'gdcompliance_acp_review_pending' ) . " ({$pending})</a> "
 			. "<a class='ipsButton ipsButton--small" . ( $showResolved ? ' ipsButton--primary' : ' ipsButton--soft' ) . "' href='"
 			. htmlspecialchars( (string) $baseUrl->setQueryString( 'resolved', 1 ), ENT_QUOTES, 'UTF-8' ) . "'>" . $h( 'gdcompliance_acp_review_resolved' ) . " ({$resolved})</a>"
 			. '</div>';
 
+		/* State filter row. */
+		$preserveResolved = $showResolved ? '&resolved=1' : '';
+		$stateTabs = '<div style="margin:0 0 14px;display:flex;gap:6px;flex-wrap:wrap">';
+		foreach ( [ '' => 'All', 'CA' => 'CA', 'MA' => 'MA', 'MD' => 'MD', 'DC' => 'DC' ] as $key => $label )
+		{
+			$active = $stateFilter === $key ? ' ipsButton--primary' : ' ipsButton--soft';
+			$href   = $key === ''
+				? ( $showResolved ? (string) $baseUrl->setQueryString( 'resolved', 1 ) : (string) $baseUrl )
+				: (string) $baseUrl->setQueryString( [ 'roster_state' => $key ] + ( $showResolved ? [ 'resolved' => 1 ] : [] ) );
+			$count = $perState[ $key ] ?? '';
+			$lbl   = $key === '' ? $label : $label . ( $count !== '' ? " ({$count})" : '' );
+			$stateTabs .= '<a class="ipsButton ipsButton--small' . $active . '" href="' . htmlspecialchars( $href, ENT_QUOTES, 'UTF-8' ) . '">' . htmlspecialchars( $lbl, ENT_QUOTES, 'UTF-8' ) . '</a>';
+		}
+		$stateTabs .= '</div>';
+
 		$intro = '<div class="ipsBox" style="margin-bottom:14px"><div class="ipsBox_body ipsPad">'
 			. '<h2 class="ipsType_sectionHead" style="margin:0 0 8px">' . $h( 'gdcompliance_acp_review_title' ) . '</h2>'
 			. '<p style="margin:0 0 10px">' . $h( 'gdcompliance_acp_review_intro' ) . '</p>'
 			. $tabs
+			. $stateTabs
 			. '</div></div>';
 
-		$where = $showResolved ? [ 'resolved=1' ] : [ 'resolved=0' ];
-		$tableUrl = $showResolved ? $baseUrl->setQueryString( 'resolved', 1 ) : $baseUrl;
+		$where = $showResolved ? [ [ 'resolved=1' ] ] : [ [ 'resolved=0' ] ];
+		if ( $stateFilter !== '' ) { $where[] = [ 'roster_state=?', $stateFilter ]; }
+		$tableUrl = $baseUrl;
+		if ( $showResolved )         { $tableUrl = $tableUrl->setQueryString( 'resolved', 1 ); }
+		if ( $stateFilter !== '' )   { $tableUrl = $tableUrl->setQueryString( 'roster_state', $stateFilter ); }
 		$table    = new \IPS\Helpers\Table\Db( 'gd_compliance_review', $tableUrl, $where );
 		$table->langPrefix    = 'gdcompliance_acp_review_col_';
-		$table->include       = [ 'upc', 'manufacturer', 'model_title', 'caliber', 'suggested_status', 'resolved_status' ];
+		$table->include       = [ 'roster_state', 'upc', 'manufacturer', 'model_title', 'caliber', 'suggested_status', 'resolved_status' ];
 		$table->sortBy        = $table->sortBy ?: 'id';
 		$table->sortDirection = $table->sortDirection ?: 'desc';
 
 		$table->parsers = [
+			'roster_state' => function( $v ) {
+				$pill = match( strtoupper( (string) $v ) ) {
+					'CA' => 'background:#dbeafe;color:#1e3a8a',
+					'MA' => 'background:#dcfce7;color:#14532d',
+					'MD' => 'background:#fef3c7;color:#92400e',
+					'DC' => 'background:#fee2e2;color:#991b1b',
+					default => 'background:#f1f5f9;color:#475569',
+				};
+				return '<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;' . $pill . '">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>';
+			},
 			'upc'              => function( $v ) { return '<span style="font-family:ui-monospace,monospace;font-size:12px">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>'; },
 			'manufacturer'     => function( $v ) { return '<strong>' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</strong>'; },
 			'model_title'      => function( $v ) { return htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ); },
@@ -215,11 +257,12 @@ class _review extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
-		/* Mirror the decision into gd_compliance_flags so the CA restriction
-		   either lights up or clears for that UPC immediately. */
+		/* Mirror the decision into gd_compliance_flags so the per-state
+		   restriction either lights up or clears for that UPC immediately. */
+		$rstate = (string) ( $row['roster_state'] ?? 'CA' );
 		try
 		{
-			\IPS\Db::i()->delete( 'gd_compliance_flags', [ 'upc=? AND state_code=? AND firearm_type=?', (string) $row['upc'], 'CA', 'handgun' ] );
+			\IPS\Db::i()->delete( 'gd_compliance_flags', [ 'upc=? AND state_code=? AND firearm_type=?', (string) $row['upc'], $rstate, 'handgun' ] );
 		}
 		catch ( \Throwable ) {}
 
@@ -229,11 +272,11 @@ class _review extends \IPS\Dispatcher\Controller
 			{
 				\IPS\Db::i()->insert( 'gd_compliance_flags', [
 					'upc'             => (string) $row['upc'],
-					'state_code'      => 'CA',
+					'state_code'      => $rstate,
 					'firearm_type'    => 'handgun',
 					'parsed_capacity' => null,
 					'rule_id'         => 0,
-					'reason'          => 'Not on CA DOJ roster (manual review)',
+					'reason'          => "Not on {$rstate} roster (manual review)",
 					'computed_at'     => time(),
 				] );
 			}

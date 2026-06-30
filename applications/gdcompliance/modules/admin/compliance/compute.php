@@ -125,16 +125,23 @@ class _compute extends \IPS\Dispatcher\Controller
 			. '<h2 class="ipsType_sectionHead" style="margin:0 0 10px">' . $head
 			. ' &mdash; ' . (int) $r['flags'] . ' flags / ' . (int) $r['firearms'] . ' firearm products / ' . (int) $r['processed'] . ' total scanned</h2>';
 
-		/* CA roster outcome (Phase 2). */
+		/* Per-state roster outcomes (Phase 2 + Phase 3 multi-state). */
 		if ( !empty( $r['roster'] ) )
 		{
-			$ro = $r['roster'];
-			$out .= '<div style="margin:6px 0 14px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e3a8a">'
-				. '<strong>CA roster outcome:</strong> '
-				. '<span style="color:#14532d">' . (int) ( $ro['on']     ?? 0 ) . ' on-roster</span> &middot; '
-				. '<span style="color:#991b1b">' . (int) ( $ro['off']    ?? 0 ) . ' off-roster (flag)</span> &middot; '
-				. '<span style="color:#92400e">' . (int) ( $ro['review'] ?? 0 ) . ' needs review</span>'
-				. '</div>';
+			$out .= '<div style="margin:6px 0 14px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e3a8a">';
+			$out .= '<strong style="display:block;margin-bottom:6px">Roster outcomes by state:</strong>';
+			foreach ( [ 'CA', 'MA', 'MD', 'DC' ] as $rs )
+			{
+				if ( !isset( $r['roster'][ $rs ] ) ) { continue; }
+				$ro = $r['roster'][ $rs ];
+				$out .= '<div style="margin:2px 0">'
+					. '<strong style="display:inline-block;min-width:32px">' . $rs . ':</strong> '
+					. '<span style="color:#14532d">' . (int) ( $ro['on']     ?? 0 ) . ' on</span> &middot; '
+					. '<span style="color:#991b1b">' . (int) ( $ro['off']    ?? 0 ) . ' off</span> &middot; '
+					. '<span style="color:#92400e">' . (int) ( $ro['review'] ?? 0 ) . ' review</span>'
+					. '</div>';
+			}
+			$out .= '</div>';
 		}
 
 		/* Per-state table */

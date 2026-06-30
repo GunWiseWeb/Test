@@ -39,6 +39,16 @@ class _Roster
 	const PAGE_THROTTLE_MS = 1000;     /* 1 s between pages */
 	const PAGE_TIMEOUT_S   = 60;
 
+	/* The three roster states gdcompliance covers — plus DC which is derived
+	   from the union (no separate fetch). MD's "all models approved" blanket
+	   semantics are handled via the `blanket` column. */
+	const ROSTER_STATES = [ 'CA', 'MA', 'MD' ];
+
+	/* Default MA roster PDF URL — date in filename rolls monthly so it's
+	   ALSO exposed as setting gdcompliance_ma_roster_url. Derrick updates
+	   the setting when a new edition lands. */
+	const MA_ROSTER_URL_DEFAULT = 'https://www.mass.gov/doc/approved-handgun-roster-april-2026/download';
+
 	/* Status constants — these are the three states everyone references. */
 	const STATUS_ON      = 'on_roster';
 	const STATUS_OFF     = 'off_roster';
@@ -75,9 +85,15 @@ class _Roster
 		'north-american'  => [ 'north american arms', 'naa' ],
 	];
 
-	/* In-process roster cache populated by primeCache(). [mfg_norm => [rows...]]
-	   so classifyHandgun() doesn't hit the DB once per product. */
+	/* In-process roster cache populated by primeCache().
+	   [ rosterState => [ mfg_norm => [rows...] ] ] so classifyHandgun()
+	   doesn't hit the DB once per product, and we can look up just the
+	   state we're matching against. */
 	protected static ?array $cache = null;
+
+	/* Per-state blanket-manufacturer cache (MD only currently).
+	   [ rosterState => set<mfg_norm> ] */
+	protected static array $blanket = [];
 
 	/* ---------------------- Manufacturer / caliber / model normalization ---------------------- */
 
@@ -186,11 +202,12 @@ class _Roster
 		return preg_replace( '/[^a-z0-9]+/', '', $s );
 	}
 
-	/* ---------------------- Fetch + parse ---------------------- */
+	/* ---------------------- Fetch + parse — CA ---------------------- */
 
 	/**
-	 * Pull all roster pages from the DOJ site, parse them, and replace
-	 * gd_compliance_ca_roster. Returns the per-run counts + any errors.
+	 * Pull all roster pages from the CA DOJ site, parse them, and replace
+	 * the CA rows in gd_compliance_roster. Returns the per-run counts +
+	 * any errors. Other states' rows are untouched.
 	 *
 	 * @return array{rows:int,pages:int,current:int,expired:int,errors:array<int,string>,duration_ms:int}
 	 */
@@ -265,18 +282,23 @@ class _Roster
 			$unique[] = $r;
 		}
 
-		/* Replace the table. Wipe + insert in chunks. */
+		/* Replace ONLY the CA rows. Wipe + insert in chunks. Other states'
+		   rows stay untouched. */
 		try
 		{
-			\IPS\Db::i()->delete( 'gd_compliance_ca_roster' );
+			\IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=?', 'CA' ] );
 		}
 		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
+
+		/* Stamp roster_state on every row before insert. */
+		foreach ( $unique as &$row ) { $row['roster_state'] = 'CA'; }
+		unset( $row );
 
 		foreach ( array_chunk( $unique, 250 ) as $chunk )
 		{
 			try
 			{
-				\IPS\Db::i()->insert( 'gd_compliance_ca_roster', $chunk );
+				\IPS\Db::i()->insert( 'gd_compliance_roster', $chunk );
 			}
 			catch ( \Throwable $e )
 			{
@@ -410,53 +432,439 @@ class _Roster
 		return $ts === false ? null : date( 'Y-m-d', $ts );
 	}
 
+	/* ---------------------- Fetch + parse — MA ---------------------- */
+
+	/**
+	 * Pull the MA EOPSS Approved Handgun Roster PDF, extract text, parse,
+	 * and replace gd_compliance_roster rows for MA. URL comes from
+	 * setting gdcompliance_ma_roster_url (default points at the current
+	 * known monthly edition — Derrick updates the setting when MA
+	 * publishes a new file).
+	 *
+	 * Text-extraction strategy is layered:
+	 *   1. shell_exec('pdftotext -layout - -')  — preferred (clean output)
+	 *   2. \Smalot\PdfParser if available       — pure-PHP fallback
+	 *   3. raw regex over PDF text operators    — last-ditch crude scan
+	 *
+	 * The line parser walks the extracted text, recognizes
+	 *   "<Manufacturer> <Model> <Caliber> [MM/DD/YY]"
+	 * per line, using a known-manufacturer prefix match to split mfg vs
+	 * model, then a caliber pattern to locate the caliber token.
+	 *
+	 * @return array{rows:int,current:int,errors:array<int,string>,duration_ms:int,url:string,extractor:string}
+	 */
+	public static function fetchMA(): array
+	{
+		$result = [ 'rows' => 0, 'current' => 0, 'errors' => [], 'duration_ms' => 0, 'url' => '', 'extractor' => '' ];
+		$start  = microtime( true );
+
+		$url = trim( (string) ( \IPS\Settings::i()->gdcompliance_ma_roster_url ?? '' ) );
+		if ( $url === '' ) { $url = self::MA_ROSTER_URL_DEFAULT; }
+		$result['url'] = $url;
+
+		/* (1) Download PDF bytes. */
+		$bytes = '';
+		try
+		{
+			$bytes = (string) \IPS\Http\Url::external( $url )->request( self::PAGE_TIMEOUT_S )->get();
+		}
+		catch ( \Throwable $e )
+		{
+			$result['errors'][] = 'download: ' . $e->getMessage();
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			return $result;
+		}
+		if ( $bytes === '' || strncmp( $bytes, '%PDF', 4 ) !== 0 )
+		{
+			$result['errors'][] = 'response is not a PDF (first bytes: ' . substr( bin2hex( $bytes ), 0, 16 ) . ')';
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			return $result;
+		}
+
+		/* (2) Extract text. */
+		[ $text, $extractor ] = self::extractPdfText( $bytes );
+		$result['extractor']  = $extractor;
+		if ( $text === '' )
+		{
+			$result['errors'][] = 'pdf text extraction returned empty';
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			return $result;
+		}
+
+		/* (3) Line parse. */
+		$rows = self::parseMaRosterText( $text );
+
+		/* Replace ONLY the MA rows. */
+		try { \IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=?', 'MA' ] ); }
+		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
+
+		foreach ( array_chunk( $rows, 250 ) as $chunk )
+		{
+			try { \IPS\Db::i()->insert( 'gd_compliance_roster', $chunk ); }
+			catch ( \Throwable $e ) { $result['errors'][] = 'insert: ' . $e->getMessage(); }
+		}
+
+		$result['rows']        = count( $rows );
+		$result['current']     = count( array_filter( $rows, fn( $r ) => (int) ( $r['is_current'] ?? 0 ) === 1 ) );
+		$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+		self::$cache   = null;
+		self::$blanket = [];
+
+		try { \IPS\Log::log( 'Roster::fetchMA complete: ' . json_encode( [
+			'rows' => $result['rows'], 'extractor' => $extractor, 'errors' => count( $result['errors'] ),
+		] ), 'gdcompliance' ); } catch ( \Throwable ) {}
+
+		return $result;
+	}
+
+	/**
+	 * Tiered PDF text extractor. Returns [text, extractor_label].
+	 */
+	protected static function extractPdfText( string $bytes ): array
+	{
+		/* (1) shell pdftotext if available. Write to a temp file then run
+		   "pdftotext -layout <file> -" to stdout. */
+		if ( function_exists( 'shell_exec' ) && function_exists( 'proc_open' ) )
+		{
+			$tmp = @tempnam( sys_get_temp_dir(), 'gdcompma_' );
+			if ( $tmp !== false )
+			{
+				@file_put_contents( $tmp, $bytes );
+				$cmd  = 'pdftotext -layout ' . escapeshellarg( $tmp ) . ' - 2>/dev/null';
+				$text = (string) @shell_exec( $cmd );
+				@unlink( $tmp );
+				if ( strlen( $text ) > 200 )
+				{
+					return [ $text, 'pdftotext' ];
+				}
+			}
+		}
+
+		/* (2) Pure-PHP fallback — Smalot/PdfParser if it has been
+		   autoloaded by another app. */
+		if ( class_exists( '\\Smalot\\PdfParser\\Parser' ) )
+		{
+			try
+			{
+				$parser = new \Smalot\PdfParser\Parser();
+				$pdf    = $parser->parseContent( $bytes );
+				$text   = (string) $pdf->getText();
+				if ( strlen( $text ) > 200 )
+				{
+					return [ $text, 'smalot' ];
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		/* (3) Crude regex fallback — extracts strings shown via the Tj
+		   operator from uncompressed content streams. This won't work on
+		   flate-compressed streams; it's a last resort that at least gives
+		   Derrick something visible in the error path. */
+		$text = '';
+		if ( preg_match_all( '/\(((?:\\\\.|[^()\\\\])*)\)\s*Tj/', $bytes, $m ) )
+		{
+			$text = implode( "\n", array_map( fn( $s ) => stripcslashes( $s ), $m[1] ) );
+		}
+		return [ $text, $text !== '' ? 'regex-tj' : 'none' ];
+	}
+
+	/**
+	 * Parse the extracted MA PDF text into per-row inserts.
+	 *
+	 * MA format (per line): "<Manufacturer> <Model> <Caliber> [MM/DD/YY]"
+	 * - Manufacturer may be multi-word ("Smith & Wesson", "Sig Sauer").
+	 * - Caliber matches the caliber regex.
+	 * - Trailing date is optional (only on recently added models;
+	 *   absence = approved long ago, still current).
+	 * - Page headers / footers / preamble are skipped (lines that don't
+	 *   match the shape).
+	 */
+	protected static function parseMaRosterText( string $text ): array
+	{
+		$out       = [];
+		$fetchedAt = time();
+
+		$caliberRe = '/(?:^|\s)(\.?\d{1,3}(?:\.\d+)?\s?(?:mm|MM|ACP|acp|LR|lr|Magnum|Mag|magnum|mag|Special|Spl|Sig|SIG|Auto|GAP|Luger|S&W|x\d+|long|short))\b/u';
+
+		foreach ( preg_split( "/\r\n|\r|\n/", $text ) as $line )
+		{
+			$line = trim( preg_replace( '/\s+/', ' ', (string) $line ) );
+			if ( $line === '' ) { continue; }
+			/* Skip page headers / EOPSS letterhead / preamble. Cheap heuristics. */
+			if ( stripos( $line, 'Approved Firearms Roster' ) !== false ) { continue; }
+			if ( preg_match( '/^Page\s+\d+\s+of\s+\d+/i', $line ) )       { continue; }
+			if ( stripos( $line, 'Executive Office' ) !== false )         { continue; }
+			if ( stripos( $line, 'Department of Criminal' ) !== false )   { continue; }
+			if ( strlen( $line ) < 8 )                                    { continue; }
+			if ( !preg_match( '/[A-Za-z]/', $line ) )                     { continue; }
+
+			/* Find a manufacturer prefix. Walk the alias map matching the
+			   longest prefix that's in the line. */
+			$mfgRaw  = '';
+			$mfgNorm = '';
+			$rest    = '';
+			$lower   = strtolower( $line );
+			$bestLen = 0;
+			foreach ( self::MFG_ALIASES as $canonical => $aliases )
+			{
+				foreach ( $aliases as $alias )
+				{
+					$a = strtolower( trim( $alias ) );
+					if ( $a === '' || strlen( $a ) <= $bestLen ) { continue; }
+					if ( strncmp( $lower, $a, strlen( $a ) ) === 0 )
+					{
+						$bestLen = strlen( $a );
+						$mfgRaw  = substr( $line, 0, strlen( $a ) );
+						$mfgNorm = $canonical;
+						$rest    = trim( substr( $line, strlen( $a ) ) );
+					}
+				}
+			}
+			if ( $mfgNorm === '' )
+			{
+				/* If no canonical alias matches, take the first 1-2 capitalized
+				   tokens as the manufacturer name — better than dropping the
+				   row. The matcher's manufacturer_norm pipeline will still
+				   group same-mfg rows. */
+				if ( preg_match( '/^([A-Z][A-Za-z0-9&.\-]*(?:\s+[A-Z][A-Za-z0-9&.\-]*)?)\s+(.+)$/', $line, $m ) )
+				{
+					$mfgRaw  = $m[1];
+					$mfgNorm = self::normalizeMfg( $mfgRaw );
+					$rest    = $m[2];
+				}
+				else
+				{
+					continue;
+				}
+			}
+
+			/* Strip trailing date if present. */
+			$dateApproved = null;
+			if ( preg_match( '#(\d{1,2}/\d{1,2}/\d{2,4})\s*$#', $rest, $dm ) )
+			{
+				$dateApproved = self::parseExpiredDate( $dm[1] );
+				$rest         = trim( substr( $rest, 0, -strlen( $dm[0] ) ) );
+			}
+
+			/* Find caliber. Take the last caliber-like token. */
+			$caliber = '';
+			if ( preg_match_all( $caliberRe, $rest, $cm ) )
+			{
+				$caliber = trim( end( $cm[1] ) );
+				/* Snip caliber + everything after from the rest → model. */
+				$pos = strrpos( $rest, $caliber );
+				if ( $pos !== false ) { $rest = trim( substr( $rest, 0, $pos ) ); }
+			}
+			$model = trim( $rest );
+			if ( $model === '' ) { continue; }
+
+			$out[] = [
+				'roster_state'      => 'MA',
+				'manufacturer'      => substr( $mfgRaw, 0, 120 ),
+				'manufacturer_norm' => substr( $mfgNorm, 0, 120 ),
+				'model_raw'         => substr( $model, 0, 255 ),
+				'model_core'        => substr( self::normalizeModelCore( $model ), 0, 255 ),
+				'model_sku'         => substr( self::extractSku( $model ), 0, 120 ),
+				'blanket'           => 0,
+				'gun_type'          => null,
+				'barrel'            => null,
+				'caliber'           => substr( $caliber, 0, 60 ),
+				'caliber_norm'      => substr( self::normalizeCaliber( $caliber ), 0, 40 ),
+				'expired_date'      => null,
+				'date_approved'     => $dateApproved,
+				'is_current'        => 1,
+				'boland_added'      => 0,
+				'fetched_at'        => $fetchedAt,
+			];
+		}
+
+		return $out;
+	}
+
+	/* ---------------------- Manual CSV import — MD ---------------------- */
+
+	/**
+	 * Import the MD Maryland State Police roster from a CSV upload.
+	 *
+	 * MD's live roster is in a Tableau dashboard (not fetchable) and uses
+	 * "All models approved" blanket entries per manufacturer (post-2021
+	 * approval scheme). So MD is MANUAL CSV ONLY, with blanket semantics.
+	 *
+	 * Accepted CSV columns (case-insensitive, header row required):
+	 *   manufacturer   (required)
+	 *   model          (literal "ALL" / "*" / blank → blanket-approved
+	 *                   for the whole manufacturer)
+	 *   caliber        (optional)
+	 *
+	 * Replaces ALL MD rows on each import — re-importing is the way to
+	 * update.
+	 *
+	 * @return array{rows:int,blanket:int,errors:array<int,string>,duration_ms:int}
+	 */
+	public static function importMD( string $csvText ): array
+	{
+		$result = [ 'rows' => 0, 'blanket' => 0, 'errors' => [], 'duration_ms' => 0 ];
+		$start  = microtime( true );
+
+		$lines = preg_split( "/\r\n|\r|\n/", trim( $csvText ) );
+		if ( !$lines || count( $lines ) < 2 )
+		{
+			$result['errors'][] = 'csv has no data rows';
+			return $result;
+		}
+
+		/* Header row. */
+		$header = str_getcsv( (string) array_shift( $lines ) );
+		$header = array_map( fn( $h ) => strtolower( trim( (string) $h ) ), $header );
+		$idx    = [];
+		foreach ( $header as $i => $h ) { $idx[ $h ] = $i; }
+		if ( !isset( $idx['manufacturer'] ) )
+		{
+			$result['errors'][] = "csv missing 'manufacturer' column";
+			return $result;
+		}
+
+		$now  = time();
+		$rows = [];
+		foreach ( $lines as $line )
+		{
+			$line = trim( (string) $line );
+			if ( $line === '' ) { continue; }
+
+			$cells       = str_getcsv( $line );
+			$rawMfg      = (string) ( $cells[ $idx['manufacturer'] ] ?? '' );
+			$rawModel    = (string) ( $cells[ $idx['model']        ?? -1 ] ?? '' );
+			$rawCaliber  = (string) ( $cells[ $idx['caliber']      ?? -1 ] ?? '' );
+
+			$rawMfg = trim( $rawMfg );
+			if ( $rawMfg === '' ) { continue; }
+
+			$isBlanket = false;
+			$modelTrim = trim( $rawModel );
+			if ( $modelTrim === '' || strtoupper( $modelTrim ) === 'ALL' || $modelTrim === '*' )
+			{
+				$isBlanket = true;
+				$rawModel  = '*';
+			}
+
+			$rows[] = [
+				'roster_state'      => 'MD',
+				'manufacturer'      => substr( $rawMfg, 0, 120 ),
+				'manufacturer_norm' => substr( self::normalizeMfg( $rawMfg ), 0, 120 ),
+				'model_raw'         => substr( $rawModel, 0, 255 ),
+				'model_core'        => $isBlanket ? '*' : substr( self::normalizeModelCore( $rawModel ), 0, 255 ),
+				'model_sku'         => $isBlanket ? null : substr( self::extractSku( $rawModel ), 0, 120 ),
+				'blanket'           => $isBlanket ? 1 : 0,
+				'gun_type'          => null,
+				'barrel'             => null,
+				'caliber'           => $rawCaliber !== '' ? substr( $rawCaliber, 0, 60 ) : null,
+				'caliber_norm'      => $rawCaliber !== '' ? substr( self::normalizeCaliber( $rawCaliber ), 0, 40 ) : null,
+				'expired_date'      => null,
+				'date_approved'     => null,
+				'is_current'        => 1,
+				'boland_added'      => 0,
+				'fetched_at'        => $now,
+			];
+		}
+
+		/* Replace ONLY the MD rows. */
+		try { \IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=?', 'MD' ] ); }
+		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
+
+		foreach ( array_chunk( $rows, 250 ) as $chunk )
+		{
+			try { \IPS\Db::i()->insert( 'gd_compliance_roster', $chunk ); }
+			catch ( \Throwable $e ) { $result['errors'][] = 'insert: ' . $e->getMessage(); }
+		}
+
+		$result['rows']        = count( $rows );
+		$result['blanket']     = count( array_filter( $rows, fn( $r ) => (int) $r['blanket'] === 1 ) );
+		$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+
+		self::$cache   = null;
+		self::$blanket = [];
+
+		try { \IPS\Log::log( 'Roster::importMD complete: ' . json_encode( $result ), 'gdcompliance' ); } catch ( \Throwable ) {}
+
+		return $result;
+	}
+
 	/* ---------------------- Classification ---------------------- */
 
 	/**
-	 * Load the roster into memory once per run. Keyed by manufacturer_norm
-	 * so classifyHandgun() can pick candidate rows in O(1) per product.
+	 * Load every roster state into memory once per run. Keyed by
+	 *   [ rosterState => [ manufacturer_norm => [rows...] ] ]
+	 * so classifyHandgun(<state>) does O(1) candidate lookup. Also builds
+	 * the blanket-manufacturer index per state for MD.
 	 */
 	public static function primeCache(): void
 	{
 		if ( self::$cache !== null ) { return; }
-		$cache = [];
+		$cache   = [];
+		$blanket = [];
 		try
 		{
-			foreach ( \IPS\Db::i()->select( '*', 'gd_compliance_ca_roster' ) as $r )
+			foreach ( \IPS\Db::i()->select( '*', 'gd_compliance_roster' ) as $r )
 			{
-				$key = (string) ( $r['manufacturer_norm'] ?? '' );
-				if ( $key === '' ) { continue; }
-				$cache[ $key ][] = $r;
+				$state = (string) ( $r['roster_state'] ?? '' );
+				$mfg   = (string) ( $r['manufacturer_norm'] ?? '' );
+				if ( $state === '' || $mfg === '' ) { continue; }
+				$cache[ $state ][ $mfg ][] = $r;
+				if ( (int) ( $r['blanket'] ?? 0 ) === 1 )
+				{
+					$blanket[ $state ][ $mfg ] = true;
+				}
 			}
 		}
 		catch ( \Throwable ) {}
-		self::$cache = $cache;
+		self::$cache   = $cache;
+		self::$blanket = $blanket;
 	}
 
 	public static function clearCache(): void
 	{
-		self::$cache = null;
+		self::$cache   = null;
+		self::$blanket = [];
 	}
 
 	/**
-	 * Classify a single catalog handgun against the in-memory roster.
+	 * Which states currently have roster rows loaded? Used by Engine to
+	 * decide whether to run the roster pass at all per state.
 	 *
+	 * @return string[]
+	 */
+	public static function availableStates(): array
+	{
+		self::primeCache();
+		return array_values( array_filter( self::ROSTER_STATES, fn( $s ) => !empty( self::$cache[ $s ] ?? [] ) ) );
+	}
+
+	/**
+	 * Classify a single catalog handgun against the in-memory roster for
+	 * ONE state (CA, MA, or MD).
+	 *
+	 *   MD BLANKET (MD only, evaluated FIRST) — the state's roster has a
+	 *            blanket=1 row for this manufacturer (post-2021 MD approval
+	 *            scheme: "all models approved") → on_roster.
 	 *   EXACT  — manufacturer + (SKU OR model_core hit) + caliber agree
 	 *            (current entry → on_roster, expired entry → off_roster).
 	 *   STRONG — manufacturer + model_core substring + caliber agree.
 	 *   WEAK   — manufacturer matches roster entries but NO model match
-	 *            anywhere for that manufacturer with caliber agreement
-	 *            → off_roster (low confidence — manufacturer is on roster
-	 *            but this particular model isn't).
+	 *            anywhere with caliber agreement → off_roster (low conf).
 	 *   REVIEW — no manufacturer match, or ambiguous → unmatched_review
 	 *            (NEVER auto-call CA-legal on a guess).
 	 *
-	 * @param  array $product  catalog row (manufacturer, model, caliber, mpn, title, upc)
+	 * @param  array  $product       catalog row (manufacturer, model, caliber, mpn, title, upc)
+	 * @param  string $rosterState   one of self::ROSTER_STATES
 	 * @return array{status:string,reason:string,confidence:string,matched_roster_id:?int,candidates:array<int,array<string,mixed>>}
 	 */
-	public static function classifyHandgun( array $product ): array
+	public static function classifyHandgun( array $product, string $rosterState = 'CA' ): array
 	{
 		self::primeCache();
+
+		$rosterState = strtoupper( $rosterState );
+		if ( !in_array( $rosterState, self::ROSTER_STATES, true ) ) { $rosterState = 'CA'; }
 
 		$rawMfg     = (string) ( $product['manufacturer'] ?? '' );
 		$rawModel   = (string) ( $product['model'] ?? '' );
@@ -469,14 +877,27 @@ class _Roster
 		$cal       = self::normalizeCaliber( $rawCaliber );
 		$skuToken  = self::extractSku( $rawMpn !== '' ? $rawMpn : $rawModel );
 
+		/* MD blanket FIRST — if MD approves the manufacturer wholesale, this
+		   handgun is on_roster regardless of model. */
+		if ( $rosterState === 'MD' && $mfg !== '' && !empty( self::$blanket['MD'][ $mfg ] ) )
+		{
+			return [
+				'status'            => self::STATUS_ON,
+				'reason'            => 'MD blanket approval (all models of manufacturer)',
+				'confidence'        => 'exact',
+				'matched_roster_id' => null,
+				'candidates'        => [],
+			];
+		}
+
 		$noManufacturer = ( $mfg === '' );
-		$candidates     = self::$cache[ $mfg ] ?? [];
+		$candidates     = self::$cache[ $rosterState ][ $mfg ] ?? [];
 
 		if ( $noManufacturer || empty( $candidates ) )
 		{
 			return [
 				'status'            => self::STATUS_REVIEW,
-				'reason'            => $noManufacturer ? 'no manufacturer on product' : 'manufacturer not in roster',
+				'reason'            => $noManufacturer ? 'no manufacturer on product' : "manufacturer not on {$rosterState} roster",
 				'confidence'        => 'none',
 				'matched_roster_id' => null,
 				'candidates'        => [],
@@ -544,10 +965,47 @@ class _Roster
 		   the human deciding has context. */
 		return [
 			'status'            => self::STATUS_REVIEW,
-			'reason'            => 'manufacturer matched but model + caliber too ambiguous',
+			'reason'            => "manufacturer matched on {$rosterState} but model + caliber too ambiguous",
 			'confidence'        => 'low',
 			'matched_roster_id' => null,
 			'candidates'        => self::summarizeCandidates( $candidates ),
+		];
+	}
+
+	/**
+	 * Derive the DC roster outcome from per-state CA/MA/MD outcomes.
+	 *   on_roster        if ANY of the three is on_roster (DC accepts CA+MA+MD)
+	 *   off_roster       if ALL three are confidently off_roster
+	 *   unmatched_review otherwise (one or more is uncertain, none are on)
+	 *
+	 * @param  array<string, string> $perState  ['CA'=>status,'MA'=>status,'MD'=>status]
+	 * @return array{status:string,reason:string,confidence:string}
+	 */
+	public static function deriveDC( array $perState ): array
+	{
+		$states = [ 'CA', 'MA', 'MD' ];
+		$counts = [ self::STATUS_ON => 0, self::STATUS_OFF => 0, self::STATUS_REVIEW => 0, 'missing' => 0 ];
+		foreach ( $states as $s )
+		{
+			$st = (string) ( $perState[ $s ] ?? '' );
+			if ( $st === '' )                                { $counts['missing']++; }
+			elseif ( $st === self::STATUS_ON )               { $counts[ self::STATUS_ON ]++; }
+			elseif ( $st === self::STATUS_OFF )              { $counts[ self::STATUS_OFF ]++; }
+			else                                             { $counts[ self::STATUS_REVIEW ]++; }
+		}
+
+		if ( $counts[ self::STATUS_ON ] >= 1 )
+		{
+			return [ 'status' => self::STATUS_ON, 'reason' => 'on at least one of CA/MA/MD', 'confidence' => 'derived' ];
+		}
+		if ( $counts[ self::STATUS_OFF ] === 3 )
+		{
+			return [ 'status' => self::STATUS_OFF, 'reason' => 'off all of CA/MA/MD', 'confidence' => 'derived' ];
+		}
+		return [
+			'status'     => self::STATUS_REVIEW,
+			'reason'     => 'derived from CA/MA/MD; need at least one on or all off',
+			'confidence' => 'derived',
 		];
 	}
 

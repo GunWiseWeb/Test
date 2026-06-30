@@ -178,11 +178,21 @@ class _Engine
 		$rules   = self::activeRules();
 
 		/* Roster check is independent of capacity rules — a handgun can be
-		   both off-roster AND over-capacity (two flags). Prime the cache once;
-		   if the roster table is empty (Refresh hasn't run yet), the
-		   classifier still works but every handgun lands in unmatched_review
-		   for "no manufacturer match". */
+		   both off-roster AND over-capacity (multiple flags). Prime the
+		   cache once; only states with actual data run the per-handgun
+		   pass (Roster::availableStates filters by what's loaded). DC is
+		   derived from CA+MA+MD when gdcompliance_dc_derive is on. */
 		try { \IPS\gdcompliance\Roster::primeCache(); } catch ( \Throwable ) {}
+		$rosterStates = [];
+		try { $rosterStates = \IPS\gdcompliance\Roster::availableStates(); } catch ( \Throwable ) {}
+		$dcDerive = (int) ( \IPS\Settings::i()->gdcompliance_dc_derive ?? 1 ) === 1;
+
+		/* Initialize per-state counters so the summary always shows them
+		   (even with zero counts), even for states without a loaded roster. */
+		foreach ( [ 'CA', 'MA', 'MD', 'DC' ] as $s )
+		{
+			$result['roster'][ $s ] = [ 'on' => 0, 'off' => 0, 'review' => 0 ];
+		}
 
 		if ( empty( $rules ) ) {
 			/* Even with no capacity rules we can still run the CA roster pass
@@ -265,54 +275,40 @@ class _Engine
 					$result['unparsed'][ $key ] = ( $result['unparsed'][ $key ] ?? 0 ) + 1;
 				}
 
-				/* --- Phase 2: CA roster pass (handguns only) --- */
+				/* --- Phase 2/3: multi-state roster pass (handguns only) ---
+				   Loops every state with loaded roster data plus the DC derived
+				   outcome when enabled. Off-roster → CA/MA/MD/DC flag with
+				   per-state reason; unmatched → review queue tagged with
+				   roster_state so resolution is per-state. */
 				if ( $type === 'handgun' )
 				{
-					try
+					$perState = [];
+					foreach ( $rosterStates as $rstate )
 					{
-						$cls = \IPS\gdcompliance\Roster::classifyHandgun( $p );
-					}
-					catch ( \Throwable )
-					{
-						$cls = [ 'status' => 'unmatched_review', 'reason' => 'classifier error', 'confidence' => 'none', 'matched_roster_id' => null, 'candidates' => [] ];
+						try
+						{
+							$cls = \IPS\gdcompliance\Roster::classifyHandgun( $p, $rstate );
+						}
+						catch ( \Throwable )
+						{
+							$cls = [ 'status' => 'unmatched_review', 'reason' => 'classifier error', 'confidence' => 'none', 'matched_roster_id' => null, 'candidates' => [] ];
+						}
+						$status = (string) ( $cls['status'] ?? 'unmatched_review' );
+						$perState[ $rstate ] = $status;
+						$this::recordRosterOutcome( $result, $flags, $upc, $rstate, $status, $cls, $p, $now );
 					}
 
-					$status = (string) ( $cls['status'] ?? 'unmatched_review' );
-					if ( $status === 'on_roster' )
+					/* DC derived from CA+MA+MD union. Only computes when all
+					   three states ran (so we don't fire DC on a partial
+					   picture). */
+					if ( $dcDerive && count( $perState ) === 3 )
 					{
-						$result['roster']['on']++;
-					}
-					elseif ( $status === 'off_roster' )
-					{
-						$result['roster']['off']++;
-						$flags[] = [
-							'upc'             => substr( $upc, 0, 50 ),
-							'state_code'      => 'CA',
-							'firearm_type'    => 'handgun',
-							'parsed_capacity' => null,
-							'rule_id'         => 0,
-							'reason'          => substr( 'Not on CA DOJ roster — ' . ( $cls['reason'] ?? '' ), 0, 255 ),
-							'computed_at'     => $now,
-						];
-						$result['per_state']['CA'] = ( $result['per_state']['CA'] ?? 0 ) + 1;
-						$result['per_state_type']['CA']['handgun_roster'] = ( $result['per_state_type']['CA']['handgun_roster'] ?? 0 ) + 1;
-					}
-					else /* unmatched_review */
-					{
-						$result['roster']['review']++;
-						$result['review_queue'][] = [
-							'upc'              => substr( $upc, 0, 50 ),
-							'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? '' ), 0, 120 ),
-							'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
-							'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
-							'suggested_status' => 'unmatched_review',
-							'candidates_json'  => json_encode( $cls['candidates'] ?? [] ),
-							'resolved'         => 0,
-							'resolved_status'  => null,
-							'resolved_by'      => null,
-							'resolved_at'      => null,
-							'created_at'       => $now,
-						];
+						$dc = \IPS\gdcompliance\Roster::deriveDC( $perState );
+						$this::recordRosterOutcome( $result, $flags, $upc, 'DC',
+							(string) $dc['status'],
+							[ 'reason' => $dc['reason'], 'candidates' => [] ],
+							$p, $now, true
+						);
 					}
 				}
 			}
@@ -354,23 +350,27 @@ class _Engine
 			}
 		}
 
-		/* Refresh review queue — preserve previously RESOLVED rows so Derrick's
-		   manual decisions stick. Wipe only the unresolved rows + re-insert
-		   the freshly classified unmatched_review handguns. */
+		/* Refresh review queue — preserve previously RESOLVED rows (those are
+		   Derrick's manual decisions) per-(upc, roster_state) pair, so a
+		   handgun resolved for CA stays resolved while MA can still be
+		   re-classified independently. */
 		try { \IPS\Db::i()->delete( 'gd_compliance_review', [ 'resolved=0' ] ); } catch ( \Throwable ) {}
 		if ( !empty( $result['review_queue'] ) )
 		{
 			$existing = [];
 			try
 			{
-				foreach ( \IPS\Db::i()->select( 'upc', 'gd_compliance_review', [ 'resolved=1' ] ) as $row )
+				foreach ( \IPS\Db::i()->select( 'upc, roster_state', 'gd_compliance_review', [ 'resolved=1' ] ) as $row )
 				{
-					$existing[ (string) ( is_array( $row ) ? ( $row['upc'] ?? '' ) : $row ) ] = true;
+					$existing[ (string) ( $row['upc'] ?? '' ) . '|' . (string) ( $row['roster_state'] ?? '' ) ] = true;
 				}
 			}
 			catch ( \Throwable ) {}
 
-			$fresh = array_filter( $result['review_queue'], fn( $r ) => empty( $existing[ $r['upc'] ?? '' ] ) );
+			$fresh = array_filter( $result['review_queue'], function( $r ) use ( $existing ) {
+				$key = (string) ( $r['upc'] ?? '' ) . '|' . (string) ( $r['roster_state'] ?? '' );
+				return empty( $existing[ $key ] );
+			} );
 			foreach ( array_chunk( array_values( $fresh ), 500 ) as $chunk )
 			{
 				try { \IPS\Db::i()->insert( 'gd_compliance_review', $chunk ); }
@@ -411,6 +411,73 @@ class _Engine
 		] ), 'gdcompliance' ); } catch ( \Throwable ) {}
 
 		return $result;
+	}
+
+	/**
+	 * Update result counters + per-state buckets + flag list for one
+	 * roster-state outcome on one product.
+	 *
+	 * Shared by the live state pass (CA/MA/MD) AND the DC derived pass so
+	 * the bookkeeping logic exists in one place. $isDerived=true marks DC
+	 * outcomes in the reason text.
+	 */
+	protected static function recordRosterOutcome(
+		array &$result,
+		array &$flags,
+		string $upc,
+		string $rstate,
+		string $status,
+		array $cls,
+		array $p,
+		int $now,
+		bool $isDerived = false
+	): void
+	{
+		if ( !isset( $result['roster'][ $rstate ] ) )
+		{
+			$result['roster'][ $rstate ] = [ 'on' => 0, 'off' => 0, 'review' => 0 ];
+		}
+
+		if ( $status === 'on_roster' )
+		{
+			$result['roster'][ $rstate ]['on']++;
+			return;
+		}
+		if ( $status === 'off_roster' )
+		{
+			$result['roster'][ $rstate ]['off']++;
+			$prefix = $isDerived
+				? "Not on {$rstate} roster (derived from CA+MA+MD)"
+				: "Not on {$rstate} roster";
+			$flags[] = [
+				'upc'             => substr( $upc, 0, 50 ),
+				'state_code'      => $rstate,
+				'firearm_type'    => 'handgun',
+				'parsed_capacity' => null,
+				'rule_id'         => 0,
+				'reason'          => substr( $prefix . ' — ' . ( $cls['reason'] ?? '' ), 0, 255 ),
+				'computed_at'     => $now,
+			];
+			$result['per_state'][ $rstate ] = ( $result['per_state'][ $rstate ] ?? 0 ) + 1;
+			$result['per_state_type'][ $rstate ]['handgun_roster'] = ( $result['per_state_type'][ $rstate ]['handgun_roster'] ?? 0 ) + 1;
+			return;
+		}
+		/* unmatched_review */
+		$result['roster'][ $rstate ]['review']++;
+		$result['review_queue'][] = [
+			'upc'              => substr( $upc, 0, 50 ),
+			'roster_state'     => $rstate,
+			'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? '' ), 0, 120 ),
+			'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
+			'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
+			'suggested_status' => 'unmatched_review',
+			'candidates_json'  => json_encode( $cls['candidates'] ?? [] ),
+			'resolved'         => 0,
+			'resolved_status'  => null,
+			'resolved_by'      => null,
+			'resolved_at'      => null,
+			'created_at'       => $now,
+		];
 	}
 
 	/* Clear all flags without recomputing — useful before disabling the app

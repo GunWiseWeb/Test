@@ -1,4 +1,6 @@
 [
-	{"key": "gdcompliance_last_run",    "default": "",   "report": "none"},
-	{"key": "gdcompliance_last_counts", "default": "{}", "report": "none"}
+	{"key": "gdcompliance_last_run",        "default": "",   "report": "none"},
+	{"key": "gdcompliance_last_counts",     "default": "{}", "report": "none"},
+	{"key": "gdcompliance_ma_roster_url",   "default": "https://www.mass.gov/doc/approved-handgun-roster-april-2026/download", "report": "none"},
+	{"key": "gdcompliance_dc_derive",       "default": "1",  "report": "full"}
 ]
