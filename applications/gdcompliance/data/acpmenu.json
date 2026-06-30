@@ -1,0 +1,16 @@
+{
+	"compliance": {
+		"rules": {
+			"tab": "gdcompliance",
+			"controller": "rules",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
+		"compute": {
+			"tab": "gdcompliance",
+			"controller": "compute",
+			"do": "",
+			"restriction": "compliance_manage"
+		}
+	}
+}

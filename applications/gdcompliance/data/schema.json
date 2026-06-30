@@ -1,0 +1,54 @@
+{
+	"gd_compliance_rules": {
+		"name": "gd_compliance_rules",
+		"columns": {
+			"id":             { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true,  "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"state_code":     { "name": "state_code", "type": "CHAR", "length": 2, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"firearm_type":   { "name": "firearm_type", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": false, "default": "all", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "handgun|rifle|shotgun|all" },
+			"max_capacity":   { "name": "max_capacity", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "limit; capacity strictly greater = flagged" },
+			"rule_type":      { "name": "rule_type", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": false, "default": "sale_transfer", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "sale_transfer|possession" },
+			"effective_date": { "name": "effective_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"expires_date":   { "name": "expires_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"enabled":        { "name": "enabled", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "1", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"source_note":    { "name": "source_note", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"updated_at":     { "name": "updated_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":     { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"idx_state":   { "type": "key", "name": "idx_state", "length": [ null ], "columns": [ "state_code" ] },
+			"idx_enabled": { "type": "key", "name": "idx_enabled", "length": [ null ], "columns": [ "enabled" ] }
+		}
+	},
+	"gd_compliance_flags": {
+		"name": "gd_compliance_flags",
+		"columns": {
+			"id":              { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true,  "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"upc":             { "name": "upc", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"state_code":      { "name": "state_code", "type": "CHAR", "length": 2, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"firearm_type":    { "name": "firearm_type", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": false, "default": "all", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"parsed_capacity": { "name": "parsed_capacity", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"rule_id":         { "name": "rule_id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"reason":          { "name": "reason", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"computed_at":     { "name": "computed_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":   { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"idx_upc":   { "type": "key", "name": "idx_upc", "length": [ null ], "columns": [ "upc" ] },
+			"idx_state": { "type": "key", "name": "idx_state", "length": [ null ], "columns": [ "state_code" ] },
+			"idx_rule":  { "type": "key", "name": "idx_rule", "length": [ null ], "columns": [ "rule_id" ] }
+		}
+	},
+	"gd_compliance_unparsed": {
+		"name": "gd_compliance_unparsed",
+		"columns": {
+			"id":             { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"capacity_value": { "name": "capacity_value", "type": "VARCHAR", "length": 100, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"count":          { "name": "count", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"updated_at":     { "name": "updated_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":   { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"uq_value":  { "type": "unique", "name": "uq_value", "length": [ 100 ], "columns": [ "capacity_value" ] }
+		}
+	}
+}

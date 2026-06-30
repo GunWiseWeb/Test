@@ -1,0 +1,9 @@
+{
+	"topLevel": "compliance",
+	"pages": {
+		"gdcompliance_page": {
+			"friendly": "",
+			"real": "app=gdcompliance&module=compliance&controller=compliance"
+		}
+	}
+}

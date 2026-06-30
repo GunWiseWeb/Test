@@ -1,0 +1,14 @@
+{
+	"admin": {
+		"compliance": {
+			"default_controller": "rules",
+			"protected": false
+		}
+	},
+	"front": {
+		"compliance": {
+			"default_controller": "compliance",
+			"protected": false
+		}
+	}
+}

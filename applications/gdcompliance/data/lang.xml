@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language>
+<app key="gdcompliance">
+<word key="__app_gdcompliance" js="0"><![CDATA[Compliance]]></word>
+<word key="menutab__gdcompliance" js="0"><![CDATA[Compliance]]></word>
+<word key="menutab__gdcompliance_icon" js="0"><![CDATA[shield-alt]]></word>
+<word key="menu__gdcompliance_compliance_rules" js="0"><![CDATA[Rules]]></word>
+<word key="menu__gdcompliance_compliance_compute" js="0"><![CDATA[Compute Flags]]></word>
+<word key="module__gdcompliance_compliance" js="0"><![CDATA[Compliance]]></word>
+<word key="frontnavigation_gdcompliance_compliance" js="0"><![CDATA[Compliance]]></word>
+<word key="gdcompliance_acp_rules_title" js="0"><![CDATA[Compliance Rules]]></word>
+<word key="gdcompliance_acp_rules_intro" js="0"><![CDATA[Edit the state magazine-capacity rules used to flag products. Disabling a rule (or letting expires_date pass) stops it from flagging without deleting the row. A rule applies only when enabled AND inside its effective_date/expires_date window. Capacity strictly greater than max_capacity flags the product.]]></word>
+<word key="gdcompliance_acp_rules_add" js="0"><![CDATA[Add rule]]></word>
+<word key="gdcompliance_acp_compute_title" js="0"><![CDATA[Compute Compliance Flags]]></word>
+<word key="gdcompliance_acp_compute_intro" js="0"><![CDATA[Recomputes gd_compliance_flags from gd_catalog × the active rule set. gd_catalog is never modified. Always preview first.]]></word>
+<word key="gdcompliance_acp_compute_preview" js="0"><![CDATA[Preview (dry run)]]></word>
+<word key="gdcompliance_acp_compute_run" js="0"><![CDATA[Run / recompute flags]]></word>
+<word key="gdcompliance_acp_compute_clear" js="0"><![CDATA[Clear all flags]]></word>
+<word key="gdcompliance_acp_compute_last" js="0"><![CDATA[Last run]]></word>
+<word key="gdcompliance_acp_compute_never" js="0"><![CDATA[Never]]></word>
+<word key="gdcompliance_acp_compute_preview_done" js="0"><![CDATA[Dry run: would flag {1} products across {2} state-rule pairs.]]></word>
+<word key="gdcompliance_acp_compute_run_done" js="0"><![CDATA[Computed: flagged {1} products across {2} state-rule pairs.]]></word>
+<word key="gdcompliance_acp_compute_cleared" js="0"><![CDATA[Cleared {1} flags + {2} unparsed-capacity rows.]]></word>
+<word key="gdcompliance_acp_compute_no_rules" js="0"><![CDATA[No active rules — enable at least one rule in the Rules tab before computing.]]></word>
+<word key="gdcompliance_acp_compute_per_state" js="0"><![CDATA[Flags by state]]></word>
+<word key="gdcompliance_acp_compute_unparsed" js="0"><![CDATA[Unparsed capacity values]]></word>
+<word key="gdcompliance_acp_compute_sample" js="0"><![CDATA[Sample flagged products]]></word>
+<word key="gdcompliance_acp_col_state_code" js="0"><![CDATA[State]]></word>
+<word key="gdcompliance_acp_col_firearm_type" js="0"><![CDATA[Firearm Type]]></word>
+<word key="gdcompliance_acp_col_max_capacity" js="0"><![CDATA[Limit]]></word>
+<word key="gdcompliance_acp_col_rule_type" js="0"><![CDATA[Rule Type]]></word>
+<word key="gdcompliance_acp_col_effective_date" js="0"><![CDATA[Effective]]></word>
+<word key="gdcompliance_acp_col_expires_date" js="0"><![CDATA[Expires]]></word>
+<word key="gdcompliance_acp_col_enabled" js="0"><![CDATA[Enabled]]></word>
+<word key="gdcompliance_acp_col_source_note" js="0"><![CDATA[Source]]></word>
+<word key="gdcompliance_f_state_code" js="0"><![CDATA[State (2-letter)]]></word>
+<word key="gdcompliance_f_firearm_type" js="0"><![CDATA[Firearm type]]></word>
+<word key="gdcompliance_f_max_capacity" js="0"><![CDATA[Max capacity (limit)]]></word>
+<word key="gdcompliance_f_rule_type" js="0"><![CDATA[Rule type]]></word>
+<word key="gdcompliance_f_effective_date" js="0"><![CDATA[Effective date (YYYY-MM-DD; blank = always)]]></word>
+<word key="gdcompliance_f_expires_date" js="0"><![CDATA[Expires date (YYYY-MM-DD; blank = never)]]></word>
+<word key="gdcompliance_f_enabled" js="0"><![CDATA[Enabled]]></word>
+<word key="gdcompliance_f_source_note" js="0"><![CDATA[Source note (citation)]]></word>
+<word key="gdcompliance_page_title" js="0"><![CDATA[State Compliance Rules]]></word>
+<word key="gdcompliance_page_intro" js="0"><![CDATA[Active state magazine-capacity restrictions applied to the GunRack catalog.]]></word>
+<word key="gdcompliance_page_empty" js="0"><![CDATA[No active rules.]]></word>
+</app>
+</language>

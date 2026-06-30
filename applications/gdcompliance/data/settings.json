@@ -1,0 +1,4 @@
+[
+	{"key": "gdcompliance_last_run",    "default": "",   "report": "none"},
+	{"key": "gdcompliance_last_counts", "default": "{}", "report": "none"}
+]

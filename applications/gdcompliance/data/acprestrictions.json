@@ -1,0 +1,10 @@
+{
+	"compliance": {
+		"rules": {
+			"compliance_manage": "compliance_manage"
+		},
+		"compute": {
+			"compliance_manage": "compliance_manage"
+		}
+	}
+}
