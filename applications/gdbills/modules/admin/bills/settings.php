@@ -26,6 +26,7 @@ class _settings extends \IPS\Dispatcher\Controller
 
 		$form->addHeader( 'gdbills_settings_general' );
 		$form->add( new \IPS\Helpers\Form\YesNo( 'gdbills_autosync_enabled', (int) ( $S->gdbills_autosync_enabled ?? 1 ) ) );
+		$form->add( new \IPS\Helpers\Form\Number( 'gdbills_relevance_threshold', (int) ( $S->gdbills_relevance_threshold ?? 50 ), TRUE, [ 'min' => 0, 'max' => 100 ] ) );
 		$form->add( new \IPS\Helpers\Form\TextArea( 'gdbills_session_note', (string) ( $S->gdbills_session_note ?? '' ), FALSE, [ 'rows' => 2 ] ) );
 
 		$form->addHeader( 'gdbills_settings_legiscan' );

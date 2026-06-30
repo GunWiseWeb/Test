@@ -97,6 +97,8 @@
 <word key="gdbills_settings_keywords" js="0"><![CDATA[Search Keywords]]></word>
 <word key="gdbills_legiscan_key" js="0"><![CDATA[LegiScan API key]]></word>
 <word key="gdbills_autosync_enabled" js="0"><![CDATA[Enable daily auto-sync]]></word>
+<word key="gdbills_relevance_threshold" js="0"><![CDATA[LegiScan relevance threshold (0-100)]]></word>
+<word key="gdbills_relevance_threshold_desc" js="0"><![CDATA[Sync skips any LegiScan search hit whose relevance score is below this number. 50 is a balanced default; raise (60-70) if results are still noisy, lower if real firearms bills are being dropped.]]></word>
 <word key="gdbills_search_keywords" js="0"><![CDATA[Search keywords (one per line)]]></word>
 <word key="gdbills_relevance_keywords" js="0"><![CDATA[Relevance allowlist (one per line)]]></word>
 <word key="gdbills_exclusion_keywords" js="0"><![CDATA[Exclusion list (one per line)]]></word>

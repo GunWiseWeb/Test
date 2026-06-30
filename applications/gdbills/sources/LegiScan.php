@@ -91,6 +91,13 @@ class _LegiScan
 		$allowKw    = self::keywordsFromSetting( 'gdbills_relevance_keywords', self::DEFAULT_RELEVANCE_KEYWORDS );
 		$excludeKw  = self::keywordsFromSetting( 'gdbills_exclusion_keywords', self::DEFAULT_EXCLUSION_KEYWORDS );
 
+		/* Per-hit LegiScan relevance threshold (0-100). Skip detail fetch +
+		   storage for low-relevance matches — kills most incidental-mention
+		   junk AND saves API quota. */
+		$threshold = (int) ( \IPS\Settings::i()->gdbills_relevance_threshold ?? 50 );
+		if ( $threshold < 0 )   { $threshold = 0; }
+		if ( $threshold > 100 ) { $threshold = 100; }
+
 		$states = $states ?: self::STATES;
 
 		foreach ( $states as $state )
@@ -113,6 +120,16 @@ class _LegiScan
 					$counts['processed']++;
 					$billId = isset( $hit['bill_id'] ) ? (int) $hit['bill_id'] : 0;
 					if ( $billId <= 0 ) { $counts['skipped']++; continue; }
+
+					/* Relevance gate (Fix A). LegiScan's op=getSearch carries
+					   a relevance score 0-100. Skip detail fetch + storage when
+					   below threshold. Missing field → treat as passing (don't
+					   drop hits without a score; the title filter is the backstop). */
+					if ( isset( $hit['relevance'] ) && (int) $hit['relevance'] < $threshold )
+					{
+						$counts['skipped']++;
+						continue;
+					}
 
 					try
 					{
@@ -271,6 +288,10 @@ class _LegiScan
 		$allowKw  = self::keywordsFromSetting( 'gdbills_relevance_keywords', self::DEFAULT_RELEVANCE_KEYWORDS );
 		$exclKw   = self::keywordsFromSetting( 'gdbills_exclusion_keywords', self::DEFAULT_EXCLUSION_KEYWORDS );
 
+		$threshold = (int) ( \IPS\Settings::i()->gdbills_relevance_threshold ?? 50 );
+		if ( $threshold < 0 )   { $threshold = 0; }
+		if ( $threshold > 100 ) { $threshold = 100; }
+
 		$states = $oneState !== null
 			? [ strtoupper( $oneState ) ]
 			: self::STATES;
@@ -297,6 +318,14 @@ class _LegiScan
 						$counts['processed']++;
 						$billId = isset( $hit['bill_id'] ) ? (int) $hit['bill_id'] : 0;
 						if ( $billId <= 0 ) { $counts['skipped']++; continue; }
+
+						/* Relevance gate (Fix A) — also saves quota here, where
+						   the year matrix multiplies the search cost. */
+						if ( isset( $hit['relevance'] ) && (int) $hit['relevance'] < $threshold )
+						{
+							$counts['skipped']++;
+							continue;
+						}
 
 						try
 						{
@@ -419,52 +448,84 @@ class _LegiScan
 	 * exclusions, so a Glock-switch bill is kept even if the description
 	 * mentions a knife in passing.
 	 */
+	/**
+	 * Title-weighted firearms-related test (Fix B — backstop for incidental
+	 * mentions). The bill PASSES when:
+	 *
+	 *   (A) ANY allow term appears in the TITLE (the bill is actually ABOUT
+	 *       firearms), unless an exclusion term also appears in the title
+	 *       and no STRONG phrase is present anywhere — or
+	 *   (B) A STRONG multi-word firearms phrase (concealed carry, assault
+	 *       weapon, ghost gun, glock, etc.) appears anywhere in
+	 *       title + description.
+	 *
+	 * Otherwise it FAILS. This drops the incidental-mention junk like
+	 * KS HB2329 (juvenile-justice bill that mentions "firearm" once) and
+	 * KS SB82 (tax-credit bill that mentions "lockable gun storage") —
+	 * both have unrelated TITLES and no strong phrase in the body.
+	 *
+	 * Allow + exclude lists are still user-controllable via the ACP
+	 * settings (gdbills_relevance_keywords / gdbills_exclusion_keywords).
+	 */
+	const STRONG_PHRASES = [
+		/* Multi-word firearms-specific phrases that don't appear incidentally. */
+		'concealed carry', 'open carry', 'assault weapon', 'large capacity magazine',
+		'machine gun', 'ghost gun', 'auto sear', 'bump stock', 'pistol brace',
+		'second amendment', '2nd amendment',
+		'firearm dealer', 'firearms dealer', 'gun dealer', 'ffl',
+		'red flag', 'extreme risk protection', 'universal background check', 'waiting period',
+		/* Manufacturer + model terms (unambiguous when they appear). */
+		'glock', 'sig sauer', 'smith wesson', 'ruger', 'remington', 'colt',
+		'beretta', 'springfield armory', 'ar-15', 'ar15', 'ak-47', 'ak47',
+		'glock switch',
+	];
+
 	public static function isFirearmsRelated( array $bill, array $allow, array $exclude ): bool
 	{
-		$text = strtolower(
-			(string) ( $bill['title']       ?? '' ) . ' ' .
-			(string) ( $bill['description'] ?? '' ) . ' ' .
-			(string) ( $bill['bill_number'] ?? '' )
-		);
+		$title = strtolower( (string) ( $bill['title']       ?? '' ) );
+		$desc  = strtolower( (string) ( $bill['description'] ?? '' ) );
+		$combined = $title . ' ' . $desc;
 
-		/* Allowlist FIRST — manufacturer/model terms keep the bill in scope. */
-		$matched = false;
+		/* Detect a STRONG firearms signal anywhere — this lets a real firearms
+		   bill survive even when an exclusion term appears in passing. */
+		$hasStrong = false;
+		foreach ( self::STRONG_PHRASES as $phrase )
+		{
+			if ( strpos( $combined, $phrase ) !== false ) { $hasStrong = true; break; }
+		}
+
+		/* (A) TITLE allow check — any allow term in the title means the bill
+		   is actually about firearms. Subject to exclusion-without-strong. */
+		$titleMatch = false;
 		foreach ( $allow as $term )
 		{
-			$t = strtolower( trim( $term ) );
+			$t = strtolower( trim( (string) $term ) );
 			if ( $t === '' ) { continue; }
-			if ( strpos( $text, $t ) !== false ) { $matched = true; break; }
+			if ( strpos( $title, $t ) !== false ) { $titleMatch = true; break; }
 		}
-		if ( !$matched ) { return false; }
 
-		/* Exclusion list — only drops when the ENTIRE text is dominated by the
-		   non-firearms term and no firearms term is present. Since allowlist
-		   already matched at least once, we keep the bill unless the bill is
-		   clearly about something else (allow term appears as incidental). For
-		   simplicity, exclude only when an exclusion term appears AND no
-		   manufacturer/feature term from a curated subset is present. */
-		$strongAllow = [
-			'firearm', 'gun', 'rifle', 'pistol', 'handgun', 'shotgun',
-			'second amendment', '2nd amendment', 'concealed carry', 'open carry',
-			'glock', 'sig sauer', 'smith wesson', 'ruger', 'remington', 'colt',
-			'beretta', 'springfield armory', 'ar-15', 'ar15', 'ak-47', 'ak47',
-			'auto sear', 'bump stock', 'ghost gun', 'pistol brace',
-			'large capacity magazine', 'machine gun', 'assault weapon',
-		];
-		$hasStrong = false;
-		foreach ( $strongAllow as $t )
+		if ( $titleMatch )
 		{
-			if ( strpos( $text, $t ) !== false ) { $hasStrong = true; break; }
+			if ( !$hasStrong )
+			{
+				foreach ( $exclude as $term )
+				{
+					$t = strtolower( trim( (string) $term ) );
+					if ( $t === '' ) { continue; }
+					if ( strpos( $combined, $t ) !== false ) { return false; }
+				}
+			}
+			return true;
 		}
+
+		/* (B) STRONG phrase anywhere → pass. Honors the exclusion list only
+		   when there's no strong signal (handled above; here strong wins). */
 		if ( $hasStrong ) { return true; }
 
-		foreach ( $exclude as $term )
-		{
-			$t = strtolower( trim( $term ) );
-			if ( $t === '' ) { continue; }
-			if ( strpos( $text, $t ) !== false ) { return false; }
-		}
-		return true;
+		/* No title hit and no strong phrase — this is the incidental-mention
+		   case (a single bare "firearm"/"gun" buried in an unrelated body).
+		   Drop it; this is the fix vs the prior loose substring filter. */
+		return false;
 	}
 
 	/**
