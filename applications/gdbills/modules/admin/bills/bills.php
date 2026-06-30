@@ -19,8 +19,6 @@ class _bills extends \IPS\Dispatcher\Controller
 		parent::execute();
 	}
 
-	const PER_PAGE = 25;
-
 	const STATES = [
 		'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA',
 		'ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR',
@@ -33,141 +31,165 @@ class _bills extends \IPS\Dispatcher\Controller
 	{
 		$lang = \IPS\Member::loggedIn()->language();
 
-		/* --- Read + sanitize filters --- */
+		/* --- Read + sanitize filters (drive Table\Db's WHERE clauses) --- */
 		$state = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
 		if ( $state !== '' && !in_array( $state, self::STATES, true ) ) { $state = ''; }
 
 		$type = strtolower( trim( (string) ( \IPS\Request::i()->type ?? '' ) ) );
-		if ( $type !== '' && !in_array( $type, self::TYPES, true ) ) { $type = ''; }
-
-		$status = trim( (string) ( \IPS\Request::i()->status ?? '' ) );
-		if ( strlen( $status ) > 50 ) { $status = substr( $status, 0, 50 ); }
+		if ( $type !== '' && $type !== 'all' && !in_array( $type, self::TYPES, true ) ) { $type = ''; }
 
 		$q = trim( (string) ( \IPS\Request::i()->q ?? '' ) );
 		if ( strlen( $q ) > 200 ) { $q = substr( $q, 0, 200 ); }
 
-		/* --- Pagination (filter-aware totals) --- */
-		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
-		$perPage = self::PER_PAGE;
+		/* WHERE for Table\Db. Native parameterized binds — rule #2. */
+		$where = [];
+		if ( $state !== '' )               { $where[] = [ 'state_code=?', $state ]; }
+		if ( $type  !== '' && $type !== 'all' ) { $where[] = [ 'bill_type=?', $type ]; }
+		if ( $q     !== '' )
+		{
+			$like = '%' . $q . '%';
+			$where[] = [ '(bill_title LIKE ? OR bill_number LIKE ?)', $like, $like ];
+		}
 
-		$filterArgs = [];
-		if ( $state  !== '' ) { $filterArgs['state']  = $state; }
-		if ( $type   !== '' ) { $filterArgs['type']   = $type; }
-		if ( $status !== '' ) { $filterArgs['status'] = $status; }
-		if ( $q      !== '' ) { $filterArgs['q']      = $q; }
+		/* Bake active filters into the table's base URL so pagination + sort
+		   links carry them. Same pattern as gdrebates queue.php. */
+		$baseUrl = \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills' );
+		if ( $state !== '' ) { $baseUrl = $baseUrl->setQueryString( 'state', $state ); }
+		if ( $type  !== '' && $type !== 'all' ) { $baseUrl = $baseUrl->setQueryString( 'type', $type ); }
+		if ( $q     !== '' ) { $baseUrl = $baseUrl->setQueryString( 'q', $q ); }
 
-		$total      = \IPS\gdbills\Bill::getTotalCount( $filterArgs );
-		$totalPages = max( 1, (int) ceil( $total / $perPage ) );
-		if ( $page > $totalPages ) { $page = $totalPages; }
-		$offset = ( $page - 1 ) * $perPage;
+		/* --- Native IPS ACP table --- */
+		$table = new \IPS\Helpers\Table\Db( 'gd_bills', $baseUrl, $where );
+		$table->langPrefix = 'gdbills_acp_col_';
+		$table->include    = [ 'state_code', 'bill_number', 'bill_title', 'bill_type', 'status', 'last_action_date', 'source' ];
+		$table->sortBy        = $table->sortBy ?: 'last_action_date';
+		$table->sortDirection = $table->sortDirection ?: 'desc';
 
-		$rows = \IPS\gdbills\Bill::getAll( $filterArgs + [ 'limit' => $perPage, 'offset' => $offset ] );
+		/* Column formatters — link the title to its source, render type as a
+		   colored pill that matches the front badges, fall back for empty
+		   dates / status / source. */
+		$table->parsers = [
+			'state_code' => function( $v ) {
+				return '<strong>' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</strong>';
+			},
+			'bill_number' => function( $v ) {
+				return '<span style="font-family:ui-monospace,monospace;color:#475569">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>';
+			},
+			'bill_title' => function( $v, $row ) {
+				$t = htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' );
+				if ( !empty( $row['url'] ) )
+				{
+					$u = htmlspecialchars( (string) $row['url'], ENT_QUOTES, 'UTF-8' );
+					return "<a href='{$u}' target='_blank' rel='nofollow noopener'><strong>{$t}</strong></a>";
+				}
+				return "<strong>{$t}</strong>";
+			},
+			'bill_type' => function( $v ) {
+				$type = strtolower( (string) $v );
+				$pill = match( $type ) {
+					'law'     => 'background:#dbeafe;color:#1e3a8a',
+					'enacted' => 'background:#dcfce7;color:#14532d',
+					'pending' => 'background:#fef3c7;color:#92400e',
+					default   => 'background:#f1f5f9;color:#475569',
+				};
+				return '<span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;' . $pill . '">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>';
+			},
+			'status' => function( $v ) {
+				$s = strtolower( (string) $v );
+				$color = match( $s ) {
+					'vetoed', 'failed' => '#991b1b',
+					'enacted'          => '#14532d',
+					default            => '#475569',
+				};
+				return '<span style="color:' . $color . '">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>';
+			},
+			'last_action_date' => function( $v ) {
+				return $v ? '<span style="white-space:nowrap;color:#64748b">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>' : '<span style="color:#cbd5e1">—</span>';
+			},
+			'source' => function( $v ) {
+				return '<span style="color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.04em">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>';
+			},
+		];
 
-		/* --- URLs (preserve filters in pagination/reset) --- */
-		$baseUrl  = \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills' );
-		$filterUrl = $baseUrl;
-		foreach ( $filterArgs as $k => $v ) { $filterUrl = $filterUrl->setQueryString( $k, $v ); }
+		/* Native row action menu (Edit / Delete). Same shape as
+		   gdrebates/modules/admin/rebates/queue.php — confirmed working
+		   on this IPS 5.0.18 install. */
+		$table->rowButtons = function( $row ) {
+			$base = 'app=gdbills&module=bills&controller=bills';
+			return [
+				'edit' => [
+					'icon'  => 'pencil',
+					'title' => 'edit',
+					'link'  => \IPS\Http\Url::internal( $base . '&do=edit&id=' . (int) $row['id'] ),
+				],
+				'delete' => [
+					'icon'  => 'times-circle',
+					'title' => 'delete',
+					'link'  => \IPS\Http\Url::internal( $base . '&do=delete&id=' . (int) $row['id'] )->csrf(),
+					'data'  => [ 'delete' => '' ],
+				],
+			];
+		};
 
-		$addUrl   = (string) $baseUrl->setQueryString( 'do', 'add' );
-		$resetUrl = (string) $baseUrl;
+		/* --- Header above the table: type tabs + state/title search +
+		   Add bill button. Mirrors gdrebates queue.php tabs idiom (the
+		   sister-app reference uses tabs, NOT Table\Db quickSearch/
+		   advancedSearch — sticking to the known-working pattern). --- */
+		$resetUrl = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills' );
+		$addUrl   = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills&do=add' );
 
-		/* --- Filter bar (GET form, server-rendered selects) --- */
-		$stateOpts = '<option value=""' . ( $state === '' ? ' selected' : '' ) . '>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_filter_all_states' ), ENT_QUOTES ) . '</option>';
+		$tabs = '';
+		$tabEntries = [ 'all' => 'gdbills_filter_all', 'law' => 'gdbills_filter_law', 'enacted' => 'gdbills_filter_enacted', 'pending' => 'gdbills_filter_pending' ];
+		foreach ( $tabEntries as $key => $langKey )
+		{
+			$tabUrl = \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills' );
+			if ( $key !== 'all' ) { $tabUrl = $tabUrl->setQueryString( 'type', $key ); }
+			if ( $state !== '' )  { $tabUrl = $tabUrl->setQueryString( 'state', $state ); }
+			if ( $q     !== '' )  { $tabUrl = $tabUrl->setQueryString( 'q', $q ); }
+
+			$cnt = ( $key === 'all' )
+				? \IPS\Db::i()->select( 'COUNT(*)', 'gd_bills' )->first()
+				: \IPS\Db::i()->select( 'COUNT(*)', 'gd_bills', [ 'bill_type=?', $key ] )->first();
+			$activeMatch = ( $key === 'all' ) ? ( $type === '' || $type === 'all' ) : ( $type === $key );
+			$active = $activeMatch ? ' ipsButton--primary' : ' ipsButton--soft';
+			$lbl    = htmlspecialchars( (string) $lang->addToStack( $langKey ), ENT_QUOTES, 'UTF-8' );
+			$tabs  .= "<a class='ipsButton ipsButton--small{$active}' href='" . htmlspecialchars( (string) $tabUrl, ENT_QUOTES ) . "'>{$lbl} ({$cnt})</a> ";
+		}
+
+		$stateOpts = '<option value=""' . ( $state === '' ? ' selected' : '' ) . '>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_filter_all_states' ), ENT_QUOTES, 'UTF-8' ) . '</option>';
 		foreach ( self::STATES as $st )
 		{
 			$sel = ( $st === $state ) ? ' selected' : '';
 			$stateOpts .= '<option value="' . $st . '"' . $sel . '>' . $st . '</option>';
 		}
-		$typeOpts = '<option value=""' . ( $type === '' ? ' selected' : '' ) . '>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_filter_all_types' ), ENT_QUOTES ) . '</option>';
-		foreach ( self::TYPES as $t )
-		{
-			$sel = ( $t === $type ) ? ' selected' : '';
-			$label = (string) $lang->addToStack( 'gdbills_filter_' . $t );
-			$typeOpts .= '<option value="' . $t . '"' . $sel . '>' . htmlspecialchars( $label, ENT_QUOTES ) . '</option>';
-		}
 
-		$searchForm = '<form method="get" action="' . htmlspecialchars( (string) $baseUrl, ENT_QUOTES ) . '" class="ipsBox ipsPad" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:0 0 14px">'
-			. '<input type="hidden" name="app" value="gdbills">'
-			. '<input type="hidden" name="module" value="bills">'
-			. '<input type="hidden" name="controller" value="bills">'
-			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px"><span>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_state' ), ENT_QUOTES ) . '</span><select name="state" style="min-width:80px">' . $stateOpts . '</select></label>'
-			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px"><span>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_type' ), ENT_QUOTES ) . '</span><select name="type" style="min-width:130px">' . $typeOpts . '</select></label>'
-			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px;flex:1 1 240px"><span>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_q' ), ENT_QUOTES ) . '</span><input type="search" name="q" value="' . htmlspecialchars( $q, ENT_QUOTES ) . '" placeholder="bill title or number"></label>'
-			. '<button type="submit" class="ipsButton ipsButton_primary">' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_go' ), ENT_QUOTES ) . '</button>'
-			. '<a href="' . htmlspecialchars( $resetUrl, ENT_QUOTES ) . '" class="ipsButton ipsButton_link">' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_reset' ), ENT_QUOTES ) . '</a>'
-			. '</form>';
+		$searchForm = "<form method='get' action='" . htmlspecialchars( $resetUrl, ENT_QUOTES ) . "' class='ipsBox ipsPad' style='display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:0 0 14px'>"
+			. "<input type='hidden' name='app' value='gdbills'>"
+			. "<input type='hidden' name='module' value='bills'>"
+			. "<input type='hidden' name='controller' value='bills'>";
+		if ( $type !== '' && $type !== 'all' ) { $searchForm .= "<input type='hidden' name='type' value='" . htmlspecialchars( $type, ENT_QUOTES ) . "'>"; }
+		$searchForm .= "<label style='display:flex;flex-direction:column;gap:3px;font-size:12px'><span>"
+			. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_state' ), ENT_QUOTES, 'UTF-8' )
+			. "</span><select name='state' style='min-width:80px'>{$stateOpts}</select></label>"
+			. "<label style='display:flex;flex-direction:column;gap:3px;font-size:12px;flex:1 1 240px'><span>"
+			. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_q' ), ENT_QUOTES, 'UTF-8' )
+			. "</span><input type='search' name='q' value='" . htmlspecialchars( $q, ENT_QUOTES, 'UTF-8' ) . "' placeholder='bill title or number'></label>"
+			. "<button type='submit' class='ipsButton ipsButton_primary ipsButton--small'>"
+			. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_go' ), ENT_QUOTES, 'UTF-8' )
+			. "</button>"
+			. "<a href='" . htmlspecialchars( $resetUrl, ENT_QUOTES ) . "' class='ipsButton ipsButton_link ipsButton--small'>"
+			. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_reset' ), ENT_QUOTES, 'UTF-8' )
+			. "</a></form>";
 
-		/* --- Pagination via IPS core helper --- */
-		$pagination = '';
-		try
-		{
-			$pagination = (string) \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
-				$filterUrl, $totalPages, $page, $perPage
-			);
-		}
-		catch ( \Throwable ) { $pagination = ''; }
-
-		/* --- Table --- */
-		$pillStyle = [
-			'law'     => 'background:#dbeafe;color:#1e3a8a',
-			'enacted' => 'background:#dcfce7;color:#14532d',
-			'pending' => 'background:#fef3c7;color:#92400e',
-		];
-		$thStyle = ' style="text-align:left;padding:8px 10px;border-bottom:2px solid #e6e9ee;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#475569"';
-		$tdStyle = ' style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:top"';
-
-		$table = '<table class="ipsTable ipsTable_responsive" style="width:100%;border-collapse:collapse;background:#fff">'
-			. '<thead><tr>'
-			. '<th' . $thStyle . '>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_f_state_code' ), ENT_QUOTES ) . '</th>'
-			. '<th' . $thStyle . '>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_f_bill_number' ), ENT_QUOTES ) . '</th>'
-			. '<th' . $thStyle . '>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_f_bill_title' ), ENT_QUOTES ) . '</th>'
-			. '<th' . $thStyle . '>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_f_bill_type' ), ENT_QUOTES ) . '</th>'
-			. '<th' . $thStyle . '>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_f_status' ), ENT_QUOTES ) . '</th>'
-			. '<th' . $thStyle . '>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_last_action' ), ENT_QUOTES ) . '</th>'
-			. '<th' . $thStyle . '>Source</th>'
-			. '<th' . $thStyle . ' style="text-align:right;padding:8px 10px;border-bottom:2px solid #e6e9ee;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#475569"></th>'
-			. '</tr></thead><tbody>';
-
-		foreach ( $rows as $i => $r )
-		{
-			$editUrl = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills&do=edit&id=' . (int) $r['id'] );
-			$delUrl  = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills&do=delete&id=' . (int) $r['id'] )->csrf();
-			$pill    = $pillStyle[ (string) $r['bill_type'] ] ?? 'background:#f1f5f9;color:#475569';
-			$titleHtml = htmlspecialchars( (string) $r['bill_title'], ENT_QUOTES );
-			if ( !empty( $r['url'] ) )
-			{
-				$titleHtml = '<a href="' . htmlspecialchars( (string) $r['url'], ENT_QUOTES ) . '" target="_blank" rel="nofollow noopener" style="color:#1e3a8a;text-decoration:none">' . $titleHtml . '</a>';
-			}
-			$rowBg = ( $i % 2 === 1 ) ? ' background:#fafbfc;' : '';
-			$table .= '<tr style="' . $rowBg . '">';
-			$table .= '<td' . $tdStyle . '><strong>' . htmlspecialchars( (string) $r['state_code'], ENT_QUOTES ) . '</strong></td>';
-			$table .= '<td' . $tdStyle . ' style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:top;font-family:ui-monospace,monospace;color:#475569">' . htmlspecialchars( (string) $r['bill_number'], ENT_QUOTES ) . '</td>';
-			$table .= '<td' . $tdStyle . ' style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:top;max-width:480px;line-height:1.4"><strong>' . $titleHtml . '</strong></td>';
-			$table .= '<td' . $tdStyle . '><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;' . $pill . '">' . htmlspecialchars( (string) $r['bill_type'], ENT_QUOTES ) . '</span></td>';
-			$table .= '<td' . $tdStyle . '>' . htmlspecialchars( (string) $r['status'], ENT_QUOTES ) . '</td>';
-			$table .= '<td' . $tdStyle . ' style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:top;white-space:nowrap;color:#64748b">' . htmlspecialchars( (string) ( $r['last_action_date'] ?? '' ), ENT_QUOTES ) . '</td>';
-			$table .= '<td' . $tdStyle . ' style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:top;color:#94a3b8">' . htmlspecialchars( (string) $r['source'], ENT_QUOTES ) . '</td>';
-			$table .= '<td' . $tdStyle . ' style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:top;text-align:right;white-space:nowrap"><a href="' . htmlspecialchars( $editUrl, ENT_QUOTES ) . '" class="ipsButton ipsButton_link ipsButton_verySmall">Edit</a> <a href="' . htmlspecialchars( $delUrl, ENT_QUOTES ) . '" class="ipsButton ipsButton_link ipsButton_verySmall" data-confirm>Delete</a></td>';
-			$table .= '</tr>';
-		}
-		if ( empty( $rows ) )
-		{
-			$table .= '<tr><td colspan="8" style="padding:32px;text-align:center;color:#94a3b8;font-style:italic">'
-				. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_bills_none' ), ENT_QUOTES ) . '</td></tr>';
-		}
-		$table .= '</tbody></table>';
-
-		/* --- Assemble --- */
-		$intro = '<p>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_bills_intro' ), ENT_QUOTES ) . '</p>';
-		$header = '<div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 14px;flex-wrap:wrap;gap:10px">'
-			. '<a href="' . htmlspecialchars( $addUrl, ENT_QUOTES ) . '" class="ipsButton ipsButton_primary">'
-			. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_bills_add' ), ENT_QUOTES ) . '</a>'
-			. '<span style="color:#475569;font-size:13px">' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_bills_count' ), ENT_QUOTES )
-			. ': <strong>' . number_format( $total ) . '</strong></span>'
-			. '</div>';
+		$intro = '<p>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_bills_intro' ), ENT_QUOTES, 'UTF-8' ) . '</p>';
+		$header = "<div class='ipsPad' style='display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:0 0 12px'>"
+			. "<div>{$tabs}</div>"
+			. "<a href='" . htmlspecialchars( $addUrl, ENT_QUOTES ) . "' class='ipsButton ipsButton_primary ipsButton--small'>"
+			. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_bills_add' ), ENT_QUOTES, 'UTF-8' )
+			. "</a></div>";
 
 		\IPS\Output::i()->title  = $lang->addToStack( 'gdbills_acp_bills_title' );
-		\IPS\Output::i()->output = $intro . $header . $searchForm . $pagination . $table . $pagination;
+		\IPS\Output::i()->output = $intro . $header . $searchForm . (string) $table;
 	}
 
 	protected function add(): void

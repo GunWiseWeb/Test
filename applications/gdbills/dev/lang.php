@@ -82,6 +82,15 @@ $lang = array(
 	'gdbills_acp_search_go'             => 'Search',
 	'gdbills_acp_search_reset'          => 'Reset',
 
+	/* Native ACP Table\Db column headers — keys = langPrefix + column name */
+	'gdbills_acp_col_state_code'        => 'State',
+	'gdbills_acp_col_bill_number'       => 'Bill #',
+	'gdbills_acp_col_bill_title'        => 'Title',
+	'gdbills_acp_col_bill_type'         => 'Type',
+	'gdbills_acp_col_status'            => 'Status',
+	'gdbills_acp_col_last_action_date'  => 'Last action',
+	'gdbills_acp_col_source'            => 'Source',
+
 	/* ACP — Bill form fields */
 	'gdbills_f_bill_number'             => 'Bill number',
 	'gdbills_f_bill_title'              => 'Bill title',
