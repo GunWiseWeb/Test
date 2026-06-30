@@ -1,0 +1,18 @@
+{
+	"billMap": {
+		"class": "\\IPS\\gdbills\\widgets\\billMap",
+		"restrict": [ "header", "sidebar", "footer" ],
+		"default_area": "",
+		"allow_reuse": true,
+		"menu_style": "menu",
+		"embeddable": true
+	},
+	"billList": {
+		"class": "\\IPS\\gdbills\\widgets\\billList",
+		"restrict": [ "sidebar", "footer" ],
+		"default_area": "",
+		"allow_reuse": true,
+		"menu_style": "menu",
+		"embeddable": true
+	}
+}

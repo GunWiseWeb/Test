@@ -1,0 +1,16 @@
+{
+	"bills": {
+		"bills": {
+			"bills_manage": "bills_manage"
+		},
+		"settings": {
+			"bills_manage": "bills_manage"
+		},
+		"import": {
+			"bills_manage": "bills_manage"
+		},
+		"sync": {
+			"bills_manage": "bills_manage"
+		}
+	}
+}
