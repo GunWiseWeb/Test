@@ -7,12 +7,18 @@
 .gd-bills__sub { margin: 0; font-size: 14px; color: #6b7480; }
 .gd-bills__note { margin: 8px 0 0; padding: 8px 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 13px; color: #1e3a8a; }
 
+/* Controls group: back-link + last-updated + filters + "Showing N" sit
+   together immediately above the results so the user doesn't have to
+   scroll back up to refine after picking a state. */
+.gd-bills__controls { margin: 22px 0 14px; display: flex; flex-direction: column; gap: 10px; }
+.gd-bills__controls > * { margin: 0; }
+
 /* Last-updated bar (grey) */
-.gd-bills__updated { margin: 0 0 12px; padding: 8px 14px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; color: #475569; }
+.gd-bills__updated { margin: 0; padding: 8px 14px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; color: #475569; }
 .gd-bills__updated strong { color: #1a2b4a; }
 
 /* Filter bar — type buttons + date inputs */
-.gd-bills__filters { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; margin: 0 0 12px; padding: 12px 14px; background: #fff; border: 1px solid #e6e9ee; border-radius: 8px; }
+.gd-bills__filters { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; margin: 0; padding: 12px 14px; background: #fff; border: 1px solid #e6e9ee; border-radius: 8px; }
 .gd-bills__filterGroup { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
 .gd-bills__filterLabel { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; margin-right: 4px; }
 .gd-bills__filterBtn { display: inline-block; padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; line-height: 1.2; background: #fff; color: #475569; }
@@ -35,7 +41,7 @@
 .gd-bills__dateField input[type="date"]:focus { outline: none; border-color: #1e3a8a; box-shadow: 0 0 0 2px rgba(30,58,138,0.12); }
 
 /* Showing N items count bar (light blue, WP look) */
-.gd-bills__showing { margin: 0 0 14px; padding: 8px 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 13px; color: #1e3a8a; font-weight: 600; }
+.gd-bills__showing { margin: 0; padding: 8px 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 13px; color: #1e3a8a; font-weight: 600; }
 
 /* Section title color variants matching badges */
 .gd-bills__sectionTitle--law     { border-bottom-color: #1e3a8a; color: #1e3a8a; }
