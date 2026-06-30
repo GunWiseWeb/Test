@@ -179,7 +179,7 @@ class _LegiScan
 	protected static function getSearch( string $key, string $state, string $query ): array
 	{
 		$url = self::API_BASE . '?key=' . urlencode( $key )
-			. '&op=getSearchRaw'
+			. '&op=getSearch'
 			. '&state=' . urlencode( $state )
 			. '&query=' . urlencode( $query );
 		$data = self::http( $url );
@@ -189,7 +189,8 @@ class _LegiScan
 		}
 		$results = $data['searchresult'] ?? [];
 		if ( !is_array( $results ) ) { return []; }
-		/* LegiScan's getSearchRaw returns a 'summary' key + numbered results. */
+		/* LegiScan's getSearch returns a 'summary' key + numeric-indexed associative
+		   hits (bill_id, bill_number, state, title, last_action_date, url, ...). */
 		unset( $results['summary'] );
 		return array_values( array_filter( $results, 'is_array' ) );
 	}
