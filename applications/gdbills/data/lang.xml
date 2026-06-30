@@ -14,7 +14,8 @@
 <word key="gdbills_page_subtitle" js="0"><![CDATA[Pending and enacted firearms legislation by state]]></word>
 <word key="gdbills_state_map_title" js="0"><![CDATA[Browse by state]]></word>
 <word key="gdbills_state_map_hint" js="0"><![CDATA[Tap a state to view the bills currently active there.]]></word>
-<word key="gdbills_enacted_heading" js="0"><![CDATA[Enacted Laws]]></word>
+<word key="gdbills_law_heading" js="0"><![CDATA[Existing Laws]]></word>
+<word key="gdbills_enacted_heading" js="0"><![CDATA[Recently Enacted]]></word>
 <word key="gdbills_pending_heading" js="0"><![CDATA[Pending Bills]]></word>
 <word key="gdbills_no_bills" js="0"><![CDATA[No bills tracked for this state right now.]]></word>
 <word key="gdbills_no_bills_overall" js="0"><![CDATA[No bills tracked yet. Configure your LegiScan API key in the ACP and run Sync to populate.]]></word>
@@ -89,6 +90,17 @@
 <word key="gdbills_acp_sync_done" js="0"><![CDATA[Sync complete: %s bills processed.]]></word>
 <word key="gdbills_acp_sync_no_key" js="0"><![CDATA[Set your LegiScan API key in Settings before syncing.]]></word>
 <word key="gdbills_acp_sync_disabled" js="0"><![CDATA[Auto-sync is disabled. Manual sync still works.]]></word>
+<word key="gdbills_acp_seed_title" js="0"><![CDATA[Seed Existing Laws]]></word>
+<word key="gdbills_acp_seed_intro" js="0"><![CDATA[Imports the bundled list of well-known existing state firearms laws (Illinois Protect Illinois Communities Act, NY SAFE Act, etc.) as bill_type=law. No API calls. Safe to re-run; existing rows update in place.]]></word>
+<word key="gdbills_acp_seed_button" js="0"><![CDATA[Seed existing laws]]></word>
+<word key="gdbills_acp_seed_done" js="0"><![CDATA[Existing laws seeded: {1} upserted of {2} processed.]]></word>
+<word key="gdbills_acp_detect_title" js="0"><![CDATA[Detect Prior-Session Laws]]></word>
+<word key="gdbills_acp_detect_intro" js="0"><![CDATA[Queries LegiScan for enacted firearms bills (status=Passed) from prior years (2021-2024) and tags them as existing laws. Admin-triggered only; not part of the daily sync.]]></word>
+<word key="gdbills_acp_detect_warning" js="0"><![CDATA[This uses significant LegiScan API quota. Limit by state to control usage.]]></word>
+<word key="gdbills_acp_detect_state_label" js="0"><![CDATA[State]]></word>
+<word key="gdbills_acp_detect_all_states" js="0"><![CDATA[All 50 states (heavy quota)]]></word>
+<word key="gdbills_acp_detect_button" js="0"><![CDATA[Detect prior-session laws]]></word>
+<word key="gdbills_acp_detect_done" js="0"><![CDATA[Prior-session detection complete: {1} tagged as existing law of {2} processed.]]></word>
 <word key="task__gdbills_syncBills" js="0"><![CDATA[Sync firearms bills from LegiScan]]></word>
 <word key="block__gdbills_billMap" js="0"><![CDATA[Bill Tracker Map]]></word>
 <word key="block__gdbills_billList" js="0"><![CDATA[Bill List]]></word>

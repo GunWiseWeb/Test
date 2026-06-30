@@ -45,6 +45,7 @@ class _bills extends \IPS\Dispatcher\Controller
 		{
 			/* Deep-linked state view (/bills/?state=IL) — render server-side
 			   so search engines and direct links see the bill list. */
+			$laws    = \IPS\gdbills\Bill::getByState( $state, 'law' );
 			$enacted = \IPS\gdbills\Bill::getByState( $state, 'enacted' );
 			$pending = \IPS\gdbills\Bill::getByState( $state, 'pending' );
 		}
@@ -52,6 +53,7 @@ class _bills extends \IPS\Dispatcher\Controller
 		{
 			/* Landing view — map only. Bills load on tile click via the
 			   stateBills AJAX endpoint into the modal. */
+			$laws    = [];
 			$enacted = [];
 			$pending = [];
 		}
@@ -70,7 +72,7 @@ class _bills extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdbills_page_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'bills', 'gdbills', 'front' )->page(
-			$counts, $total, self::STATES, $enacted, $pending,
+			$counts, $total, self::STATES, $laws, $enacted, $pending,
 			$state, $type, $pageUrl, $ajaxStateUrl, $ajaxMapUrl,
 			(string) ( \IPS\Settings::i()->gdbills_session_note ?? '' )
 		);
@@ -90,10 +92,11 @@ class _bills extends \IPS\Dispatcher\Controller
 			\IPS\Output::i()->json( [ 'ok' => false, 'error' => 'bad_state' ] );
 			return;
 		}
+		$laws    = \IPS\gdbills\Bill::getByState( $state, 'law' );
 		$enacted = \IPS\gdbills\Bill::getByState( $state, 'enacted' );
 		$pending = \IPS\gdbills\Bill::getByState( $state, 'pending' );
 		$html = (string) \IPS\Theme::i()->getTemplate( 'bills', 'gdbills', 'front' )->stateModal(
-			$state, $enacted, $pending
+			$state, $laws, $enacted, $pending
 		);
 		\IPS\Output::i()->json( [ 'ok' => true, 'state' => $state, 'html' => $html ] );
 	}

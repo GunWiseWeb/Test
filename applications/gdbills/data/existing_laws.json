@@ -1,0 +1,47 @@
+[
+	{
+		"state_code": "IL",
+		"bill_number": "720 ILCS 5/24-1.9",
+		"bill_title": "Protect Illinois Communities Act (Assault Weapons Ban)",
+		"description": "Prohibits the sale, manufacture, delivery, import, and possession of assault weapons and large capacity ammunition feeding devices. Bans specific firearms by name and defines assault weapons by features. Existing owners may keep grandfathered firearms but must register them with the Illinois State Police.",
+		"url": "https://www.ilga.gov/legislation/ilcs/ilcs5.asp?ActID=1876&ChapterID=53",
+		"signed_date": "2023-01-10",
+		"last_action": "Signed into law by Governor Pritzker on January 10, 2023. Effective immediately."
+	},
+	{
+		"state_code": "CA",
+		"bill_number": "CA Penal Code 30515",
+		"bill_title": "Roberti-Roos Assault Weapons Control Act",
+		"description": "Defines and restricts assault weapons in California. Bans firearms with specified features (detachable magazines combined with one or more military-style features) and registers a list of named assault weapons.",
+		"url": "https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=PEN&sectionNum=30515.",
+		"signed_date": "1989-05-24",
+		"last_action": "Original Roberti-Roos Act signed May 24, 1989; substantially amended by SB 23 (1999) to add the features-based definition."
+	},
+	{
+		"state_code": "NY",
+		"bill_number": "S2230 (NY SAFE Act)",
+		"bill_title": "NY Secure Ammunition and Firearms Enforcement Act",
+		"description": "Comprehensive gun-control package passed after the Sandy Hook shooting. Expanded the state's assault-weapon definition, reduced lawful magazine capacity, required universal background checks for private sales, and created a mental-health reporting requirement.",
+		"url": "https://www.nysenate.gov/legislation/bills/2013/s2230",
+		"signed_date": "2013-01-15",
+		"last_action": "Signed into law by Governor Cuomo on January 15, 2013."
+	},
+	{
+		"state_code": "NJ",
+		"bill_number": "NJ A2761 (2018)",
+		"bill_title": "Large Capacity Magazine Reduction",
+		"description": "Reduced the lawful magazine capacity in New Jersey from 15 rounds to 10 rounds. Required existing owners of magazines exceeding 10 rounds to surrender, modify, or transfer them out of state.",
+		"url": "https://www.njleg.state.nj.us/bill-search/2018/A2761",
+		"signed_date": "2018-06-13",
+		"last_action": "Signed into law by Governor Murphy on June 13, 2018."
+	},
+	{
+		"state_code": "CT",
+		"bill_number": "PA 13-3",
+		"bill_title": "An Act Concerning Gun Violence Prevention and Children's Safety",
+		"description": "Post-Sandy Hook omnibus gun-control law. Expanded Connecticut's assault-weapons ban, limited magazine capacity to 10 rounds, required universal background checks for all firearm sales, and created the country's first dangerous-weapon offender registry.",
+		"url": "https://www.cga.ct.gov/2013/ACT/PA/2013PA-00003-R00SB-01160-PA.htm",
+		"signed_date": "2013-04-04",
+		"last_action": "Signed into law by Governor Malloy on April 4, 2013."
+	}
+]

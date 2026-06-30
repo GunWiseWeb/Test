@@ -174,14 +174,200 @@ class _LegiScan
 		return $counts;
 	}
 
+	/* ---------------------- Existing-laws ingestion ---------------------- */
+
+	/**
+	 * Seed the curated existing-laws JSON (data/existing_laws.json) into
+	 * gd_bills as bill_type='law'. Idempotent — Bill::upsert matches on
+	 * (bill_number, state_code) so re-running just updates rows in place.
+	 * No API calls, no LegiScan quota.
+	 *
+	 * @return array{processed:int,upserted:int,skipped:int,errors:int}
+	 */
+	public static function seedExistingLaws(): array
+	{
+		$counts = [ 'processed' => 0, 'upserted' => 0, 'skipped' => 0, 'errors' => 0 ];
+		$file   = \IPS\ROOT_PATH . '/applications/gdbills/data/existing_laws.json';
+		if ( !is_readable( $file ) )
+		{
+			try { \IPS\Log::log( 'seedExistingLaws: file unreadable ' . $file, 'gdbills' ); } catch ( \Throwable ) {}
+			return $counts;
+		}
+
+		$rows = json_decode( (string) @file_get_contents( $file ), true );
+		if ( !is_array( $rows ) )
+		{
+			try { \IPS\Log::log( 'seedExistingLaws: invalid JSON', 'gdbills' ); } catch ( \Throwable ) {}
+			return $counts;
+		}
+
+		foreach ( $rows as $row )
+		{
+			if ( !is_array( $row ) ) { continue; }
+			$counts['processed']++;
+			try
+			{
+				$payload = [
+					'bill_number'      => (string) ( $row['bill_number'] ?? '' ),
+					'bill_title'       => (string) ( $row['bill_title']  ?? ( $row['bill_number'] ?? '' ) ),
+					'state_code'       => strtoupper( (string) ( $row['state_code'] ?? '' ) ),
+					'bill_type'        => 'law',
+					'status'           => (string) ( $row['status']         ?? 'enacted' ),
+					'progress_stage'   => (string) ( $row['progress_stage'] ?? 'became_law' ),
+					'description'      => (string) ( $row['description']    ?? '' ),
+					'url'              => (string) ( $row['url']            ?? '' ),
+					'signed_date'      => isset( $row['signed_date'] ) ? self::cleanDate( $row['signed_date'] ) : null,
+					'last_action'      => (string) ( $row['last_action']    ?? '' ),
+					'last_action_date' => isset( $row['signed_date'] ) ? self::cleanDate( $row['signed_date'] ) : null,
+					'sponsor_name'     => isset( $row['sponsor_name'] )  ? (string) $row['sponsor_name']  : null,
+					'sponsor_party'    => isset( $row['sponsor_party'] ) ? (string) $row['sponsor_party'] : null,
+					'source'           => 'seed',
+				];
+				$res = Bill::upsert( $payload );
+				if ( $res['action'] === 'insert' || $res['action'] === 'update' )
+				{
+					$counts['upserted']++;
+				}
+				else
+				{
+					$counts['skipped']++;
+				}
+			}
+			catch ( \Throwable $e )
+			{
+				$counts['errors']++;
+				try { \IPS\Log::log( 'seedExistingLaws row: ' . $e->getMessage(), 'gdbills' ); } catch ( \Throwable ) {}
+			}
+		}
+
+		try { \IPS\Log::log( 'seedExistingLaws: ' . json_encode( $counts ), 'gdbills' ); } catch ( \Throwable ) {}
+		return $counts;
+	}
+
+	/**
+	 * Opt-in admin action: query LegiScan for status=4 (Passed) firearms bills
+	 * from PRIOR years (default 2021-2024) and tag them bill_type='law' so they
+	 * show as existing laws. API-EXPENSIVE — admin triggered only, never wired
+	 * to the daily task. Optional $oneState narrows scope to control quota.
+	 *
+	 * Resumable progress writes to gd_bills_meta key 'detect_prior_progress'
+	 * so an interrupted run leaves a breadcrumb. Throttled with longer
+	 * sleeps than fetchAllBills (single keyword per search, but year matrix).
+	 *
+	 * @return array{processed:int,upserted:int,skipped:int,errors:int}
+	 */
+	public static function detectPriorSessionLaws( ?string $oneState = null, array $years = [2021,2022,2023,2024] ): array
+	{
+		$counts = [ 'processed' => 0, 'upserted' => 0, 'skipped' => 0, 'errors' => 0 ];
+
+		$key = trim( (string) ( \IPS\Settings::i()->gdbills_legiscan_key ?? '' ) );
+		if ( $key === '' )
+		{
+			try { \IPS\Log::log( 'detectPriorSessionLaws: no API key', 'gdbills' ); } catch ( \Throwable ) {}
+			return $counts;
+		}
+
+		$searchKw = self::keywordsFromSetting( 'gdbills_search_keywords',    self::DEFAULT_SEARCH_KEYWORDS );
+		$allowKw  = self::keywordsFromSetting( 'gdbills_relevance_keywords', self::DEFAULT_RELEVANCE_KEYWORDS );
+		$exclKw   = self::keywordsFromSetting( 'gdbills_exclusion_keywords', self::DEFAULT_EXCLUSION_KEYWORDS );
+
+		$states = $oneState !== null
+			? [ strtoupper( $oneState ) ]
+			: self::STATES;
+
+		foreach ( $states as $state )
+		{
+			foreach ( $years as $year )
+			{
+				foreach ( $searchKw as $kw )
+				{
+					try
+					{
+						$found = self::getSearch( $key, $state, $kw, (int) $year );
+					}
+					catch ( \Throwable $e )
+					{
+						$counts['errors']++;
+						try { \IPS\Log::log( "detectPrior search {$state}/{$year}/{$kw}: " . $e->getMessage(), 'gdbills' ); } catch ( \Throwable ) {}
+						continue;
+					}
+
+					foreach ( $found as $hit )
+					{
+						$counts['processed']++;
+						$billId = isset( $hit['bill_id'] ) ? (int) $hit['bill_id'] : 0;
+						if ( $billId <= 0 ) { $counts['skipped']++; continue; }
+
+						try
+						{
+							$detail = self::getBill( $key, $billId );
+						}
+						catch ( \Throwable $e )
+						{
+							$counts['errors']++;
+							try { \IPS\Log::log( "detectPrior getBill {$billId}: " . $e->getMessage(), 'gdbills' ); } catch ( \Throwable ) {}
+							continue;
+						}
+
+						if ( !$detail || (int) ( $detail['status'] ?? 0 ) !== 4 )
+						{
+							$counts['skipped']++;
+							continue;
+						}
+
+						if ( !self::isFirearmsRelated( $detail, $allowKw, $exclKw ) )
+						{
+							$counts['skipped']++;
+							continue;
+						}
+
+						$parsed = self::parseBill( $detail, $state );
+						/* Re-tag as existing law since these are prior-year enacted bills. */
+						$parsed['bill_type'] = 'law';
+						$parsed['source']    = 'legiscan_prior';
+
+						$res = Bill::upsert( $parsed );
+						if ( $res['action'] === 'insert' || $res['action'] === 'update' )
+						{
+							$counts['upserted']++;
+						}
+						else
+						{
+							$counts['skipped']++;
+						}
+
+						usleep( 250000 ); /* heavier throttle than fetchAllBills */
+					}
+
+					usleep( 300000 );
+
+					Bill::setMeta( 'detect_prior_progress', json_encode( [
+						'state'   => $state,
+						'year'    => $year,
+						'keyword' => $kw,
+						'counts'  => $counts,
+						'updated' => date( 'Y-m-d H:i:s' ),
+					] ) );
+				}
+			}
+		}
+
+		try { \IPS\Log::log( 'detectPriorSessionLaws complete: ' . json_encode( $counts ), 'gdbills' ); } catch ( \Throwable ) {}
+		return $counts;
+	}
+
 	/* ---------------------- API wrappers ---------------------- */
 
-	protected static function getSearch( string $key, string $state, string $query ): array
+	protected static function getSearch( string $key, string $state, string $query, ?int $year = null ): array
 	{
 		$url = self::API_BASE . '?key=' . urlencode( $key )
 			. '&op=getSearch'
 			. '&state=' . urlencode( $state )
 			. '&query=' . urlencode( $query );
+		if ( $year !== null && $year > 0 )
+		{
+			$url .= '&year=' . (int) $year;
+		}
 		$data = self::http( $url );
 		if ( !is_array( $data ) || ( $data['status'] ?? '' ) !== 'OK' )
 		{

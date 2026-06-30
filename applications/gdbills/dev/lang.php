@@ -21,7 +21,8 @@ $lang = array(
 	'gdbills_page_subtitle'             => 'Pending and enacted firearms legislation by state',
 	'gdbills_state_map_title'           => 'Browse by state',
 	'gdbills_state_map_hint'            => 'Tap a state to view the bills currently active there.',
-	'gdbills_enacted_heading'           => 'Enacted Laws',
+	'gdbills_law_heading'               => 'Existing Laws',
+	'gdbills_enacted_heading'           => 'Recently Enacted',
 	'gdbills_pending_heading'           => 'Pending Bills',
 	'gdbills_no_bills'                  => 'No bills tracked for this state right now.',
 	'gdbills_no_bills_overall'          => 'No bills tracked yet. Configure your LegiScan API key in the ACP and run Sync to populate.',
@@ -112,6 +113,19 @@ $lang = array(
 	'gdbills_acp_sync_done'             => 'Sync complete: {1} bills processed.',
 	'gdbills_acp_sync_no_key'           => 'Set your LegiScan API key in Settings before syncing.',
 	'gdbills_acp_sync_disabled'         => 'Auto-sync is disabled. Manual sync still works.',
+
+	/* Existing-laws seed + prior-session detection (ACP) */
+	'gdbills_acp_seed_title'            => 'Seed Existing Laws',
+	'gdbills_acp_seed_intro'            => 'Imports the bundled list of well-known existing state firearms laws (Illinois Protect Illinois Communities Act, NY SAFE Act, etc.) as bill_type=law. No API calls. Safe to re-run; existing rows update in place.',
+	'gdbills_acp_seed_button'           => 'Seed existing laws',
+	'gdbills_acp_seed_done'             => 'Existing laws seeded: {1} upserted of {2} processed.',
+	'gdbills_acp_detect_title'          => 'Detect Prior-Session Laws',
+	'gdbills_acp_detect_intro'          => 'Queries LegiScan for enacted firearms bills (status=Passed) from prior years (2021-2024) and tags them as existing laws. Admin-triggered only; not part of the daily sync.',
+	'gdbills_acp_detect_warning'        => 'This uses significant LegiScan API quota. Limit by state to control usage.',
+	'gdbills_acp_detect_state_label'    => 'State',
+	'gdbills_acp_detect_all_states'     => 'All 50 states (heavy quota)',
+	'gdbills_acp_detect_button'         => 'Detect prior-session laws',
+	'gdbills_acp_detect_done'           => 'Prior-session detection complete: {1} tagged as existing law of {2} processed.',
 
 	/* Task */
 	'task__gdbills_syncBills'           => 'Sync firearms bills from LegiScan',
