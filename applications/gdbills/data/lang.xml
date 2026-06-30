@@ -127,6 +127,10 @@
 <word key="gdbills_acp_detect_all_states" js="0"><![CDATA[All 50 states (heavy quota)]]></word>
 <word key="gdbills_acp_detect_button" js="0"><![CDATA[Detect prior-session laws]]></word>
 <word key="gdbills_acp_detect_done" js="0"><![CDATA[Prior-session detection complete: {1} tagged as existing law of {2} processed.]]></word>
+<word key="gdbills_acp_reparse_title" js="0"><![CDATA[Re-parse Stored Bills]]></word>
+<word key="gdbills_acp_reparse_intro" js="0"><![CDATA[Recompute progress / status from data already stored in the database — no LegiScan API calls. Fixes stage stalls (e.g. bills stuck at the wrong tracker step) after a parser improvement, without spending sync quota. Advance-only: a became_law / vetoed / failed terminal state is never downgraded.]]></word>
+<word key="gdbills_acp_reparse_button" js="0"><![CDATA[Re-parse stored bills]]></word>
+<word key="gdbills_acp_reparse_done" js="0"><![CDATA[Re-parse complete: {1} bills updated of {2} processed.]]></word>
 <word key="task__gdbills_syncBills" js="0"><![CDATA[Sync firearms bills from LegiScan]]></word>
 <word key="block__gdbills_billMap" js="0"><![CDATA[Bill Tracker Map]]></word>
 <word key="block__gdbills_billList" js="0"><![CDATA[Bill List]]></word>

@@ -154,6 +154,10 @@ $lang = array(
 	'gdbills_acp_detect_all_states'     => 'All 50 states (heavy quota)',
 	'gdbills_acp_detect_button'         => 'Detect prior-session laws',
 	'gdbills_acp_detect_done'           => 'Prior-session detection complete: {1} tagged as existing law of {2} processed.',
+	'gdbills_acp_reparse_title'         => 'Re-parse Stored Bills',
+	'gdbills_acp_reparse_intro'         => 'Recompute progress / status from data already stored in the database — no LegiScan API calls. Fixes stage stalls (e.g. bills stuck at the wrong tracker step) after a parser improvement, without spending sync quota. Advance-only: a became_law / vetoed / failed terminal state is never downgraded.',
+	'gdbills_acp_reparse_button'        => 'Re-parse stored bills',
+	'gdbills_acp_reparse_done'          => 'Re-parse complete: {1} bills updated of {2} processed.',
 
 	/* Task */
 	'task__gdbills_syncBills'           => 'Sync firearms bills from LegiScan',

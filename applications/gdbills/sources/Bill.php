@@ -303,6 +303,9 @@ class _Bill
 			'date_introduced'    => self::cleanDate( $data['date_introduced']    ?? null ),
 			'last_action_date'   => self::cleanDate( $data['last_action_date']   ?? null ),
 			'last_action'        => $data['last_action'] ?? null,
+			/* JSON-encoded LegiScan history array. Persisted so we can re-parse
+			   stored bills offline (no API quota) when the parser is improved. */
+			'history'            => isset( $data['history'] ) && $data['history'] !== '' ? (string) $data['history'] : null,
 			'passed_senate_date' => self::cleanDate( $data['passed_senate_date'] ?? null ),
 			'passed_house_date'  => self::cleanDate( $data['passed_house_date']  ?? null ),
 			'signed_date'        => self::cleanDate( $data['signed_date']        ?? null ),

@@ -50,8 +50,9 @@ class _sync extends \IPS\Dispatcher\Controller
 				. $h( 'gdbills_acp_sync_disabled' ) . '</div></div>';
 		}
 
-		$runUrl  = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=sync&do=run' )->csrf();
-		$seedUrl = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=sync&do=seedLaws' )->csrf();
+		$runUrl     = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=sync&do=run' )->csrf();
+		$seedUrl    = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=sync&do=seedLaws' )->csrf();
+		$reparseAct = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=sync&do=reparse' );
 
 		/* Panel helper — wraps free-form content in the native ACP card chrome.
 		   Pattern verified in gdcatalog/products.php (ipsBox + ipsBox_body + ipsPad). */
@@ -107,8 +108,29 @@ class _sync extends \IPS\Dispatcher\Controller
 		}
 		$detectPanel = $panel( 'gdbills_acp_detect_title', $detectBody );
 
+		/* "Re-parse stored bills" — zero-API: re-runs the corrected progress
+		   logic over rows already in gd_bills. Fixes stage stalls (e.g. an
+		   improved governor/signed matcher) without spending LegiScan quota. */
+		$reparseOpts = '<option value="">' . $h( 'gdbills_acp_detect_all_states' ) . '</option>';
+		foreach ( self::STATES as $st )
+		{
+			$reparseOpts .= '<option value="' . $st . '">' . $st . '</option>';
+		}
+		$reparseCsrf = \IPS\Session::i()->csrfKey;
+		$reparseBody = '<p style="margin:0 0 10px">' . $h( 'gdbills_acp_reparse_intro' ) . '</p>'
+			. '<form action="' . htmlspecialchars( $reparseAct, ENT_QUOTES, 'UTF-8' ) . '" method="post" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+			. '<input type="hidden" name="csrfKey" value="' . htmlspecialchars( $reparseCsrf, ENT_QUOTES, 'UTF-8' ) . '">'
+			. '<label style="display:inline-flex;align-items:center;gap:6px">'
+			. $h( 'gdbills_acp_detect_state_label' ) . ':'
+			. '<select name="state">' . $reparseOpts . '</select>'
+			. '</label>'
+			. '<button type="submit" class="ipsButton ipsButton--secondary">'
+			. $h( 'gdbills_acp_reparse_button' ) . '</button>'
+			. '</form>';
+		$reparsePanel = $panel( 'gdbills_acp_reparse_title', $reparseBody );
+
 		\IPS\Output::i()->title  = (string) $lang->addToStack( 'gdbills_acp_sync_title' );
-		\IPS\Output::i()->output = $messages . $syncPanel . $seedPanel . $detectPanel;
+		\IPS\Output::i()->output = $messages . $syncPanel . $seedPanel . $reparsePanel . $detectPanel;
 	}
 
 	protected function run(): void
@@ -150,6 +172,32 @@ class _sync extends \IPS\Dispatcher\Controller
 
 		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdbills_acp_seed_done', false, [
 			'sprintf' => [ (int) $counts['upserted'], (int) $counts['processed'] ],
+		] );
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=sync' ),
+			$msg
+		);
+	}
+
+	protected function reparse(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$state = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
+		if ( $state !== '' && !in_array( $state, self::STATES, true ) ) { $state = ''; }
+
+		$counts = [ 'processed' => 0, 'updated' => 0, 'unchanged' => 0, 'errors' => 0 ];
+		try
+		{
+			$counts = \IPS\gdbills\LegiScan::reparseStored( $state !== '' ? $state : null );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'reparse: ' . $e->getMessage(), 'gdbills' ); } catch ( \Throwable ) {}
+		}
+
+		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdbills_acp_reparse_done', false, [
+			'sprintf' => [ (int) $counts['updated'], (int) $counts['processed'] ],
 		] );
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=sync' ),

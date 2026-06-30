@@ -529,39 +529,30 @@ class _LegiScan
 	}
 
 	/**
-	 * Map a LegiScan getBill response → gd_bills row. Be defensive — the
-	 * API shape varies; missing fields stay null.
+	 * Single source of truth for status / progress derivation. Both the live
+	 * parseBill (full LegiScan response) and reparseStored (DB-only re-run
+	 * over stored history JSON) call this. Returns the six fields that
+	 * progress + tracker rendering depend on.
+	 *
+	 *   $statusCode      LegiScan status (1-6); 0 = none / let history decide
+	 *   $history         array of {date, action} entries (oldest → newest)
+	 *   $signedDateHint  fallback signed_date when status_code=4 has no
+	 *                    explicit signed-in-history entry yet
+	 *
+	 * The advance-only invariant (a became_law/vetoed/failed terminal state
+	 * is never downgraded by later history entries) lives here, so the
+	 * sync and the re-parse button can never disagree.
+	 *
+	 * @return array{progress_stage:string,status:string,bill_type:string,signed_date:?string,passed_house_date:?string,passed_senate_date:?string}
 	 */
-	public static function parseBill( array $bill, string $stateCode ): array
+	public static function deriveProgress( int $statusCode, array $history, ?string $signedDateHint = null ): array
 	{
-		$history = ( isset( $bill['history'] ) && is_array( $bill['history'] ) ) ? $bill['history'] : [];
-		$lastAction = $history ? end( $history ) : [];
-		if ( !is_array( $lastAction ) ) { $lastAction = []; }
-
-		/* ============================================================
-		 * Status & progress detection — port of the WordPress plugin's
-		 * parse_bill_from_get_bill. Two-stage:
-		 *
-		 *   (1) LegiScan status_code (authoritative): maps codes 4/5/6
-		 *       to enacted/vetoed/failed unambiguously.
-		 *   (2) History-text refinement (advance-only): walks each
-		 *       action's lowercase text and lifts the stage upward —
-		 *       NEVER downgrades a became_law/vetoed/failed result.
-		 *
-		 * The signed-detection guard (excludes "assigned"/"reassigned"/
-		 * "designated") is the CRITICAL piece that prevents a bill that
-		 * was merely "assigned to a committee" from being mis-flagged
-		 * as signed into law.
-		 * ============================================================ */
-		$statusCode = (int) ( $bill['status'] ?? 0 );
-
-		$progressStage     = 'introduced';
-		$status            = 'introduced';
-		$billType          = 'pending';
-		$signedDate        = null;
-		$passedHouseDate   = null;
-		$passedSenateDate  = null;
-		$dateIntroduced    = self::cleanDate( $bill['status_date'] ?? null );
+		$progressStage    = 'introduced';
+		$status           = 'introduced';
+		$billType         = 'pending';
+		$signedDate       = null;
+		$passedHouseDate  = null;
+		$passedSenateDate = null;
 
 		/* (1) status_code → coarse classification.
 		 *   1=Intro, 2=Engrossed, 3=Enrolled — leave pending, let history refine.
@@ -571,7 +562,7 @@ class _LegiScan
 			$billType      = 'enacted';
 			$status        = 'enacted';
 			$progressStage = 'became_law';
-			$signedDate    = self::cleanDate( $bill['status_date'] ?? null );
+			$signedDate    = $signedDateHint;
 		}
 		elseif ( $statusCode === 5 )
 		{
@@ -584,14 +575,11 @@ class _LegiScan
 			$progressStage = 'failed';
 		}
 
-		/* Track which terminal states we've already locked into so history
-		 * parsing can advance the bar but never downgrade it. */
 		$isTerminal = in_array( $progressStage, [ 'became_law', 'vetoed', 'failed' ], true );
 
 		/* (2) Walk history actions oldest→newest. Capture chamber-pass dates
-		 *     and an explicit "signed by governor" event (with the assigned
-		 *     guard) so we can refine status_code 1/2/3 bills to passed_senate/
-		 *     passed_house/to_governor/became_law. */
+		 *     and an explicit signed-by-governor event (with the assigned
+		 *     guard) so we can refine status_code 1/2/3 bills. */
 		foreach ( $history as $h )
 		{
 			if ( !is_array( $h ) ) { continue; }
@@ -603,8 +591,7 @@ class _LegiScan
 			$mentionsHouse  = ( strpos( $actionText, 'house' )  !== false );
 			$thirdReadPass  = ( strpos( $actionText, 'third reading passed' ) !== false );
 
-			/* Senate-pass detection — regex allows up to 15 chars of filler
-			   ("passed by the senate", "senate concurred in amendment", etc.). */
+			/* Senate-pass — filler-tolerant. */
 			if (
 				preg_match( '/\bsenate\b.{0,15}\b(passed|adopted|concurred)\b/i', $actionText )
 				|| preg_match( '/\b(passed|adopted)\b.{0,15}\bsenate\b/i', $actionText )
@@ -618,7 +605,7 @@ class _LegiScan
 				}
 			}
 
-			/* House-pass detection — same filler-tolerant pattern. */
+			/* House-pass — same filler-tolerant pattern. */
 			if (
 				preg_match( '/\bhouse\b.{0,15}\b(passed|adopted|concurred)\b/i', $actionText )
 				|| preg_match( '/\b(passed|adopted)\b.{0,15}\bhouse\b/i', $actionText )
@@ -633,10 +620,8 @@ class _LegiScan
 			}
 
 			/* To-governor — delivered / sent / presented / transmitted /
-			   forwarded to the governor (with filler "to" / "to the" /
-			   "to honorable" allowed between verb and "governor"). Fixes
-			   the IL HB5136 case where "Sent to the Governor" failed the
-			   literal "sent to governor" match. */
+			   forwarded to the governor (filler "to" / "to the" / "to the
+			   honorable" allowed; fixes IL HB5136 case). */
 			if (
 				preg_match( '/\b(sent|delivered|presented|transmitted|forwarded)\b.{0,20}\bgovernor\b/i', $actionText )
 				|| preg_match( "/\bto\b.{0,8}\bgovernor(?:'s)?\b.{0,8}\bdesk\b/i", $actionText )
@@ -648,13 +633,11 @@ class _LegiScan
 				}
 			}
 
-			/* Signed-into-law — filler-tolerant regex variants combined with
-			   the CRITICAL guard (exclude "assigned"/"reassigned"/"designated")
-			   so a bill that was merely re-assigned to a committee cannot
-			   false-match. "public act" is included because IL stamps a
-			   "Public Act N-NNN" string on a bill only after signature. */
+			/* Signed-into-law — filler-tolerant variants + CRITICAL guard
+			   (excludes assigned/reassigned/designated). "public act" included
+			   because IL stamps "Public Act N-NNN" only after signature. */
 			$looksSigned = (
-				preg_match( '/\bsigned\b.{0,20}\bgovernor\b/i',   $actionText )
+				preg_match( '/\bsigned\b.{0,20}\bgovernor\b/i',      $actionText )
 				|| preg_match( '/\bgovernor\b.{0,20}\bsigned\b/i',   $actionText )
 				|| preg_match( '/\bapproved\b.{0,20}\bgovernor\b/i', $actionText )
 				|| preg_match( '/\bgovernor\b.{0,20}\bapproved\b/i', $actionText )
@@ -677,19 +660,41 @@ class _LegiScan
 			}
 		}
 
-		/* Date introduced — fall back to first history entry if status_date
-		   wasn't useful. */
+		return [
+			'progress_stage'     => $progressStage,
+			'status'             => $status,
+			'bill_type'          => $billType,
+			'signed_date'        => $signedDate,
+			'passed_house_date'  => $passedHouseDate,
+			'passed_senate_date' => $passedSenateDate,
+		];
+	}
+
+	/**
+	 * Map a LegiScan getBill response → gd_bills row. Be defensive — the
+	 * API shape varies; missing fields stay null. Persists the raw history
+	 * array as JSON in the `history` column so future parser fixes can be
+	 * applied offline via reparseStored (no API calls).
+	 */
+	public static function parseBill( array $bill, string $stateCode ): array
+	{
+		$history    = ( isset( $bill['history'] ) && is_array( $bill['history'] ) ) ? $bill['history'] : [];
+		$lastAction = $history ? end( $history ) : [];
+		if ( !is_array( $lastAction ) ) { $lastAction = []; }
+
+		$statusCode      = (int) ( $bill['status'] ?? 0 );
+		$statusDate      = self::cleanDate( $bill['status_date'] ?? null );
+		$signedDateHint  = ( $statusCode === 4 ) ? $statusDate : null;
+		$dateIntroduced  = $statusDate;
 		if ( !$dateIntroduced && isset( $history[0]['date'] ) )
 		{
 			$dateIntroduced = self::cleanDate( $history[0]['date'] );
 		}
 
-		/* ============================================================
-		 * Sponsor — primary is the entry with sponsor_type_id == 1
-		 * (NOT just sponsors[0] which can be a co-sponsor). Co-sponsors
-		 * stashed as JSON in cosponsors_json for future use; current
-		 * schema doesn't carry that column so we just keep the primary.
-		 * ============================================================ */
+		$derived = self::deriveProgress( $statusCode, $history, $signedDateHint );
+
+		/* Sponsor — primary is the entry with sponsor_type_id === 1; falls
+		   back to sponsors[0] only if no entry is explicitly primary. */
 		$sponsorName  = null;
 		$sponsorParty = null;
 		if ( isset( $bill['sponsors'] ) && is_array( $bill['sponsors'] ) )
@@ -715,26 +720,141 @@ class _LegiScan
 			'bill_number'        => (string) ( $bill['bill_number'] ?? '' ),
 			'bill_title'         => (string) ( $bill['title']       ?? ( $bill['bill_number'] ?? '' ) ),
 			'state_code'         => strtoupper( (string) ( $bill['state'] ?? $stateCode ) ),
-			'bill_type'          => $billType,
-			'status'             => substr( $status, 0, 50 ),
-			'progress_stage'     => $progressStage,
+			'bill_type'          => $derived['bill_type'],
+			'status'             => substr( $derived['status'], 0, 50 ),
+			'progress_stage'     => $derived['progress_stage'],
 			'sponsor_name'       => $sponsorName,
 			'sponsor_party'      => $sponsorParty,
 			'description'        => (string) ( $bill['description'] ?? '' ),
-			/* state_link is the official state-legislature page (real bill text);
-			   prefer it over LegiScan's own hosted page so users land on the
-			   authoritative source. Falls back to LegiScan url only when the
-			   feed didn't return a state_link. */
 			'url'                => (string) ( $bill['state_link'] ?? ( $bill['url'] ?? '' ) ),
 			'date_introduced'    => $dateIntroduced,
 			'last_action_date'   => self::cleanDate( $lastAction['date'] ?? null ),
 			'last_action'        => (string) ( $lastAction['action'] ?? '' ),
-			'passed_senate_date' => $passedSenateDate,
-			'passed_house_date'  => $passedHouseDate,
-			'signed_date'        => $signedDate,
+			'passed_senate_date' => $derived['passed_senate_date'],
+			'passed_house_date'  => $derived['passed_house_date'],
+			'signed_date'        => $derived['signed_date'],
 			'legiscan_id'        => (int) ( $bill['bill_id'] ?? 0 ),
 			'source'             => 'legiscan',
+			/* Persist the raw history array so reparseStored() can re-run the
+			   parser offline (no LegiScan quota) when a future logic fix lands. */
+			'history'            => $history ? json_encode( $history ) : null,
 		];
+	}
+
+	/**
+	 * DB-only re-parse of stored bills using the corrected deriveProgress
+	 * logic. NO API calls — just decode stored history JSON (or fall back
+	 * to last_action text on rows synced before v1.0.13), re-derive, and
+	 * UPDATE rows whose progress stage has ADVANCED. Advance-only: a
+	 * became_law/vetoed/failed terminal state is never downgraded.
+	 *
+	 * @param  string|null $oneState  Optional 2-letter state code to limit scope.
+	 * @return array{processed:int,updated:int,unchanged:int,errors:int}
+	 */
+	public static function reparseStored( ?string $oneState = null ): array
+	{
+		$counts = [ 'processed' => 0, 'updated' => 0, 'unchanged' => 0, 'errors' => 0 ];
+
+		$where = [];
+		if ( $oneState !== null )
+		{
+			$st = strtoupper( trim( $oneState ) );
+			if ( preg_match( '/^[A-Z]{2}$/', $st ) ) { $where[] = [ 'state_code=?', $st ]; }
+		}
+
+		/* Rank chain — higher means later. became_law/vetoed/failed all
+		   share the terminal rank so a became_law row can't be reset to
+		   vetoed and vice versa via a reparse. */
+		$ranks = [
+			'introduced'    => 0,
+			'in_committee'  => 0,
+			'passed_senate' => 1,
+			'passed_house'  => 2,
+			'to_governor'   => 3,
+			'became_law'    => 4,
+			'vetoed'        => 4,
+			'failed'        => 4,
+		];
+
+		try
+		{
+			foreach ( \IPS\Db::i()->select(
+				'id, state_code, bill_type, status, progress_stage, history, last_action, last_action_date, passed_house_date, passed_senate_date, signed_date',
+				'gd_bills',
+				$where ?: null
+			) as $row )
+			{
+				$counts['processed']++;
+				try
+				{
+					/* Build the history array for deriveProgress. Newly synced
+					   rows carry the full LegiScan history JSON. Older rows
+					   fall back to a one-entry synthesized history from
+					   last_action — enough to fix the visible stage stall
+					   (full intermediate-stage accuracy needs a re-sync). */
+					$history = [];
+					if ( !empty( $row['history'] ) )
+					{
+						$decoded = json_decode( (string) $row['history'], true );
+						if ( is_array( $decoded ) ) { $history = $decoded; }
+					}
+					if ( empty( $history ) && !empty( $row['last_action'] ) )
+					{
+						$history = [ [
+							'date'   => $row['last_action_date'] ?? null,
+							'action' => (string) $row['last_action'],
+						] ];
+					}
+
+					/* Synthesize a status_code from the existing terminal state
+					   so deriveProgress can't drop us out of became_law/vetoed/
+					   failed (the row arrived there by LegiScan status_code,
+					   which isn't stored separately). */
+					$synthCode = 0;
+					$curStatus = (string) ( $row['status'] ?? '' );
+					$curStage  = (string) ( $row['progress_stage'] ?? '' );
+					$curType   = (string) ( $row['bill_type'] ?? '' );
+					if     ( $curStatus === 'vetoed' || $curStage === 'vetoed' ) { $synthCode = 5; }
+					elseif ( $curStatus === 'failed' || $curStage === 'failed' ) { $synthCode = 6; }
+					elseif ( $curType === 'enacted' || $curStage === 'became_law' || $curStatus === 'enacted' ) { $synthCode = 4; }
+
+					$derived = self::deriveProgress( $synthCode, $history, $row['signed_date'] ?? null );
+
+					$oldRank = $ranks[ $curStage ]               ?? -1;
+					$newRank = $ranks[ $derived['progress_stage'] ] ?? -1;
+
+					if ( $newRank > $oldRank )
+					{
+						$update = [
+							'progress_stage' => $derived['progress_stage'],
+							'status'         => substr( $derived['status'], 0, 50 ),
+							'bill_type'      => $derived['bill_type'],
+						];
+						if ( $derived['passed_senate_date'] && empty( $row['passed_senate_date'] ) ) { $update['passed_senate_date'] = $derived['passed_senate_date']; }
+						if ( $derived['passed_house_date']  && empty( $row['passed_house_date'] ) )  { $update['passed_house_date']  = $derived['passed_house_date']; }
+						if ( $derived['signed_date']        && empty( $row['signed_date'] ) )        { $update['signed_date']        = $derived['signed_date']; }
+						\IPS\Db::i()->update( 'gd_bills', $update, [ 'id=?', (int) $row['id'] ] );
+						$counts['updated']++;
+					}
+					else
+					{
+						$counts['unchanged']++;
+					}
+				}
+				catch ( \Throwable $e )
+				{
+					$counts['errors']++;
+					try { \IPS\Log::log( 'reparseStored row ' . ( $row['id'] ?? 0 ) . ': ' . $e->getMessage(), 'gdbills' ); } catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'reparseStored: ' . $e->getMessage(), 'gdbills' ); } catch ( \Throwable ) {}
+		}
+
+		try { \IPS\Log::log( 'reparseStored complete: ' . json_encode( $counts ), 'gdbills' ); } catch ( \Throwable ) {}
+		return $counts;
 	}
 
 	protected static function keywordsFromSetting( string $key, array $default ): array
