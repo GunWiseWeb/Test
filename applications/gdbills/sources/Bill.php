@@ -89,14 +89,22 @@ class _Bill
 		catch ( \Throwable ) { return false; }
 	}
 
-	/* Returns rows ordered by last_action_date DESC, date_introduced DESC. */
-	public static function getByState( string $stateCode, ?string $type = null, int $limit = 200 ): array
+	/* Returns rows ordered by last_action_date DESC, date_introduced DESC.
+	   Optional date range filters on last_action_date BETWEEN dateFrom..dateTo
+	   (inclusive). Rows with NULL last_action_date are excluded when either
+	   bound is set. Empty string / null bounds mean "no constraint". */
+	public static function getByState( string $stateCode, ?string $type = null, int $limit = 200, ?string $dateFrom = null, ?string $dateTo = null ): array
 	{
 		$where = [ [ 'state_code=?', strtoupper( $stateCode ) ] ];
 		if ( $type !== null && in_array( $type, self::VALID_TYPES, true ) )
 		{
 			$where[] = [ 'bill_type=?', $type ];
 		}
+		$df = self::validDate( $dateFrom );
+		$dt = self::validDate( $dateTo );
+		if ( $df !== null ) { $where[] = [ 'last_action_date >= ?', $df ]; }
+		if ( $dt !== null ) { $where[] = [ 'last_action_date <= ?', $dt ]; }
+
 		$out = [];
 		try
 		{
@@ -112,6 +120,41 @@ class _Bill
 		return $out;
 	}
 
+	/* Three-bucket pull for the front page. Pass null/empty $state to query
+	   across all states (used when the user applies a type/date filter
+	   without picking a state). Returns ['law'=>[], 'enacted'=>[], 'pending'=>[]]. */
+	public static function getThreeBuckets( ?string $state = null, ?string $dateFrom = null, ?string $dateTo = null, int $limit = 200 ): array
+	{
+		$buckets = [ 'law' => [], 'enacted' => [], 'pending' => [] ];
+		$df = self::validDate( $dateFrom );
+		$dt = self::validDate( $dateTo );
+		$stateCode = $state !== null && $state !== '' ? strtoupper( $state ) : null;
+
+		foreach ( array_keys( $buckets ) as $type )
+		{
+			if ( $stateCode !== null )
+			{
+				$buckets[ $type ] = self::getByState( $stateCode, $type, $limit, $df, $dt );
+				continue;
+			}
+			$args = [ 'type' => $type, 'limit' => $limit ];
+			if ( $df !== null ) { $args['date_from'] = $df; }
+			if ( $dt !== null ) { $args['date_to']   = $dt; }
+			$buckets[ $type ] = self::getAll( $args );
+		}
+		return $buckets;
+	}
+
+	/* Validate a YYYY-MM-DD string; return canonical form or null. */
+	protected static function validDate( ?string $v ): ?string
+	{
+		if ( $v === null ) { return null; }
+		$v = trim( $v );
+		if ( $v === '' ) { return null; }
+		if ( !preg_match( '/^\d{4}-\d{2}-\d{2}$/', $v ) ) { return null; }
+		return $v;
+	}
+
 	public static function getAll( array $args = [] ): array
 	{
 		$state   = isset( $args['state'] )   ? strtoupper( (string) $args['state'] ) : '';
@@ -121,11 +164,15 @@ class _Bill
 		$offset  = isset( $args['offset'] )  ? (int)    $args['offset']  : 0;
 		$orderby = isset( $args['orderby'] ) ? (string) $args['orderby'] : 'last_action_date';
 		$order   = isset( $args['order'] )   && strtolower( (string) $args['order'] ) === 'asc' ? 'ASC' : 'DESC';
+		$dateFrom = self::validDate( isset( $args['date_from'] ) ? (string) $args['date_from'] : null );
+		$dateTo   = self::validDate( isset( $args['date_to'] )   ? (string) $args['date_to']   : null );
 
 		$where = [];
 		if ( $state !== '' )  { $where[] = [ 'state_code=?', $state ]; }
 		if ( $type !== '' )   { $where[] = [ 'bill_type=?', $type ]; }
 		if ( $status !== '' ) { $where[] = [ 'status=?', $status ]; }
+		if ( $dateFrom !== null ) { $where[] = [ 'last_action_date >= ?', $dateFrom ]; }
+		if ( $dateTo !== null )   { $where[] = [ 'last_action_date <= ?', $dateTo   ]; }
 
 		$allowedOrderby = [ 'last_action_date', 'date_introduced', 'state_code', 'bill_number' ];
 		if ( !in_array( $orderby, $allowedOrderby, true ) ) { $orderby = 'last_action_date'; }

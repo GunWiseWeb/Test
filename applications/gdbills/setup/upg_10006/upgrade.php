@@ -1,31 +1,20 @@
 <?php
 /**
- * @brief  GD Bills — upgrade 1.0.5
+ * @brief  GD Bills — upgrade 1.0.6
  *
- * Existing Laws feature lands:
- *  - data/existing_laws.json (curated marquee state laws)
- *  - LegiScan::seedExistingLaws() — bundled-JSON importer (no API)
- *  - LegiScan::detectPriorSessionLaws() — opt-in admin action only
- *  - ACP sync page exposes "Seed Existing Laws" + "Detect Prior-Session Laws"
- *  - /bills/ state view + modal show an "Existing Laws" section
+ * Phase 2 UX matches the WordPress plugin:
+ *  - Type filter (All / Existing Laws / Recently Enacted / Pending)
+ *  - Date range filter (date_from / date_to)
+ *  - "Last Updated" display + "Showing N items" count bar
+ *  - Existing Laws section surfaced on the state view + modal
  *
- * Upgrade actions (idempotent, every step wrapped):
- *  1) Re-seed dev/lang.php into core_sys_lang_words for every language so
- *     the new gdbills_law_heading / gdbills_acp_seed_* / gdbills_acp_detect_*
- *     keys land on existing installs (rule #43/#44 — 6-col format,
- *     per-row try/catch).
- *  2) Run seedExistingLaws() to populate the bundled marquee laws right
- *     now — bill_type='law' rows visible on /bills/?state=XX immediately.
- *  3) Cache + opcache clear so the new template + controller bodies replace
- *     the cached old versions.
- *
- * Does NOT run detectPriorSessionLaws — that's API-expensive and stays
- * admin-triggered only.
- *
- * Self-contained per rule #79 (exactly one upg dir; supersedes upg_10004).
+ * Self-contained per rule #79 (supersedes upg_10005). Re-seeds the
+ * marquee existing laws so an upgrade from a fresh-1.0.0 state still
+ * lands the bundled rows, alongside the new lang keys for filters /
+ * last-updated / showing-count.
  */
 
-namespace IPS\gdbills\setup\upg_10005;
+namespace IPS\gdbills\setup\upg_10006;
 
 use function defined;
 
@@ -39,7 +28,8 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* (1) Re-seed lang for new keys. */
+		/* (1) Re-seed lang for new keys (gdbills_filter_all/law/enacted/pending,
+		   gdbills_filter_date/from/to, gdbills_last_updated, gdbills_showing_count). */
 		$langFile = \IPS\ROOT_PATH . '/applications/gdbills/dev/lang.php';
 		if ( is_readable( $langFile ) )
 		{
@@ -72,16 +62,17 @@ class _upgrade
 			}
 		}
 
-		/* (2) Seed the bundled existing-laws JSON. Wrapped so a missing
-		   file or a single bad row never aborts the upgrade. */
+		/* (2) Re-seed existing laws (idempotent — Bill::upsert matches on
+		   (bill_number, state_code) so re-runs just update in place). Same
+		   call as upg_10005 — guards against an upgrader who skipped 10005. */
 		try
 		{
 			$res = \IPS\gdbills\LegiScan::seedExistingLaws();
-			try { \IPS\Log::log( 'upg_10005 seedExistingLaws: ' . json_encode( $res ), 'gdbills_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10006 seedExistingLaws: ' . json_encode( $res ), 'gdbills_upgrade' ); } catch ( \Throwable ) {}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10005 seedExistingLaws: ' . $e->getMessage(), 'gdbills_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10006 seedExistingLaws: ' . $e->getMessage(), 'gdbills_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		/* (3) Caches + opcache so new template/controller bodies land. */

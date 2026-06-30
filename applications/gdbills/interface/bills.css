@@ -7,6 +7,41 @@
 .gd-bills__sub { margin: 0; font-size: 14px; color: #6b7480; }
 .gd-bills__note { margin: 8px 0 0; padding: 8px 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 13px; color: #1e3a8a; }
 
+/* Last-updated bar (grey) */
+.gd-bills__updated { margin: 0 0 12px; padding: 8px 14px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; color: #475569; }
+.gd-bills__updated strong { color: #1a2b4a; }
+
+/* Filter bar — type buttons + date inputs */
+.gd-bills__filters { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; margin: 0 0 12px; padding: 12px 14px; background: #fff; border: 1px solid #e6e9ee; border-radius: 8px; }
+.gd-bills__filterGroup { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.gd-bills__filterLabel { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; margin-right: 4px; }
+.gd-bills__filterBtn { display: inline-block; padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; line-height: 1.2; background: #fff; color: #475569; }
+.gd-bills__filterBtn:hover { background: #f1f5f9; }
+.gd-bills__filterBtn--all     { border-color: #fecaca; color: #991b1b; }
+.gd-bills__filterBtn--law     { border-color: #bfdbfe; color: #1e3a8a; }
+.gd-bills__filterBtn--enacted { border-color: #bbf7d0; color: #14532d; }
+.gd-bills__filterBtn--pending { border-color: #fde68a; color: #92400e; }
+.gd-bills__filterBtn--all.is-active     { background: #dc2626; color: #fff; border-color: #dc2626; }
+.gd-bills__filterBtn--law.is-active     { background: #1e3a8a; color: #fff; border-color: #1e3a8a; }
+.gd-bills__filterBtn--enacted.is-active { background: #15803d; color: #fff; border-color: #15803d; }
+.gd-bills__filterBtn--pending.is-active { background: #b45309; color: #fff; border-color: #b45309; }
+.gd-bills__filterBtn--apply { background: #1e40af; color: #fff; border-color: #1e40af; }
+.gd-bills__filterBtn--apply:hover { background: #1e3a8a; }
+.gd-bills__filterBtn--clear { color: #64748b; }
+.gd-bills__filterBtn--clear:hover { color: #1e3a8a; background: transparent; text-decoration: underline; }
+.gd-bills__dateForm { gap: 8px; }
+.gd-bills__dateField { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #475569; }
+.gd-bills__dateField input[type="date"] { padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 12.5px; background: #fff; color: #16181d; }
+.gd-bills__dateField input[type="date"]:focus { outline: none; border-color: #1e3a8a; box-shadow: 0 0 0 2px rgba(30,58,138,0.12); }
+
+/* Showing N items count bar (light blue, WP look) */
+.gd-bills__showing { margin: 0 0 14px; padding: 8px 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 13px; color: #1e3a8a; font-weight: 600; }
+
+/* Section title color variants matching badges */
+.gd-bills__sectionTitle--law     { border-bottom-color: #1e3a8a; color: #1e3a8a; }
+.gd-bills__sectionTitle--enacted { border-bottom-color: #15803d; color: #14532d; }
+.gd-bills__sectionTitle--pending { border-bottom-color: #b45309; color: #92400e; }
+
 .gd-bills__mapPanel { background: #fff; border: 1px solid #e6e9ee; border-radius: 12px; padding: 18px 20px; margin: 0 0 22px; }
 .gd-bills__mapHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
 .gd-bills__mapTitle { font-size: 14px; font-weight: 700; margin: 0; color: #1a2b4a; }
@@ -101,4 +136,9 @@
 	.gd-bills__step { min-width: 42px; padding: 0 1px; }
 	.gd-bills__stepDot { width: 22px; height: 22px; font-size: 11px; }
 	.gd-bills__stepLabel { font-size: 9px; }
+	.gd-bills__filters { gap: 10px; padding: 10px; }
+	.gd-bills__filterGroup { width: 100%; }
+	.gd-bills__filterBtn { padding: 5px 9px; font-size: 12px; }
+	.gd-bills__dateField span { display: none; }
+	.gd-bills__dateField input[type="date"] { font-size: 12px; padding: 4px 6px; }
 }

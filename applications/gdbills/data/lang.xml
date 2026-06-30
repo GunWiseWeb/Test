@@ -43,6 +43,15 @@
 <word key="gdbills_filter_all_types" js="0"><![CDATA[All types]]></word>
 <word key="gdbills_filter_apply" js="0"><![CDATA[Apply]]></word>
 <word key="gdbills_filter_clear" js="0"><![CDATA[Clear]]></word>
+<word key="gdbills_filter_all" js="0"><![CDATA[All]]></word>
+<word key="gdbills_filter_law" js="0"><![CDATA[Existing Laws]]></word>
+<word key="gdbills_filter_enacted" js="0"><![CDATA[Recently Enacted]]></word>
+<word key="gdbills_filter_pending" js="0"><![CDATA[Pending]]></word>
+<word key="gdbills_filter_date" js="0"><![CDATA[Date]]></word>
+<word key="gdbills_filter_from" js="0"><![CDATA[From]]></word>
+<word key="gdbills_filter_to" js="0"><![CDATA[To]]></word>
+<word key="gdbills_last_updated" js="0"><![CDATA[Last Updated]]></word>
+<word key="gdbills_showing_count" js="0"><![CDATA[Showing %d items]]></word>
 <word key="gdbills_acp_bills_title" js="0"><![CDATA[Tracked Bills]]></word>
 <word key="gdbills_acp_bills_intro" js="0"><![CDATA[Add, edit, or remove tracked legislation. Bills can also be sourced from LegiScan or CSV.]]></word>
 <word key="gdbills_acp_bills_add" js="0"><![CDATA[Add bill]]></word>

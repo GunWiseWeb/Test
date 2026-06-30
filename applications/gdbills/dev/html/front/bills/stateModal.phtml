@@ -7,7 +7,7 @@
 {{else}}
 	{{if count($laws) > 0}}
 	<section class="gd-bills__section">
-		<h3 class="gd-bills__sectionTitle">{lang="gdbills_law_heading"}</h3>
+		<h3 class="gd-bills__sectionTitle gd-bills__sectionTitle--law">{lang="gdbills_law_heading"} ({expression="count($laws)"})</h3>
 		<div class="gd-bills__list">
 			{{foreach $laws as $b}}{template="billRow" group="bills" app="gdbills" params="$b"}{{endforeach}}
 		</div>
@@ -15,7 +15,7 @@
 	{{endif}}
 	{{if count($enacted) > 0}}
 	<section class="gd-bills__section">
-		<h3 class="gd-bills__sectionTitle">{lang="gdbills_enacted_heading"}</h3>
+		<h3 class="gd-bills__sectionTitle gd-bills__sectionTitle--enacted">{lang="gdbills_enacted_heading"} ({expression="count($enacted)"})</h3>
 		<div class="gd-bills__list">
 			{{foreach $enacted as $b}}{template="billRow" group="bills" app="gdbills" params="$b"}{{endforeach}}
 		</div>
@@ -23,7 +23,7 @@
 	{{endif}}
 	{{if count($pending) > 0}}
 	<section class="gd-bills__section">
-		<h3 class="gd-bills__sectionTitle">{lang="gdbills_pending_heading"}</h3>
+		<h3 class="gd-bills__sectionTitle gd-bills__sectionTitle--pending">{lang="gdbills_pending_heading"} ({expression="count($pending)"})</h3>
 		<div class="gd-bills__list">
 			{{foreach $pending as $b}}{template="billRow" group="bills" app="gdbills" params="$b"}{{endforeach}}
 		</div>

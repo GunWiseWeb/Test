@@ -1,4 +1,4 @@
-<ips:template parameters="$counts, $total, $stateList, $laws, $enacted, $pending, $activeState, $activeType, $pageUrl, $ajaxStateUrl, $ajaxMapUrl, $sessionNote" />
+<ips:template parameters="$counts, $total, $stateList, $laws, $enacted, $pending, $activeState, $activeType, $dateFrom, $dateTo, $lastUpdated, $shownLabel, $pageUrl, $typeUrls, $clearUrl, $ajaxStateUrl, $ajaxMapUrl, $sessionNote" />
 <div class="gd-bills" data-ajax-state-url="{$ajaxStateUrl}" data-ajax-map-url="{$ajaxMapUrl}">
 
 	<header class="gd-bills__hero">
@@ -8,6 +8,41 @@
 		<p class="gd-bills__note">{$sessionNote}</p>
 		{{endif}}
 	</header>
+
+	{{if $lastUpdated}}
+	<div class="gd-bills__updated">
+		<strong>{lang="gdbills_last_updated"}:</strong> {$lastUpdated}
+	</div>
+	{{endif}}
+
+	<section class="gd-bills__filters" aria-label="Filters">
+		<div class="gd-bills__filterGroup">
+			<span class="gd-bills__filterLabel">{lang="gdbills_filter_type"}:</span>
+			<a class="gd-bills__filterBtn gd-bills__filterBtn--all{{if $activeType === 'all'}} is-active{{endif}}"         href="{$typeUrls['all']}">{lang="gdbills_filter_all"}</a>
+			<a class="gd-bills__filterBtn gd-bills__filterBtn--law{{if $activeType === 'law'}} is-active{{endif}}"         href="{$typeUrls['law']}">{lang="gdbills_filter_law"}</a>
+			<a class="gd-bills__filterBtn gd-bills__filterBtn--enacted{{if $activeType === 'enacted'}} is-active{{endif}}" href="{$typeUrls['enacted']}">{lang="gdbills_filter_enacted"}</a>
+			<a class="gd-bills__filterBtn gd-bills__filterBtn--pending{{if $activeType === 'pending'}} is-active{{endif}}" href="{$typeUrls['pending']}">{lang="gdbills_filter_pending"}</a>
+		</div>
+		<form class="gd-bills__filterGroup gd-bills__dateForm" method="get" action="{$pageUrl}">
+			{{if $activeState}}<input type="hidden" name="state" value="{$activeState}">{{endif}}
+			{{if $activeType !== 'all'}}<input type="hidden" name="type" value="{$activeType}">{{endif}}
+			<span class="gd-bills__filterLabel">{lang="gdbills_filter_date"}:</span>
+			<label class="gd-bills__dateField">
+				<span>{lang="gdbills_filter_from"}</span>
+				<input type="date" name="date_from" value="{$dateFrom}">
+			</label>
+			<label class="gd-bills__dateField">
+				<span>{lang="gdbills_filter_to"}</span>
+				<input type="date" name="date_to" value="{$dateTo}">
+			</label>
+			<button type="submit" class="gd-bills__filterBtn gd-bills__filterBtn--apply">{lang="gdbills_filter_apply"}</button>
+			<a class="gd-bills__filterBtn gd-bills__filterBtn--clear" href="{$clearUrl}">{lang="gdbills_filter_clear"}</a>
+		</form>
+	</section>
+
+	{{if $activeState || $activeType !== 'all' || $dateFrom || $dateTo}}
+	<div class="gd-bills__showing">{$shownLabel}</div>
+	{{endif}}
 
 	<section class="gd-bills__mapPanel">
 		<div class="gd-bills__mapHead">
@@ -41,15 +76,15 @@
 		</div>
 	</section>
 
-	{{if $activeState}}
+	{{if $activeState || $activeType !== 'all' || $dateFrom || $dateTo}}
 		{{if count($laws) === 0 && count($enacted) === 0 && count($pending) === 0}}
 			<div class="gd-bills__empty">
 				<p>{lang="gdbills_no_bills"}</p>
 			</div>
 		{{else}}
-			{{if count($laws) > 0}}
+			{{if ( $activeType === 'all' || $activeType === 'law' ) && count($laws) > 0}}
 			<section class="gd-bills__section">
-				<h2 class="gd-bills__sectionTitle">{lang="gdbills_law_heading"} &mdash; {$activeState}</h2>
+				<h2 class="gd-bills__sectionTitle gd-bills__sectionTitle--law">{lang="gdbills_law_heading"} ({expression="count($laws)"})</h2>
 				<div class="gd-bills__list">
 					{{foreach $laws as $b}}
 						{template="billRow" group="bills" app="gdbills" params="$b"}
@@ -58,9 +93,9 @@
 			</section>
 			{{endif}}
 
-			{{if count($enacted) > 0}}
+			{{if ( $activeType === 'all' || $activeType === 'enacted' ) && count($enacted) > 0}}
 			<section class="gd-bills__section">
-				<h2 class="gd-bills__sectionTitle">{lang="gdbills_enacted_heading"} &mdash; {$activeState}</h2>
+				<h2 class="gd-bills__sectionTitle gd-bills__sectionTitle--enacted">{lang="gdbills_enacted_heading"} ({expression="count($enacted)"})</h2>
 				<div class="gd-bills__list">
 					{{foreach $enacted as $b}}
 						{template="billRow" group="bills" app="gdbills" params="$b"}
@@ -69,9 +104,9 @@
 			</section>
 			{{endif}}
 
-			{{if count($pending) > 0}}
+			{{if ( $activeType === 'all' || $activeType === 'pending' ) && count($pending) > 0}}
 			<section class="gd-bills__section">
-				<h2 class="gd-bills__sectionTitle">{lang="gdbills_pending_heading"} &mdash; {$activeState}</h2>
+				<h2 class="gd-bills__sectionTitle gd-bills__sectionTitle--pending">{lang="gdbills_pending_heading"} ({expression="count($pending)"})</h2>
 				<div class="gd-bills__list">
 					{{foreach $pending as $b}}
 						{template="billRow" group="bills" app="gdbills" params="$b"}

@@ -56,6 +56,15 @@ $lang = array(
 	'gdbills_filter_all_types'          => 'All types',
 	'gdbills_filter_apply'              => 'Apply',
 	'gdbills_filter_clear'              => 'Clear',
+	'gdbills_filter_all'                => 'All',
+	'gdbills_filter_law'                => 'Existing Laws',
+	'gdbills_filter_enacted'            => 'Recently Enacted',
+	'gdbills_filter_pending'            => 'Pending',
+	'gdbills_filter_date'               => 'Date',
+	'gdbills_filter_from'               => 'From',
+	'gdbills_filter_to'                 => 'To',
+	'gdbills_last_updated'              => 'Last Updated',
+	'gdbills_showing_count'             => 'Showing %d items',
 
 	/* ACP — Bills list */
 	'gdbills_acp_bills_title'           => 'Tracked Bills',
