@@ -174,22 +174,28 @@ class _bills extends \IPS\Dispatcher\Controller
 			. "<label style='display:flex;flex-direction:column;gap:3px;font-size:12px;flex:1 1 240px'><span>"
 			. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_q' ), ENT_QUOTES, 'UTF-8' )
 			. "</span><input type='search' name='q' value='" . htmlspecialchars( $q, ENT_QUOTES, 'UTF-8' ) . "' placeholder='bill title or number'></label>"
-			. "<button type='submit' class='ipsButton ipsButton_primary ipsButton--small'>"
+			. "<button type='submit' class='ipsButton ipsButton--primary ipsButton--small'>"
 			. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_go' ), ENT_QUOTES, 'UTF-8' )
 			. "</button>"
-			. "<a href='" . htmlspecialchars( $resetUrl, ENT_QUOTES ) . "' class='ipsButton ipsButton_link ipsButton--small'>"
+			. "<a href='" . htmlspecialchars( $resetUrl, ENT_QUOTES ) . "' class='ipsButton ipsButton--soft ipsButton--small'>"
 			. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_search_reset' ), ENT_QUOTES, 'UTF-8' )
 			. "</a></form>";
 
-		$intro = '<p>' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_bills_intro' ), ENT_QUOTES, 'UTF-8' ) . '</p>';
-		$header = "<div class='ipsPad' style='display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:0 0 12px'>"
+		/* Intro + toolbar in a native ACP panel (ipsBox + ipsBox_body + ipsPad).
+		   Tabs left, Add bill button right. Classes are the double-dash BEM
+		   modifiers verified against gdcatalog/products.php on 5.0.18. */
+		$intro = '<div class="ipsBox" style="margin-bottom:14px"><div class="ipsBox_body ipsPad">'
+			. '<p style="margin:0 0 10px">' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_bills_intro' ), ENT_QUOTES, 'UTF-8' ) . '</p>'
+			. "<div style='display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px'>"
 			. "<div>{$tabs}</div>"
-			. "<a href='" . htmlspecialchars( $addUrl, ENT_QUOTES ) . "' class='ipsButton ipsButton_primary ipsButton--small'>"
+			. "<a href='" . htmlspecialchars( $addUrl, ENT_QUOTES ) . "' class='ipsButton ipsButton--primary ipsButton--small'>"
 			. htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_bills_add' ), ENT_QUOTES, 'UTF-8' )
-			. "</a></div>";
+			. "</a>"
+			. "</div>"
+			. '</div></div>';
 
 		\IPS\Output::i()->title  = $lang->addToStack( 'gdbills_acp_bills_title' );
-		\IPS\Output::i()->output = $intro . $header . $searchForm . (string) $table;
+		\IPS\Output::i()->output = $intro . $searchForm . (string) $table;
 	}
 
 	protected function add(): void

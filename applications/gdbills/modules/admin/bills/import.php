@@ -28,6 +28,8 @@ class _import extends \IPS\Dispatcher\Controller
 			'temporary'        => true,
 		] ) );
 
+		$lang = \IPS\Member::loggedIn()->language();
+
 		$summary = '';
 		if ( $values = $form->values() )
 		{
@@ -35,18 +37,24 @@ class _import extends \IPS\Dispatcher\Controller
 			if ( $file instanceof \IPS\File )
 			{
 				$counts = self::processCsv( (string) $file->contents() );
-				$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdbills_acp_import_summary', false, [
+				$msg = (string) $lang->addToStack( 'gdbills_acp_import_summary', false, [
 					'sprintf' => [ $counts['total'], $counts['new'], $counts['updated'], $counts['errors'] ],
 				] );
-				$summary = '<div class="ipsMessage ipsMessage_success">' . htmlspecialchars( $msg, ENT_QUOTES ) . '</div>';
+				/* Native ACP success message (double-dash modifier per 5.0.18 ACP CSS). */
+				$summary = '<div class="ipsMessage ipsMessage--success" style="margin-bottom:16px"><div class="ipsBox_body ipsPad">'
+					. htmlspecialchars( $msg, ENT_QUOTES, 'UTF-8' ) . '</div></div>';
 				try { $file->delete(); } catch ( \Throwable ) {}
 			}
 		}
 
-		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdbills_acp_import_title' );
-		\IPS\Output::i()->output = '<p>' . htmlspecialchars( (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdbills_acp_import_intro' ), ENT_QUOTES ) . '</p>'
-			. $summary
-			. (string) $form;
+		/* Wrap intro in a native ACP panel (ipsBox + ipsBox_body + ipsPad).
+		   The Form already supplies its own native chrome. */
+		$intro = '<div class="ipsBox" style="margin-bottom:16px"><div class="ipsBox_body ipsPad">'
+			. '<p style="margin:0">' . htmlspecialchars( (string) $lang->addToStack( 'gdbills_acp_import_intro' ), ENT_QUOTES, 'UTF-8' ) . '</p>'
+			. '</div></div>';
+
+		\IPS\Output::i()->title  = $lang->addToStack( 'gdbills_acp_import_title' );
+		\IPS\Output::i()->output = $intro . $summary . (string) $form;
 	}
 
 	protected static function processCsv( string $body ): array
