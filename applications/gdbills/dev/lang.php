@@ -158,6 +158,11 @@ $lang = array(
 	'gdbills_acp_reparse_intro'         => 'Recompute progress / status from data already stored in the database — no LegiScan API calls. Fixes stage stalls (e.g. bills stuck at the wrong tracker step) after a parser improvement, without spending sync quota. Advance-only: a became_law / vetoed / failed terminal state is never downgraded.',
 	'gdbills_acp_reparse_button'        => 'Re-parse stored bills',
 	'gdbills_acp_reparse_done'          => 'Re-parse complete: {1} bills updated of {2} processed.',
+	'gdbills_acp_refetch_title'         => 'Re-fetch Official Links',
+	'gdbills_acp_refetch_intro'         => 'Backfills the official state bill link (state_link) + full history for existing bills that don\'t have them yet. Uses ~1 LegiScan API call per bill — far cheaper than a full keyword sync. State + batch limits cap quota; the WHERE filter (state_link IS NULL OR history IS NULL) makes it resumable, so re-running picks up where it left off. After it runs, those rows link to the official state page AND become fully offline re-parseable.',
+	'gdbills_acp_refetch_button'        => 'Re-fetch official links',
+	'gdbills_acp_refetch_batch_label'   => 'Batch size',
+	'gdbills_acp_refetch_done'          => 'Re-fetch complete: {1} bills updated of {2} processed.',
 
 	/* Task */
 	'task__gdbills_syncBills'           => 'Sync firearms bills from LegiScan',

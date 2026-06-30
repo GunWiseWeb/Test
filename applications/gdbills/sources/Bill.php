@@ -113,11 +113,23 @@ class _Bill
 				$limit
 			) as $row )
 			{
-				$out[] = $row;
+				$out[] = self::applyDisplayUrl( $row );
 			}
 		}
 		catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gdbills' ); } catch ( \Throwable ) {} }
 		return $out;
+	}
+
+	/* Override the displayed url with state_link when present so the front
+	   template's $b['url'] reference always points at the official state
+	   page (when we have it) without the template having to branch. */
+	protected static function applyDisplayUrl( array $row ): array
+	{
+		if ( !empty( $row['state_link'] ) )
+		{
+			$row['url'] = (string) $row['state_link'];
+		}
+		return $row;
 	}
 
 	/* Three-bucket pull for the front page. Pass null/empty $state to query
@@ -204,7 +216,7 @@ class _Bill
 				$limit > 0 ? [ $offset, $limit ] : null
 			) as $row )
 			{
-				$out[] = $row;
+				$out[] = self::applyDisplayUrl( $row );
 			}
 		}
 		catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gdbills' ); } catch ( \Throwable ) {} }
@@ -244,7 +256,7 @@ class _Bill
 		try
 		{
 			$row = \IPS\Db::i()->select( '*', 'gd_bills', [ 'id=?', $id ] )->first();
-			return is_array( $row ) ? $row : null;
+			return is_array( $row ) ? self::applyDisplayUrl( $row ) : null;
 		}
 		catch ( \Throwable ) { return null; }
 	}
@@ -300,6 +312,10 @@ class _Bill
 			'cosponsors'         => $data['cosponsors'] ?? null,
 			'description'        => $data['description'] ?? null,
 			'url'                => isset( $data['url'] ) ? substr( (string) $data['url'], 0, 500 ) : null,
+			/* Official state-legislature page (stored separately from LegiScan's
+			   own url so we always have both). Display layer prefers state_link
+			   when populated; falls back to url. */
+			'state_link'         => isset( $data['state_link'] ) && $data['state_link'] !== '' ? substr( (string) $data['state_link'], 0, 255 ) : null,
 			'date_introduced'    => self::cleanDate( $data['date_introduced']    ?? null ),
 			'last_action_date'   => self::cleanDate( $data['last_action_date']   ?? null ),
 			'last_action'        => $data['last_action'] ?? null,

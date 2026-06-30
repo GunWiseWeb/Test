@@ -129,8 +129,41 @@ class _sync extends \IPS\Dispatcher\Controller
 			. '</form>';
 		$reparsePanel = $panel( 'gdbills_acp_reparse_title', $reparseBody );
 
+		/* "Re-fetch official links" — ONE getBill per stored bill that's
+		   missing state_link/history. State + batch limits cap quota.
+		   Gated on the API key being set. */
+		$refetchAct  = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=sync&do=refetchLinks' );
+		$refetchOpts = '<option value="">' . $h( 'gdbills_acp_detect_all_states' ) . '</option>';
+		foreach ( self::STATES as $st )
+		{
+			$refetchOpts .= '<option value="' . $st . '">' . $st . '</option>';
+		}
+		$refetchBody  = '<p style="margin:0 0 10px">' . $h( 'gdbills_acp_refetch_intro' ) . '</p>';
+		if ( trim( (string) ( $S->gdbills_legiscan_key ?? '' ) ) === '' )
+		{
+			$refetchBody .= '<p style="margin:0;font-style:italic;color:#6b7480">' . $h( 'gdbills_acp_sync_no_key' ) . '</p>';
+		}
+		else
+		{
+			$refetchCsrf  = \IPS\Session::i()->csrfKey;
+			$refetchBody .= '<form action="' . htmlspecialchars( $refetchAct, ENT_QUOTES, 'UTF-8' ) . '" method="post" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+				. '<input type="hidden" name="csrfKey" value="' . htmlspecialchars( $refetchCsrf, ENT_QUOTES, 'UTF-8' ) . '">'
+				. '<label style="display:inline-flex;align-items:center;gap:6px">'
+				. $h( 'gdbills_acp_detect_state_label' ) . ':'
+				. '<select name="state">' . $refetchOpts . '</select>'
+				. '</label>'
+				. '<label style="display:inline-flex;align-items:center;gap:6px">'
+				. $h( 'gdbills_acp_refetch_batch_label' ) . ':'
+				. '<input type="number" name="limit" value="50" min="1" max="500" style="width:80px">'
+				. '</label>'
+				. '<button type="submit" class="ipsButton ipsButton--secondary">'
+				. $h( 'gdbills_acp_refetch_button' ) . '</button>'
+				. '</form>';
+		}
+		$refetchPanel = $panel( 'gdbills_acp_refetch_title', $refetchBody );
+
 		\IPS\Output::i()->title  = (string) $lang->addToStack( 'gdbills_acp_sync_title' );
-		\IPS\Output::i()->output = $messages . $syncPanel . $seedPanel . $reparsePanel . $detectPanel;
+		\IPS\Output::i()->output = $messages . $syncPanel . $seedPanel . $reparsePanel . $refetchPanel . $detectPanel;
 	}
 
 	protected function run(): void
@@ -197,6 +230,36 @@ class _sync extends \IPS\Dispatcher\Controller
 		}
 
 		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdbills_acp_reparse_done', false, [
+			'sprintf' => [ (int) $counts['updated'], (int) $counts['processed'] ],
+		] );
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=sync' ),
+			$msg
+		);
+	}
+
+	protected function refetchLinks(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$state = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
+		if ( $state !== '' && !in_array( $state, self::STATES, true ) ) { $state = ''; }
+
+		$limit = (int) ( \IPS\Request::i()->limit ?? 0 );
+		if ( $limit < 0 )    { $limit = 0; }
+		if ( $limit > 500 )  { $limit = 500; }
+
+		$counts = [ 'processed' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0 ];
+		try
+		{
+			$counts = \IPS\gdbills\LegiScan::refetchLinks( $state !== '' ? $state : null, $limit );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'refetchLinks: ' . $e->getMessage(), 'gdbills' ); } catch ( \Throwable ) {}
+		}
+
+		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdbills_acp_refetch_done', false, [
 			'sprintf' => [ (int) $counts['updated'], (int) $counts['processed'] ],
 		] );
 		\IPS\Output::i()->redirect(

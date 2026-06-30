@@ -726,7 +726,11 @@ class _LegiScan
 			'sponsor_name'       => $sponsorName,
 			'sponsor_party'      => $sponsorParty,
 			'description'        => (string) ( $bill['description'] ?? '' ),
-			'url'                => (string) ( $bill['state_link'] ?? ( $bill['url'] ?? '' ) ),
+			/* Store the LegiScan url and the official state_link in their own
+			   columns going forward. Bill::applyDisplayUrl() prefers state_link
+			   at render time, falling back to url when missing. */
+			'url'                => (string) ( $bill['url'] ?? '' ),
+			'state_link'         => (string) ( $bill['state_link'] ?? '' ),
 			'date_introduced'    => $dateIntroduced,
 			'last_action_date'   => self::cleanDate( $lastAction['date'] ?? null ),
 			'last_action'        => (string) ( $lastAction['action'] ?? '' ),
@@ -854,6 +858,137 @@ class _LegiScan
 		}
 
 		try { \IPS\Log::log( 'reparseStored complete: ' . json_encode( $counts ), 'gdbills' ); } catch ( \Throwable ) {}
+		return $counts;
+	}
+
+	/**
+	 * Backfill state_link + history for stored bills that don't have them yet.
+	 * ONE getBill() per bill — no keyword search, no 50-state fan-out. So
+	 * vastly cheaper than fetchAllBills.
+	 *
+	 * Resumable: the WHERE filter only picks rows with state_link IS NULL OR
+	 * history IS NULL, so re-running picks up where it left off. State and
+	 * batch limits let Derrick cap quota precisely.
+	 *
+	 * @param  string|null $oneState  Optional 2-letter state code.
+	 * @param  int         $limit     Optional batch size (0 = no limit).
+	 * @return array{processed:int,updated:int,skipped:int,errors:int}
+	 */
+	public static function refetchLinks( ?string $oneState = null, int $limit = 0 ): array
+	{
+		$counts = [ 'processed' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0 ];
+
+		$key = trim( (string) ( \IPS\Settings::i()->gdbills_legiscan_key ?? '' ) );
+		if ( $key === '' )
+		{
+			try { \IPS\Log::log( 'refetchLinks: no API key configured', 'gdbills' ); } catch ( \Throwable ) {}
+			return $counts;
+		}
+
+		/* Rows we want to backfill: missing state_link OR missing history,
+		   AND have a legiscan_id we can call getBill with. */
+		$where = [
+			[ '(state_link IS NULL OR state_link = \'\' OR history IS NULL)' ],
+			[ 'legiscan_id IS NOT NULL AND legiscan_id > 0' ],
+		];
+		if ( $oneState !== null )
+		{
+			$st = strtoupper( trim( $oneState ) );
+			if ( preg_match( '/^[A-Z]{2}$/', $st ) ) { $where[] = [ 'state_code=?', $st ]; }
+		}
+
+		try
+		{
+			$selectLimit = ( $limit > 0 ) ? $limit : null;
+			$cursor = \IPS\Db::i()->select(
+				'id, legiscan_id, state_code, url, state_link, history',
+				'gd_bills',
+				$where,
+				'id ASC',
+				$selectLimit
+			);
+
+			foreach ( $cursor as $row )
+			{
+				$counts['processed']++;
+				$billId = (int) ( $row['legiscan_id'] ?? 0 );
+				if ( $billId <= 0 ) { $counts['skipped']++; continue; }
+
+				try
+				{
+					$detail = self::getBill( $key, $billId );
+				}
+				catch ( \Throwable $e )
+				{
+					$counts['errors']++;
+					try { \IPS\Log::log( "refetchLinks getBill {$billId}: " . $e->getMessage(), 'gdbills' ); } catch ( \Throwable ) {}
+					continue;
+				}
+
+				if ( !is_array( $detail ) )
+				{
+					$counts['skipped']++;
+					continue;
+				}
+
+				$newStateLink = (string) ( $detail['state_link'] ?? '' );
+				$newUrl       = (string) ( $detail['url']        ?? '' );
+				$history      = ( isset( $detail['history'] ) && is_array( $detail['history'] ) ) ? $detail['history'] : null;
+
+				$update = [];
+				if ( $newStateLink !== '' && (string) ( $row['state_link'] ?? '' ) !== $newStateLink )
+				{
+					$update['state_link'] = substr( $newStateLink, 0, 255 );
+				}
+				if ( $newUrl !== '' && (string) ( $row['url'] ?? '' ) !== $newUrl )
+				{
+					$update['url'] = substr( $newUrl, 0, 500 );
+				}
+				if ( $history !== null && empty( $row['history'] ) )
+				{
+					$update['history'] = json_encode( $history );
+				}
+
+				if ( $update )
+				{
+					try
+					{
+						\IPS\Db::i()->update( 'gd_bills', $update, [ 'id=?', (int) $row['id'] ] );
+						$counts['updated']++;
+					}
+					catch ( \Throwable $e )
+					{
+						$counts['errors']++;
+						try { \IPS\Log::log( "refetchLinks update {$row['id']}: " . $e->getMessage(), 'gdbills' ); } catch ( \Throwable ) {}
+					}
+				}
+				else
+				{
+					$counts['skipped']++;
+				}
+
+				/* Throttle ~1 call/second so a large batch doesn't blow the
+				   LegiScan rate limit. Heavier than the sync's 150ms because
+				   refetchLinks runs against ALL existing bills, not just
+				   keyword-search hits. */
+				usleep( 1000000 );
+
+				/* Resumable progress meta so an interrupted run leaves a
+				   breadcrumb (and the WHERE filter keeps moving forward). */
+				Bill::setMeta( 'refetch_links_progress', json_encode( [
+					'last_id' => (int) $row['id'],
+					'state'   => $oneState ?? 'ALL',
+					'counts'  => $counts,
+					'updated' => date( 'Y-m-d H:i:s' ),
+				] ) );
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'refetchLinks: ' . $e->getMessage(), 'gdbills' ); } catch ( \Throwable ) {}
+		}
+
+		try { \IPS\Log::log( 'refetchLinks complete: ' . json_encode( $counts ), 'gdbills' ); } catch ( \Throwable ) {}
 		return $counts;
 	}
 
