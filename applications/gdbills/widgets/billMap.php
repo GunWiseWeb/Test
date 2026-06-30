@@ -36,8 +36,12 @@ class billMap extends PermissionCache
 		$total = (int) array_sum( $counts );
 
 		$pageUrl      = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills', 'front', 'gdbills_page' );
-		$ajaxStateUrl = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills&do=stateBills', 'front', 'gdbills_action', [ 'stateBills' ] );
-		$ajaxMapUrl   = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills&do=mapData',    'front', 'gdbills_action', [ 'mapData' ] );
+		/* AJAX endpoints used to ship via a 'gdbills_action' FURL whose
+		   bare "{@do}" pattern shadowed core profile / edit-profile URLs.
+		   Pretty URLs aren't useful for internal AJAX — fall back to the
+		   plain query-string Url::internal() with no seoTemplate. */
+		$ajaxStateUrl = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills&do=stateBills' );
+		$ajaxMapUrl   = (string) \IPS\Http\Url::internal( 'app=gdbills&module=bills&controller=bills&do=mapData' );
 
 		$enacted = []; $pending = [];
 		return (string) Theme::i()->getTemplate( 'bills', 'gdbills', 'front' )->page(

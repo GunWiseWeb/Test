@@ -4,10 +4,6 @@
 		"gdbills_page": {
 			"friendly": "",
 			"real": "app=gdbills&module=bills&controller=bills"
-		},
-		"gdbills_action": {
-			"friendly": "{@do}",
-			"real": "app=gdbills&module=bills&controller=bills"
 		}
 	}
 }
