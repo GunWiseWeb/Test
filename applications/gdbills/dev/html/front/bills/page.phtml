@@ -41,31 +41,33 @@
 		</div>
 	</section>
 
-	{{if count($enacted) === 0 && count($pending) === 0}}
-		<div class="gd-bills__empty">
-			<p>{lang="gdbills_no_bills_overall"}</p>
-		</div>
-	{{else}}
-		{{if count($enacted) > 0}}
-		<section class="gd-bills__section">
-			<h2 class="gd-bills__sectionTitle">{lang="gdbills_enacted_heading"}{{if $activeState}} &mdash; {$activeState}{{endif}}</h2>
-			<div class="gd-bills__list">
-				{{foreach $enacted as $b}}
-					{template="billRow" group="bills" app="gdbills" params="$b"}
-				{{endforeach}}
+	{{if $activeState}}
+		{{if count($enacted) === 0 && count($pending) === 0}}
+			<div class="gd-bills__empty">
+				<p>{lang="gdbills_no_bills"}</p>
 			</div>
-		</section>
-		{{endif}}
+		{{else}}
+			{{if count($enacted) > 0}}
+			<section class="gd-bills__section">
+				<h2 class="gd-bills__sectionTitle">{lang="gdbills_enacted_heading"} &mdash; {$activeState}</h2>
+				<div class="gd-bills__list">
+					{{foreach $enacted as $b}}
+						{template="billRow" group="bills" app="gdbills" params="$b"}
+					{{endforeach}}
+				</div>
+			</section>
+			{{endif}}
 
-		{{if count($pending) > 0}}
-		<section class="gd-bills__section">
-			<h2 class="gd-bills__sectionTitle">{lang="gdbills_pending_heading"}{{if $activeState}} &mdash; {$activeState}{{endif}}</h2>
-			<div class="gd-bills__list">
-				{{foreach $pending as $b}}
-					{template="billRow" group="bills" app="gdbills" params="$b"}
-				{{endforeach}}
-			</div>
-		</section>
+			{{if count($pending) > 0}}
+			<section class="gd-bills__section">
+				<h2 class="gd-bills__sectionTitle">{lang="gdbills_pending_heading"} &mdash; {$activeState}</h2>
+				<div class="gd-bills__list">
+					{{foreach $pending as $b}}
+						{template="billRow" group="bills" app="gdbills" params="$b"}
+					{{endforeach}}
+				</div>
+			</section>
+			{{endif}}
 		{{endif}}
 	{{endif}}
 

@@ -43,13 +43,17 @@ class _bills extends \IPS\Dispatcher\Controller
 
 		if ( $state !== '' && preg_match( '/^[A-Z]{2}$/', $state ) )
 		{
+			/* Deep-linked state view (/bills/?state=IL) — render server-side
+			   so search engines and direct links see the bill list. */
 			$enacted = \IPS\gdbills\Bill::getByState( $state, 'enacted' );
 			$pending = \IPS\gdbills\Bill::getByState( $state, 'pending' );
 		}
 		else
 		{
-			$enacted = \IPS\gdbills\Bill::getAll( [ 'type' => 'enacted', 'limit' => 50 ] );
-			$pending = \IPS\gdbills\Bill::getAll( [ 'type' => 'pending', 'limit' => 50 ] );
+			/* Landing view — map only. Bills load on tile click via the
+			   stateBills AJAX endpoint into the modal. */
+			$enacted = [];
+			$pending = [];
 		}
 
 		$ajaxStateUrl = (string) \IPS\Http\Url::internal(

@@ -353,7 +353,11 @@ class _LegiScan
 			'sponsor_name'       => $sponsorName,
 			'sponsor_party'      => $sponsorParty,
 			'description'        => (string) ( $bill['description'] ?? '' ),
-			'url'                => (string) ( $bill['url']         ?? ( $bill['state_link'] ?? '' ) ),
+			/* state_link is the official state-legislature page (real bill text);
+			   prefer it over LegiScan's own hosted page so users land on the
+			   authoritative source. Falls back to LegiScan url only when the
+			   feed didn't return a state_link. */
+			'url'                => (string) ( $bill['state_link'] ?? ( $bill['url'] ?? '' ) ),
 			'date_introduced'    => $dateIntro,
 			'last_action_date'   => self::cleanDate( $lastAction['date'] ?? null ),
 			'last_action'        => (string) ( $lastAction['action'] ?? '' ),
