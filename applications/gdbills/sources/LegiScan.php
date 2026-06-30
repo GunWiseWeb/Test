@@ -603,10 +603,11 @@ class _LegiScan
 			$mentionsHouse  = ( strpos( $actionText, 'house' )  !== false );
 			$thirdReadPass  = ( strpos( $actionText, 'third reading passed' ) !== false );
 
-			/* Senate-pass detection (capture date even on terminal bills) */
+			/* Senate-pass detection — regex allows up to 15 chars of filler
+			   ("passed by the senate", "senate concurred in amendment", etc.). */
 			if (
-				strpos( $actionText, 'passed senate' ) !== false
-				|| strpos( $actionText, 'senate passed' ) !== false
+				preg_match( '/\bsenate\b.{0,15}\b(passed|adopted|concurred)\b/i', $actionText )
+				|| preg_match( '/\b(passed|adopted)\b.{0,15}\bsenate\b/i', $actionText )
 				|| ( $thirdReadPass && $mentionsSenate )
 			)
 			{
@@ -617,10 +618,10 @@ class _LegiScan
 				}
 			}
 
-			/* House-pass detection */
+			/* House-pass detection — same filler-tolerant pattern. */
 			if (
-				strpos( $actionText, 'passed house' ) !== false
-				|| strpos( $actionText, 'house passed' ) !== false
+				preg_match( '/\bhouse\b.{0,15}\b(passed|adopted|concurred)\b/i', $actionText )
+				|| preg_match( '/\b(passed|adopted)\b.{0,15}\bhouse\b/i', $actionText )
 				|| ( $thirdReadPass && $mentionsHouse )
 			)
 			{
@@ -631,11 +632,14 @@ class _LegiScan
 				}
 			}
 
-			/* To-governor — delivered/sent/presented. Advance unless terminal. */
+			/* To-governor — delivered / sent / presented / transmitted /
+			   forwarded to the governor (with filler "to" / "to the" /
+			   "to honorable" allowed between verb and "governor"). Fixes
+			   the IL HB5136 case where "Sent to the Governor" failed the
+			   literal "sent to governor" match. */
 			if (
-				strpos( $actionText, 'delivered to governor' )  !== false
-				|| strpos( $actionText, 'sent to governor' )     !== false
-				|| strpos( $actionText, 'presented to governor' ) !== false
+				preg_match( '/\b(sent|delivered|presented|transmitted|forwarded)\b.{0,20}\bgovernor\b/i', $actionText )
+				|| preg_match( "/\bto\b.{0,8}\bgovernor(?:'s)?\b.{0,8}\bdesk\b/i", $actionText )
 			)
 			{
 				if ( !$isTerminal )
@@ -644,16 +648,19 @@ class _LegiScan
 				}
 			}
 
-			/* Signed-into-law — strict whitelist of phrases combined with the
-			   CRITICAL guard (exclude "assigned"/"reassigned"/"designated") so
-			   "assigned by governor" or "reassigned to ..." can't false-match. */
+			/* Signed-into-law — filler-tolerant regex variants combined with
+			   the CRITICAL guard (exclude "assigned"/"reassigned"/"designated")
+			   so a bill that was merely re-assigned to a committee cannot
+			   false-match. "public act" is included because IL stamps a
+			   "Public Act N-NNN" string on a bill only after signature. */
 			$looksSigned = (
-				strpos( $actionText, 'signed by governor' )  !== false
-				|| strpos( $actionText, 'governor signed' )   !== false
-				|| strpos( $actionText, 'approved by governor' ) !== false
-				|| strpos( $actionText, 'governor approved' )    !== false
-				|| strpos( $actionText, 'signed into law' )      !== false
-				|| strpos( $actionText, 'became law' )           !== false
+				preg_match( '/\bsigned\b.{0,20}\bgovernor\b/i',   $actionText )
+				|| preg_match( '/\bgovernor\b.{0,20}\bsigned\b/i',   $actionText )
+				|| preg_match( '/\bapproved\b.{0,20}\bgovernor\b/i', $actionText )
+				|| preg_match( '/\bgovernor\b.{0,20}\bapproved\b/i', $actionText )
+				|| preg_match( '/\bsigned into law\b/i',             $actionText )
+				|| preg_match( '/\bbecame law\b/i',                  $actionText )
+				|| preg_match( '/\bpublic act\b/i',                  $actionText )
 			);
 			$assignedGuard = (
 				strpos( $actionText, 'assigned' )   !== false
