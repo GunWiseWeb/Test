@@ -38,6 +38,53 @@
 			"idx_rule":  { "type": "key", "name": "idx_rule", "length": [ null ], "columns": [ "rule_id" ] }
 		}
 	},
+	"gd_compliance_ca_roster": {
+		"name": "gd_compliance_ca_roster",
+		"columns": {
+			"id":            { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true,  "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"manufacturer":  { "name": "manufacturer", "type": "VARCHAR", "length": 120, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"manufacturer_norm": { "name": "manufacturer_norm", "type": "VARCHAR", "length": 120, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"model_raw":     { "name": "model_raw", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"model_core":    { "name": "model_core", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"model_sku":     { "name": "model_sku", "type": "VARCHAR", "length": 120, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"gun_type":      { "name": "gun_type", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Pistol|Revolver" },
+			"barrel":        { "name": "barrel", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"caliber":       { "name": "caliber", "type": "VARCHAR", "length": 60, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"caliber_norm":  { "name": "caliber_norm", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"expired_date":  { "name": "expired_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"is_current":    { "name": "is_current", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "1", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"boland_added":  { "name": "boland_added", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"fetched_at":    { "name": "fetched_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":          { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"idx_manufacturer": { "type": "key", "name": "idx_manufacturer", "length": [ null ], "columns": [ "manufacturer_norm" ] },
+			"idx_model_core":   { "type": "key", "name": "idx_model_core", "length": [ 100 ], "columns": [ "model_core" ] },
+			"idx_current":      { "type": "key", "name": "idx_current", "length": [ null ], "columns": [ "is_current" ] }
+		}
+	},
+	"gd_compliance_review": {
+		"name": "gd_compliance_review",
+		"columns": {
+			"id":               { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true,  "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"upc":              { "name": "upc", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"manufacturer":     { "name": "manufacturer", "type": "VARCHAR", "length": 120, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"model_title":      { "name": "model_title", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"caliber":          { "name": "caliber", "type": "VARCHAR", "length": 60, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"suggested_status": { "name": "suggested_status", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": false, "default": "unmatched_review", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "off_roster|unmatched_review" },
+			"candidates_json":  { "name": "candidates_json", "type": "TEXT", "length": 0, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "JSON of near-miss roster entries" },
+			"resolved":         { "name": "resolved", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"resolved_status":  { "name": "resolved_status", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "on_roster|off_roster" },
+			"resolved_by":      { "name": "resolved_by", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "member_id" },
+			"resolved_at":      { "name": "resolved_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"created_at":       { "name": "created_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":      { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"idx_upc":      { "type": "key", "name": "idx_upc", "length": [ null ], "columns": [ "upc" ] },
+			"idx_resolved": { "type": "key", "name": "idx_resolved", "length": [ null ], "columns": [ "resolved" ] }
+		}
+	},
 	"gd_compliance_unparsed": {
 		"name": "gd_compliance_unparsed",
 		"columns": {

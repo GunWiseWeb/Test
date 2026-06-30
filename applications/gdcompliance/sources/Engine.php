@@ -161,12 +161,33 @@ class _Engine
 			'per_state_type' => [],
 			'unparsed'       => [],
 			'sample'         => [],
+			'roster'         => [
+				/* Phase 2 — CA roster outcome counts. Surfaced in the ACP
+				   preview/run summary so Derrick sees the on/off/review split
+				   before committing. */
+				'on'     => 0,
+				'off'    => 0,
+				'review' => 0,
+				'skipped_no_roster' => 0,
+			],
+			'review_queue'   => [],
 			'dry_run'        => $dryRun,
 		];
 
 		$typeMap = self::buildTypeMap();
 		$rules   = self::activeRules();
-		if ( empty( $rules ) ) { return $result; }
+
+		/* Roster check is independent of capacity rules — a handgun can be
+		   both off-roster AND over-capacity (two flags). Prime the cache once;
+		   if the roster table is empty (Refresh hasn't run yet), the
+		   classifier still works but every handgun lands in unmatched_review
+		   for "no manufacturer match". */
+		try { \IPS\gdcompliance\Roster::primeCache(); } catch ( \Throwable ) {}
+
+		if ( empty( $rules ) ) {
+			/* Even with no capacity rules we can still run the CA roster pass
+			   on its own, so don't bail here — just skip the rule loop. */
+		}
 
 		/* Group rules by type for fast lookup per product. */
 		$rulesByType = [ 'handgun' => [], 'rifle' => [], 'shotgun' => [], 'all' => [] ];
@@ -182,7 +203,7 @@ class _Engine
 
 		try
 		{
-			foreach ( \IPS\Db::i()->select( 'upc, category_id, capacity', 'gd_catalog' ) as $p )
+			foreach ( \IPS\Db::i()->select( 'upc, category_id, capacity, manufacturer, model, caliber, mpn, title', 'gd_catalog' ) as $p )
 			{
 				$result['processed']++;
 				$upc = (string) ( $p['upc'] ?? '' );
@@ -193,55 +214,105 @@ class _Engine
 				if ( $type === null ) { continue; }
 				$result['firearms']++;
 
+				/* --- Phase 1: capacity-rule pass --- */
 				$capRaw = isset( $p['capacity'] ) ? (string) $p['capacity'] : '';
 				$cap    = self::parseCapacity( $capRaw );
-				if ( $cap === null )
+				if ( $cap !== null )
 				{
-					if ( $capRaw !== '' )
+					$applicable = array_merge( $rulesByType[ $type ] ?? [], $rulesByType['all'] );
+					foreach ( $applicable as $r )
 					{
-						$key = substr( $capRaw, 0, 100 );
-						$result['unparsed'][ $key ] = ( $result['unparsed'][ $key ] ?? 0 ) + 1;
+						$limit = (int) $r['max_capacity'];
+						if ( $cap > $limit )
+						{
+							$state  = (string) $r['state_code'];
+							$reason = sprintf(
+								'%s mag %d > %s limit %d',
+								ucfirst( $type ),
+								$cap,
+								$state,
+								$limit
+							);
+							$flags[] = [
+								'upc'             => substr( $upc, 0, 50 ),
+								'state_code'      => $state,
+								'firearm_type'    => $type,
+								'parsed_capacity' => $cap,
+								'rule_id'         => (int) $r['id'],
+								'reason'          => substr( $reason, 0, 255 ),
+								'computed_at'     => $now,
+							];
+
+							$result['per_state'][ $state ] = ( $result['per_state'][ $state ] ?? 0 ) + 1;
+							$result['per_state_type'][ $state ][ $type ] = ( $result['per_state_type'][ $state ][ $type ] ?? 0 ) + 1;
+
+							if ( count( $result['sample'] ) < self::SAMPLE_LIMIT )
+							{
+								$result['sample'][] = [
+									'upc'      => $upc,
+									'state'    => $state,
+									'type'     => $type,
+									'capacity' => $cap,
+									'limit'    => $limit,
+								];
+							}
+						}
 					}
-					continue;
+				}
+				else if ( $capRaw !== '' )
+				{
+					$key = substr( $capRaw, 0, 100 );
+					$result['unparsed'][ $key ] = ( $result['unparsed'][ $key ] ?? 0 ) + 1;
 				}
 
-				$applicable = array_merge( $rulesByType[ $type ] ?? [], $rulesByType['all'] );
-				foreach ( $applicable as $r )
+				/* --- Phase 2: CA roster pass (handguns only) --- */
+				if ( $type === 'handgun' )
 				{
-					$limit = (int) $r['max_capacity'];
-					if ( $cap > $limit )
+					try
 					{
-						$state  = (string) $r['state_code'];
-						$reason = sprintf(
-							'%s mag %d > %s limit %d',
-							ucfirst( $type ),
-							$cap,
-							$state,
-							$limit
-						);
+						$cls = \IPS\gdcompliance\Roster::classifyHandgun( $p );
+					}
+					catch ( \Throwable )
+					{
+						$cls = [ 'status' => 'unmatched_review', 'reason' => 'classifier error', 'confidence' => 'none', 'matched_roster_id' => null, 'candidates' => [] ];
+					}
+
+					$status = (string) ( $cls['status'] ?? 'unmatched_review' );
+					if ( $status === 'on_roster' )
+					{
+						$result['roster']['on']++;
+					}
+					elseif ( $status === 'off_roster' )
+					{
+						$result['roster']['off']++;
 						$flags[] = [
 							'upc'             => substr( $upc, 0, 50 ),
-							'state_code'      => $state,
-							'firearm_type'    => $type,
-							'parsed_capacity' => $cap,
-							'rule_id'         => (int) $r['id'],
-							'reason'          => substr( $reason, 0, 255 ),
+							'state_code'      => 'CA',
+							'firearm_type'    => 'handgun',
+							'parsed_capacity' => null,
+							'rule_id'         => 0,
+							'reason'          => substr( 'Not on CA DOJ roster — ' . ( $cls['reason'] ?? '' ), 0, 255 ),
 							'computed_at'     => $now,
 						];
-
-						$result['per_state'][ $state ] = ( $result['per_state'][ $state ] ?? 0 ) + 1;
-						$result['per_state_type'][ $state ][ $type ] = ( $result['per_state_type'][ $state ][ $type ] ?? 0 ) + 1;
-
-						if ( count( $result['sample'] ) < self::SAMPLE_LIMIT )
-						{
-							$result['sample'][] = [
-								'upc'      => $upc,
-								'state'    => $state,
-								'type'     => $type,
-								'capacity' => $cap,
-								'limit'    => $limit,
-							];
-						}
+						$result['per_state']['CA'] = ( $result['per_state']['CA'] ?? 0 ) + 1;
+						$result['per_state_type']['CA']['handgun_roster'] = ( $result['per_state_type']['CA']['handgun_roster'] ?? 0 ) + 1;
+					}
+					else /* unmatched_review */
+					{
+						$result['roster']['review']++;
+						$result['review_queue'][] = [
+							'upc'              => substr( $upc, 0, 50 ),
+							'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? '' ), 0, 120 ),
+							'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
+							'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
+							'suggested_status' => 'unmatched_review',
+							'candidates_json'  => json_encode( $cls['candidates'] ?? [] ),
+							'resolved'         => 0,
+							'resolved_status'  => null,
+							'resolved_by'      => null,
+							'resolved_at'      => null,
+							'created_at'       => $now,
+						];
 					}
 				}
 			}
@@ -283,6 +354,33 @@ class _Engine
 			}
 		}
 
+		/* Refresh review queue — preserve previously RESOLVED rows so Derrick's
+		   manual decisions stick. Wipe only the unresolved rows + re-insert
+		   the freshly classified unmatched_review handguns. */
+		try { \IPS\Db::i()->delete( 'gd_compliance_review', [ 'resolved=0' ] ); } catch ( \Throwable ) {}
+		if ( !empty( $result['review_queue'] ) )
+		{
+			$existing = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'upc', 'gd_compliance_review', [ 'resolved=1' ] ) as $row )
+				{
+					$existing[ (string) ( is_array( $row ) ? ( $row['upc'] ?? '' ) : $row ) ] = true;
+				}
+			}
+			catch ( \Throwable ) {}
+
+			$fresh = array_filter( $result['review_queue'], fn( $r ) => empty( $existing[ $r['upc'] ?? '' ] ) );
+			foreach ( array_chunk( array_values( $fresh ), 500 ) as $chunk )
+			{
+				try { \IPS\Db::i()->insert( 'gd_compliance_review', $chunk ); }
+				catch ( \Throwable $e )
+				{
+					try { \IPS\Log::log( 'Engine::computeFlags review insert: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+				}
+			}
+		}
+
 		/* Refresh unparsed-capacity tally. Wipe + insert. */
 		try { \IPS\Db::i()->delete( 'gd_compliance_unparsed' ); } catch ( \Throwable ) {}
 		foreach ( $result['unparsed'] as $val => $count )
@@ -316,7 +414,8 @@ class _Engine
 	}
 
 	/* Clear all flags without recomputing — useful before disabling the app
-	   or when Derrick wants a clean slate. */
+	   or when Derrick wants a clean slate. Preserves the gd_compliance_review
+	   queue (those rows are Derrick's manual decisions) and the roster table. */
 	public static function clearFlags(): array
 	{
 		$counts = [ 'flags' => 0, 'unparsed' => 0 ];

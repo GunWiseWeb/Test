@@ -11,6 +11,18 @@
 			"controller": "compute",
 			"do": "",
 			"restriction": "compliance_manage"
+		},
+		"roster": {
+			"tab": "gdcompliance",
+			"controller": "roster",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
+		"review": {
+			"tab": "gdcompliance",
+			"controller": "review",
+			"do": "",
+			"restriction": "compliance_manage"
 		}
 	}
 }

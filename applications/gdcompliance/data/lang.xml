@@ -6,6 +6,8 @@
 <word key="menutab__gdcompliance_icon" js="0"><![CDATA[shield-alt]]></word>
 <word key="menu__gdcompliance_compliance_rules" js="0"><![CDATA[Rules]]></word>
 <word key="menu__gdcompliance_compliance_compute" js="0"><![CDATA[Compute Flags]]></word>
+<word key="menu__gdcompliance_compliance_roster" js="0"><![CDATA[CA Roster]]></word>
+<word key="menu__gdcompliance_compliance_review" js="0"><![CDATA[Review Queue]]></word>
 <word key="module__gdcompliance_compliance" js="0"><![CDATA[Compliance]]></word>
 <word key="frontnavigation_gdcompliance_compliance" js="0"><![CDATA[Compliance]]></word>
 <word key="gdcompliance_acp_rules_title" js="0"><![CDATA[Compliance Rules]]></word>
@@ -41,6 +43,38 @@
 <word key="gdcompliance_f_expires_date" js="0"><![CDATA[Expires date (YYYY-MM-DD; blank = never)]]></word>
 <word key="gdcompliance_f_enabled" js="0"><![CDATA[Enabled]]></word>
 <word key="gdcompliance_f_source_note" js="0"><![CDATA[Source note (citation)]]></word>
+<word key="gdcompliance_acp_roster_title" js="0"><![CDATA[CA DOJ Certified Handgun Roster]]></word>
+<word key="gdcompliance_acp_roster_intro" js="0"><![CDATA[Snapshot of the California Department of Justice Certified Handgun roster. Used by the compute pass to classify catalog handguns into on-roster (CA-legal), off-roster (flagged), or unmatched (review queue). Manual refresh only — never auto-scheduled.]]></word>
+<word key="gdcompliance_acp_roster_source" js="0"><![CDATA[Source]]></word>
+<word key="gdcompliance_acp_roster_last" js="0"><![CDATA[Last refreshed]]></word>
+<word key="gdcompliance_acp_roster_never" js="0"><![CDATA[Never]]></word>
+<word key="gdcompliance_acp_roster_total" js="0"><![CDATA[Total rows]]></word>
+<word key="gdcompliance_acp_roster_current" js="0"><![CDATA[Current]]></word>
+<word key="gdcompliance_acp_roster_expired" js="0"><![CDATA[Expired]]></word>
+<word key="gdcompliance_acp_roster_refresh" js="0"><![CDATA[Refresh CA Roster]]></word>
+<word key="gdcompliance_acp_roster_done" js="0"><![CDATA[Roster refreshed: {1} rows ({2} current, {3} expired) across {4} pages.]]></word>
+<word key="gdcompliance_acp_roster_col_manufacturer" js="0"><![CDATA[Manufacturer]]></word>
+<word key="gdcompliance_acp_roster_col_model_raw" js="0"><![CDATA[Model]]></word>
+<word key="gdcompliance_acp_roster_col_caliber" js="0"><![CDATA[Caliber]]></word>
+<word key="gdcompliance_acp_roster_col_gun_type" js="0"><![CDATA[Type]]></word>
+<word key="gdcompliance_acp_roster_col_barrel" js="0"><![CDATA[Barrel]]></word>
+<word key="gdcompliance_acp_roster_col_expired_date" js="0"><![CDATA[Expired]]></word>
+<word key="gdcompliance_acp_roster_col_is_current" js="0"><![CDATA[Status]]></word>
+<word key="gdcompliance_acp_review_title" js="0"><![CDATA[CA Roster Review Queue]]></word>
+<word key="gdcompliance_acp_review_intro" js="0"><![CDATA[Handguns the matcher could not confidently place on or off the roster. Each row shows the near-miss roster candidates the matcher considered. Resolve each manually — "Mark on-roster" clears the CA restriction for that UPC, "Mark off-roster" sets the CA flag. Decisions persist across re-computes (only unresolved rows are wiped + re-populated on each compute).]]></word>
+<word key="gdcompliance_acp_review_pending" js="0"><![CDATA[Pending]]></word>
+<word key="gdcompliance_acp_review_resolved" js="0"><![CDATA[Resolved]]></word>
+<word key="gdcompliance_acp_review_mark_on" js="0"><![CDATA[Mark on-roster (CA-legal)]]></word>
+<word key="gdcompliance_acp_review_mark_off" js="0"><![CDATA[Mark off-roster (restrict)]]></word>
+<word key="gdcompliance_acp_review_reopen" js="0"><![CDATA[Re-open for review]]></word>
+<word key="gdcompliance_acp_review_candidates" js="0"><![CDATA[Near-miss roster candidates]]></word>
+<word key="gdcompliance_acp_review_already_resolved" js="0"><![CDATA[Already resolved]]></word>
+<word key="gdcompliance_acp_review_col_upc" js="0"><![CDATA[UPC]]></word>
+<word key="gdcompliance_acp_review_col_manufacturer" js="0"><![CDATA[Manufacturer]]></word>
+<word key="gdcompliance_acp_review_col_model_title" js="0"><![CDATA[Model / Title]]></word>
+<word key="gdcompliance_acp_review_col_caliber" js="0"><![CDATA[Caliber]]></word>
+<word key="gdcompliance_acp_review_col_suggested_status" js="0"><![CDATA[Suggested]]></word>
+<word key="gdcompliance_acp_review_col_resolved_status" js="0"><![CDATA[Resolved as]]></word>
 <word key="gdcompliance_page_title" js="0"><![CDATA[State Compliance Rules]]></word>
 <word key="gdcompliance_page_intro" js="0"><![CDATA[Active state magazine-capacity restrictions applied to the GunRack catalog.]]></word>
 <word key="gdcompliance_page_empty" js="0"><![CDATA[No active rules.]]></word>

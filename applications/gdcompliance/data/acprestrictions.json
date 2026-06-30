@@ -5,6 +5,12 @@
 		},
 		"compute": {
 			"compliance_manage": "compliance_manage"
+		},
+		"roster": {
+			"compliance_manage": "compliance_manage"
+		},
+		"review": {
+			"compliance_manage": "compliance_manage"
 		}
 	}
 }

@@ -125,6 +125,18 @@ class _compute extends \IPS\Dispatcher\Controller
 			. '<h2 class="ipsType_sectionHead" style="margin:0 0 10px">' . $head
 			. ' &mdash; ' . (int) $r['flags'] . ' flags / ' . (int) $r['firearms'] . ' firearm products / ' . (int) $r['processed'] . ' total scanned</h2>';
 
+		/* CA roster outcome (Phase 2). */
+		if ( !empty( $r['roster'] ) )
+		{
+			$ro = $r['roster'];
+			$out .= '<div style="margin:6px 0 14px;padding:10px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:13px;color:#1e3a8a">'
+				. '<strong>CA roster outcome:</strong> '
+				. '<span style="color:#14532d">' . (int) ( $ro['on']     ?? 0 ) . ' on-roster</span> &middot; '
+				. '<span style="color:#991b1b">' . (int) ( $ro['off']    ?? 0 ) . ' off-roster (flag)</span> &middot; '
+				. '<span style="color:#92400e">' . (int) ( $ro['review'] ?? 0 ) . ' needs review</span>'
+				. '</div>';
+		}
+
 		/* Per-state table */
 		$out .= '<h3 style="margin:14px 0 6px">' . $h( 'gdcompliance_acp_compute_per_state' ) . '</h3>';
 		$out .= '<table class="ipsTable ipsTable_responsive" style="width:100%;border-collapse:collapse">'

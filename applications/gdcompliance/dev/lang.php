@@ -9,6 +9,8 @@ $lang = array(
 	/* ACP menu */
 	'menu__gdcompliance_compliance_rules'      => 'Rules',
 	'menu__gdcompliance_compliance_compute'    => 'Compute Flags',
+	'menu__gdcompliance_compliance_roster'     => 'CA Roster',
+	'menu__gdcompliance_compliance_review'     => 'Review Queue',
 
 	/* Front module + nav */
 	'module__gdcompliance_compliance'          => 'Compliance',
@@ -54,6 +56,46 @@ $lang = array(
 	'gdcompliance_f_expires_date'              => 'Expires date (YYYY-MM-DD; blank = never)',
 	'gdcompliance_f_enabled'                   => 'Enabled',
 	'gdcompliance_f_source_note'               => 'Source note (citation)',
+
+	/* CA roster (Phase 2) */
+	'gdcompliance_acp_roster_title'            => 'CA DOJ Certified Handgun Roster',
+	'gdcompliance_acp_roster_intro'            => 'Snapshot of the California Department of Justice Certified Handgun roster. Used by the compute pass to classify catalog handguns into on-roster (CA-legal), off-roster (flagged), or unmatched (review queue). Manual refresh only — never auto-scheduled.',
+	'gdcompliance_acp_roster_source'           => 'Source',
+	'gdcompliance_acp_roster_last'             => 'Last refreshed',
+	'gdcompliance_acp_roster_never'            => 'Never',
+	'gdcompliance_acp_roster_total'            => 'Total rows',
+	'gdcompliance_acp_roster_current'          => 'Current',
+	'gdcompliance_acp_roster_expired'          => 'Expired',
+	'gdcompliance_acp_roster_refresh'          => 'Refresh CA Roster',
+	'gdcompliance_acp_roster_done'             => 'Roster refreshed: {1} rows ({2} current, {3} expired) across {4} pages.',
+
+	/* Roster column headers (Table\Db langPrefix) */
+	'gdcompliance_acp_roster_col_manufacturer' => 'Manufacturer',
+	'gdcompliance_acp_roster_col_model_raw'    => 'Model',
+	'gdcompliance_acp_roster_col_caliber'      => 'Caliber',
+	'gdcompliance_acp_roster_col_gun_type'     => 'Type',
+	'gdcompliance_acp_roster_col_barrel'       => 'Barrel',
+	'gdcompliance_acp_roster_col_expired_date' => 'Expired',
+	'gdcompliance_acp_roster_col_is_current'   => 'Status',
+
+	/* Review queue (Phase 2) */
+	'gdcompliance_acp_review_title'            => 'CA Roster Review Queue',
+	'gdcompliance_acp_review_intro'            => 'Handguns the matcher could not confidently place on or off the roster. Each row shows the near-miss roster candidates the matcher considered. Resolve each manually — "Mark on-roster" clears the CA restriction for that UPC, "Mark off-roster" sets the CA flag. Decisions persist across re-computes (only unresolved rows are wiped + re-populated on each compute).',
+	'gdcompliance_acp_review_pending'          => 'Pending',
+	'gdcompliance_acp_review_resolved'         => 'Resolved',
+	'gdcompliance_acp_review_mark_on'          => 'Mark on-roster (CA-legal)',
+	'gdcompliance_acp_review_mark_off'         => 'Mark off-roster (restrict)',
+	'gdcompliance_acp_review_reopen'           => 'Re-open for review',
+	'gdcompliance_acp_review_candidates'       => 'Near-miss roster candidates',
+	'gdcompliance_acp_review_already_resolved' => 'Already resolved',
+
+	/* Review column headers (Table\Db langPrefix) */
+	'gdcompliance_acp_review_col_upc'              => 'UPC',
+	'gdcompliance_acp_review_col_manufacturer'     => 'Manufacturer',
+	'gdcompliance_acp_review_col_model_title'      => 'Model / Title',
+	'gdcompliance_acp_review_col_caliber'          => 'Caliber',
+	'gdcompliance_acp_review_col_suggested_status' => 'Suggested',
+	'gdcompliance_acp_review_col_resolved_status'  => 'Resolved as',
 
 	/* Front page */
 	'gdcompliance_page_title'                  => 'State Compliance Rules',
