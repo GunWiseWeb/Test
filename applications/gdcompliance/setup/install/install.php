@@ -2,100 +2,30 @@
 /**
  * @brief  GD Compliance — Install routine
  *
- * Runs after schema.json creates the three gd_compliance_* tables.
- * Seeds:
- *   - the initial state magazine-capacity ruleset (14 states, verified
- *     mid-2026 — Derrick can edit any of it via ACP → Compliance → Rules)
+ * Runs after schema.json creates the gd_compliance_* tables. Seeds:
+ *   - the canonical ruleset via Seeder::seedMissingRules() — IDEMPOTENT
+ *     and NON-DESTRUCTIVE, so a re-install (or a crash-and-retry) never
+ *     wipes edits Derrick made, and always converges the base laws to
+ *     the full 19-row set.
  *   - dev/lang.php → core_sys_lang_words per language
  *   - compliance_manage permission row
  *
- * Never writes to gd_catalog. Disabling the app removes flag display
- * with zero catalog impact.
+ * Never writes to gd_catalog. NEVER truncates or deletes rows from
+ * gd_compliance_rules or gd_compliance_overrides — those are permanent
+ * reference data.
  */
 
 if ( !defined( '\\IPS\\SUITE_UNIQUE_KEY' ) ) { exit; }
 
+require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Seeder.php';
+
 /* -------------------------------------------------------------------------
  * SEED RULESET — mid-2026 verified state magazine-capacity laws.
- *
- *  state, firearm_type, max_capacity, rule_type, effective_date, expires_date,
- *  enabled, source_note
- *
- * Capacity STRICTLY GREATER than max_capacity flags the product. A rule with
- * effective_date in the future is seeded ENABLED but its date gate prevents
- * it from flagging until then (e.g. VA 7/1/2026). DC is seeded DISABLED
- * because Benson v. United States enjoined enforcement — one toggle to
- * re-enable when that changes. OR (Measure 114) is intentionally NOT seeded.
+ * NON-DESTRUCTIVE per-row insert-only; safe on reinstall / partial crash.
  * ------------------------------------------------------------------------- */
-$seedRules = [
-	/* IL — Protect Illinois Communities Act / PA 102-1116. Different limits per type. */
-	[ 'state_code' => 'IL', 'firearm_type' => 'handgun', 'max_capacity' => 15, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'PA 102-1116 (Protect Illinois Communities Act, 2023)' ],
-	[ 'state_code' => 'IL', 'firearm_type' => 'rifle',   'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'PA 102-1116 (Protect Illinois Communities Act, 2023)' ],
-	[ 'state_code' => 'IL', 'firearm_type' => 'shotgun', 'max_capacity' => 5,  'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'PA 102-1116 (Protect Illinois Communities Act, 2023)' ],
-
-	/* VT — handguns 15, long guns 10 (Act 94 / 2018). */
-	[ 'state_code' => 'VT', 'firearm_type' => 'handgun', 'max_capacity' => 15, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'Act 94 / S.55 (2018)' ],
-	[ 'state_code' => 'VT', 'firearm_type' => 'rifle',   'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'Act 94 / S.55 (2018)' ],
-	[ 'state_code' => 'VT', 'firearm_type' => 'shotgun', 'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'Act 94 / S.55 (2018)' ],
-
-	/* CO — all 15 (HB 13-1224 / 2013). */
-	[ 'state_code' => 'CO', 'firearm_type' => 'all',     'max_capacity' => 15, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'HB 13-1224 (2013)' ],
-
-	/* DE — all 17 (HB 451 / 2022). */
-	[ 'state_code' => 'DE', 'firearm_type' => 'all',     'max_capacity' => 17, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'HB 451 (2022)' ],
-
-	/* CT — all 10 (PA 13-3 post-Sandy-Hook). */
-	[ 'state_code' => 'CT', 'firearm_type' => 'all',     'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'PA 13-3 (Act Concerning Gun Violence Prevention, 2013)' ],
-
-	/* MD — sale/transfer of >10 prohibited; possession of pre-existing legal. */
-	[ 'state_code' => 'MD', 'firearm_type' => 'all',     'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'MD Public Safety §4-305 (FSA 2013); sale/transfer only — possession legal' ],
-
-	/* MA — all 10. */
-	[ 'state_code' => 'MA', 'firearm_type' => 'all',     'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'MGL c.140 §131M (1998 / pre-existing grandfathered)' ],
-
-	/* NJ — A2761 (2018) reduced to 10. */
-	[ 'state_code' => 'NJ', 'firearm_type' => 'all',     'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'A2761 (Large Capacity Magazine Reduction, 2018)' ],
-
-	/* NY — SAFE Act / S2230 (2013) 10. */
-	[ 'state_code' => 'NY', 'firearm_type' => 'all',     'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'NY SAFE Act / S2230 (2013)' ],
-
-	/* WA — SB 5078 (2022) sale/transfer only. */
-	[ 'state_code' => 'WA', 'firearm_type' => 'all',     'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'SB 5078 (2022); sale/transfer only — possession legal' ],
-
-	/* RI — H7457 (2022) 10. */
-	[ 'state_code' => 'RI', 'firearm_type' => 'all',     'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'H7457 (2022)' ],
-
-	/* HI — handguns 10 only (no rifle/shotgun limit). */
-	[ 'state_code' => 'HI', 'firearm_type' => 'handgun', 'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'HRS §134-8 — handguns only' ],
-
-	/* CA — currently enforced (Duncan v Bonta litigation ongoing). */
-	[ 'state_code' => 'CA', 'firearm_type' => 'all',     'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 1, 'source_note' => 'CA Pen Code §32310 (in flux: Duncan v Bonta — verify before publishing)' ],
-
-	/* VA — SB 749 effective 2026-07-01 (auto-activates via date gate). */
-	[ 'state_code' => 'VA', 'firearm_type' => 'all',     'max_capacity' => 15, 'rule_type' => 'sale_transfer', 'effective_date' => '2026-07-01',   'expires_date' => null, 'enabled' => 1, 'source_note' => 'SB 749 (effective 2026-07-01)' ],
-
-	/* DC — seeded DISABLED; Benson v US currently enjoins enforcement. */
-	[ 'state_code' => 'DC', 'firearm_type' => 'all',     'max_capacity' => 10, 'rule_type' => 'sale_transfer', 'effective_date' => null,           'expires_date' => null, 'enabled' => 0, 'source_note' => 'DC Code §7-2506.01 (currently enjoined per Benson v United States)' ],
-];
-
 try
 {
-	$existingRules = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_rules' )->first();
-	if ( $existingRules === 0 )
-	{
-		$now = time();
-		foreach ( $seedRules as $r )
-		{
-			try
-			{
-				\IPS\Db::i()->insert( 'gd_compliance_rules', $r + [ 'updated_at' => $now ] );
-			}
-			catch ( \Throwable $e )
-			{
-				try { \IPS\Log::log( 'gdcompliance install rule seed: ' . $e->getMessage(), 'gdcompliance_install' ); } catch ( \Throwable ) {}
-			}
-		}
-	}
+	\IPS\gdcompliance\Seeder::seedMissingRules();
 }
 catch ( \Throwable $e )
 {

@@ -119,7 +119,7 @@ class _lookup extends \IPS\Dispatcher\Controller
 		$product = null;
 		try
 		{
-			$product = \IPS\Db::i()->select( 'upc, title, manufacturer, model, caliber, capacity', 'gd_catalog', [ 'upc=?', $upc ] )->first();
+			$product = \IPS\Db::i()->select( 'upc, title, manufacturer, model, caliber, capacity, category_id', 'gd_catalog', [ 'upc=?', $upc ] )->first();
 		}
 		catch ( \Throwable ) { $product = null; }
 
@@ -132,9 +132,14 @@ class _lookup extends \IPS\Dispatcher\Controller
 		$flags = [];
 		try
 		{
-			foreach ( \IPS\Db::i()->select( 'state_code, reason', 'gd_compliance_flags', [ 'upc=?', $upc ] ) as $f )
+			foreach ( \IPS\Db::i()->select( 'state_code, reason, rule_id, firearm_type, parsed_capacity', 'gd_compliance_flags', [ 'upc=?', $upc ] ) as $f )
 			{
-				$flags[ (string) $f['state_code'] ] = (string) $f['reason'];
+				$flags[ (string) $f['state_code'] ] = [
+					'reason'          => (string) $f['reason'],
+					'rule_id'         => (int)    ( $f['rule_id'] ?? 0 ),
+					'firearm_type'    => (string) ( $f['firearm_type'] ?? '' ),
+					'parsed_capacity' => $f['parsed_capacity'],
+				];
 			}
 		}
 		catch ( \Throwable ) {}
@@ -143,19 +148,72 @@ class _lookup extends \IPS\Dispatcher\Controller
 		$states = array_unique( array_merge( array_keys( $flags ), array_keys( $overrides ) ) );
 		sort( $states );
 
+		/* --- Diagnose why flags/type/capacity look the way they do --- */
+		$categoryId    = (int) ( $product['category_id'] ?? 0 );
+		$derivedType   = null;
+		try
+		{
+			$typeMap     = \IPS\gdcompliance\Engine::buildTypeMap();
+			$derivedType = $typeMap[ $categoryId ] ?? null;
+		}
+		catch ( \Throwable ) {}
+		$capRaw    = (string) ( $product['capacity'] ?? '' );
+		$parsedCap = null;
+		try { $parsedCap = \IPS\gdcompliance\Engine::parseCapacity( $capRaw ); } catch ( \Throwable ) {}
+
+		$totalFlagsInSystem = 0;
+		try { $totalFlagsInSystem = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_flags' )->first(); }
+		catch ( \Throwable ) {}
+
 		$out  = '<div class="ipsBox" style="margin-bottom:14px"><div class="ipsBox_body ipsPad">';
 		$out .= '<h2 class="ipsType_sectionHead" style="margin:0 0 10px"><span style="font-family:ui-monospace,monospace">' . $h( $product['upc'] ) . '</span></h2>';
 		$out .= '<p style="margin:0 0 4px"><strong>' . $h( (string) $product['manufacturer'] ) . '</strong> ' . $h( (string) $product['model'] ) . '</p>';
 		$out .= '<p style="margin:0 0 4px;color:#475569;font-size:13px">' . $h( (string) $product['title'] ) . '</p>';
-		$out .= '<p style="margin:0 0 14px;color:#64748b;font-size:12px">'
+		$out .= '<p style="margin:0 0 12px;color:#64748b;font-size:12px">'
 			. 'Caliber: ' . $h( (string) ( $product['caliber'] ?? '—' ) )
-			. ' &middot; Capacity: ' . $h( (string) ( $product['capacity'] ?? '—' ) )
+			. ' &middot; Raw capacity: ' . $h( $capRaw !== '' ? $capRaw : '—' )
+			. ' &middot; Parsed capacity: ' . ( $parsedCap === null ? '<em style="color:#dc2626">unparsed</em>' : '<strong>' . (int) $parsedCap . '</strong>' )
+			. ' &middot; Firearm type: ' . ( $derivedType === null ? '<em style="color:#dc2626">not a firearm category</em>' : '<strong>' . $h( $derivedType ) . '</strong>' )
+			. ' &middot; Category id: ' . $categoryId
 			. '</p>';
 
 		/* Per-state status + override buttons. */
 		if ( empty( $states ) )
 		{
-			$out .= '<p style="margin:0 0 10px;color:#94a3b8;font-style:italic">No computed flags or overrides for this UPC yet.</p>';
+			$reasons = [];
+			if ( $totalFlagsInSystem === 0 )
+			{
+				$reasons[] = '<strong>Flags table is empty</strong> — run Compute Flags in the ACP first.';
+			}
+			if ( $derivedType === null )
+			{
+				$reasons[] = 'This product\'s category (id ' . $categoryId . ') is not mapped to a firearm type (handgun / rifle / shotgun). Only firearm-category products are evaluated.';
+			}
+			if ( $parsedCap === null && $capRaw !== '' )
+			{
+				$reasons[] = 'Capacity "' . $h( $capRaw ) . '" could not be parsed to an integer.';
+			}
+			if ( $capRaw === '' && $derivedType !== null )
+			{
+				$reasons[] = 'Product has no capacity value in the catalog — capacity rules cannot apply.';
+			}
+			if ( $derivedType !== null && $parsedCap !== null )
+			{
+				$reasons[] = 'Capacity ' . (int) $parsedCap . ' falls at or below every enabled rule limit for firearm type <strong>' . $h( $derivedType ) . '</strong>.';
+			}
+			if ( empty( $reasons ) )
+			{
+				$reasons[] = 'No restrictions computed and no override set.';
+			}
+
+			$out .= '<div style="margin:0 0 12px;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">'
+				. '<p style="margin:0 0 8px;font-weight:700;color:#334155">' . $h( $lang->addToStack( 'gdcompliance_acp_lookup_no_flags' ) ) . '</p>'
+				. '<ul style="margin:0;padding-left:20px;color:#475569;font-size:13px;line-height:1.5">';
+			foreach ( $reasons as $why )
+			{
+				$out .= '<li>' . $why . '</li>';
+			}
+			$out .= '</ul></div>';
 		}
 		else
 		{
@@ -168,7 +226,8 @@ class _lookup extends \IPS\Dispatcher\Controller
 				. '</tr></thead><tbody>';
 			foreach ( $states as $st )
 			{
-				$flagReason = $flags[ $st ] ?? '';
+				$flagRow    = $flags[ $st ] ?? null;
+				$flagReason = is_array( $flagRow ) ? (string) ( $flagRow['reason'] ?? '' ) : (string) $flagRow;
 				$ov         = $overrides[ $st ] ?? null;
 				$ovLabel    = $ov ? '<strong style="color:' . ( $ov['action'] === 'force_restrict' ? '#991b1b' : '#14532d' ) . '">' . strtoupper( (string) $ov['action'] ) . '</strong>' . ( $ov['reason'] ? '<br><span style="color:#64748b;font-size:12px">' . $h( (string) $ov['reason'] ) . '</span>' : '' ) : '<span style="color:#cbd5e1">—</span>';
 

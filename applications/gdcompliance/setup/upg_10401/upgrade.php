@@ -1,39 +1,23 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.4.0 (Phase 5: frontend restriction display)
+ * @brief  GD Compliance — upgrade 1.4.1
  *
- * Self-contained per rule #79. Carries every migration from the v1.1.0
- * baseline forward:
+ * Non-destructive stability release:
+ *   - Idempotent reseed of any MISSING canonical rules via Seeder — the
+ *     1.3.0 crash-mid-install left rulesets partial on some installs;
+ *     this brings them back to the full 19-row set WITHOUT touching any
+ *     rule Derrick has edited (per-(state, type) existence check).
+ *   - Never deletes rules or overrides. They are permanent reference
+ *     data.
  *
- *   Phase 3 (v1.2.0 + v1.2.1):
- *     - Rename gd_compliance_ca_roster → gd_compliance_roster
- *     - Add roster_state, blanket, date_approved, list_type,
- *       blanket_caliber, source_label, as_of_date, source columns
- *     - Backfill roster_state='CA' + list_type='approved'
- *     - Add roster_state to gd_compliance_review + backfill
- *     - Seed MA/MD roster URL + DC derive settings
- *
- *   Phase 4 (v1.3.0):
- *     - CREATE gd_compliance_overrides (UNIQUE upc+state_code) — at the
- *       CORRECTED VARCHAR(20) width (v1.3.1 fix baked in from CREATE).
- *
- *   Phase 4 patch (v1.3.1):
- *     - Guarded MODIFY overrides.action → VARCHAR(20) on any install
- *       where the narrow column slipped through.
- *
- *   Phase 5 (v1.4.0 — NEW):
- *     - Seed gdcompliance_front_enabled / show_reasons / disclaimer
- *     - Purge canonical_templates cache so the new front partials load
- *
- *   Every version:
- *     - Re-seed dev/lang.php → core_sys_lang_words
- *     - Cache clear + opcache reset
- *
- * All ALTERs guarded (information_schema check + \Throwable catch) so
- * re-runs are no-ops. Never auto-fetches any roster.
+ * Self-contained per rule #79. Also carries every migration since the
+ * v1.1.0 baseline forward (Phase 3 rename/columns, Phase 4 CREATE
+ * overrides at VARCHAR(20), Phase 4 patch MODIFY guard, Phase 5 front
+ * settings), plus canonical_templates cache purge + lang reseed +
+ * opcache reset.
  */
 
-namespace IPS\gdcompliance\setup\upg_10400;
+namespace IPS\gdcompliance\setup\upg_10401;
 
 use function defined;
 
@@ -53,7 +37,6 @@ class _upgrade
 		 * PHASE 3 MIGRATIONS — carried forward.
 		 * ============================================================ */
 
-		/* (1) Rename gd_compliance_ca_roster → gd_compliance_roster. */
 		try
 		{
 			$old = false;
@@ -114,10 +97,9 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10400 RENAME/CREATE roster: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10401 RENAME/CREATE roster: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
-		/* (2) Guarded ALTERs — all Phase-3 columns. */
 		$rosterColumns = [
 			'roster_state'    => "CHAR(2) NOT NULL DEFAULT 'CA'",
 			'list_type'       => "VARCHAR(12) NOT NULL DEFAULT 'approved'",
@@ -149,15 +131,13 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10400 ALTER roster.' . $col . ': ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10401 ALTER roster.' . $col . ': ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 			}
 		}
 
-		/* (3) Backfill. */
 		try { \IPS\Db::i()->update( 'gd_compliance_roster', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->update( 'gd_compliance_roster', [ 'list_type'    => 'approved' ], [ "list_type='' OR list_type IS NULL" ] ); } catch ( \Throwable ) {}
 
-		/* (4) Review table — add roster_state if not yet present. */
 		try
 		{
 			$has = false;
@@ -176,7 +156,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10400 ALTER review.roster_state: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10401 ALTER review.roster_state: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 		try { \IPS\Db::i()->update( 'gd_compliance_review', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 
@@ -214,13 +194,10 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10400 CREATE overrides: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10401 CREATE overrides: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
-		/* ============================================================
-		 * PHASE 4 PATCH (v1.3.1) — widen overrides.action if narrow.
-		 * ============================================================ */
-
+		/* Phase 4 patch (v1.3.1) — guarded widen of overrides.action. */
 		try
 		{
 			$len = 0;
@@ -248,7 +225,27 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10400 MODIFY overrides.action: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10401 MODIFY overrides.action: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+		}
+
+		/* Clean up any stray staging table left by an interrupted compute run. */
+		try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $prefix . "gd_compliance_flags_stage" ); } catch ( \Throwable ) {}
+		try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $prefix . "gd_compliance_flags_old" ); } catch ( \Throwable ) {}
+
+		/* ============================================================
+		 * v1.4.1 — RESEED ANY MISSING RULES (idempotent, non-destructive).
+		 * This is why upg_10401 exists. Every existing rule stays put;
+		 * any missing (state, type) canonical entry gets inserted.
+		 * ============================================================ */
+
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Seeder.php';
+			\IPS\gdcompliance\Seeder::seedMissingRules();
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10401 seedMissingRules: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		/* ============================================================
@@ -318,14 +315,14 @@ class _upgrade
 		 * CACHE CLEAR + PURGE canonical_templates + OPCACHE.
 		 * ============================================================ */
 
-		try { unset( \IPS\Data\Store::i()->settings ); }         catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->acpmenu ); }          catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->extensions ); }       catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->applications ); }     catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->widgets ); }          catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->settings ); }             catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->acpmenu ); }              catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->extensions ); }           catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); }         catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->widgets ); }              catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->canonical_templates ); } catch ( \Throwable ) {}
-		try { \IPS\Data\Store::i()->clearAll(); }                catch ( \Throwable ) {}
-		try { \IPS\Data\Cache::i()->clearAll(); }                catch ( \Throwable ) {}
+		try { \IPS\Data\Store::i()->clearAll(); }                    catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }                    catch ( \Throwable ) {}
 		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
 
 		return TRUE;

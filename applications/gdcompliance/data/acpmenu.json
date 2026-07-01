@@ -36,6 +36,12 @@
 			"do": "",
 			"restriction": "compliance_manage"
 		},
+		"browser": {
+			"tab": "gdcompliance",
+			"controller": "browser",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
 		"settings": {
 			"tab": "gdcompliance",
 			"controller": "settings",

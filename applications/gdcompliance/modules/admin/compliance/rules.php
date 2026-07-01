@@ -31,6 +31,18 @@ class _rules extends \IPS\Dispatcher\Controller
 	{
 		$lang = \IPS\Member::loggedIn()->language();
 
+		$reseedBanner = '';
+		if ( isset( \IPS\Request::i()->reseed_inserted ) )
+		{
+			$ins = (int) \IPS\Request::i()->reseed_inserted;
+			$skp = (int) ( \IPS\Request::i()->reseed_skipped ?? 0 );
+			$fld = (int) ( \IPS\Request::i()->reseed_failed  ?? 0 );
+			$reseedBanner = '<div class="ipsBox" style="margin-bottom:14px;border-left:4px solid #059669"><div class="ipsBox_body ipsPad" style="background:#ecfdf5">'
+				. '<strong style="color:#065f46">' . htmlspecialchars( (string) $lang->addToStack( 'gdcompliance_acp_rules_reseed_done' ), ENT_QUOTES, 'UTF-8' ) . '</strong>'
+				. ' &mdash; ' . sprintf( '%d inserted, %d skipped (already present), %d failed', $ins, $skp, $fld )
+				. '</div></div>';
+		}
+
 		$baseUrl = \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=rules' );
 
 		$table = new \IPS\Helpers\Table\Db( 'gd_compliance_rules', $baseUrl );
@@ -86,12 +98,17 @@ class _rules extends \IPS\Dispatcher\Controller
 			return $btns;
 		};
 
-		$addUrl = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=rules&do=form' );
-		$intro  = '<div class="ipsBox" style="margin-bottom:14px"><div class="ipsBox_body ipsPad">'
+		$addUrl    = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=rules&do=form' );
+		$reseedUrl = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=rules&do=reseed' )->csrf();
+		$intro     = '<div class="ipsBox" style="margin-bottom:14px"><div class="ipsBox_body ipsPad">'
 			. '<p style="margin:0 0 10px">' . htmlspecialchars( (string) $lang->addToStack( 'gdcompliance_acp_rules_intro' ), ENT_QUOTES, 'UTF-8' ) . '</p>'
-			. "<a href='" . htmlspecialchars( $addUrl, ENT_QUOTES ) . "' class='ipsButton ipsButton--primary ipsButton--small'>"
+			. "<a href='" . htmlspecialchars( $addUrl, ENT_QUOTES ) . "' class='ipsButton ipsButton--primary ipsButton--small' style='margin-right:6px'>"
 			. htmlspecialchars( (string) $lang->addToStack( 'gdcompliance_acp_rules_add' ), ENT_QUOTES, 'UTF-8' )
-			. "</a></div></div>";
+			. "</a>"
+			. "<a href='" . htmlspecialchars( $reseedUrl, ENT_QUOTES ) . "' class='ipsButton ipsButton--secondary ipsButton--small'>"
+			. htmlspecialchars( (string) $lang->addToStack( 'gdcompliance_acp_rules_reseed' ), ENT_QUOTES, 'UTF-8' )
+			. "</a>"
+			. "</div></div>";
 
 		\IPS\Output::i()->title  = $lang->addToStack( 'gdcompliance_acp_rules_title' );
 		\IPS\Output::i()->output = $intro . (string) $table;
@@ -186,6 +203,38 @@ class _rules extends \IPS\Dispatcher\Controller
 			try { \IPS\Db::i()->delete( 'gd_compliance_rules', [ 'id=?', $id ] ); } catch ( \Throwable ) {}
 		}
 		\IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=rules' ), 'deleted' );
+	}
+
+	/**
+	 * Reseed any missing base rules — idempotent, never deletes existing.
+	 * Rebuilds the canonical mid-2026 set on top of whatever's there;
+	 * rows for (state, type) pairs that already exist are left untouched.
+	 */
+	protected function reseed(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$counts = [ 'inserted' => 0, 'skipped' => 0, 'failed' => 0 ];
+		try
+		{
+			$counts = \IPS\gdcompliance\Seeder::seedMissingRules();
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'rules reseed: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		\IPS\Session::i()->log( 'acplog__gdcompliance_rules_reseeded' );
+
+		$msg = sprintf( 'gdcompliance_acp_rules_reseed_result_%d_%d_%d', $counts['inserted'], $counts['skipped'], $counts['failed'] );
+		$url = \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=rules' )
+			->setQueryString( [
+				'reseed_inserted' => (int) $counts['inserted'],
+				'reseed_skipped'  => (int) $counts['skipped'],
+				'reseed_failed'   => (int) $counts['failed'],
+			] );
+
+		\IPS\Output::i()->redirect( $url, 'saved' );
 	}
 
 	protected static function cleanDate( string $v ): ?string

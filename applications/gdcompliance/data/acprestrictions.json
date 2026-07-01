@@ -6,6 +6,7 @@
 		"review":    { "compliance_manage": "compliance_manage" },
 		"overrides": { "compliance_manage": "compliance_manage" },
 		"lookup":    { "compliance_manage": "compliance_manage" },
+		"browser":   { "compliance_manage": "compliance_manage" },
 		"settings":  { "compliance_manage": "compliance_manage" }
 	}
 }

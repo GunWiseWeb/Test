@@ -325,27 +325,88 @@ class _Engine
 			return $result;
 		}
 
-		/* Real run — replace prior flags + unparsed tallies. */
-		try
-		{
-			\IPS\Db::i()->delete( 'gd_compliance_flags' );
-		}
+		/* -----------------------------------------------------------
+		 * CRASH-SAFE FLAG REBUILD
+		 *
+		 * Never wipe the old flag set until the new one is proven to
+		 * insert cleanly. We use a per-run staging table:
+		 *   (1) CREATE gd_compliance_flags_stage LIKE gd_compliance_flags
+		 *   (2) INSERT all new rows into stage in chunks
+		 *   (3) If ANY chunk fails → drop stage, log, keep old flags
+		 *   (4) On success → atomic RENAME swap; drop the old table
+		 *
+		 * NEVER touches gd_compliance_rules or gd_compliance_overrides.
+		 * ----------------------------------------------------------- */
+		$prefix     = (string) \IPS\Db::i()->prefix;
+		$stageTable = $prefix . 'gd_compliance_flags_stage';
+		$oldTable   = $prefix . 'gd_compliance_flags_old';
+		$mainTable  = $prefix . 'gd_compliance_flags';
+
+		$oldFlagCount = 0;
+		try { $oldFlagCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_flags' )->first(); }
 		catch ( \Throwable ) {}
 
-		if ( !empty( $flags ) )
+		/* Sanity guard: if we had ANY existing flags and the new set is
+		   empty AND rules + firearms both scanned, treat as a probable
+		   compute failure and keep old flags. */
+		if ( $oldFlagCount > 0 && empty( $flags ) && !empty( $rules ) && $result['firearms'] > 0 )
 		{
-			/* Batch insert in chunks of 500 so a 100k-row write doesn't bloat
-			   memory or hit max_allowed_packet. */
-			$chunks = array_chunk( $flags, 500 );
-			foreach ( $chunks as $chunk )
+			try { \IPS\Log::log( 'Engine::computeFlags: computed zero flags but had ' . $oldFlagCount . ' pre-existing — refusing to wipe.', 'gdcompliance' ); } catch ( \Throwable ) {}
+			$result['flags_skipped_wipe'] = true;
+		}
+		else
+		{
+			/* Clean up any orphan stage from a previously-interrupted run. */
+			try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $stageTable ); } catch ( \Throwable ) {}
+
+			$swapOk = true;
+			try
+			{
+				\IPS\Db::i()->query( "CREATE TABLE " . $stageTable . " LIKE " . $mainTable );
+
+				if ( !empty( $flags ) )
+				{
+					foreach ( array_chunk( $flags, 500 ) as $chunk )
+					{
+						\IPS\Db::i()->insert( $stageTable, $chunk );
+					}
+				}
+			}
+			catch ( \Throwable $e )
+			{
+				$swapOk = false;
+				try { \IPS\Log::log( 'Engine::computeFlags stage build: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+				try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $stageTable ); } catch ( \Throwable ) {}
+				$result['flags_skipped_wipe'] = true;
+			}
+
+			if ( $swapOk )
 			{
 				try
 				{
-					\IPS\Db::i()->insert( 'gd_compliance_flags', $chunk );
+					/* Atomic swap: old data disappears only when new data
+					   is fully in place. */
+					\IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $oldTable );
+					\IPS\Db::i()->query( "RENAME TABLE " . $mainTable . " TO " . $oldTable . ", " . $stageTable . " TO " . $mainTable );
+					\IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $oldTable );
 				}
 				catch ( \Throwable $e )
 				{
-					try { \IPS\Log::log( 'Engine::computeFlags insert: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+					try { \IPS\Log::log( 'Engine::computeFlags swap: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+					/* Attempt to restore if only half the RENAME committed. */
+					try
+					{
+						$mainExists = (bool) \IPS\Db::i()->select( 'COUNT(*)', 'information_schema.TABLES',
+							[ 'TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', 'gd_compliance_flags' ] )->first();
+						$oldExists = (bool) \IPS\Db::i()->select( 'COUNT(*)', 'information_schema.TABLES',
+							[ 'TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', 'gd_compliance_flags_old' ] )->first();
+						if ( !$mainExists && $oldExists )
+						{
+							\IPS\Db::i()->query( "RENAME TABLE " . $oldTable . " TO " . $mainTable );
+						}
+					}
+					catch ( \Throwable ) {}
+					$result['flags_skipped_wipe'] = true;
 				}
 			}
 		}

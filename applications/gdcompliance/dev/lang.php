@@ -13,6 +13,7 @@ $lang = array(
 	'menu__gdcompliance_compliance_review'     => 'Review Queue',
 	'menu__gdcompliance_compliance_overrides'  => 'Manual Overrides',
 	'menu__gdcompliance_compliance_lookup'     => 'Product Lookup',
+	'menu__gdcompliance_compliance_browser'    => 'Restrictions Browser',
 	'menu__gdcompliance_compliance_settings'   => 'Settings',
 
 	/* Front module + nav */
@@ -23,6 +24,9 @@ $lang = array(
 	'gdcompliance_acp_rules_title'             => 'Compliance Rules',
 	'gdcompliance_acp_rules_intro'             => 'Edit the state magazine-capacity rules used to flag products. Disabling a rule (or letting expires_date pass) stops it from flagging without deleting the row. A rule applies only when enabled AND inside its effective_date/expires_date window. Capacity strictly greater than max_capacity flags the product.',
 	'gdcompliance_acp_rules_add'               => 'Add rule',
+	'gdcompliance_acp_rules_reseed'            => 'Reseed missing rules',
+	'gdcompliance_acp_rules_reseed_done'      => 'Reseed complete',
+	'acplog__gdcompliance_rules_reseeded'      => 'Reseeded canonical compliance rules (non-destructive)',
 	'gdcompliance_acp_compute_title'           => 'Compute Compliance Flags',
 	'gdcompliance_acp_compute_intro'           => 'Recomputes gd_compliance_flags from gd_catalog × the active rule set. gd_catalog is never modified. Always preview first.',
 	'gdcompliance_acp_compute_preview'         => 'Preview (dry run)',
@@ -159,6 +163,16 @@ $lang = array(
 	'gdcompliance_acp_lookup_intro'            => 'Find a catalog product by UPC or title. See computed flags AND overrides per state, and set force-restrict / force-clear overrides directly from the detail view.',
 	'gdcompliance_acp_lookup_search'           => 'UPC or title',
 	'gdcompliance_acp_search_go'               => 'Search',
+	'gdcompliance_acp_lookup_no_flags'         => 'No restrictions computed for this UPC',
+
+	/* v1.4.1 — Restrictions Browser */
+	'gdcompliance_acp_browser_title'           => 'Restrictions Browser',
+	'gdcompliance_acp_browser_intro'           => 'Search / filter every product currently flagged in gd_compliance_flags. Filter by state, reason type (capacity / roster / manual override), or free-text (UPC or product title). This is the "what products are actually flagged right now" view.',
+	'gdcompliance_acp_browser_q'               => 'UPC or product title',
+	'gdcompliance_acp_browser_state'           => 'State',
+	'gdcompliance_acp_browser_type'            => 'Type',
+	'gdcompliance_acp_browser_showing'         => 'Showing',
+	'gdcompliance_acp_browser_empty'           => 'No flagged products match those filters.',
 
 	/* Compute overrides summary strip */
 	'gdcompliance_acp_compute_overrides'       => 'Overrides applied',

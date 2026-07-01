@@ -10,7 +10,19 @@
 <word key="menu__gdcompliance_compliance_review" js="0"><![CDATA[Review Queue]]></word>
 <word key="menu__gdcompliance_compliance_overrides" js="0"><![CDATA[Manual Overrides]]></word>
 <word key="menu__gdcompliance_compliance_lookup" js="0"><![CDATA[Product Lookup]]></word>
+<word key="menu__gdcompliance_compliance_browser" js="0"><![CDATA[Restrictions Browser]]></word>
 <word key="menu__gdcompliance_compliance_settings" js="0"><![CDATA[Settings]]></word>
+<word key="gdcompliance_acp_rules_reseed" js="0"><![CDATA[Reseed missing rules]]></word>
+<word key="gdcompliance_acp_rules_reseed_done" js="0"><![CDATA[Reseed complete]]></word>
+<word key="acplog__gdcompliance_rules_reseeded" js="0"><![CDATA[Reseeded canonical compliance rules (non-destructive)]]></word>
+<word key="gdcompliance_acp_lookup_no_flags" js="0"><![CDATA[No restrictions computed for this UPC]]></word>
+<word key="gdcompliance_acp_browser_title" js="0"><![CDATA[Restrictions Browser]]></word>
+<word key="gdcompliance_acp_browser_intro" js="0"><![CDATA[Search / filter every product currently flagged in gd_compliance_flags. Filter by state, reason type (capacity / roster / manual override), or free-text (UPC or product title). This is the "what products are actually flagged right now" view.]]></word>
+<word key="gdcompliance_acp_browser_q" js="0"><![CDATA[UPC or product title]]></word>
+<word key="gdcompliance_acp_browser_state" js="0"><![CDATA[State]]></word>
+<word key="gdcompliance_acp_browser_type" js="0"><![CDATA[Type]]></word>
+<word key="gdcompliance_acp_browser_showing" js="0"><![CDATA[Showing]]></word>
+<word key="gdcompliance_acp_browser_empty" js="0"><![CDATA[No flagged products match those filters.]]></word>
 <word key="gdcompliance_settings_general" js="0"><![CDATA[General]]></word>
 <word key="gdcompliance_settings_urls" js="0"><![CDATA[Roster URLs]]></word>
 <word key="gdcompliance_autosync_enabled" js="0"><![CDATA[Enable auto-sync]]></word>
