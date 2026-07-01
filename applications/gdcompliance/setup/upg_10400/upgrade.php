@@ -1,29 +1,29 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.3.1 (schema patch: overrides.action length)
+ * @brief  GD Compliance — upgrade 1.4.0 (Phase 5: frontend restriction display)
  *
- * Fixes MySQL error 1067: v1.3.0 defined
- *   `action VARCHAR(12) NOT NULL DEFAULT 'force_restrict'`
- * but 'force_restrict' is 14 chars → default exceeded column length →
- * CREATE TABLE / row inserts failed on prod. v1.3.1 widens the column to
- * VARCHAR(20) and MODIFYs any already-installed narrow column.
- *
- * Self-contained per rule #79. Covers every migration since the last
- * shipped tarball's baseline (v1.0.0, v1.1.0, v1.2.0, v1.2.1, v1.3.0):
+ * Self-contained per rule #79. Carries every migration from the v1.1.0
+ * baseline forward:
  *
  *   Phase 3 (v1.2.0 + v1.2.1):
  *     - Rename gd_compliance_ca_roster → gd_compliance_roster
  *     - Add roster_state, blanket, date_approved, list_type,
- *       blanket_caliber, source_label, as_of_date, source
+ *       blanket_caliber, source_label, as_of_date, source columns
  *     - Backfill roster_state='CA' + list_type='approved'
  *     - Add roster_state to gd_compliance_review + backfill
  *     - Seed MA/MD roster URL + DC derive settings
  *
  *   Phase 4 (v1.3.0):
- *     - CREATE gd_compliance_overrides (UNIQUE upc+state_code)
+ *     - CREATE gd_compliance_overrides (UNIQUE upc+state_code) — at the
+ *       CORRECTED VARCHAR(20) width (v1.3.1 fix baked in from CREATE).
  *
- *   Phase 4 patch (v1.3.1 — NEW):
- *     - ALTER MODIFY overrides.action VARCHAR(20) NOT NULL DEFAULT 'force_restrict'
+ *   Phase 4 patch (v1.3.1):
+ *     - Guarded MODIFY overrides.action → VARCHAR(20) on any install
+ *       where the narrow column slipped through.
+ *
+ *   Phase 5 (v1.4.0 — NEW):
+ *     - Seed gdcompliance_front_enabled / show_reasons / disclaimer
+ *     - Purge canonical_templates cache so the new front partials load
  *
  *   Every version:
  *     - Re-seed dev/lang.php → core_sys_lang_words
@@ -33,7 +33,7 @@
  * re-runs are no-ops. Never auto-fetches any roster.
  */
 
-namespace IPS\gdcompliance\setup\upg_10301;
+namespace IPS\gdcompliance\setup\upg_10400;
 
 use function defined;
 
@@ -53,9 +53,7 @@ class _upgrade
 		 * PHASE 3 MIGRATIONS — carried forward.
 		 * ============================================================ */
 
-		/* (1) Rename gd_compliance_ca_roster → gd_compliance_roster if
-		   the 1.1.0 table name is still present. Fall back to CREATE
-		   if neither table exists. */
+		/* (1) Rename gd_compliance_ca_roster → gd_compliance_roster. */
 		try
 		{
 			$old = false;
@@ -116,7 +114,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10301 RENAME/CREATE roster: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10400 RENAME/CREATE roster: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		/* (2) Guarded ALTERs — all Phase-3 columns. */
@@ -151,11 +149,11 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10301 ALTER roster.' . $col . ': ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10400 ALTER roster.' . $col . ': ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 			}
 		}
 
-		/* (3) Backfill roster_state='CA' + list_type='approved'. */
+		/* (3) Backfill. */
 		try { \IPS\Db::i()->update( 'gd_compliance_roster', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->update( 'gd_compliance_roster', [ 'list_type'    => 'approved' ], [ "list_type='' OR list_type IS NULL" ] ); } catch ( \Throwable ) {}
 
@@ -178,13 +176,12 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10301 ALTER review.roster_state: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10400 ALTER review.roster_state: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 		try { \IPS\Db::i()->update( 'gd_compliance_review', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 
 		/* ============================================================
-		 * PHASE 4 (v1.3.0) — CREATE gd_compliance_overrides — but with
-		 * the CORRECTED VARCHAR(20) length so fresh CREATE succeeds.
+		 * PHASE 4 (v1.3.0) — gd_compliance_overrides at CORRECTED width.
 		 * ============================================================ */
 
 		try
@@ -217,13 +214,11 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10301 CREATE overrides: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10400 CREATE overrides: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		/* ============================================================
-		 * PHASE 4 PATCH (v1.3.1 — NEW) — widen action column on any
-		 * install where v1.3.0 slipped through with VARCHAR(12).
-		 * MODIFY is idempotent — safe to re-run.
+		 * PHASE 4 PATCH (v1.3.1) — widen overrides.action if narrow.
 		 * ============================================================ */
 
 		try
@@ -253,11 +248,11 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10301 MODIFY overrides.action: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10400 MODIFY overrides.action: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		/* ============================================================
-		 * SETTINGS SEED — MA/MD roster URLs + DC derive.
+		 * SETTINGS SEED — Phase 3 URLs + Phase 5 frontend toggles.
 		 * ============================================================ */
 
 		foreach ( [
@@ -265,6 +260,9 @@ class _upgrade
 			[ 'gdcompliance_md_roster_url',      'https://dlslibrary.state.md.us/publications/Exec/MDSP/PS5-405(a)_2026(1).pdf', 'none' ],
 			[ 'gdcompliance_md_disapproved_url', 'https://mdsp.maryland.gov/media/594', 'none' ],
 			[ 'gdcompliance_dc_derive',          '1', 'full' ],
+			[ 'gdcompliance_front_enabled',      '1', 'full' ],
+			[ 'gdcompliance_front_show_reasons', '1', 'full' ],
+			[ 'gdcompliance_front_disclaimer',   'Restrictions are provided as guidance and may not reflect the most current law; verify before purchase.', 'none' ],
 		] as [ $k, $v, $r ] )
 		{
 			try
@@ -281,8 +279,7 @@ class _upgrade
 		}
 
 		/* ============================================================
-		 * LANG RESEED — dev/lang.php → core_sys_lang_words for every
-		 * language. 6-column IPS 5.0.18 schema (rule #43).
+		 * LANG RESEED — 6-column schema (rule #43).
 		 * ============================================================ */
 
 		$langFile = \IPS\ROOT_PATH . '/applications/gdcompliance/dev/lang.php';
@@ -318,15 +315,17 @@ class _upgrade
 		}
 
 		/* ============================================================
-		 * CACHE CLEAR + OPCACHE.
+		 * CACHE CLEAR + PURGE canonical_templates + OPCACHE.
 		 * ============================================================ */
 
-		try { unset( \IPS\Data\Store::i()->settings ); }     catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->acpmenu ); }      catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
-		try { \IPS\Data\Store::i()->clearAll(); }            catch ( \Throwable ) {}
-		try { \IPS\Data\Cache::i()->clearAll(); }            catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->settings ); }         catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->acpmenu ); }          catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->extensions ); }       catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); }     catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->widgets ); }          catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->canonical_templates ); } catch ( \Throwable ) {}
+		try { \IPS\Data\Store::i()->clearAll(); }                catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }                catch ( \Throwable ) {}
 		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
 
 		return TRUE;

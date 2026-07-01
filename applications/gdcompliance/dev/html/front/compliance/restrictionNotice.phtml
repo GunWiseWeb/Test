@@ -1,0 +1,30 @@
+<ips:template parameters="$rows, $summary, $showReasons, $disclaimer" />
+{{if !empty($rows)}}
+<div class="gdcompliance gdcompliance-notice" role="region" aria-label="{lang='gdcompliance_front_heading'}">
+	<div class="gdcompliance-notice__head">
+		<span class="gdcompliance-notice__icon" aria-hidden="true">&#9888;</span>
+		<div class="gdcompliance-notice__title">
+			<strong>{lang="gdcompliance_front_heading"}</strong>
+			<span class="gdcompliance-notice__count">{lang="gdcompliance_front_intro"} {expression="implode(', ', $summary['states'])"}</span>
+		</div>
+	</div>
+
+	{{if $showReasons}}
+	<ul class="gdcompliance-notice__list">
+		{{foreach $rows as $r}}
+		<li class="gdcompliance-notice__item gdcompliance-notice__item--{$r['type']}">
+			<span class="gdcompliance-notice__state" title="{$r['state']}">{$r['state']}</span>
+			<span class="gdcompliance-notice__reason">{$r['reason']}</span>
+			<span class="gdcompliance-notice__type" aria-label="{$r['type']}">
+				{{if $r['type'] === 'capacity'}}{lang="gdcompliance_reason_capacity"}{{endif}}
+				{{if $r['type'] === 'roster'}}{lang="gdcompliance_reason_roster"}{{endif}}
+				{{if $r['type'] === 'override'}}{lang="gdcompliance_reason_override"}{{endif}}
+			</span>
+		</li>
+		{{endforeach}}
+	</ul>
+	{{endif}}
+
+	<div class="gdcompliance-notice__disclaimer">{$disclaimer}</div>
+</div>
+{{endif}}

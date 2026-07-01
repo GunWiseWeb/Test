@@ -4,5 +4,8 @@
 	{"key": "gdcompliance_ma_roster_url",          "default": "https://www.mass.gov/doc/approved-handgun-roster-april-2026/download", "report": "none"},
 	{"key": "gdcompliance_md_roster_url",          "default": "https://dlslibrary.state.md.us/publications/Exec/MDSP/PS5-405(a)_2026(1).pdf", "report": "none"},
 	{"key": "gdcompliance_md_disapproved_url",     "default": "https://mdsp.maryland.gov/media/594", "report": "none"},
-	{"key": "gdcompliance_dc_derive",              "default": "1",  "report": "full"}
+	{"key": "gdcompliance_dc_derive",              "default": "1",  "report": "full"},
+	{"key": "gdcompliance_front_enabled",          "default": "1",  "report": "full"},
+	{"key": "gdcompliance_front_show_reasons",     "default": "1",  "report": "full"},
+	{"key": "gdcompliance_front_disclaimer",       "default": "Restrictions are provided as guidance and may not reflect the most current law; verify before purchase.", "report": "none"}
 ]

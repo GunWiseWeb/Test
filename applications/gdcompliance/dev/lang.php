@@ -13,6 +13,7 @@ $lang = array(
 	'menu__gdcompliance_compliance_review'     => 'Review Queue',
 	'menu__gdcompliance_compliance_overrides'  => 'Manual Overrides',
 	'menu__gdcompliance_compliance_lookup'     => 'Product Lookup',
+	'menu__gdcompliance_compliance_settings'   => 'Settings',
 
 	/* Front module + nav */
 	'module__gdcompliance_compliance'          => 'Compliance',
@@ -166,4 +167,27 @@ $lang = array(
 	'gdcompliance_page_title'                  => 'State Compliance Rules',
 	'gdcompliance_page_intro'                  => 'Active state magazine-capacity restrictions applied to the GunRack catalog.',
 	'gdcompliance_page_empty'                  => 'No active rules.',
+
+	/* Phase 5 — Frontend restriction notice (storefront product page) */
+	'gdcompliance_front_heading'               => 'Sales Restrictions',
+	'gdcompliance_front_intro'                 => 'This item may not be available for sale or shipment into:',
+	'gdcompliance_front_disclaimer'            => 'Restrictions are provided as guidance and may not reflect the most current law; verify before purchase.',
+	'gdcompliance_front_state_prefix'          => 'Restricted in',
+	'gdcompliance_restricted_badge'            => 'Restricted in %d states',
+	'gdcompliance_reason_capacity'             => 'Capacity',
+	'gdcompliance_reason_roster'               => 'Roster',
+	'gdcompliance_reason_override'             => 'Manual',
+
+	/* Phase 5 — ACP settings page */
+	'gdcompliance_acp_settings_title'          => 'Frontend Restriction Display',
+	'gdcompliance_front_enabled'               => 'Show restriction panel on storefront',
+	'gdcompliance_front_enabled_desc'          => 'Master toggle. When off, no "Sales Restrictions" panels render on product pages or grids.',
+	'gdcompliance_front_show_reasons'          => 'Show per-state reason on each row',
+	'gdcompliance_front_show_reasons_desc'     => 'When off, the panel lists only the state codes; when on, each state shows its detected reason (capacity vs roster vs manual).',
+	'gdcompliance_front_disclaimer_desc'       => 'Displayed at the bottom of every restriction panel. FFL guidance framing recommended.',
+	'acplog__gdcompliance_settings_saved'      => 'Saved frontend restriction display settings',
+
+	/* Phase 5 — Widget */
+	'block_gdRestrictionNotice'                => 'Product Restriction Notice',
+	'gdcompliance_widget_upc_fallback'         => 'Fallback UPC (only used if no product UPC in URL)',
 );

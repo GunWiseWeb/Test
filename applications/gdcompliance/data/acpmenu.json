@@ -35,6 +35,12 @@
 			"controller": "lookup",
 			"do": "",
 			"restriction": "compliance_manage"
+		},
+		"settings": {
+			"tab": "gdcompliance",
+			"controller": "settings",
+			"do": "",
+			"restriction": "compliance_manage"
 		}
 	}
 }

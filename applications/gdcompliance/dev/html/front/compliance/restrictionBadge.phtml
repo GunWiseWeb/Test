@@ -1,0 +1,7 @@
+<ips:template parameters="$summary" />
+{{if $summary['count'] > 0}}
+<span class="gdcompliance gdcompliance-badge" title="{expression="implode(', ', $summary['states'])"}">
+	<span class="gdcompliance-badge__icon" aria-hidden="true">&#9888;</span>
+	<span class="gdcompliance-badge__text">{lang="gdcompliance_restricted_badge" sprintf="$summary['count']"}</span>
+</span>
+{{endif}}

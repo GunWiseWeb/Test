@@ -10,6 +10,7 @@
 <word key="menu__gdcompliance_compliance_review" js="0"><![CDATA[Review Queue]]></word>
 <word key="menu__gdcompliance_compliance_overrides" js="0"><![CDATA[Manual Overrides]]></word>
 <word key="menu__gdcompliance_compliance_lookup" js="0"><![CDATA[Product Lookup]]></word>
+<word key="menu__gdcompliance_compliance_settings" js="0"><![CDATA[Settings]]></word>
 <word key="gdcompliance_settings_general" js="0"><![CDATA[General]]></word>
 <word key="gdcompliance_settings_urls" js="0"><![CDATA[Roster URLs]]></word>
 <word key="gdcompliance_autosync_enabled" js="0"><![CDATA[Enable auto-sync]]></word>
@@ -130,5 +131,22 @@
 <word key="gdcompliance_page_title" js="0"><![CDATA[State Compliance Rules]]></word>
 <word key="gdcompliance_page_intro" js="0"><![CDATA[Active state magazine-capacity restrictions applied to the GunRack catalog.]]></word>
 <word key="gdcompliance_page_empty" js="0"><![CDATA[No active rules.]]></word>
+<word key="gdcompliance_front_heading" js="0"><![CDATA[Sales Restrictions]]></word>
+<word key="gdcompliance_front_intro" js="0"><![CDATA[This item may not be available for sale or shipment into:]]></word>
+<word key="gdcompliance_front_disclaimer" js="0"><![CDATA[Restrictions are provided as guidance and may not reflect the most current law; verify before purchase.]]></word>
+<word key="gdcompliance_front_state_prefix" js="0"><![CDATA[Restricted in]]></word>
+<word key="gdcompliance_restricted_badge" js="0"><![CDATA[Restricted in %d states]]></word>
+<word key="gdcompliance_reason_capacity" js="0"><![CDATA[Capacity]]></word>
+<word key="gdcompliance_reason_roster" js="0"><![CDATA[Roster]]></word>
+<word key="gdcompliance_reason_override" js="0"><![CDATA[Manual]]></word>
+<word key="gdcompliance_acp_settings_title" js="0"><![CDATA[Frontend Restriction Display]]></word>
+<word key="gdcompliance_front_enabled" js="0"><![CDATA[Show restriction panel on storefront]]></word>
+<word key="gdcompliance_front_enabled_desc" js="0"><![CDATA[Master toggle. When off, no "Sales Restrictions" panels render on product pages or grids.]]></word>
+<word key="gdcompliance_front_show_reasons" js="0"><![CDATA[Show per-state reason on each row]]></word>
+<word key="gdcompliance_front_show_reasons_desc" js="0"><![CDATA[When off, the panel lists only the state codes; when on, each state shows its detected reason (capacity vs roster vs manual).]]></word>
+<word key="gdcompliance_front_disclaimer_desc" js="0"><![CDATA[Displayed at the bottom of every restriction panel. FFL guidance framing recommended.]]></word>
+<word key="acplog__gdcompliance_settings_saved" js="0"><![CDATA[Saved frontend restriction display settings]]></word>
+<word key="block_gdRestrictionNotice" js="0"><![CDATA[Product Restriction Notice]]></word>
+<word key="gdcompliance_widget_upc_fallback" js="0"><![CDATA[Fallback UPC (only used if no product UPC in URL)]]></word>
 </app>
 </language>

@@ -1,0 +1,177 @@
+/*
+ * gdcompliance — frontend restriction notice styles.
+ * Scoped under .gdcompliance to avoid touching global selectors.
+ * Mobile-friendly. No inline JS, no external font dependencies.
+ */
+
+.gdcompliance {
+	box-sizing: border-box;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	color: #7c2d12;
+	max-width: 100%;
+}
+
+.gdcompliance *,
+.gdcompliance *::before,
+.gdcompliance *::after {
+	box-sizing: inherit;
+}
+
+.gdcompliance-notice {
+	background: #fff7ed;
+	border: 1px solid #fdba74;
+	border-left: 4px solid #ea580c;
+	border-radius: 10px;
+	padding: 14px 16px;
+	margin: 12px 0 18px;
+	font-size: 0.92em;
+	line-height: 1.5;
+}
+
+.gdcompliance-notice__head {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin-bottom: 8px;
+}
+
+.gdcompliance-notice__icon {
+	font-size: 1.15em;
+	line-height: 1;
+	color: #ea580c;
+	flex: 0 0 auto;
+}
+
+.gdcompliance-notice__title {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.gdcompliance-notice__title strong {
+	display: block;
+	font-weight: 700;
+	color: #9a3412;
+	font-size: 1em;
+	margin-bottom: 2px;
+}
+
+.gdcompliance-notice__count {
+	display: block;
+	font-weight: 600;
+	color: #7c2d12;
+	font-size: 0.95em;
+	word-break: break-word;
+}
+
+.gdcompliance-notice__list {
+	list-style: none;
+	padding: 0;
+	margin: 8px 0 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.gdcompliance-notice__item {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	padding: 6px 8px;
+	background: rgba(255, 255, 255, 0.6);
+	border-radius: 6px;
+	font-size: 0.9em;
+	flex-wrap: wrap;
+}
+
+.gdcompliance-notice__state {
+	flex: 0 0 auto;
+	font-weight: 700;
+	color: #9a3412;
+	background: #fed7aa;
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Mono", "Consolas", monospace;
+	font-size: 0.85em;
+	letter-spacing: 0.02em;
+	min-width: 30px;
+	text-align: center;
+}
+
+.gdcompliance-notice__reason {
+	flex: 1 1 auto;
+	min-width: 0;
+	color: #7c2d12;
+	word-break: break-word;
+}
+
+.gdcompliance-notice__type {
+	flex: 0 0 auto;
+	font-size: 0.72em;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-weight: 600;
+	padding: 1px 6px;
+	border-radius: 3px;
+	background: #fdba74;
+	color: #7c2d12;
+}
+
+.gdcompliance-notice__item--roster .gdcompliance-notice__type {
+	background: #fecaca;
+	color: #991b1b;
+}
+
+.gdcompliance-notice__item--capacity .gdcompliance-notice__type {
+	background: #fed7aa;
+	color: #7c2d12;
+}
+
+.gdcompliance-notice__item--override .gdcompliance-notice__type {
+	background: #e0e7ff;
+	color: #3730a3;
+}
+
+.gdcompliance-notice__disclaimer {
+	font-size: 0.78em;
+	color: #92400e;
+	font-style: italic;
+	margin-top: 8px;
+	padding-top: 8px;
+	border-top: 1px dashed #fdba74;
+	line-height: 1.45;
+}
+
+/* compact badge for grid views */
+.gdcompliance-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	background: #fff7ed;
+	border: 1px solid #fdba74;
+	border-radius: 12px;
+	font-size: 0.78em;
+	font-weight: 600;
+	color: #9a3412;
+	line-height: 1.4;
+}
+
+.gdcompliance-badge__icon {
+	font-size: 0.9em;
+	color: #ea580c;
+}
+
+@media (max-width: 600px) {
+	.gdcompliance-notice {
+		padding: 12px 14px;
+		font-size: 0.88em;
+	}
+
+	.gdcompliance-notice__item {
+		font-size: 0.85em;
+	}
+
+	.gdcompliance-notice__type {
+		font-size: 0.68em;
+	}
+}
