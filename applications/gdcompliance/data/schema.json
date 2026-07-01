@@ -29,6 +29,7 @@
 			"parsed_capacity": { "name": "parsed_capacity", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
 			"rule_id":         { "name": "rule_id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
 			"reason":          { "name": "reason", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"citation":        { "name": "citation", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "statute reference for the flag; PICA sets it directly, capacity rows fall back to rules.source_note via LEFT JOIN in Flag::forUpc" },
 			"computed_at":     { "name": "computed_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
 		},
 		"indexes": {

@@ -214,7 +214,7 @@ class _Engine
 
 		try
 		{
-			foreach ( \IPS\Db::i()->select( 'upc, category_id, capacity, manufacturer, model, caliber, mpn, title', 'gd_catalog' ) as $p )
+			foreach ( \IPS\Db::i()->select( 'upc, category_id, capacity, brand, manufacturer, model, caliber, mpn, title, action_type, stock_material, description', 'gd_catalog' ) as $p )
 			{
 				$result['processed']++;
 				$upc = (string) ( $p['upc'] ?? '' );
@@ -248,7 +248,15 @@ class _Engine
 						}
 						catch ( \Throwable )
 						{
-							$m = [ 'tier' => 2, 'pattern' => null, 'citation' => '720 ILCS 5/24-1.9', 'feature_hits' => [] ];
+							/* Robust fallback — use the (a)(1)(A) feature citation
+							   as tier-2 default so the frontend popup's Citation
+							   line still populates when match() throws. */
+							$m = [
+								'tier'         => 2,
+								'pattern'      => null,
+								'citation'     => \IPS\gdcompliance\PicaModels::CITATION_FEATURE,
+								'feature_hits' => [],
+							];
 						}
 
 						$picaTier = (int) ( $m['tier'] ?? 2 );
@@ -267,6 +275,17 @@ class _Engine
 								. '; verify features';
 						}
 
+						/* Populate citation with the subsection-specific reference
+						   (tier-1 → (a)(1)(J) enumerated list; tier-2 → (a)(1)(A)
+						   feature test) so Flag::forUpc surfaces it to the popup. */
+						$cite = trim( (string) ( $m['citation'] ?? '' ) );
+						if ( $cite === '' )
+						{
+							$cite = $picaTier === 1
+								? \IPS\gdcompliance\PicaModels::CITATION_LISTED
+								: \IPS\gdcompliance\PicaModels::CITATION_FEATURE;
+						}
+
 						$flags[] = [
 							'upc'             => substr( $upc, 0, 50 ),
 							'state_code'      => 'IL',
@@ -274,6 +293,7 @@ class _Engine
 							'parsed_capacity' => null,
 							'rule_id'         => 0,
 							'reason'          => substr( $reason, 0, 255 ),
+							'citation'        => substr( $cite, 0, 255 ),
 							'computed_at'     => $now,
 						];
 
@@ -334,6 +354,7 @@ class _Engine
 								'parsed_capacity' => $cap,
 								'rule_id'         => (int) $r['id'],
 								'reason'          => substr( $reason, 0, 255 ),
+								'citation'        => substr( (string) ( $r['source_note'] ?? '' ), 0, 255 ),
 								'computed_at'     => $now,
 							];
 
@@ -602,6 +623,23 @@ class _Engine
 	 * the bookkeeping logic exists in one place. $isDerived=true marks DC
 	 * outcomes in the reason text.
 	 */
+	/**
+	 * Per-state statute reference for roster off-listing flags. Populated
+	 * inline on the flag row so Flag::forUpc surfaces it in the frontend
+	 * popup's Citation line without a rules-table lookup (roster flags
+	 * have rule_id=0 by design — they're outside the capacity rule set).
+	 */
+	protected static function rosterCitationFor( string $state ): string
+	{
+		return match ( strtoupper( $state ) ) {
+			'CA'    => 'CA Pen Code §32000 (Roberti-Roos, DOJ handgun roster)',
+			'MA'    => 'MGL c.140 §131¾ (MA Approved Firearms Roster)',
+			'MD'    => 'MD Public Safety §5-405 (Handgun Roster Board)',
+			'DC'    => 'Derived from CA/MA/MD roster union',
+			default => '',
+		};
+	}
+
 	protected static function recordRosterOutcome(
 		array &$result,
 		array &$flags,
@@ -637,6 +675,7 @@ class _Engine
 				'parsed_capacity' => null,
 				'rule_id'         => 0,
 				'reason'          => substr( $prefix . ' — ' . ( $cls['reason'] ?? '' ), 0, 255 ),
+				'citation'        => substr( self::rosterCitationFor( $rstate ), 0, 255 ),
 				'computed_at'     => $now,
 			];
 			$result['per_state'][ $rstate ] = ( $result['per_state'][ $rstate ] ?? 0 ) + 1;

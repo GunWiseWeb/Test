@@ -87,7 +87,7 @@ class _Flag
 		try
 		{
 			$prefix = (string) \IPS\Db::i()->prefix;
-			$sql    = "SELECT f.state_code, f.firearm_type, f.rule_id, f.reason, r.source_note
+			$sql    = "SELECT f.state_code, f.firearm_type, f.rule_id, f.reason, f.citation AS f_citation, r.source_note
 				FROM " . $prefix . "gd_compliance_flags f
 				LEFT JOIN " . $prefix . "gd_compliance_rules r ON r.id = f.rule_id AND f.rule_id > 0
 				WHERE f.upc = ?
@@ -103,7 +103,16 @@ class _Flag
 					$ftype  = (string) ( $row['firearm_type'] ?? '' );
 					$ruleId = (int)    ( $row['rule_id']      ?? 0 );
 					$reason = trim( (string) ( $row['reason'] ?? '' ) );
-					$cite   = trim( (string) ( $row['source_note'] ?? '' ) );
+
+					/* Prefer f.citation (inline, set by Engine for PICA +
+					   capacity + roster). Fall back to the LEFT-JOINed
+					   rule.source_note for legacy pre-v1.5.3 rows that
+					   never got the inline citation populated. */
+					$cite = trim( (string) ( $row['f_citation'] ?? '' ) );
+					if ( $cite === '' )
+					{
+						$cite = trim( (string) ( $row['source_note'] ?? '' ) );
+					}
 
 					$type = static::TYPE_ROSTER;
 					if ( strncmp( $ftype, 'pica_', 5 ) === 0 )
@@ -146,7 +155,7 @@ class _Flag
 				catch ( \Throwable ) {}
 
 				foreach ( \IPS\Db::i()->select(
-					'state_code, firearm_type, rule_id, reason',
+					'state_code, firearm_type, rule_id, reason, citation',
 					'gd_compliance_flags',
 					[ 'upc=?', $upc ],
 					'state_code ASC'
@@ -173,12 +182,20 @@ class _Flag
 						$type = static::TYPE_CAPACITY;
 					}
 
+					/* Prefer inline citation; fall back to rules map for
+					   legacy pre-v1.5.3 rows. */
+					$cite = trim( (string) ( $row['citation'] ?? '' ) );
+					if ( $cite === '' )
+					{
+						$cite = trim( (string) ( $ruleCite[ $ruleId ] ?? '' ) );
+					}
+
 					$out[] = [
 						'state'      => $state,
 						'state_name' => static::STATE_NAMES[ $state ] ?? $state,
 						'reason'     => $reason,
 						'type'       => $type,
-						'citation'   => trim( (string) ( $ruleCite[ $ruleId ] ?? '' ) ),
+						'citation'   => $cite,
 					];
 				}
 			}
