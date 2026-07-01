@@ -193,6 +193,10 @@ $lang = array(
 	'gdcompliance_pica_f_enabled'              => 'Enabled',
 	'gdcompliance_reason_pica'                 => 'PICA (IL)',
 
+	/* v1.5.4 — Roster operational */
+	'gdcompliance_acp_roster_refresh_all'      => 'Refresh all rosters (CA + MA + MD)',
+	'gdcompliance_acp_roster_refresh_all_hint' => 'Sequentially runs every fetcher; per-source failures surface in the flash message so you can see exactly what went wrong.',
+
 	/* Compute overrides summary strip */
 	'gdcompliance_acp_compute_overrides'       => 'Overrides applied',
 

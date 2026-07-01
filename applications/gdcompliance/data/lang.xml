@@ -29,6 +29,8 @@
 <word key="gdcompliance_pica_f_citation" js="0"><![CDATA[Statutory citation]]></word>
 <word key="gdcompliance_pica_f_enabled" js="0"><![CDATA[Enabled]]></word>
 <word key="gdcompliance_reason_pica" js="0"><![CDATA[PICA (IL)]]></word>
+<word key="gdcompliance_acp_roster_refresh_all" js="0"><![CDATA[Refresh all rosters (CA + MA + MD)]]></word>
+<word key="gdcompliance_acp_roster_refresh_all_hint" js="0"><![CDATA[Sequentially runs every fetcher; per-source failures surface in the flash message so you can see exactly what went wrong.]]></word>
 <word key="gdcompliance_acp_rules_reseed" js="0"><![CDATA[Reseed missing rules]]></word>
 <word key="gdcompliance_acp_rules_reseed_done" js="0"><![CDATA[Reseed complete]]></word>
 <word key="acplog__gdcompliance_rules_reseeded" js="0"><![CDATA[Reseeded canonical compliance rules (non-destructive)]]></word>

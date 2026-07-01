@@ -318,27 +318,55 @@ class _Roster
 			$unique[] = $r;
 		}
 
-		/* Replace ONLY the CA rows. Wipe + insert in chunks. Other states'
-		   rows stay untouched. */
+		/* NON-DESTRUCTIVE GUARD (v1.5.4): if the parse produced ZERO rows
+		   but we already have CA rows on file, refuse the wipe — leaves
+		   the old data intact so a broken fetch doesn't leave the site
+		   worse off than before. Log loudly. */
+		$existing = 0;
+		try { $existing = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_roster', [ 'roster_state=?', 'CA' ] )->first(); }
+		catch ( \Throwable ) {}
+
+		if ( empty( $unique ) && $existing > 0 )
+		{
+			$result['errors'][] = "parse produced 0 rows but " . $existing . " CA rows already loaded — refusing to wipe existing data";
+			$result['skipped_wipe'] = true;
+			$result['existing_rows'] = $existing;
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			try { \IPS\Log::log( 'Roster::fetchAndParse SKIPPED WIPE — 0 parsed vs ' . $existing . ' existing CA rows', 'gdcompliance' ); } catch ( \Throwable ) {}
+			return $result;
+		}
+
+		/* Stamp roster_state + source metadata on every row before insert.
+		   as_of_date reflects TODAY since the CA source is live. Truncate
+		   long fields with substr() to their column widths (rule #34 —
+		   1067 guard). */
+		$today = date( 'Y-m-d' );
+		foreach ( $unique as &$row )
+		{
+			$row['roster_state']      = 'CA';
+			$row['list_type']         = 'approved';
+			$row['blanket_caliber']   = 0;
+			$row['source']            = 'pdf';
+			$row['source_label']      = substr( 'CA DOJ', 0, 60 );
+			$row['as_of_date']        = $today;
+			$row['manufacturer']      = substr( (string) ( $row['manufacturer']      ?? '' ), 0, 120 );
+			$row['manufacturer_norm'] = substr( (string) ( $row['manufacturer_norm'] ?? '' ), 0, 120 );
+			$row['model_raw']         = substr( (string) ( $row['model_raw']         ?? '' ), 0, 255 );
+			$row['model_core']        = substr( (string) ( $row['model_core']        ?? '' ), 0, 255 );
+			if ( isset( $row['caliber'] ) )      { $row['caliber']      = substr( (string) $row['caliber'],      0, 60 ); }
+			if ( isset( $row['caliber_norm'] ) ) { $row['caliber_norm'] = substr( (string) $row['caliber_norm'], 0, 40 ); }
+			if ( isset( $row['barrel'] ) )       { $row['barrel']       = substr( (string) $row['barrel'],       0, 40 ); }
+			if ( isset( $row['gun_type'] ) )     { $row['gun_type']     = substr( (string) $row['gun_type'],     0, 20 ); }
+		}
+		unset( $row );
+
+		/* Only NOW wipe the old CA rows — after we've confirmed we have
+		   new data ready to insert. */
 		try
 		{
 			\IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=?', 'CA' ] );
 		}
 		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
-
-		/* Stamp roster_state + source metadata on every row before insert.
-		   as_of_date reflects TODAY since the CA source is live. */
-		$today = date( 'Y-m-d' );
-		foreach ( $unique as &$row )
-		{
-			$row['roster_state']    = 'CA';
-			$row['list_type']       = 'approved';
-			$row['blanket_caliber'] = 0;
-			$row['source']          = 'pdf';
-			$row['source_label']    = 'CA DOJ';
-			$row['as_of_date']      = $today;
-		}
-		unset( $row );
 
 		foreach ( array_chunk( $unique, 250 ) as $chunk )
 		{
@@ -540,7 +568,33 @@ class _Roster
 		/* (3) Line parse. */
 		$rows = self::parseMaRosterText( $text );
 
-		/* Replace ONLY the MA rows. */
+		/* NON-DESTRUCTIVE GUARD — see fetchAndParse() for rationale. */
+		$existing = 0;
+		try { $existing = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_roster', [ 'roster_state=?', 'MA' ] )->first(); }
+		catch ( \Throwable ) {}
+		if ( empty( $rows ) && $existing > 0 )
+		{
+			$result['errors'][] = "parse produced 0 rows but " . $existing . " MA rows already loaded — refusing to wipe existing data (extractor was: " . $extractor . ")";
+			$result['skipped_wipe'] = true;
+			$result['existing_rows'] = $existing;
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			try { \IPS\Log::log( 'Roster::fetchMA SKIPPED WIPE — 0 parsed vs ' . $existing . ' existing MA rows, extractor=' . $extractor, 'gdcompliance' ); } catch ( \Throwable ) {}
+			return $result;
+		}
+
+		/* Column-length defense on parsed rows. */
+		foreach ( $rows as &$row )
+		{
+			$row['manufacturer']      = substr( (string) ( $row['manufacturer']      ?? '' ), 0, 120 );
+			$row['manufacturer_norm'] = substr( (string) ( $row['manufacturer_norm'] ?? '' ), 0, 120 );
+			$row['model_raw']         = substr( (string) ( $row['model_raw']         ?? '' ), 0, 255 );
+			$row['model_core']        = substr( (string) ( $row['model_core']        ?? '' ), 0, 255 );
+			if ( isset( $row['caliber'] ) )      { $row['caliber']      = substr( (string) $row['caliber'],      0, 60 ); }
+			if ( isset( $row['caliber_norm'] ) ) { $row['caliber_norm'] = substr( (string) $row['caliber_norm'], 0, 40 ); }
+			if ( isset( $row['source_label'] ) ) { $row['source_label'] = substr( (string) $row['source_label'], 0, 60 ); }
+		}
+		unset( $row );
+
 		try { \IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=?', 'MA' ] ); }
 		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
 
@@ -917,7 +971,33 @@ class _Roster
 		[ $rows, $asOf ] = self::parseMdApprovedText( $text );
 		$result['as_of_date']  = $asOf;
 
-		/* Replace ONLY the MD/approved rows. */
+		/* NON-DESTRUCTIVE GUARD — see fetchAndParse() for rationale. */
+		$existing = 0;
+		try { $existing = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_roster', [ 'roster_state=? AND list_type=?', 'MD', 'approved' ] )->first(); }
+		catch ( \Throwable ) {}
+		if ( empty( $rows ) && $existing > 0 )
+		{
+			$result['errors'][] = "parse produced 0 rows but " . $existing . " MD/approved rows already loaded — refusing to wipe existing data";
+			$result['skipped_wipe'] = true;
+			$result['existing_rows'] = $existing;
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			try { \IPS\Log::log( 'Roster::fetchMD SKIPPED WIPE — 0 parsed vs ' . $existing . ' existing MD/approved rows', 'gdcompliance' ); } catch ( \Throwable ) {}
+			return $result;
+		}
+
+		/* Column-length defense. */
+		foreach ( $rows as &$row )
+		{
+			$row['manufacturer']      = substr( (string) ( $row['manufacturer']      ?? '' ), 0, 120 );
+			$row['manufacturer_norm'] = substr( (string) ( $row['manufacturer_norm'] ?? '' ), 0, 120 );
+			$row['model_raw']         = substr( (string) ( $row['model_raw']         ?? '' ), 0, 255 );
+			$row['model_core']        = substr( (string) ( $row['model_core']        ?? '' ), 0, 255 );
+			if ( isset( $row['caliber'] ) )      { $row['caliber']      = substr( (string) $row['caliber'],      0, 60 ); }
+			if ( isset( $row['caliber_norm'] ) ) { $row['caliber_norm'] = substr( (string) $row['caliber_norm'], 0, 40 ); }
+			if ( isset( $row['source_label'] ) ) { $row['source_label'] = substr( (string) $row['source_label'], 0, 60 ); }
+		}
+		unset( $row );
+
 		try { \IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=? AND list_type=?', 'MD', 'approved' ] ); }
 		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
 
@@ -1116,6 +1196,36 @@ class _Roster
 
 		[ $rows, $asOf ] = self::parseMdDisapprovedText( $text );
 		$result['as_of_date'] = $asOf;
+
+		/* NON-DESTRUCTIVE GUARD — see fetchAndParse() for rationale.
+		   Especially critical for MD disapproved: this is a HARD RESTRICT
+		   signal. Wiping it silently on a bad fetch would flip guns from
+		   restricted to allowed. Never do that. */
+		$existing = 0;
+		try { $existing = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_roster', [ 'roster_state=? AND list_type=?', 'MD', 'disapproved' ] )->first(); }
+		catch ( \Throwable ) {}
+		if ( empty( $rows ) && $existing > 0 )
+		{
+			$result['errors'][] = "parse produced 0 rows but " . $existing . " MD/disapproved rows already loaded — refusing to wipe existing data (disapproved list is a hard-restrict signal, never silently clear)";
+			$result['skipped_wipe'] = true;
+			$result['existing_rows'] = $existing;
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			try { \IPS\Log::log( 'Roster::fetchMDDisapproved SKIPPED WIPE — 0 parsed vs ' . $existing . ' existing MD/disapproved rows', 'gdcompliance' ); } catch ( \Throwable ) {}
+			return $result;
+		}
+
+		/* Column-length defense. */
+		foreach ( $rows as &$row )
+		{
+			$row['manufacturer']      = substr( (string) ( $row['manufacturer']      ?? '' ), 0, 120 );
+			$row['manufacturer_norm'] = substr( (string) ( $row['manufacturer_norm'] ?? '' ), 0, 120 );
+			$row['model_raw']         = substr( (string) ( $row['model_raw']         ?? '' ), 0, 255 );
+			$row['model_core']        = substr( (string) ( $row['model_core']        ?? '' ), 0, 255 );
+			if ( isset( $row['caliber'] ) )      { $row['caliber']      = substr( (string) $row['caliber'],      0, 60 ); }
+			if ( isset( $row['caliber_norm'] ) ) { $row['caliber_norm'] = substr( (string) $row['caliber_norm'], 0, 40 ); }
+			if ( isset( $row['source_label'] ) ) { $row['source_label'] = substr( (string) $row['source_label'], 0, 60 ); }
+		}
+		unset( $row );
 
 		try { \IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=? AND list_type=?', 'MD', 'disapproved' ] ); }
 		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }

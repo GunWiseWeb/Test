@@ -46,6 +46,7 @@ class _roster extends \IPS\Dispatcher\Controller
 		$mdRefreshUrl       = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refreshMD' )->csrf();
 		$mdDisapprovedUrl2  = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refreshMDDisapproved' )->csrf();
 		$mdUploadUrl        = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=mdImport' );
+		$refreshAllUrl      = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refreshAll' )->csrf();
 
 		$maUrl           = htmlspecialchars( (string) ( \IPS\Settings::i()->gdcompliance_ma_roster_url        ?? \IPS\gdcompliance\Roster::MA_ROSTER_URL_DEFAULT ), ENT_QUOTES, 'UTF-8' );
 		$mdApprovedUrl   = htmlspecialchars( (string) ( \IPS\Settings::i()->gdcompliance_md_roster_url        ?? \IPS\gdcompliance\Roster::MD_ROSTER_URL_DEFAULT ), ENT_QUOTES, 'UTF-8' );
@@ -67,7 +68,15 @@ class _roster extends \IPS\Dispatcher\Controller
 
 		$intro = '<div class="ipsBox" style="margin-bottom:16px"><div class="ipsBox_body ipsPad">'
 			. '<h2 class="ipsType_sectionHead" style="margin:0 0 10px">' . $h( 'gdcompliance_acp_roster_title' ) . '</h2>'
-			. '<p style="margin:0 0 14px">' . $h( 'gdcompliance_acp_roster_intro' ) . '</p>'
+			. '<p style="margin:0 0 10px">' . $h( 'gdcompliance_acp_roster_intro' ) . '</p>'
+
+			/* Refresh-all convenience: sequentially runs CA + MA + MD approved + MD disapproved.
+			   Any per-source failure is surfaced inline in the flash message. */
+			. '<p style="margin:0 0 14px"><a href="' . htmlspecialchars( $refreshAllUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton--primary ipsButton--small">'
+			. $h( 'gdcompliance_acp_roster_refresh_all' )
+			. '</a> <span style="color:#64748b;font-size:12px">'
+			. $h( 'gdcompliance_acp_roster_refresh_all_hint' )
+			. '</span></p>'
 
 			/* CA */
 			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:10px">'
@@ -196,6 +205,7 @@ class _roster extends \IPS\Dispatcher\Controller
 		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdcompliance_acp_roster_done', false, [
 			'sprintf' => [ (int) $counts['rows'], (int) $counts['current'], (int) $counts['expired'], (int) $counts['pages'] ],
 		] );
+		$msg .= self::errorTail( 'CA', $counts );
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
 			$msg
@@ -216,6 +226,7 @@ class _roster extends \IPS\Dispatcher\Controller
 		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdcompliance_acp_roster_ma_done', false, [
 			'sprintf' => [ (int) $counts['rows'], (string) $counts['extractor'], count( (array) $counts['errors'] ) ],
 		] );
+		$msg .= self::errorTail( 'MA', $counts );
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
 			$msg
@@ -234,6 +245,7 @@ class _roster extends \IPS\Dispatcher\Controller
 		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdcompliance_acp_roster_md_pdf_done', false, [
 			'sprintf' => [ (int) $counts['rows'], (string) ( $counts['as_of_date'] ?? '—' ), (int) $counts['split'], (int) $counts['blanket_caliber'], count( (array) $counts['errors'] ) ],
 		] );
+		$msg .= self::errorTail( 'MD approved', $counts );
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
 			$msg
@@ -252,9 +264,97 @@ class _roster extends \IPS\Dispatcher\Controller
 		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdcompliance_acp_roster_md_dis_done', false, [
 			'sprintf' => [ (int) $counts['rows'], (string) ( $counts['as_of_date'] ?? '—' ), count( (array) $counts['errors'] ) ],
 		] );
+		$msg .= self::errorTail( 'MD disapproved', $counts );
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
 			$msg
+		);
+	}
+
+	/**
+	 * Compact error string for the ACP flash redirect. Pulls up to the
+	 * first 3 error strings from a fetcher's $counts['errors'] array so
+	 * Derrick sees WHY a fetch returned zero rows without having to open
+	 * the log. Also surfaces skipped_wipe / extractor / url when set.
+	 */
+	protected static function errorTail( string $tag, array $counts ): string
+	{
+		$parts = [];
+		if ( !empty( $counts['skipped_wipe'] ) )
+		{
+			$parts[] = 'kept ' . (int) ( $counts['existing_rows'] ?? 0 ) . ' existing rows';
+		}
+		if ( !empty( $counts['extractor'] ) )
+		{
+			$parts[] = 'extractor=' . (string) $counts['extractor'];
+		}
+		if ( !empty( $counts['url'] ) )
+		{
+			$parts[] = 'url=' . (string) $counts['url'];
+		}
+		$errs = (array) ( $counts['errors'] ?? [] );
+		if ( !empty( $errs ) )
+		{
+			$show = array_slice( array_map( 'strval', $errs ), 0, 3 );
+			$parts[] = 'errors: ' . implode( ' | ', $show );
+			if ( count( $errs ) > 3 )
+			{
+				$parts[] = '+' . ( count( $errs ) - 3 ) . ' more (see gdcompliance log)';
+			}
+		}
+		return empty( $parts ) ? '' : ' — [' . $tag . '] ' . implode( ' · ', $parts );
+	}
+
+	/**
+	 * Run all four fetchers back-to-back and redirect with a combined
+	 * summary. Each fetcher runs in its own try/catch so a single
+	 * broken source doesn't stop the others.
+	 */
+	protected function refreshAll(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$msgs = [];
+
+		$ca = [ 'rows' => 0, 'errors' => [] ];
+		try { $ca = \IPS\gdcompliance\Roster::fetchAndParse(); }
+		catch ( \Throwable $e )
+		{
+			$ca['errors'][] = 'threw: ' . $e->getMessage();
+			try { \IPS\Log::log( 'refreshAll CA: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+		$msgs[] = 'CA=' . (int) $ca['rows'] . self::errorTail( 'CA', $ca );
+
+		$ma = [ 'rows' => 0, 'errors' => [] ];
+		try { $ma = \IPS\gdcompliance\Roster::fetchMA(); }
+		catch ( \Throwable $e )
+		{
+			$ma['errors'][] = 'threw: ' . $e->getMessage();
+			try { \IPS\Log::log( 'refreshAll MA: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+		$msgs[] = 'MA=' . (int) $ma['rows'] . self::errorTail( 'MA', $ma );
+
+		$md = [ 'rows' => 0, 'errors' => [] ];
+		try { $md = \IPS\gdcompliance\Roster::fetchMD(); }
+		catch ( \Throwable $e )
+		{
+			$md['errors'][] = 'threw: ' . $e->getMessage();
+			try { \IPS\Log::log( 'refreshAll MD: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+		$msgs[] = 'MD/A=' . (int) $md['rows'] . self::errorTail( 'MD approved', $md );
+
+		$mdD = [ 'rows' => 0, 'errors' => [] ];
+		try { $mdD = \IPS\gdcompliance\Roster::fetchMDDisapproved(); }
+		catch ( \Throwable $e )
+		{
+			$mdD['errors'][] = 'threw: ' . $e->getMessage();
+			try { \IPS\Log::log( 'refreshAll MD disapproved: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+		$msgs[] = 'MD/D=' . (int) $mdD['rows'] . self::errorTail( 'MD disapproved', $mdD );
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
+			'refreshAll: ' . implode( ' | ', $msgs )
 		);
 	}
 

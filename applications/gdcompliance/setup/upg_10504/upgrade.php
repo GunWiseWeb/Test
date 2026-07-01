@@ -1,32 +1,25 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.5.3 (CONSOLIDATION of live server hotfixes)
+ * @brief  GD Compliance — upgrade 1.5.4 (roster fetcher hardening)
  *
- * Bakes into source every fix that was live on prod as a manual hotfix.
- * Highlights:
+ * Code-only release — no schema changes. Just carries every v1.5.x
+ * migration forward so any prior install lands with the canonical
+ * schema, plus a lang reseed for the new refreshAll strings.
  *
- *   FIX 1  Engine SELECT now pulls action_type/stock_material/description
- *          so PicaModels::match() can gate on semi-auto action and
- *          detect the folding-stock feature — the reason PICA was
- *          computing zero flags in the prior build.
- *   FIX 2  Robust DROP of the 11 vestigial distributor-feed columns on
- *          gd_compliance_flags. v1.5.0's info-schema-gated version
- *          silently skipped on prod. Now: try DROP unconditionally,
- *          catch per-column. Idempotent.
- *   FIX 5  Add gd_compliance_flags.citation column (VARCHAR 255 NULL)
- *          so PICA + roster flags carry their statute reference inline;
- *          capacity flags carry rules.source_note. Flag::forUpc reads
- *          f.citation with LEFT-JOIN fallback for legacy rows.
- *   FIX 6  Idempotent, non-destructive Seeder call — rules preserved.
- *
- * Also carries every v1.5.x migration forward so any prior install
- * converges cleanly.
+ * Ships:
+ *   - Non-destructive guards on all four Roster fetchers (don't wipe
+ *     existing rows when the new fetch parsed zero)
+ *   - Column-length substr() defense before every insert (1067 guard)
+ *   - errorTail() helper in the ACP so the flash message surfaces the
+ *     URL, extractor, skipped_wipe status, and first 3 errors
+ *   - refreshAll action + button that runs CA + MA + MD approved + MD
+ *     disapproved sequentially and reports a combined summary
  *
  * NEVER truncates gd_compliance_rules, gd_compliance_overrides, or
  * gd_compliance_pica_models. Does NOT auto-run compute.
  */
 
-namespace IPS\gdcompliance\setup\upg_10503;
+namespace IPS\gdcompliance\setup\upg_10504;
 
 use function defined;
 
@@ -44,8 +37,6 @@ class _upgrade
 
 		/* ============================================================
 		 * (1) Ensure every canonical table exists at the correct width.
-		 * The v1.5.3 gd_compliance_flags shape includes citation from
-		 * the start — existing installs get the column added below.
 		 * ============================================================ */
 
 		$creates = [
@@ -173,66 +164,23 @@ class _upgrade
 			try { \IPS\Db::i()->query( $sql ); } catch ( \Throwable ) {}
 		}
 
-		/* ============================================================
-		 * (2) FIX 2 — DROP vestigial distributor columns UNCONDITIONALLY.
-		 *
-		 * v1.5.0 gated this behind an info_schema check inside a
-		 * swallowed catch, so the DROP silently skipped on prod. Every
-		 * column we know to be vestigial gets its own DROP attempt with
-		 * its own \Throwable catch. If the column is already gone the
-		 * ALTER errors — caught, no-op. If it exists, dropped. We count
-		 * actual successes and log the total for post-deploy audit.
-		 * ============================================================ */
-
-		$vestigialFlagCols = [
-			'distributor_id',
-			'flag_type',
-			'flag_value',
-			'source',
-			'status',
-			'first_seen_at',
-			'last_confirmed_at',
-			'removed_by_dist_at',
-			'admin_reviewed_by',
-			'admin_reviewed_at',
-			'listing_id',
-		];
-		$dropped = 0;
-		foreach ( $vestigialFlagCols as $col )
-		{
-			try
-			{
-				\IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags DROP COLUMN ' . $col );
-				$dropped++;
-			}
-			catch ( \Throwable $e )
-			{
-				$msg = strtolower( $e->getMessage() );
-				if ( strpos( $msg, "can't drop" ) === false && strpos( $msg, "check that column" ) === false && strpos( $msg, "unknown column" ) === false )
-				{
-					/* Real error (index dep, permissions, ...). Fall back to
-					   nullable so INSERTs still succeed. */
-					try { \IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags MODIFY ' . $col . ' TEXT NULL DEFAULT NULL' ); }
-					catch ( \Throwable ) {}
-					try { \IPS\Log::log( 'upg_10503 DROP flags.' . $col . ' fell back to nullable: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-				}
-			}
-		}
-		try { \IPS\Log::log( 'upg_10503 vestigial column drop: ' . $dropped . ' of ' . count( $vestigialFlagCols ) . ' columns dropped this run', 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-
-		/* ============================================================
-		 * (3) FIX 5 — add gd_compliance_flags.citation for existing
-		 * installs whose table pre-dates v1.5.3 (CREATE IF NOT EXISTS
-		 * above only helps fresh installs). Guarded ALTER — safe to
-		 * re-run.
-		 * ============================================================ */
+		/* Guarded ADD COLUMN citation for pre-v1.5.3 installs. */
 		try { \IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags ADD COLUMN citation VARCHAR(255) NULL DEFAULT NULL AFTER reason' ); }
-		catch ( \Throwable ) { /* likely already exists — desired */ }
+		catch ( \Throwable ) {}
 
-		/* ============================================================
-		 * (4) Phase-3 guarded ALTERs + VARCHAR(20) MODIFY for overrides.
-		 * ============================================================ */
+		/* Unconditional DROP of the 11 vestigial distributor columns. */
+		$vestigial = [
+			'distributor_id', 'flag_type', 'flag_value', 'source', 'status',
+			'first_seen_at', 'last_confirmed_at', 'removed_by_dist_at',
+			'admin_reviewed_by', 'admin_reviewed_at', 'listing_id',
+		];
+		foreach ( $vestigial as $col )
+		{
+			try { \IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags DROP COLUMN ' . $col ); }
+			catch ( \Throwable ) {}
+		}
 
+		/* Guarded Phase-3 ALTERs. */
 		$rosterColumns = [
 			'roster_state'    => "CHAR(2) NOT NULL DEFAULT 'CA'",
 			'list_type'       => "VARCHAR(12) NOT NULL DEFAULT 'approved'",
@@ -261,16 +209,10 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Cleanup stray staging tables. */
 		try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $prefix . "gd_compliance_flags_stage" ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $prefix . "gd_compliance_flags_old" ); } catch ( \Throwable ) {}
 
-		/* ============================================================
-		 * (5) FIX 6 — non-destructive rule + PICA seeds via Seeder /
-		 * PicaModels. Ensures the canonical 19 rules + 158 PICA
-		 * patterns exist. Existing edits preserved.
-		 * ============================================================ */
-
+		/* NON-DESTRUCTIVE seeds. */
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Seeder.php';
@@ -278,23 +220,20 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10503 seedMissingRules: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10504 seedMissingRules: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/PicaModels.php';
-			$picaCounts = \IPS\gdcompliance\PicaModels::seedMissingModels();
-			try { \IPS\Log::log( 'upg_10503 PICA seed: ' . (int) $picaCounts['inserted'] . ' inserted, ' . (int) $picaCounts['skipped'] . ' skipped, ' . (int) $picaCounts['failed'] . ' failed', 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			\IPS\gdcompliance\PicaModels::seedMissingModels();
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10503 seedMissingModels: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10504 seedMissingModels: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
-		/* ============================================================
-		 * (6) SETTINGS SEED.
-		 * ============================================================ */
+		/* SETTINGS SEED. */
 		foreach ( [
 			[ 'gdcompliance_ma_roster_url',      'https://www.mass.gov/doc/approved-handgun-roster-april-2026/download', 'none' ],
 			[ 'gdcompliance_md_roster_url',      'https://dlslibrary.state.md.us/publications/Exec/MDSP/PS5-405(a)_2026(1).pdf', 'none' ],
@@ -318,9 +257,7 @@ class _upgrade
 			catch ( \Throwable ) {}
 		}
 
-		/* ============================================================
-		 * (7) LANG RESEED.
-		 * ============================================================ */
+		/* LANG RESEED — picks up gdcompliance_acp_roster_refresh_all* + any earlier keys. */
 		$langFile = \IPS\ROOT_PATH . '/applications/gdcompliance/dev/lang.php';
 		if ( is_readable( $langFile ) )
 		{
@@ -353,14 +290,11 @@ class _upgrade
 			}
 		}
 
-		/* ============================================================
-		 * (8) CACHE / OPCACHE + canonical_templates purge.
-		 * ============================================================ */
+		/* CACHE / OPCACHE. */
 		try { unset( \IPS\Data\Store::i()->settings ); }             catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->acpmenu ); }              catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->extensions ); }           catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->applications ); }         catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->widgets ); }              catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->canonical_templates ); }  catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); }                    catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); }                    catch ( \Throwable ) {}
