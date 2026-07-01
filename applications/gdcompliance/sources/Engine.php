@@ -359,25 +359,42 @@ class _Engine
 			/* Clean up any orphan stage from a previously-interrupted run. */
 			try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $stageTable ); } catch ( \Throwable ) {}
 
-			$swapOk = true;
+			$swapOk    = true;
+			$chunkIdx  = -1;
+			$totalRows = count( $flags );
+			$stagedRows = 0;
 			try
 			{
 				\IPS\Db::i()->query( "CREATE TABLE " . $stageTable . " LIKE " . $mainTable );
 
 				if ( !empty( $flags ) )
 				{
-					foreach ( array_chunk( $flags, 500 ) as $chunk )
+					foreach ( array_chunk( $flags, 500 ) as $ci => $chunk )
 					{
+						$chunkIdx = $ci;
 						\IPS\Db::i()->insert( $stageTable, $chunk );
+						$stagedRows += count( $chunk );
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
 				$swapOk = false;
-				try { \IPS\Log::log( 'Engine::computeFlags stage build: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+				/* Loud log — the "compute reports N flags but writes 0" bug
+				   from the 1.4.x era was invisible without a message that
+				   includes the row count, the chunk index, and the error. */
+				try
+				{
+					\IPS\Log::log(
+						'Engine::computeFlags stage build FAILED at chunk ' . $chunkIdx . ' (staged ' . $stagedRows . ' of ' . $totalRows . ' rows): ' . $e->getMessage(),
+						'gdcompliance'
+					);
+				}
+				catch ( \Throwable ) {}
 				try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $stageTable ); } catch ( \Throwable ) {}
-				$result['flags_skipped_wipe'] = true;
+				$result['flags_skipped_wipe']  = true;
+				$result['flags_stage_error']   = substr( $e->getMessage(), 0, 500 );
+				$result['flags_staged_before'] = $stagedRows;
 			}
 
 			if ( $swapOk )

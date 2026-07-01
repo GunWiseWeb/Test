@@ -125,6 +125,19 @@ class _compute extends \IPS\Dispatcher\Controller
 			. '<h2 class="ipsType_sectionHead" style="margin:0 0 10px">' . $head
 			. ' &mdash; ' . (int) $r['flags'] . ' flags / ' . (int) $r['firearms'] . ' firearm products / ' . (int) $r['processed'] . ' total scanned</h2>';
 
+		/* If the crash-safe swap decided NOT to wipe (typically because
+		   the staging INSERT failed — the exact bug that hid the "0 rows
+		   written" issue), show a loud red banner with the error and
+		   how many rows were staged before failure. */
+		if ( !empty( $r['flags_skipped_wipe'] ) )
+		{
+			$out .= '<div style="margin:0 0 12px;padding:10px 14px;background:#fef2f2;border:1px solid #fca5a5;border-left:4px solid #dc2626;border-radius:6px;color:#7f1d1d;font-size:13px">'
+				. '<strong style="display:block;margin-bottom:4px">gd_compliance_flags was NOT wiped — new flag set was rejected.</strong>'
+				. ( isset( $r['flags_staged_before'] ) ? 'Staged ' . (int) $r['flags_staged_before'] . ' of ' . (int) $r['flags'] . ' rows before the failure. ' : '' )
+				. ( isset( $r['flags_stage_error'] ) ? '<br><span style="font-family:ui-monospace,monospace;font-size:12px">' . htmlspecialchars( (string) $r['flags_stage_error'], ENT_QUOTES, 'UTF-8' ) . '</span>' : 'Check the gdcompliance log for details.' )
+				. '</div>';
+		}
+
 		/* Per-state roster outcomes (Phase 2 + Phase 3 multi-state). */
 		if ( !empty( $r['roster'] ) )
 		{
