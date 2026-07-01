@@ -1,35 +1,39 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.3.0 (Phase 4: manual override layer)
+ * @brief  GD Compliance — upgrade 1.3.1 (schema patch: overrides.action length)
+ *
+ * Fixes MySQL error 1067: v1.3.0 defined
+ *   `action VARCHAR(12) NOT NULL DEFAULT 'force_restrict'`
+ * but 'force_restrict' is 14 chars → default exceeded column length →
+ * CREATE TABLE / row inserts failed on prod. v1.3.1 widens the column to
+ * VARCHAR(20) and MODIFYs any already-installed narrow column.
  *
  * Self-contained per rule #79. Covers every migration since the last
- * shipped tarball's baseline (which may be v1.0.0, v1.1.0, v1.2.0, or
- * v1.2.1 depending on when the site last upgraded):
- *
- *   Phase 2 (v1.1.0):
- *     - Assumes gd_compliance_ca_roster + gd_compliance_review already
- *       exist from install.php or a prior upgrade
+ * shipped tarball's baseline (v1.0.0, v1.1.0, v1.2.0, v1.2.1, v1.3.0):
  *
  *   Phase 3 (v1.2.0 + v1.2.1):
  *     - Rename gd_compliance_ca_roster → gd_compliance_roster
- *     - Add roster_state, blanket, date_approved
- *     - Add list_type, blanket_caliber, source_label, as_of_date, source
+ *     - Add roster_state, blanket, date_approved, list_type,
+ *       blanket_caliber, source_label, as_of_date, source
  *     - Backfill roster_state='CA' + list_type='approved'
  *     - Add roster_state to gd_compliance_review + backfill
  *     - Seed MA/MD roster URL + DC derive settings
  *
- *   Phase 4 (v1.3.0 — NEW):
- *     - CREATE gd_compliance_overrides table (UNIQUE(upc,state_code))
+ *   Phase 4 (v1.3.0):
+ *     - CREATE gd_compliance_overrides (UNIQUE upc+state_code)
+ *
+ *   Phase 4 patch (v1.3.1 — NEW):
+ *     - ALTER MODIFY overrides.action VARCHAR(20) NOT NULL DEFAULT 'force_restrict'
  *
  *   Every version:
- *     - Re-seed dev/lang.php → core_sys_lang_words (full audit)
+ *     - Re-seed dev/lang.php → core_sys_lang_words
  *     - Cache clear + opcache reset
  *
  * All ALTERs guarded (information_schema check + \Throwable catch) so
  * re-runs are no-ops. Never auto-fetches any roster.
  */
 
-namespace IPS\gdcompliance\setup\upg_10300;
+namespace IPS\gdcompliance\setup\upg_10301;
 
 use function defined;
 
@@ -46,14 +50,12 @@ class _upgrade
 		$prefix = (string) \IPS\Db::i()->prefix;
 
 		/* ============================================================
-		 * PHASE 3 MIGRATIONS (from v1.2.0 + v1.2.1) — carried forward
-		 * so a site upgrading from v1.1.0 → v1.3.0 in one hop still
-		 * lands with the correct schema.
+		 * PHASE 3 MIGRATIONS — carried forward.
 		 * ============================================================ */
 
 		/* (1) Rename gd_compliance_ca_roster → gd_compliance_roster if
 		   the 1.1.0 table name is still present. Fall back to CREATE
-		   if neither table exists (edge case: fresh 1.0.0 → 1.3.0). */
+		   if neither table exists. */
 		try
 		{
 			$old = false;
@@ -114,11 +116,10 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10300 RENAME/CREATE roster: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10301 RENAME/CREATE roster: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
-		/* (2) Guarded ALTERs — all v1.2.0 + v1.2.1 columns. Each check
-		   the column then adds only if absent. */
+		/* (2) Guarded ALTERs — all Phase-3 columns. */
 		$rosterColumns = [
 			'roster_state'    => "CHAR(2) NOT NULL DEFAULT 'CA'",
 			'list_type'       => "VARCHAR(12) NOT NULL DEFAULT 'approved'",
@@ -150,7 +151,7 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10300 ALTER roster.' . $col . ': ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10301 ALTER roster.' . $col . ': ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 			}
 		}
 
@@ -177,15 +178,15 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10300 ALTER review.roster_state: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10301 ALTER review.roster_state: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 		try { \IPS\Db::i()->update( 'gd_compliance_review', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 
 		/* ============================================================
-		 * PHASE 4 MIGRATION (NEW v1.3.0) — manual override layer.
+		 * PHASE 4 (v1.3.0) — CREATE gd_compliance_overrides — but with
+		 * the CORRECTED VARCHAR(20) length so fresh CREATE succeeds.
 		 * ============================================================ */
 
-		/* (5) CREATE gd_compliance_overrides — guarded. */
 		try
 		{
 			$has = false;
@@ -203,7 +204,7 @@ class _upgrade
 					id          INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
 					upc         VARCHAR(50) NOT NULL DEFAULT '',
 					state_code  CHAR(2) NOT NULL DEFAULT '',
-					action      VARCHAR(12) NOT NULL DEFAULT 'force_restrict',
+					action      VARCHAR(20) NOT NULL DEFAULT 'force_restrict',
 					reason      VARCHAR(255) NULL DEFAULT NULL,
 					created_by  INT(10) UNSIGNED NULL DEFAULT NULL,
 					created_at  INT(10) UNSIGNED NULL DEFAULT NULL,
@@ -216,7 +217,43 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10300 CREATE overrides: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10301 CREATE overrides: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+		}
+
+		/* ============================================================
+		 * PHASE 4 PATCH (v1.3.1 — NEW) — widen action column on any
+		 * install where v1.3.0 slipped through with VARCHAR(12).
+		 * MODIFY is idempotent — safe to re-run.
+		 * ============================================================ */
+
+		try
+		{
+			$len = 0;
+			try
+			{
+				$row = \IPS\Db::i()->select(
+					'CHARACTER_MAXIMUM_LENGTH',
+					'information_schema.COLUMNS',
+					[
+						'TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+						$prefix . 'gd_compliance_overrides', 'action',
+					]
+				)->first();
+				$len = (int) $row;
+			}
+			catch ( \Throwable ) {}
+
+			if ( $len && $len < 20 )
+			{
+				\IPS\Db::i()->query(
+					'ALTER TABLE ' . $prefix . 'gd_compliance_overrides '
+					. "MODIFY action VARCHAR(20) NOT NULL DEFAULT 'force_restrict'"
+				);
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10301 MODIFY overrides.action: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		/* ============================================================
@@ -245,7 +282,7 @@ class _upgrade
 
 		/* ============================================================
 		 * LANG RESEED — dev/lang.php → core_sys_lang_words for every
-		 * language. Uses the 6-column IPS 5.0.18 schema (rule #43).
+		 * language. 6-column IPS 5.0.18 schema (rule #43).
 		 * ============================================================ */
 
 		$langFile = \IPS\ROOT_PATH . '/applications/gdcompliance/dev/lang.php';
@@ -281,8 +318,7 @@ class _upgrade
 		}
 
 		/* ============================================================
-		 * CACHE CLEAR + OPCACHE — every IPS store IPS pulls from at
-		 * boot, plus the PHP opcode cache so the new controllers land.
+		 * CACHE CLEAR + OPCACHE.
 		 * ============================================================ */
 
 		try { unset( \IPS\Data\Store::i()->settings ); }     catch ( \Throwable ) {}
