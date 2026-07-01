@@ -48,7 +48,12 @@
 			"model_raw":     { "name": "model_raw", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
 			"model_core":    { "name": "model_core", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
 			"model_sku":     { "name": "model_sku", "type": "VARCHAR", "length": 120, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"list_type":     { "name": "list_type", "type": "VARCHAR", "length": 12, "decimals": null, "allow_null": false, "default": "approved", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "approved|disapproved" },
 			"blanket":       { "name": "blanket", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "MD: all models of this manufacturer approved" },
+			"blanket_caliber": { "name": "blanket_caliber", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "MD: all calibers of this make+model approved" },
+			"source_label":  { "name": "source_label", "type": "VARCHAR", "length": 60, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "e.g. MA EOPSS, MD MSP Jan 2026" },
+			"as_of_date":    { "name": "as_of_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "data vintage" },
+			"source":        { "name": "source", "type": "VARCHAR", "length": 12, "decimals": null, "allow_null": false, "default": "pdf", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "pdf|csv|manual" },
 			"gun_type":      { "name": "gun_type", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Pistol|Revolver" },
 			"barrel":        { "name": "barrel", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
 			"caliber":       { "name": "caliber", "type": "VARCHAR", "length": 60, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
@@ -65,7 +70,8 @@
 			"idx_manufacturer": { "type": "key", "name": "idx_manufacturer", "length": [ null ], "columns": [ "roster_state", "manufacturer_norm" ] },
 			"idx_model_core":   { "type": "key", "name": "idx_model_core", "length": [ null, 100 ], "columns": [ "roster_state", "model_core" ] },
 			"idx_current":      { "type": "key", "name": "idx_current", "length": [ null ], "columns": [ "is_current" ] },
-			"idx_blanket":      { "type": "key", "name": "idx_blanket", "length": [ null ], "columns": [ "blanket" ] }
+			"idx_blanket":      { "type": "key", "name": "idx_blanket", "length": [ null ], "columns": [ "blanket" ] },
+			"idx_list_type":    { "type": "key", "name": "idx_list_type", "length": [ null, null ], "columns": [ "roster_state", "list_type" ] }
 		}
 	},
 	"gd_compliance_review": {

@@ -49,6 +49,12 @@ class _Roster
 	   the setting when a new edition lands. */
 	const MA_ROSTER_URL_DEFAULT = 'https://www.mass.gov/doc/approved-handgun-roster-april-2026/download';
 
+	/* MD MSP approved-handgun roster PDF (Jan 2026 edition). Yearly. */
+	const MD_ROSTER_URL_DEFAULT = 'https://dlslibrary.state.md.us/publications/Exec/MDSP/PS5-405(a)_2026(1).pdf';
+
+	/* MD MSP disapproved handguns / regulated firearms list. */
+	const MD_DISAPPROVED_URL_DEFAULT = 'https://mdsp.maryland.gov/media/594';
+
 	/* Status constants — these are the three states everyone references. */
 	const STATUS_ON      = 'on_roster';
 	const STATUS_OFF     = 'off_roster';
@@ -95,6 +101,12 @@ class _Roster
 	   [ rosterState => set<mfg_norm> ] */
 	protected static array $blanket = [];
 
+	/* Per-state DISAPPROVED cache — MD only currently. Structure mirrors
+	   $cache but only holds list_type='disapproved' rows so classifyHandgun
+	   can hit the deny check first without scanning the whole cache.
+	   [ rosterState => [ mfg_norm => [rows...] ] ] */
+	protected static array $disapproved = [];
+
 	/* ---------------------- Manufacturer / caliber / model normalization ---------------------- */
 
 	public static function normalizeMfg( string $raw ): string
@@ -130,22 +142,46 @@ class _Roster
 		$raw = str_replace( [ ' ', '.', '_' ], '', $raw );
 		/* "auto" / "acp" are equivalent suffixes. */
 		$raw = preg_replace( '/automatic|auto(matic)?\b/', 'auto', $raw );
-		/* Common variants. */
+		/* Common variants — checked in LONGEST-FIRST order below so
+		   '223rem' doesn't accidentally hit '22' → '22lr'. */
 		$map = [
 			'9mmluger' => '9mm', '9x19' => '9mm', '9mmpara' => '9mm', '9mmparabellum' => '9mm', '9luger' => '9mm', '9mm' => '9mm', '9' => '9mm',
-			'45acp' => '45acp', '45auto' => '45acp', '45ap' => '45acp',
+			'45acp' => '45acp', '45auto' => '45acp', '45ap' => '45acp', '45' => '45acp',
 			'40sw' => '40sw', '40s&w' => '40sw', '40' => '40sw',
 			'380acp' => '380acp', '380auto' => '380acp', '380' => '380acp',
-			'357mag' => '357mag', '357magnum' => '357mag', '357' => '357mag',
-			'38special' => '38spl', '38spl' => '38spl', '38spc' => '38spl', '38' => '38spl',
-			'22lr' => '22lr', '22longrifle' => '22lr', '22' => '22lr',
+			'357mag' => '357mag', '357magnum' => '357mag', '357sig' => '357sig', '357' => '357mag',
+			'38special' => '38spl', '38spl' => '38spl', '38spc' => '38spl',
+			'22lr' => '22lr', '22longrifle' => '22lr', '22mag' => '22mag', '22wmr' => '22mag',
+			/* .22 alone → 22lr but LONGER 22-prefixed calibers ('.22-250','223','224') must lose to explicit matches. */
+			'22' => '22lr',
 			'10mm' => '10mm', '10mmauto' => '10mm',
+			/* Rifle calibers that occur on the MD disapproved list. */
+			'223rem' => '223rem', '223remington' => '223rem', '223' => '223rem',
+			'556nato' => '556nato', '556x45' => '556nato', '556' => '556nato',
+			'762nato' => '762nato', '762x51' => '762nato', '308win' => '308win', '308' => '308win',
+			'762x39' => '762x39',
+			'50ae' => '50ae', '50beowulf' => '50beowulf', '50bmg' => '50bmg',
 		];
 		if ( isset( $map[ $raw ] ) ) { return $map[ $raw ]; }
-		/* Match against the keys with a startswith for messy variants. */
-		foreach ( $map as $needle => $canonical )
+
+		/* Longest-first prefix scan — a longer needle wins over a shorter one
+		   that happens to be its prefix (so '223rem' resolves to itself, not
+		   '22' → '22lr'). Also require the needle to LEAVE only a digit
+		   (never letters) after the prefix — so '22' still matches
+		   '22lr' / '22wmr' but NOT '223rem'. */
+		$needles = array_keys( $map );
+		usort( $needles, fn( $a, $b ) => strlen( $b ) <=> strlen( $a ) );
+		foreach ( $needles as $needle )
 		{
-			if ( strpos( $raw, $needle ) === 0 ) { return $canonical; }
+			if ( strncmp( $raw, $needle, strlen( $needle ) ) !== 0 ) { continue; }
+			$tail = substr( $raw, strlen( $needle ) );
+			if ( $tail !== '' && preg_match( '/^\d/', $tail ) )
+			{
+				/* Needle is a strict prefix of a longer number — skip so
+				   '22' doesn't eat '223rem'. */
+				continue;
+			}
+			return $map[ $needle ];
 		}
 		return $raw;
 	}
@@ -290,8 +326,18 @@ class _Roster
 		}
 		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
 
-		/* Stamp roster_state on every row before insert. */
-		foreach ( $unique as &$row ) { $row['roster_state'] = 'CA'; }
+		/* Stamp roster_state + source metadata on every row before insert.
+		   as_of_date reflects TODAY since the CA source is live. */
+		$today = date( 'Y-m-d' );
+		foreach ( $unique as &$row )
+		{
+			$row['roster_state']    = 'CA';
+			$row['list_type']       = 'approved';
+			$row['blanket_caliber'] = 0;
+			$row['source']          = 'pdf';
+			$row['source_label']    = 'CA DOJ';
+			$row['as_of_date']      = $today;
+		}
 		unset( $row );
 
 		foreach ( array_chunk( $unique, 250 ) as $chunk )
@@ -661,12 +707,14 @@ class _Roster
 
 			$out[] = [
 				'roster_state'      => 'MA',
+				'list_type'         => 'approved',
 				'manufacturer'      => substr( $mfgRaw, 0, 120 ),
 				'manufacturer_norm' => substr( $mfgNorm, 0, 120 ),
 				'model_raw'         => substr( $model, 0, 255 ),
 				'model_core'        => substr( self::normalizeModelCore( $model ), 0, 255 ),
 				'model_sku'         => substr( self::extractSku( $model ), 0, 120 ),
 				'blanket'           => 0,
+				'blanket_caliber'   => 0,
 				'gun_type'          => null,
 				'barrel'            => null,
 				'caliber'           => substr( $caliber, 0, 60 ),
@@ -675,6 +723,9 @@ class _Roster
 				'date_approved'     => $dateApproved,
 				'is_current'        => 1,
 				'boland_added'      => 0,
+				'source'            => 'pdf',
+				'source_label'      => 'MA EOPSS',
+				'as_of_date'        => $dateApproved,
 				'fetched_at'        => $fetchedAt,
 			];
 		}
@@ -725,17 +776,25 @@ class _Roster
 			return $result;
 		}
 
-		$now  = time();
-		$rows = [];
+		$now   = time();
+		$today = date( 'Y-m-d' );
+		$rows  = [];
+		/* Track which list_types this CSV touched so we replace exactly
+		   those and not the other list_type's PDF-sourced rows. */
+		$listTypes = [];
+
 		foreach ( $lines as $line )
 		{
 			$line = trim( (string) $line );
 			if ( $line === '' ) { continue; }
 
-			$cells       = str_getcsv( $line );
-			$rawMfg      = (string) ( $cells[ $idx['manufacturer'] ] ?? '' );
-			$rawModel    = (string) ( $cells[ $idx['model']        ?? -1 ] ?? '' );
-			$rawCaliber  = (string) ( $cells[ $idx['caliber']      ?? -1 ] ?? '' );
+			$cells      = str_getcsv( $line );
+			$rawMfg     = (string) ( $cells[ $idx['manufacturer'] ]        ?? $cells[ $idx['make'] ?? -1 ] ?? '' );
+			$rawModel   = (string) ( $cells[ $idx['model']        ?? -1 ]  ?? '' );
+			$rawCaliber = (string) ( $cells[ $idx['caliber']      ?? -1 ]  ?? '' );
+			$rawListT   = strtolower( trim( (string) ( $cells[ $idx['list_type'] ?? -1 ] ?? 'approved' ) ) );
+			$listType   = in_array( $rawListT, [ 'approved', 'disapproved' ], true ) ? $rawListT : 'approved';
+			$listTypes[ $listType ] = true;
 
 			$rawMfg = trim( $rawMfg );
 			if ( $rawMfg === '' ) { continue; }
@@ -750,27 +809,38 @@ class _Roster
 
 			$rows[] = [
 				'roster_state'      => 'MD',
+				'list_type'         => $listType,
 				'manufacturer'      => substr( $rawMfg, 0, 120 ),
 				'manufacturer_norm' => substr( self::normalizeMfg( $rawMfg ), 0, 120 ),
 				'model_raw'         => substr( $rawModel, 0, 255 ),
 				'model_core'        => $isBlanket ? '*' : substr( self::normalizeModelCore( $rawModel ), 0, 255 ),
 				'model_sku'         => $isBlanket ? null : substr( self::extractSku( $rawModel ), 0, 120 ),
 				'blanket'           => $isBlanket ? 1 : 0,
+				'blanket_caliber'   => 0,
 				'gun_type'          => null,
-				'barrel'             => null,
+				'barrel'            => null,
 				'caliber'           => $rawCaliber !== '' ? substr( $rawCaliber, 0, 60 ) : null,
 				'caliber_norm'      => $rawCaliber !== '' ? substr( self::normalizeCaliber( $rawCaliber ), 0, 40 ) : null,
 				'expired_date'      => null,
 				'date_approved'     => null,
 				'is_current'        => 1,
 				'boland_added'      => 0,
+				'source'            => 'csv',
+				'source_label'      => 'MD MSP CSV ' . $today,
+				'as_of_date'        => $today,
 				'fetched_at'        => $now,
 			];
 		}
 
-		/* Replace ONLY the MD rows. */
-		try { \IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=?', 'MD' ] ); }
-		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
+		/* Replace ONLY the MD rows for the list_type(s) this CSV covered —
+		   so a CSV of approved rows doesn't wipe the disapproved-list PDF
+		   data (and vice versa). If the CSV had rows of both types, both
+		   are replaced. */
+		foreach ( array_keys( $listTypes ) as $lt )
+		{
+			try { \IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=? AND list_type=?', 'MD', $lt ] ); }
+			catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
+		}
 
 		foreach ( array_chunk( $rows, 250 ) as $chunk )
 		{
@@ -790,6 +860,394 @@ class _Roster
 		return $result;
 	}
 
+	/* ---------------------- Fetch + parse — MD approved ---------------------- */
+
+	/**
+	 * Pull the MD MSP approved-handgun roster PDF, extract text, parse, and
+	 * replace gd_compliance_roster rows for MD/approved. URL from setting
+	 * gdcompliance_md_roster_url (default = the current known yearly edition).
+	 *
+	 * MD specifics handled here:
+	 *  - Columns: Make | Model | Model Number | Caliber. Model Number is
+	 *    frequently "N/A" (post-2021 not tracked) — matcher ignores it.
+	 *  - MULTI-CALIBER rows ("9 mm, 40 S&W, 45 ACP") are split into one
+	 *    row per caliber so classifyHandgun's per-row caliber comparison
+	 *    picks up any of them.
+	 *  - "All calibers approved. Please enter caliber" → single row with
+	 *    blanket_caliber=1 (any caliber of that make+model approved).
+	 *
+	 * Only MD/approved rows are touched. MD/disapproved rows (from the
+	 * separate fetch) and other states are untouched.
+	 *
+	 * @return array{rows:int,split:int,blanket_caliber:int,errors:array<int,string>,duration_ms:int,url:string,extractor:string,as_of_date:?string}
+	 */
+	public static function fetchMD(): array
+	{
+		$result = [ 'rows' => 0, 'split' => 0, 'blanket_caliber' => 0, 'errors' => [], 'duration_ms' => 0, 'url' => '', 'extractor' => '', 'as_of_date' => null ];
+		$start  = microtime( true );
+
+		$url = trim( (string) ( \IPS\Settings::i()->gdcompliance_md_roster_url ?? '' ) );
+		if ( $url === '' ) { $url = self::MD_ROSTER_URL_DEFAULT; }
+		$result['url'] = $url;
+
+		$bytes = '';
+		try { $bytes = (string) \IPS\Http\Url::external( $url )->request( self::PAGE_TIMEOUT_S )->get(); }
+		catch ( \Throwable $e )
+		{
+			$result['errors'][] = 'download: ' . $e->getMessage();
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			return $result;
+		}
+		if ( $bytes === '' || strncmp( $bytes, '%PDF', 4 ) !== 0 )
+		{
+			$result['errors'][] = 'response is not a PDF';
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			return $result;
+		}
+
+		[ $text, $extractor ] = self::extractPdfText( $bytes );
+		$result['extractor']  = $extractor;
+		if ( $text === '' )
+		{
+			$result['errors'][] = 'pdf text extraction returned empty';
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			return $result;
+		}
+
+		[ $rows, $asOf ] = self::parseMdApprovedText( $text );
+		$result['as_of_date']  = $asOf;
+
+		/* Replace ONLY the MD/approved rows. */
+		try { \IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=? AND list_type=?', 'MD', 'approved' ] ); }
+		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
+
+		foreach ( array_chunk( $rows, 250 ) as $chunk )
+		{
+			try { \IPS\Db::i()->insert( 'gd_compliance_roster', $chunk ); }
+			catch ( \Throwable $e ) { $result['errors'][] = 'insert: ' . $e->getMessage(); }
+		}
+
+		$result['rows']            = count( $rows );
+		$result['split']           = count( array_filter( $rows, fn( $r ) => (int) ( $r['_from_split'] ?? 0 ) === 1 ) );
+		$result['blanket_caliber'] = count( array_filter( $rows, fn( $r ) => (int) ( $r['blanket_caliber'] ?? 0 ) === 1 ) );
+		$result['duration_ms']     = (int) ( ( microtime( true ) - $start ) * 1000 );
+		self::$cache = null;
+		self::$blanket = self::$disapproved = [];
+
+		try { \IPS\Log::log( 'Roster::fetchMD complete: ' . json_encode( [
+			'rows' => $result['rows'], 'split' => $result['split'],
+			'blanket_caliber' => $result['blanket_caliber'], 'as_of' => $asOf,
+		] ), 'gdcompliance' ); } catch ( \Throwable ) {}
+
+		return $result;
+	}
+
+	/**
+	 * Parse the extracted MD approved-roster PDF text.
+	 *
+	 * Line shape (verified from the Jan 2026 edition):
+	 *   "<Make>  <Model>  <ModelNumber|N/A>  <Caliber(s) | 'All calibers approved...'>"
+	 * Column separators tend to be multi-space or tab in pdftotext -layout
+	 * output. Multi-caliber rows list several calibers separated by
+	 * commas / "and". "All calibers approved" text triggers blanket_caliber.
+	 *
+	 * @return array{0:array<int,array<string,mixed>>,1:?string}  rows + as_of_date
+	 */
+	protected static function parseMdApprovedText( string $text ): array
+	{
+		$out       = [];
+		$asOf      = null;
+		$fetchedAt = time();
+		$today     = date( 'Y-m-d' );
+
+		foreach ( preg_split( "/\r\n|\r|\n/", $text ) as $line )
+		{
+			$line = preg_replace( '/\s+/', ' ', trim( (string) $line ) );
+			if ( $line === '' ) { continue; }
+
+			/* Data vintage line — usually "as of MM/DD/YYYY" or similar. */
+			if ( $asOf === null && preg_match( '/\bas\s+of\s+([A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4})/i', $line, $mAsOf ) )
+			{
+				$ts = strtotime( $mAsOf[1] );
+				if ( $ts !== false ) { $asOf = date( 'Y-m-d', $ts ); }
+			}
+
+			/* Skip clearly-non-data lines (headers, footers, preamble). */
+			if ( stripos( $line, 'Approved Handgun Roster' ) !== false ) { continue; }
+			if ( stripos( $line, 'Maryland State Police' ) !== false )   { continue; }
+			if ( stripos( $line, 'Handgun Roster Board' ) !== false )    { continue; }
+			if ( preg_match( '/^Page\s+\d+/i', $line ) )                 { continue; }
+			if ( preg_match( '/^(Make|Manufacturer)\s+Model/i', $line ) ){ continue; }
+			if ( strlen( $line ) < 8 )                                   { continue; }
+
+			/* Split on 2+ spaces or tab — the -layout output tends to keep
+			   columns separated by multiple spaces even after our whitespace
+			   collapse (the collapse only replaced newlines; runs of spaces
+			   at column boundaries survive as 2+ from wide gaps). Fall back
+			   to comma splitting for CSV-style exports. */
+			$parts = preg_split( '/\s{2,}|\t+/', $line );
+			if ( !$parts || count( $parts ) < 3 )
+			{
+				/* Try comma-based split — some rows come out flat. */
+				$parts = array_map( 'trim', preg_split( '/,\s*/', $line ) );
+			}
+			if ( !$parts || count( $parts ) < 3 ) { continue; }
+
+			/* Parts positions vary. Layout is Make, Model, ModelNumber?, Caliber(s).
+			   Peel from the end: last part is caliber-ish; second-to-last is
+			   model_number when it's "N/A" or looks numeric; the first is Make;
+			   Model is what's between. */
+			$rawMake     = (string) array_shift( $parts );
+			$rawCaliber  = (string) array_pop( $parts );
+			$maybeModelN = end( $parts );
+			if ( $maybeModelN !== false && ( strtoupper( trim( (string) $maybeModelN ) ) === 'N/A' || preg_match( '/^[A-Z0-9\-\/. ]{1,20}$/i', (string) $maybeModelN ) === 1 ) && count( $parts ) > 1 )
+			{
+				array_pop( $parts );
+			}
+			$rawModel = trim( implode( ' ', $parts ) );
+			$rawMake  = trim( $rawMake );
+			$rawCal   = trim( $rawCaliber );
+			if ( $rawMake === '' || $rawModel === '' ) { continue; }
+
+			$mfgNorm = self::normalizeMfg( $rawMake );
+			$mCore   = self::normalizeModelCore( $rawModel );
+			$sku     = self::extractSku( $rawModel );
+
+			/* Blanket-caliber sentinel. */
+			$blanketCal = 0;
+			if ( stripos( $rawCal, 'all caliber' ) !== false )
+			{
+				$blanketCal = 1;
+				$out[] = self::mdApprovedRow( $rawMake, $mfgNorm, $rawModel, $mCore, $sku, '', '', 1, false, $today, $asOf, $fetchedAt );
+				continue;
+			}
+
+			/* Multi-caliber split — commas / "and" / ampersand between calibers. */
+			$calibers = preg_split( '/\s*(?:,|\band\b|&)\s*/i', $rawCal );
+			$calibers = array_values( array_filter( array_map( 'trim', $calibers ), fn( $c ) => $c !== '' ) );
+			if ( count( $calibers ) <= 1 )
+			{
+				$out[] = self::mdApprovedRow( $rawMake, $mfgNorm, $rawModel, $mCore, $sku, $rawCal, self::normalizeCaliber( $rawCal ), 0, false, $today, $asOf, $fetchedAt );
+			}
+			else
+			{
+				foreach ( $calibers as $cal )
+				{
+					$out[] = self::mdApprovedRow( $rawMake, $mfgNorm, $rawModel, $mCore, $sku, $cal, self::normalizeCaliber( $cal ), 0, true, $today, $asOf, $fetchedAt );
+				}
+			}
+		}
+
+		return [ $out, $asOf ];
+	}
+
+	protected static function mdApprovedRow( string $rawMake, string $mfgNorm, string $rawModel, string $mCore, string $sku, string $rawCal, string $calNorm, int $blanketCal, bool $fromSplit, string $today, ?string $asOf, int $fetchedAt ): array
+	{
+		return [
+			'roster_state'      => 'MD',
+			'list_type'         => 'approved',
+			'manufacturer'      => substr( $rawMake, 0, 120 ),
+			'manufacturer_norm' => substr( $mfgNorm, 0, 120 ),
+			'model_raw'         => substr( $rawModel, 0, 255 ),
+			'model_core'        => substr( $mCore, 0, 255 ),
+			'model_sku'         => $sku !== '' ? substr( $sku, 0, 120 ) : null,
+			'blanket'           => 0,
+			'blanket_caliber'   => $blanketCal,
+			'gun_type'          => null,
+			'barrel'            => null,
+			'caliber'           => $rawCal !== '' ? substr( $rawCal, 0, 60 ) : null,
+			'caliber_norm'      => $calNorm !== '' ? substr( $calNorm, 0, 40 ) : null,
+			'expired_date'      => null,
+			'date_approved'     => null,
+			'is_current'        => 1,
+			'boland_added'      => 0,
+			'source'            => 'pdf',
+			'source_label'      => 'MD MSP Approved ' . ( $asOf ?? $today ),
+			'as_of_date'        => $asOf ?? $today,
+			'fetched_at'        => $fetchedAt,
+			'_from_split'       => $fromSplit ? 1 : 0,
+		];
+	}
+
+	/* ---------------------- Fetch + parse — MD disapproved ---------------------- */
+
+	/**
+	 * Pull the MD MSP disapproved handguns list, parse, and replace
+	 * gd_compliance_roster rows for MD/disapproved.
+	 *
+	 * Any match against a disapproved entry is a HARD off_roster with high
+	 * confidence — absence from the approved list is NOT the source of
+	 * truth here.
+	 *
+	 * @return array{rows:int,errors:array<int,string>,duration_ms:int,url:string,extractor:string,as_of_date:?string}
+	 */
+	public static function fetchMDDisapproved(): array
+	{
+		$result = [ 'rows' => 0, 'errors' => [], 'duration_ms' => 0, 'url' => '', 'extractor' => '', 'as_of_date' => null ];
+		$start  = microtime( true );
+
+		$url = trim( (string) ( \IPS\Settings::i()->gdcompliance_md_disapproved_url ?? '' ) );
+		if ( $url === '' ) { $url = self::MD_DISAPPROVED_URL_DEFAULT; }
+		$result['url'] = $url;
+
+		$bytes = '';
+		try { $bytes = (string) \IPS\Http\Url::external( $url )->request( self::PAGE_TIMEOUT_S )->get(); }
+		catch ( \Throwable $e )
+		{
+			$result['errors'][] = 'download: ' . $e->getMessage();
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			return $result;
+		}
+		if ( $bytes === '' || strncmp( $bytes, '%PDF', 4 ) !== 0 )
+		{
+			$result['errors'][] = 'response is not a PDF';
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			return $result;
+		}
+
+		[ $text, $extractor ] = self::extractPdfText( $bytes );
+		$result['extractor']  = $extractor;
+		if ( $text === '' )
+		{
+			$result['errors'][] = 'pdf text extraction returned empty';
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+			return $result;
+		}
+
+		[ $rows, $asOf ] = self::parseMdDisapprovedText( $text );
+		$result['as_of_date'] = $asOf;
+
+		try { \IPS\Db::i()->delete( 'gd_compliance_roster', [ 'roster_state=? AND list_type=?', 'MD', 'disapproved' ] ); }
+		catch ( \Throwable $e ) { $result['errors'][] = 'delete: ' . $e->getMessage(); }
+
+		foreach ( array_chunk( $rows, 250 ) as $chunk )
+		{
+			try { \IPS\Db::i()->insert( 'gd_compliance_roster', $chunk ); }
+			catch ( \Throwable $e ) { $result['errors'][] = 'insert: ' . $e->getMessage(); }
+		}
+
+		$result['rows']        = count( $rows );
+		$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+		self::$cache = null;
+		self::$blanket = self::$disapproved = [];
+
+		try { \IPS\Log::log( 'Roster::fetchMDDisapproved complete: ' . json_encode( [
+			'rows' => $result['rows'], 'as_of' => $asOf,
+		] ), 'gdcompliance' ); } catch ( \Throwable ) {}
+
+		return $result;
+	}
+
+	/**
+	 * Parse the MD disapproved list. Numbered entries:
+	 *   "(1) Manufacturer Model, caliber, ... <mdNumber>"
+	 *
+	 * @return array{0:array<int,array<string,mixed>>,1:?string}
+	 */
+	protected static function parseMdDisapprovedText( string $text ): array
+	{
+		$out       = [];
+		$asOf      = null;
+		$fetchedAt = time();
+		$today     = date( 'Y-m-d' );
+
+		if ( preg_match( '/Updated\s+(\d{1,2}\/\d{2,4}|[A-Za-z]+\s+\d{4})/i', $text, $m ) )
+		{
+			$ts = strtotime( $m[1] );
+			if ( $ts !== false ) { $asOf = date( 'Y-m-d', $ts ); }
+		}
+
+		foreach ( preg_split( "/\r\n|\r|\n/", $text ) as $line )
+		{
+			$line = preg_replace( '/\s+/', ' ', trim( (string) $line ) );
+			if ( $line === '' ) { continue; }
+			/* Match: "(N) Mfg Model, caliber(, more caliber)*[ maybe more junk]" */
+			if ( !preg_match( '/^\(\s*(\d+)\s*\)\s*(.+)$/', $line, $mm ) ) { continue; }
+			$body = trim( $mm[2] );
+			if ( $body === '' ) { continue; }
+
+			/* Split "make model, caliber, ..." into descriptor + caliber list. */
+			$parts = array_map( 'trim', explode( ',', $body ) );
+			$descriptor = (string) array_shift( $parts );
+			$calibers   = array_values( array_filter( $parts, fn( $c ) => $c !== '' ) );
+
+			/* Descriptor is "<make> <model rest…>". Manufacturer prefix
+			   match (longest alias hit) — same trick used in parseMaRosterText. */
+			$lower   = strtolower( $descriptor );
+			$mfgRaw  = ''; $mfgNorm = ''; $rest = $descriptor;
+			$bestLen = 0;
+			foreach ( self::MFG_ALIASES as $canonical => $aliases )
+			{
+				foreach ( $aliases as $alias )
+				{
+					$a = strtolower( trim( $alias ) );
+					if ( $a === '' || strlen( $a ) <= $bestLen ) { continue; }
+					if ( strncmp( $lower, $a, strlen( $a ) ) === 0 )
+					{
+						$bestLen = strlen( $a );
+						$mfgRaw  = substr( $descriptor, 0, strlen( $a ) );
+						$mfgNorm = $canonical;
+						$rest    = trim( substr( $descriptor, strlen( $a ) ) );
+					}
+				}
+			}
+			if ( $mfgNorm === '' )
+			{
+				/* Fall back to a leading-token guess. */
+				if ( preg_match( '/^([A-Z][A-Za-z0-9&.\-]*(?:\s+[A-Z][A-Za-z0-9&.\-]*)?)\s+(.+)$/', $descriptor, $mp ) )
+				{
+					$mfgRaw  = $mp[1];
+					$mfgNorm = self::normalizeMfg( $mfgRaw );
+					$rest    = $mp[2];
+				}
+				else { continue; }
+			}
+
+			$model = trim( $rest );
+			if ( $model === '' ) { continue; }
+			$mCore = self::normalizeModelCore( $model );
+			$sku   = self::extractSku( $model );
+
+			if ( empty( $calibers ) )
+			{
+				$out[] = self::mdDisapprovedRow( $mfgRaw, $mfgNorm, $model, $mCore, $sku, '', '', $today, $asOf, $fetchedAt );
+				continue;
+			}
+			foreach ( $calibers as $cal )
+			{
+				$out[] = self::mdDisapprovedRow( $mfgRaw, $mfgNorm, $model, $mCore, $sku, $cal, self::normalizeCaliber( $cal ), $today, $asOf, $fetchedAt );
+			}
+		}
+		return [ $out, $asOf ];
+	}
+
+	protected static function mdDisapprovedRow( string $rawMake, string $mfgNorm, string $rawModel, string $mCore, string $sku, string $rawCal, string $calNorm, string $today, ?string $asOf, int $fetchedAt ): array
+	{
+		return [
+			'roster_state'      => 'MD',
+			'list_type'         => 'disapproved',
+			'manufacturer'      => substr( $rawMake, 0, 120 ),
+			'manufacturer_norm' => substr( $mfgNorm, 0, 120 ),
+			'model_raw'         => substr( $rawModel, 0, 255 ),
+			'model_core'        => substr( $mCore, 0, 255 ),
+			'model_sku'         => $sku !== '' ? substr( $sku, 0, 120 ) : null,
+			'blanket'           => 0,
+			'blanket_caliber'   => 0,
+			'gun_type'          => null,
+			'barrel'            => null,
+			'caliber'           => $rawCal !== '' ? substr( $rawCal, 0, 60 ) : null,
+			'caliber_norm'      => $calNorm !== '' ? substr( $calNorm, 0, 40 ) : null,
+			'expired_date'      => null,
+			'date_approved'     => null,
+			'is_current'        => 1,
+			'boland_added'      => 0,
+			'source'            => 'pdf',
+			'source_label'      => 'MD MSP Disapproved ' . ( $asOf ?? $today ),
+			'as_of_date'        => $asOf ?? $today,
+			'fetched_at'        => $fetchedAt,
+		];
+	}
+
 	/* ---------------------- Classification ---------------------- */
 
 	/**
@@ -801,15 +1259,23 @@ class _Roster
 	public static function primeCache(): void
 	{
 		if ( self::$cache !== null ) { return; }
-		$cache   = [];
-		$blanket = [];
+		$cache       = [];
+		$blanket     = [];
+		$disapproved = [];
 		try
 		{
 			foreach ( \IPS\Db::i()->select( '*', 'gd_compliance_roster' ) as $r )
 			{
 				$state = (string) ( $r['roster_state'] ?? '' );
 				$mfg   = (string) ( $r['manufacturer_norm'] ?? '' );
+				$ltype = (string) ( $r['list_type'] ?? 'approved' );
 				if ( $state === '' || $mfg === '' ) { continue; }
+
+				if ( $ltype === 'disapproved' )
+				{
+					$disapproved[ $state ][ $mfg ][] = $r;
+					continue;
+				}
 				$cache[ $state ][ $mfg ][] = $r;
 				if ( (int) ( $r['blanket'] ?? 0 ) === 1 )
 				{
@@ -818,14 +1284,16 @@ class _Roster
 			}
 		}
 		catch ( \Throwable ) {}
-		self::$cache   = $cache;
-		self::$blanket = $blanket;
+		self::$cache       = $cache;
+		self::$blanket     = $blanket;
+		self::$disapproved = $disapproved;
 	}
 
 	public static function clearCache(): void
 	{
-		self::$cache   = null;
-		self::$blanket = [];
+		self::$cache       = null;
+		self::$blanket     = [];
+		self::$disapproved = [];
 	}
 
 	/**
@@ -877,8 +1345,35 @@ class _Roster
 		$cal       = self::normalizeCaliber( $rawCaliber );
 		$skuToken  = self::extractSku( $rawMpn !== '' ? $rawMpn : $rawModel );
 
-		/* MD blanket FIRST — if MD approves the manufacturer wholesale, this
-		   handgun is on_roster regardless of model. */
+		/* Disapproved-list check FIRST (currently MD only). A match is a
+		   HARD off_roster — regardless of any approved-roster result.
+		   FFL-safe reading: match on manufacturer + model. Caliber is
+		   INTENTIONALLY IGNORED here — the MSP disapproved a MODEL PATTERN,
+		   so any chambering of that same model is restricted (a Colt AR-15
+		   in .223 is still an AR-15 if the 5.56 variant is disapproved).
+		   Derrick can override via the review queue if a specific caliber
+		   is known safe. */
+		if ( $mfg !== '' && !empty( self::$disapproved[ $rosterState ][ $mfg ] ) )
+		{
+			foreach ( self::$disapproved[ $rosterState ][ $mfg ] as $d )
+			{
+				$dCore = (string) ( $d['model_core'] ?? '' );
+				$dSku  = (string) ( $d['model_sku'] ?? '' );
+
+				$modelHit = ( $modelCore !== '' && $dCore !== '' && ( strpos( $dCore, $modelCore ) !== false || strpos( $modelCore, $dCore ) !== false ) )
+					|| ( $skuToken !== '' && $dSku !== '' && $skuToken === $dSku );
+				if ( !$modelHit ) { continue; }
+				return [
+					'status'            => self::STATUS_OFF,
+					'reason'            => "On {$rosterState} disapproved list (as of " . ( $d['as_of_date'] ?? 'unknown' ) . ')',
+					'confidence'        => 'exact',
+					'matched_roster_id' => (int) ( $d['id'] ?? 0 ),
+					'candidates'        => [],
+				];
+			}
+		}
+
+		/* MD blanket-manufacturer approval — post-2021 MD approves whole makers. */
 		if ( $rosterState === 'MD' && $mfg !== '' && !empty( self::$blanket['MD'][ $mfg ] ) )
 		{
 			return [
@@ -910,12 +1405,15 @@ class _Roster
 			foreach ( $candidates as $c )
 			{
 				if ( (string) ( $c['model_sku'] ?? '' ) !== $skuToken ) { continue; }
-				if ( !self::caliberMatches( $cal, (string) ( $c['caliber_norm'] ?? '' ) ) ) { continue; }
+				if ( !self::caliberMatchesRow( $cal, $c ) ) { continue; }
 				return self::tierFromCandidate( $c, 'exact SKU + caliber match', 'exact' );
 			}
 		}
 
-		/* (2) STRONG — model_core substring (either direction) + caliber agree. */
+		/* (2) STRONG — model_core substring (either direction) + caliber agree.
+		   caliberMatchesRow honors MD's blanket_caliber flag AND, via
+		   row-per-caliber splitting on multi-caliber MD rows, any of the
+		   listed calibers can match. */
 		$strong = [];
 		if ( $modelCore !== '' )
 		{
@@ -927,7 +1425,7 @@ class _Roster
 				{
 					continue;
 				}
-				if ( !self::caliberMatches( $cal, (string) ( $c['caliber_norm'] ?? '' ) ) ) { continue; }
+				if ( !self::caliberMatchesRow( $cal, $c ) ) { continue; }
 				$strong[] = $c;
 			}
 		}
@@ -1039,6 +1537,16 @@ class _Roster
 	{
 		if ( $product === '' || $roster === '' ) { return false; }
 		return $product === $roster;
+	}
+
+	/**
+	 * Same as caliberMatches but honors MD's "all calibers approved"
+	 * blanket_caliber flag — a blanket_caliber=1 row matches any caliber.
+	 */
+	protected static function caliberMatchesRow( string $product, array $rosterRow ): bool
+	{
+		if ( (int) ( $rosterRow['blanket_caliber'] ?? 0 ) === 1 ) { return true; }
+		return self::caliberMatches( $product, (string) ( $rosterRow['caliber_norm'] ?? '' ) );
 	}
 
 	protected static function summarizeCandidates( array $rows, int $limit = 10 ): array

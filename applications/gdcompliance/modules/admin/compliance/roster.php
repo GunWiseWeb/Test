@@ -41,12 +41,29 @@ class _roster extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
-		$caRefreshUrl = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refresh' )->csrf();
-		$maRefreshUrl = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refreshMA' )->csrf();
-		$mdUploadUrl  = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=mdImport' );
+		$caRefreshUrl       = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refresh' )->csrf();
+		$maRefreshUrl       = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refreshMA' )->csrf();
+		$mdRefreshUrl       = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refreshMD' )->csrf();
+		$mdDisapprovedUrl2  = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refreshMDDisapproved' )->csrf();
+		$mdUploadUrl        = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=mdImport' );
 
-		$maUrl = htmlspecialchars( (string) ( \IPS\Settings::i()->gdcompliance_ma_roster_url ?? \IPS\gdcompliance\Roster::MA_ROSTER_URL_DEFAULT ), ENT_QUOTES, 'UTF-8' );
-		$caUrl = htmlspecialchars( \IPS\gdcompliance\Roster::ROSTER_URL, ENT_QUOTES, 'UTF-8' );
+		$maUrl           = htmlspecialchars( (string) ( \IPS\Settings::i()->gdcompliance_ma_roster_url        ?? \IPS\gdcompliance\Roster::MA_ROSTER_URL_DEFAULT ), ENT_QUOTES, 'UTF-8' );
+		$mdApprovedUrl   = htmlspecialchars( (string) ( \IPS\Settings::i()->gdcompliance_md_roster_url        ?? \IPS\gdcompliance\Roster::MD_ROSTER_URL_DEFAULT ), ENT_QUOTES, 'UTF-8' );
+		$mdDisapprovedU  = htmlspecialchars( (string) ( \IPS\Settings::i()->gdcompliance_md_disapproved_url   ?? \IPS\gdcompliance\Roster::MD_DISAPPROVED_URL_DEFAULT ), ENT_QUOTES, 'UTF-8' );
+		$caUrl           = htmlspecialchars( \IPS\gdcompliance\Roster::ROSTER_URL, ENT_QUOTES, 'UTF-8' );
+
+		/* Data-vintage per (state, list_type) — surfaces as_of_date so
+		   Derrick sees exactly how stale each list is. */
+		$asOf = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( "roster_state, list_type, MAX(as_of_date) AS d", 'gd_compliance_roster', null, null, null, 'roster_state, list_type' ) as $row )
+			{
+				$asOf[ (string) $row['roster_state'] ][ (string) $row['list_type'] ] = (string) $row['d'];
+			}
+		}
+		catch ( \Throwable ) {}
+		$fmtAsOf = function( ?string $d ) { return $d ? htmlspecialchars( 'as of ' . $d, ENT_QUOTES, 'UTF-8' ) : '<em style="color:#94a3b8">no data yet</em>'; };
 
 		$intro = '<div class="ipsBox" style="margin-bottom:16px"><div class="ipsBox_body ipsPad">'
 			. '<h2 class="ipsType_sectionHead" style="margin:0 0 10px">' . $h( 'gdcompliance_acp_roster_title' ) . '</h2>'
@@ -55,22 +72,36 @@ class _roster extends \IPS\Dispatcher\Controller
 			/* CA */
 			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:10px">'
 			. '<strong style="min-width:60px">CA</strong>'
-			. '<span style="color:#475569;font-size:13px">' . number_format( $counts['CA'] ) . ' rows (' . number_format( $current['CA'] ) . ' current) &middot; <a href="' . $caUrl . '" target="_blank" rel="noopener">DOJ source</a></span>'
+			. '<span style="color:#475569;font-size:13px">' . number_format( $counts['CA'] ) . ' rows (' . number_format( $current['CA'] ) . ' current) &middot; ' . $fmtAsOf( $asOf['CA']['approved'] ?? null ) . ' &middot; <a href="' . $caUrl . '" target="_blank" rel="noopener">DOJ source</a></span>'
 			. '<a href="' . htmlspecialchars( $caRefreshUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton--primary ipsButton--small" style="margin-left:auto">' . $h( 'gdcompliance_acp_roster_refresh' ) . '</a>'
 			. '</div>'
 
 			/* MA */
 			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:10px">'
 			. '<strong style="min-width:60px">MA</strong>'
-			. '<span style="color:#475569;font-size:13px">' . number_format( $counts['MA'] ) . ' rows &middot; <a href="' . $maUrl . '" target="_blank" rel="noopener">PDF source</a> (set <code>gdcompliance_ma_roster_url</code> if URL changes)</span>'
+			. '<span style="color:#475569;font-size:13px">' . number_format( $counts['MA'] ) . ' rows &middot; ' . $fmtAsOf( $asOf['MA']['approved'] ?? null ) . ' &middot; <a href="' . $maUrl . '" target="_blank" rel="noopener">PDF source</a> (set <code>gdcompliance_ma_roster_url</code> if URL changes)</span>'
 			. '<a href="' . htmlspecialchars( $maRefreshUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton--primary ipsButton--small" style="margin-left:auto">' . $h( 'gdcompliance_acp_roster_refresh_ma' ) . '</a>'
 			. '</div>'
 
-			/* MD — CSV upload only */
+			/* MD Approved (auto PDF) */
+			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:10px">'
+			. '<strong style="min-width:60px">MD approved</strong>'
+			. '<span style="color:#475569;font-size:13px">' . $fmtAsOf( $asOf['MD']['approved'] ?? null ) . ' &middot; <a href="' . $mdApprovedUrl . '" target="_blank" rel="noopener">MSP PDF (yearly edition)</a></span>'
+			. '<a href="' . htmlspecialchars( $mdRefreshUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton--primary ipsButton--small" style="margin-left:auto">' . $h( 'gdcompliance_acp_roster_refresh_md' ) . '</a>'
+			. '</div>'
+
+			/* MD Disapproved (auto PDF — hard restrict signal) */
+			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;margin-bottom:10px">'
+			. '<strong style="min-width:60px;color:#9a3412">MD disapproved</strong>'
+			. '<span style="color:#7c2d12;font-size:13px">' . $fmtAsOf( $asOf['MD']['disapproved'] ?? null ) . ' &middot; <a href="' . $mdDisapprovedU . '" target="_blank" rel="noopener">MSP denylist PDF</a> &middot; matching this list = <strong>hard restrict</strong></span>'
+			. '<a href="' . htmlspecialchars( $mdDisapprovedUrl2, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton--primary ipsButton--small" style="margin-left:auto">' . $h( 'gdcompliance_acp_roster_refresh_md_dis' ) . '</a>'
+			. '</div>'
+
+			/* MD Manual CSV Override */
 			. '<div style="padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:0">'
-			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">'
-			. '<strong style="min-width:60px">MD</strong>'
-			. '<span style="color:#475569;font-size:13px">' . number_format( $counts['MD'] ) . ' rows &middot; manual CSV import only (Tableau-locked source)</span>'
+			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px">'
+			. '<strong style="min-width:60px">MD CSV override</strong>'
+			. '<span style="color:#475569;font-size:13px">Freshest export from the MSP Tableau portal wins; supersedes the PDF for whichever list_type your CSV contains.</span>'
 			. '</div>'
 			. '<p style="margin:0 0 8px;font-size:12px;color:#64748b">' . $h( 'gdcompliance_acp_roster_md_help' ) . '</p>'
 			. '<form action="' . htmlspecialchars( $mdUploadUrl, ENT_QUOTES, 'UTF-8' ) . '" method="post" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
@@ -101,7 +132,7 @@ class _roster extends \IPS\Dispatcher\Controller
 		$tableUrl = $stateFilter !== '' ? $baseUrl->setQueryString( 'roster_state', $stateFilter ) : $baseUrl;
 		$table = new \IPS\Helpers\Table\Db( 'gd_compliance_roster', $tableUrl, $where );
 		$table->langPrefix    = 'gdcompliance_acp_roster_col_';
-		$table->include       = [ 'roster_state', 'manufacturer', 'model_raw', 'caliber', 'blanket', 'gun_type', 'barrel', 'expired_date', 'date_approved', 'is_current' ];
+		$table->include       = [ 'roster_state', 'list_type', 'manufacturer', 'model_raw', 'caliber', 'blanket', 'blanket_caliber', 'source_label', 'as_of_date', 'is_current' ];
 		$table->sortBy        = $table->sortBy ?: 'manufacturer';
 		$table->sortDirection = $table->sortDirection ?: 'asc';
 
@@ -118,15 +149,25 @@ class _roster extends \IPS\Dispatcher\Controller
 			'manufacturer' => function( $v ) { return '<strong>' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</strong>'; },
 			'model_raw'    => function( $v ) { return '<span style="font-family:ui-monospace,monospace;font-size:12px">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>'; },
 			'caliber'      => function( $v ) { return $v ? htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) : '<span style="color:#cbd5e1">—</span>'; },
+			'list_type'    => function( $v ) {
+				$lt = strtolower( (string) $v );
+				$pill = $lt === 'disapproved'
+					? 'background:#fee2e2;color:#991b1b'
+					: 'background:#dcfce7;color:#14532d';
+				return '<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;' . $pill . '">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>';
+			},
 			'blanket'      => function( $v ) {
 				return ( (int) $v === 1 )
-					? '<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#dcfce7;color:#14532d">ALL</span>'
+					? '<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#dcfce7;color:#14532d">ALL MODELS</span>'
 					: '<span style="color:#cbd5e1">—</span>';
 			},
-			'gun_type'     => function( $v ) { return $v ? '<span style="color:#475569">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>' : '<span style="color:#cbd5e1">—</span>'; },
-			'barrel'       => function( $v ) { return $v ? htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) : '<span style="color:#cbd5e1">—</span>'; },
-			'expired_date' => function( $v ) { return $v ? htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) : '<span style="color:#cbd5e1">—</span>'; },
-			'date_approved' => function( $v ) { return $v ? htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) : '<span style="color:#cbd5e1">—</span>'; },
+			'blanket_caliber' => function( $v ) {
+				return ( (int) $v === 1 )
+					? '<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#dbeafe;color:#1e3a8a">ANY CAL</span>'
+					: '<span style="color:#cbd5e1">—</span>';
+			},
+			'source_label' => function( $v ) { return $v ? '<span style="color:#64748b;font-size:12px">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>' : '<span style="color:#cbd5e1">—</span>'; },
+			'as_of_date'   => function( $v ) { return $v ? '<span style="font-family:ui-monospace,monospace;font-size:12px">' . htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) . '</span>' : '<span style="color:#cbd5e1">—</span>'; },
 			'is_current'   => function( $v ) {
 				return ( (int) $v === 1 )
 					? '<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#dcfce7;color:#14532d">CURRENT</span>'
@@ -174,6 +215,42 @@ class _roster extends \IPS\Dispatcher\Controller
 
 		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdcompliance_acp_roster_ma_done', false, [
 			'sprintf' => [ (int) $counts['rows'], (string) $counts['extractor'], count( (array) $counts['errors'] ) ],
+		] );
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
+			$msg
+		);
+	}
+
+	protected function refreshMD(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		$counts = [ 'rows' => 0, 'split' => 0, 'blanket_caliber' => 0, 'errors' => [], 'duration_ms' => 0, 'extractor' => '', 'as_of_date' => null ];
+		try { $counts = \IPS\gdcompliance\Roster::fetchMD(); }
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'roster refresh MD: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdcompliance_acp_roster_md_pdf_done', false, [
+			'sprintf' => [ (int) $counts['rows'], (string) ( $counts['as_of_date'] ?? '—' ), (int) $counts['split'], (int) $counts['blanket_caliber'], count( (array) $counts['errors'] ) ],
+		] );
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
+			$msg
+		);
+	}
+
+	protected function refreshMDDisapproved(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		$counts = [ 'rows' => 0, 'errors' => [], 'duration_ms' => 0, 'extractor' => '', 'as_of_date' => null ];
+		try { $counts = \IPS\gdcompliance\Roster::fetchMDDisapproved(); }
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'roster refresh MD disapproved: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdcompliance_acp_roster_md_dis_done', false, [
+			'sprintf' => [ (int) $counts['rows'], (string) ( $counts['as_of_date'] ?? '—' ), count( (array) $counts['errors'] ) ],
 		] );
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
