@@ -42,9 +42,15 @@
 			"do": "",
 			"restriction": "compliance_manage"
 		},
-		"picamodels": {
+		"awbmodels": {
 			"tab": "gdcompliance",
-			"controller": "picamodels",
+			"controller": "awbmodels",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
+		"awbrules": {
+			"tab": "gdcompliance",
+			"controller": "awbrules",
 			"do": "",
 			"restriction": "compliance_manage"
 		},

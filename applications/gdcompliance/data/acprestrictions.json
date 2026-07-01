@@ -7,7 +7,8 @@
 		"overrides": { "compliance_manage": "compliance_manage" },
 		"lookup":    { "compliance_manage": "compliance_manage" },
 		"browser":    { "compliance_manage": "compliance_manage" },
-		"picamodels": { "compliance_manage": "compliance_manage" },
+		"awbmodels":  { "compliance_manage": "compliance_manage" },
+		"awbrules":   { "compliance_manage": "compliance_manage" },
 		"settings":   { "compliance_manage": "compliance_manage" }
 	}
 }

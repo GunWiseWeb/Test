@@ -11,7 +11,8 @@
 <word key="menu__gdcompliance_compliance_overrides" js="0"><![CDATA[Manual Overrides]]></word>
 <word key="menu__gdcompliance_compliance_lookup" js="0"><![CDATA[Product Lookup]]></word>
 <word key="menu__gdcompliance_compliance_browser" js="0"><![CDATA[Restrictions Browser]]></word>
-<word key="menu__gdcompliance_compliance_picamodels" js="0"><![CDATA[PICA Models (IL)]]></word>
+<word key="menu__gdcompliance_compliance_awbmodels" js="0"><![CDATA[AWB Named Models]]></word>
+<word key="menu__gdcompliance_compliance_awbrules" js="0"><![CDATA[AWB Rules (per state)]]></word>
 <word key="menu__gdcompliance_compliance_settings" js="0"><![CDATA[Settings]]></word>
 <word key="gdcompliance_acp_pica_title" js="0"><![CDATA[Illinois PICA Named Models]]></word>
 <word key="gdcompliance_acp_pica_intro" js="0"><![CDATA[Statutory named-model list from 720 ILCS 5/24-1.9(a)(1)(J). Rifles whose title/brand/model/description match ANY enabled pattern get a Tier-1 PICA flag with high confidence. Semi-auto rifles that match nothing here still get a Tier-2 "likely PICA — verify" flag for the review queue.]]></word>
@@ -29,6 +30,49 @@
 <word key="gdcompliance_pica_f_citation" js="0"><![CDATA[Statutory citation]]></word>
 <word key="gdcompliance_pica_f_enabled" js="0"><![CDATA[Enabled]]></word>
 <word key="gdcompliance_reason_pica" js="0"><![CDATA[PICA (IL)]]></word>
+<word key="gdcompliance_reason_awb" js="0"><![CDATA[AWB]]></word>
+<word key="gdcompliance_acp_awb_title" js="0"><![CDATA[AWB Named Models]]></word>
+<word key="gdcompliance_acp_awb_intro" js="0"><![CDATA[Per-state statutory named-model list for the multi-state Assault Weapons Ban framework. Filter by state (IL PICA, CA Pen 30510/30515, NY SAFE Act) or manage all in one view.]]></word>
+<word key="gdcompliance_acp_awb_add" js="0"><![CDATA[Add pattern]]></word>
+<word key="gdcompliance_acp_awb_reseed" js="0"><![CDATA[Reseed statutory lists]]></word>
+<word key="gdcompliance_acp_awb_reseed_done" js="0"><![CDATA[AWB model reseed complete]]></word>
+<word key="acplog__gdcompliance_awb_reseeded" js="0"><![CDATA[Reseeded AWB statutory named-model lists (non-destructive)]]></word>
+<word key="gdcompliance_acp_awb_col_state_code" js="0"><![CDATA[State]]></word>
+<word key="gdcompliance_acp_awb_col_pattern" js="0"><![CDATA[Pattern]]></word>
+<word key="gdcompliance_acp_awb_col_pattern_norm" js="0"><![CDATA[Normalized]]></word>
+<word key="gdcompliance_acp_awb_col_platform_group" js="0"><![CDATA[Platform]]></word>
+<word key="gdcompliance_acp_awb_col_citation" js="0"><![CDATA[Citation]]></word>
+<word key="gdcompliance_acp_awb_col_enabled" js="0"><![CDATA[Enabled]]></word>
+<word key="gdcompliance_awb_f_state_code" js="0"><![CDATA[State]]></word>
+<word key="gdcompliance_awb_f_pattern" js="0"><![CDATA[Pattern (as it appears in catalog titles)]]></word>
+<word key="gdcompliance_awb_f_platform_group" js="0"><![CDATA[Platform group]]></word>
+<word key="gdcompliance_awb_f_citation" js="0"><![CDATA[Statutory citation]]></word>
+<word key="gdcompliance_awb_f_enabled" js="0"><![CDATA[Enabled]]></word>
+<word key="gdcompliance_acp_awbrules_title" js="0"><![CDATA[AWB Rules (per-state feature-test config)]]></word>
+<word key="gdcompliance_acp_awbrules_intro" js="0"><![CDATA[One row per (state, firearm class). threshold: 1 = single-feature AWB (CA/NY/IL/CT/NJ/WA/DC), 2 = two-feature AWB (MA/MD). centerfire_only exempts rimfire. max_overall_length_in only for CA rifles (<30" triggers AWB regardless of features).]]></word>
+<word key="gdcompliance_acp_awbrules_add" js="0"><![CDATA[Add rule]]></word>
+<word key="gdcompliance_acp_awbrules_reseed" js="0"><![CDATA[Reseed statutory rules]]></word>
+<word key="gdcompliance_acp_awbrules_reseed_done" js="0"><![CDATA[AWB rules reseed complete]]></word>
+<word key="acplog__gdcompliance_awbrules_reseeded" js="0"><![CDATA[Reseeded AWB per-state rule config (non-destructive)]]></word>
+<word key="gdcompliance_acp_awbrules_col_state_code" js="0"><![CDATA[State]]></word>
+<word key="gdcompliance_acp_awbrules_col_firearm_class" js="0"><![CDATA[Class]]></word>
+<word key="gdcompliance_acp_awbrules_col_feature_count_threshold" js="0"><![CDATA[Feature threshold]]></word>
+<word key="gdcompliance_acp_awbrules_col_centerfire_only" js="0"><![CDATA[Centerfire only]]></word>
+<word key="gdcompliance_acp_awbrules_col_max_overall_length_in" js="0"><![CDATA[Max OAL (in)]]></word>
+<word key="gdcompliance_acp_awbrules_col_effective_date" js="0"><![CDATA[Effective]]></word>
+<word key="gdcompliance_acp_awbrules_col_expires_date" js="0"><![CDATA[Expires]]></word>
+<word key="gdcompliance_acp_awbrules_col_enabled" js="0"><![CDATA[Enabled]]></word>
+<word key="gdcompliance_acp_awbrules_col_notes" js="0"><![CDATA[Notes]]></word>
+<word key="gdcompliance_awbrules_f_state_code" js="0"><![CDATA[State]]></word>
+<word key="gdcompliance_awbrules_f_firearm_class" js="0"><![CDATA[Firearm class]]></word>
+<word key="gdcompliance_awbrules_f_feature_count_threshold" js="0"><![CDATA[Feature-count threshold]]></word>
+<word key="gdcompliance_awbrules_f_centerfire_only" js="0"><![CDATA[Centerfire only]]></word>
+<word key="gdcompliance_awbrules_f_max_overall_length_in" js="0"><![CDATA[Max overall length (inches, blank = n/a)]]></word>
+<word key="gdcompliance_awbrules_f_citation" js="0"><![CDATA[Citation]]></word>
+<word key="gdcompliance_awbrules_f_effective_date" js="0"><![CDATA[Effective date (YYYY-MM-DD)]]></word>
+<word key="gdcompliance_awbrules_f_expires_date" js="0"><![CDATA[Expires date (YYYY-MM-DD)]]></word>
+<word key="gdcompliance_awbrules_f_enabled" js="0"><![CDATA[Enabled]]></word>
+<word key="gdcompliance_awbrules_f_notes" js="0"><![CDATA[Notes]]></word>
 <word key="gdcompliance_acp_roster_refresh_all" js="0"><![CDATA[Refresh all rosters (CA + MA + MD)]]></word>
 <word key="gdcompliance_acp_roster_refresh_all_hint" js="0"><![CDATA[Sequentially runs every fetcher; per-source failures surface in the flash message so you can see exactly what went wrong.]]></word>
 <word key="gdcompliance_acp_rules_reseed" js="0"><![CDATA[Reseed missing rules]]></word>

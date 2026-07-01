@@ -18,6 +18,7 @@
 if ( !defined( '\\IPS\\SUITE_UNIQUE_KEY' ) ) { exit; }
 
 require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Seeder.php';
+require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/AwbModels.php';
 require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/PicaModels.php';
 
 /* -------------------------------------------------------------------------
@@ -33,15 +34,17 @@ catch ( \Throwable $e )
 	try { \IPS\Log::log( 'gdcompliance install rule seed: ' . $e->getMessage(), 'gdcompliance_install' ); } catch ( \Throwable ) {}
 }
 
-/* Seed the IL PICA named-model list (720 ILCS 5/24-1.9(a)(1)(J)). Same
-   non-destructive contract — existing rows preserved on reinstall. */
+/* Seed the multi-state AWB named-model lists (IL PICA + CA + NY) AND
+   the per-state feature-test config. Non-destructive per-row — existing
+   rows preserved on reinstall or admin edit. */
 try
 {
-	\IPS\gdcompliance\PicaModels::seedMissingModels();
+	\IPS\gdcompliance\AwbModels::seedMissingRules();
+	\IPS\gdcompliance\AwbModels::seedMissingModels();
 }
 catch ( \Throwable $e )
 {
-	try { \IPS\Log::log( 'gdcompliance install PICA model seed: ' . $e->getMessage(), 'gdcompliance_install' ); } catch ( \Throwable ) {}
+	try { \IPS\Log::log( 'gdcompliance install AWB seed: ' . $e->getMessage(), 'gdcompliance_install' ); } catch ( \Throwable ) {}
 }
 
 /* Lang seed — every key in dev/lang.php into core_sys_lang_words per language. */

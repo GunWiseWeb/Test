@@ -117,10 +117,11 @@
 			"idx_state":   { "type": "key", "name": "idx_state", "length": [ null ], "columns": [ "state_code" ] }
 		}
 	},
-	"gd_compliance_pica_models": {
-		"name": "gd_compliance_pica_models",
+	"gd_compliance_awb_models": {
+		"name": "gd_compliance_awb_models",
 		"columns": {
 			"id":             { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"state_code":     { "name": "state_code", "type": "CHAR", "length": 2, "decimals": null, "allow_null": false, "default": "IL", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "AWB-enforcing state; IL/CA/NY seeded" },
 			"pattern":        { "name": "pattern", "type": "VARCHAR", "length": 120, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "human-readable pattern e.g. 'M&P15'" },
 			"pattern_norm":   { "name": "pattern_norm", "type": "VARCHAR", "length": 120, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "aggressively normalized for matching" },
 			"platform_group": { "name": "platform_group", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "AR-15|AK|SCAR|.50 BMG|Other Named" },
@@ -129,9 +130,33 @@
 			"updated_at":     { "name": "updated_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
 		},
 		"indexes": {
-			"PRIMARY":     { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
-			"uq_norm":     { "type": "unique", "name": "uq_norm", "length": [ null ], "columns": [ "pattern_norm" ] },
-			"idx_enabled": { "type": "key", "name": "idx_enabled", "length": [ null ], "columns": [ "enabled" ] }
+			"PRIMARY":         { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"uq_state_norm":   { "type": "unique", "name": "uq_state_norm", "length": [ null, null ], "columns": [ "state_code", "pattern_norm" ] },
+			"idx_state":       { "type": "key", "name": "idx_state", "length": [ null ], "columns": [ "state_code" ] },
+			"idx_enabled":     { "type": "key", "name": "idx_enabled", "length": [ null ], "columns": [ "enabled" ] }
+		}
+	},
+	"gd_compliance_awb_rules": {
+		"name": "gd_compliance_awb_rules",
+		"columns": {
+			"id":                      { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"state_code":              { "name": "state_code", "type": "CHAR", "length": 2, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"firearm_class":           { "name": "firearm_class", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": false, "default": "rifle", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "rifle|pistol|shotgun" },
+			"feature_count_threshold": { "name": "feature_count_threshold", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "1", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "IL/CA/NY/DC=1; MA/MD=2" },
+			"centerfire_only":         { "name": "centerfire_only", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "1", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "all state AWBs exempt rimfire" },
+			"max_overall_length_in":   { "name": "max_overall_length_in", "type": "DECIMAL", "length": 6, "decimals": 2, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "CA: <30 in triggers regardless of features; null = n/a" },
+			"min_capacity_fixed":      { "name": "min_capacity_fixed", "type": "INT", "length": 5, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "fixed-mag > N triggers" },
+			"citation":                { "name": "citation", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "state statute citation" },
+			"effective_date":          { "name": "effective_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"expires_date":            { "name": "expires_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"enabled":                 { "name": "enabled", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "1", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"notes":                   { "name": "notes", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"updated_at":              { "name": "updated_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":           { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"uq_state_class":    { "type": "unique", "name": "uq_state_class", "length": [ null, null ], "columns": [ "state_code", "firearm_class" ] },
+			"idx_state_enabled": { "type": "key", "name": "idx_state_enabled", "length": [ null, null ], "columns": [ "state_code", "enabled" ] }
 		}
 	},
 	"gd_compliance_unparsed": {

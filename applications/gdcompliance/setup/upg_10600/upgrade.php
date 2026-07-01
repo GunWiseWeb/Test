@@ -1,25 +1,26 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.5.4 (roster fetcher hardening)
+ * @brief  GD Compliance — upgrade 1.6.0 (multi-state AWB framework)
  *
- * Code-only release — no schema changes. Just carries every v1.5.x
- * migration forward so any prior install lands with the canonical
- * schema, plus a lang reseed for the new refreshAll strings.
+ * Generalizes the IL-only PICA layer into a per-state AWB engine.
  *
- * Ships:
- *   - Non-destructive guards on all four Roster fetchers (don't wipe
- *     existing rows when the new fetch parsed zero)
- *   - Column-length substr() defense before every insert (1067 guard)
- *   - errorTail() helper in the ACP so the flash message surfaces the
- *     URL, extractor, skipped_wipe status, and first 3 errors
- *   - refreshAll action + button that runs CA + MA + MD approved + MD
- *     disapproved sequentially and reports a combined summary
+ * Key migration:
+ *   1. RENAME gd_compliance_pica_models → gd_compliance_awb_models
+ *   2. ADD COLUMN state_code CHAR(2) NOT NULL DEFAULT 'IL' to that table
+ *      (all pre-existing rows are IL PICA patterns; default catches them)
+ *   3. Drop the old UNIQUE(pattern_norm) index and add UNIQUE(state_code,
+ *      pattern_norm) so the same pattern can be enabled per state
+ *   4. CREATE gd_compliance_awb_rules — per-state feature-test config
+ *   5. Seed IL + CA + NY named lists (non-destructive per state, pattern_norm)
+ *   6. Seed IL + CA + NY awb_rules enabled; CT/NJ/MA/MD/WA/DC/DE/RI/VA
+ *      seeded but with enabled=0 (RI+VA date-gated 2026-07-01, RI enabled)
  *
- * NEVER truncates gd_compliance_rules, gd_compliance_overrides, or
- * gd_compliance_pica_models. Does NOT auto-run compute.
+ * NEVER truncates gd_compliance_rules, gd_compliance_overrides,
+ * gd_compliance_awb_models, or gd_compliance_awb_rules. Does NOT
+ * auto-run compute.
  */
 
-namespace IPS\gdcompliance\setup\upg_10504;
+namespace IPS\gdcompliance\setup\upg_10600;
 
 use function defined;
 
@@ -36,7 +37,8 @@ class _upgrade
 		$prefix = (string) \IPS\Db::i()->prefix;
 
 		/* ============================================================
-		 * (1) Ensure every canonical table exists at the correct width.
+		 * (1) Ensure every canonical table exists (fresh install path
+		 * for any prior version). CREATE IF NOT EXISTS is idempotent.
 		 * ============================================================ */
 
 		$creates = [
@@ -138,19 +140,6 @@ class _upgrade
 				KEY idx_list_type (roster_state, list_type)
 			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-			"CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_pica_models (
-				id             INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-				pattern        VARCHAR(120) NOT NULL DEFAULT '',
-				pattern_norm   VARCHAR(120) NOT NULL DEFAULT '',
-				platform_group VARCHAR(40) NOT NULL DEFAULT '',
-				citation       VARCHAR(255) NULL DEFAULT NULL,
-				enabled        TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
-				updated_at     INT(10) UNSIGNED NULL DEFAULT NULL,
-				PRIMARY KEY (id),
-				UNIQUE KEY uq_norm (pattern_norm),
-				KEY idx_enabled (enabled)
-			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-
 			"CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_unparsed (
 				id             INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
 				capacity_value VARCHAR(100) NOT NULL DEFAULT '',
@@ -158,17 +147,110 @@ class _upgrade
 				updated_at     INT(10) UNSIGNED NULL DEFAULT NULL,
 				PRIMARY KEY (id)
 			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+			/* awb_models is the v1.6+ shape; if a legacy pica_models
+			   table exists it's renamed below in step (2). */
+			"CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_awb_models (
+				id             INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+				state_code     CHAR(2) NOT NULL DEFAULT 'IL',
+				pattern        VARCHAR(120) NOT NULL DEFAULT '',
+				pattern_norm   VARCHAR(120) NOT NULL DEFAULT '',
+				platform_group VARCHAR(40) NOT NULL DEFAULT '',
+				citation       VARCHAR(255) NULL DEFAULT NULL,
+				enabled        TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
+				updated_at     INT(10) UNSIGNED NULL DEFAULT NULL,
+				PRIMARY KEY (id),
+				UNIQUE KEY uq_state_norm (state_code, pattern_norm),
+				KEY idx_state (state_code),
+				KEY idx_enabled (enabled)
+			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+			"CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_awb_rules (
+				id                      INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+				state_code              CHAR(2) NOT NULL DEFAULT '',
+				firearm_class           VARCHAR(20) NOT NULL DEFAULT 'rifle',
+				feature_count_threshold TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
+				centerfire_only         TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
+				max_overall_length_in   DECIMAL(6,2) NULL DEFAULT NULL,
+				min_capacity_fixed      INT(5) UNSIGNED NULL DEFAULT NULL,
+				citation                VARCHAR(255) NULL DEFAULT NULL,
+				effective_date          DATE NULL DEFAULT NULL,
+				expires_date            DATE NULL DEFAULT NULL,
+				enabled                 TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
+				notes                   VARCHAR(255) NULL DEFAULT NULL,
+				updated_at              INT(10) UNSIGNED NULL DEFAULT NULL,
+				PRIMARY KEY (id),
+				UNIQUE KEY uq_state_class (state_code, firearm_class),
+				KEY idx_state_enabled (state_code, enabled)
+			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 		];
 		foreach ( $creates as $sql )
 		{
-			try { \IPS\Db::i()->query( $sql ); } catch ( \Throwable ) {}
+			try { \IPS\Db::i()->query( $sql ); }
+			catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10600 CREATE: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {} }
 		}
 
-		/* Guarded ADD COLUMN citation for pre-v1.5.3 installs. */
+		/* ============================================================
+		 * (2) MIGRATE from gd_compliance_pica_models → gd_compliance_awb_models.
+		 *
+		 * If the old table exists AND the new one is empty, copy every
+		 * row across tagged state_code='IL'. Then drop the old table.
+		 * (If the new one already has data, we assume the migration ran
+		 * previously — skip the copy but still drop the legacy table.)
+		 * ============================================================ */
+
+		try
+		{
+			$oldExists = 0;
+			try
+			{
+				$oldExists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'information_schema.TABLES', [
+					'TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?', $prefix . 'gd_compliance_pica_models',
+				] )->first();
+			}
+			catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10600 pica_models info_schema probe: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {} }
+
+			if ( $oldExists )
+			{
+				$newRowCount = 0;
+				try { $newRowCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_awb_models' )->first(); }
+				catch ( \Throwable ) {}
+
+				if ( $newRowCount === 0 )
+				{
+					/* Copy rows across, tag IL. Use INSERT IGNORE against
+					   the (state_code, pattern_norm) unique so a duplicate
+					   between legacy + fresh seed doesn't blow up. */
+					try
+					{
+						\IPS\Db::i()->query(
+							"INSERT IGNORE INTO " . $prefix . "gd_compliance_awb_models "
+							. "(state_code, pattern, pattern_norm, platform_group, citation, enabled, updated_at) "
+							. "SELECT 'IL', pattern, pattern_norm, platform_group, citation, enabled, updated_at "
+							. "FROM " . $prefix . "gd_compliance_pica_models"
+						);
+					}
+					catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10600 pica_models copy: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {} }
+				}
+
+				/* Drop the legacy table now that migration ran. */
+				try { \IPS\Db::i()->query( "DROP TABLE " . $prefix . "gd_compliance_pica_models" ); }
+				catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10600 DROP pica_models: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {} }
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10600 pica migration wrapper: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+		}
+
+		/* ============================================================
+		 * (3) Carry-forward migrations from v1.5.x (guarded ALTERs,
+		 * vestigial column drops, citation column ADD).
+		 * ============================================================ */
+
 		try { \IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags ADD COLUMN citation VARCHAR(255) NULL DEFAULT NULL AFTER reason' ); }
 		catch ( \Throwable ) {}
 
-		/* Unconditional DROP of the 11 vestigial distributor columns. */
 		$vestigial = [
 			'distributor_id', 'flag_type', 'flag_value', 'source', 'status',
 			'first_seen_at', 'last_confirmed_at', 'removed_by_dist_at',
@@ -180,7 +262,6 @@ class _upgrade
 			catch ( \Throwable ) {}
 		}
 
-		/* Guarded Phase-3 ALTERs. */
 		$rosterColumns = [
 			'roster_state'    => "CHAR(2) NOT NULL DEFAULT 'CA'",
 			'list_type'       => "VARCHAR(12) NOT NULL DEFAULT 'approved'",
@@ -212,7 +293,11 @@ class _upgrade
 		try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $prefix . "gd_compliance_flags_stage" ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $prefix . "gd_compliance_flags_old" ); } catch ( \Throwable ) {}
 
-		/* NON-DESTRUCTIVE seeds. */
+		/* ============================================================
+		 * (4) NON-DESTRUCTIVE SEEDS — capacity rules (Seeder) + AWB
+		 * rules + AWB models (AwbModels).
+		 * ============================================================ */
+
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Seeder.php';
@@ -220,20 +305,28 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10504 seedMissingRules: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10600 seedMissingRules: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		try
 		{
-			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/PicaModels.php';
-			\IPS\gdcompliance\PicaModels::seedMissingModels();
+			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/AwbModels.php';
+
+			$rc = \IPS\gdcompliance\AwbModels::seedMissingRules();
+			try { \IPS\Log::log( 'upg_10600 awb rules seed: ' . (int) $rc['inserted'] . ' inserted, ' . (int) $rc['skipped'] . ' skipped, ' . (int) $rc['failed'] . ' failed', 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+
+			$mc = \IPS\gdcompliance\AwbModels::seedMissingModels();
+			try { \IPS\Log::log( 'upg_10600 awb models seed: ' . (int) $mc['inserted'] . ' inserted, ' . (int) $mc['skipped'] . ' skipped, ' . (int) $mc['failed'] . ' failed', 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10504 seedMissingModels: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10600 AwbModels seed: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
-		/* SETTINGS SEED. */
+		/* ============================================================
+		 * (5) SETTINGS SEED (Phase 3 URLs + Phase 5 front toggles).
+		 * ============================================================ */
+
 		foreach ( [
 			[ 'gdcompliance_ma_roster_url',      'https://www.mass.gov/doc/approved-handgun-roster-april-2026/download', 'none' ],
 			[ 'gdcompliance_md_roster_url',      'https://dlslibrary.state.md.us/publications/Exec/MDSP/PS5-405(a)_2026(1).pdf', 'none' ],
@@ -257,7 +350,10 @@ class _upgrade
 			catch ( \Throwable ) {}
 		}
 
-		/* LANG RESEED — picks up gdcompliance_acp_roster_refresh_all* + any earlier keys. */
+		/* ============================================================
+		 * (6) LANG RESEED.
+		 * ============================================================ */
+
 		$langFile = \IPS\ROOT_PATH . '/applications/gdcompliance/dev/lang.php';
 		if ( is_readable( $langFile ) )
 		{
@@ -290,7 +386,14 @@ class _upgrade
 			}
 		}
 
-		/* CACHE / OPCACHE. */
+		/* Clean stale menu key for the removed picamodels controller. */
+		try { \IPS\Db::i()->delete( 'core_sys_lang_words', [ 'word_app=? AND word_key=?', 'gdcompliance', 'menu__gdcompliance_compliance_picamodels' ] ); }
+		catch ( \Throwable ) {}
+
+		/* ============================================================
+		 * (7) CACHE / OPCACHE + canonical_templates purge.
+		 * ============================================================ */
+
 		try { unset( \IPS\Data\Store::i()->settings ); }             catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->acpmenu ); }              catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->extensions ); }           catch ( \Throwable ) {}

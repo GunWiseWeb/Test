@@ -35,7 +35,9 @@ class _Flag
 	const TYPE_CAPACITY = 'capacity';
 	const TYPE_ROSTER   = 'roster';
 	const TYPE_OVERRIDE = 'override';
-	const TYPE_PICA     = 'pica';
+	const TYPE_AWB      = 'awb';
+	/** @deprecated  Use TYPE_AWB. Kept for v1.5.x consumers. */
+	const TYPE_PICA     = 'awb';
 
 	/**
 	 * US state abbreviation → full name (50 states + DC). Used by
@@ -115,9 +117,10 @@ class _Flag
 					}
 
 					$type = static::TYPE_ROSTER;
-					if ( strncmp( $ftype, 'pica_', 5 ) === 0 )
+					if ( strncmp( $ftype, 'awb_', 4 ) === 0 || strncmp( $ftype, 'pica_', 5 ) === 0 )
 					{
-						$type = static::TYPE_PICA;
+						/* awb_* (v1.6+) OR pica_* (v1.5.x rows still on disk) */
+						$type = static::TYPE_AWB;
 					}
 					elseif ( $ftype === 'manual' && $ruleId === 0 )
 					{
@@ -169,9 +172,10 @@ class _Flag
 					$reason = trim( (string) ( $row['reason'] ?? '' ) );
 
 					$type = static::TYPE_ROSTER;
-					if ( strncmp( $ftype, 'pica_', 5 ) === 0 )
+					if ( strncmp( $ftype, 'awb_', 4 ) === 0 || strncmp( $ftype, 'pica_', 5 ) === 0 )
 					{
-						$type = static::TYPE_PICA;
+						/* awb_* (v1.6+) OR pica_* (v1.5.x rows still on disk) */
+						$type = static::TYPE_AWB;
 					}
 					elseif ( $ftype === 'manual' && $ruleId === 0 )
 					{

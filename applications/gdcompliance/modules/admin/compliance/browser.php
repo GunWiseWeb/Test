@@ -57,7 +57,7 @@ class _browser extends \IPS\Dispatcher\Controller
 		}
 
 		$typeOpts = '<option value="">— all —</option>';
-		foreach ( [ 'capacity' => 'Capacity', 'roster' => 'Roster', 'pica' => 'PICA (IL)', 'override' => 'Manual override' ] as $k => $v )
+		foreach ( [ 'capacity' => 'Capacity', 'roster' => 'Roster', 'awb' => 'AWB (assault weapons ban)', 'override' => 'Manual override' ] as $k => $v )
 		{
 			$sel = $type === $k ? ' selected' : '';
 			$typeOpts .= '<option value="' . $h( $k ) . '"' . $sel . '>' . $h( $v ) . '</option>';
@@ -91,15 +91,15 @@ class _browser extends \IPS\Dispatcher\Controller
 		}
 		if ( $type === 'capacity' )
 		{
-			$whereParts[] = "f.rule_id > 0 AND f.firearm_type NOT LIKE 'pica_%'";
+			$whereParts[] = "f.rule_id > 0 AND f.firearm_type NOT LIKE 'awb_%' AND f.firearm_type NOT LIKE 'pica_%'";
 		}
 		elseif ( $type === 'roster' )
 		{
-			$whereParts[] = "f.rule_id = 0 AND f.firearm_type <> 'manual' AND f.firearm_type NOT LIKE 'pica_%'";
+			$whereParts[] = "f.rule_id = 0 AND f.firearm_type <> 'manual' AND f.firearm_type NOT LIKE 'awb_%' AND f.firearm_type NOT LIKE 'pica_%'";
 		}
-		elseif ( $type === 'pica' )
+		elseif ( $type === 'awb' )
 		{
-			$whereParts[] = "f.firearm_type LIKE 'pica_%'";
+			$whereParts[] = "f.firearm_type LIKE 'awb_%' OR f.firearm_type LIKE 'pica_%'";
 		}
 		elseif ( $type === 'override' )
 		{
@@ -186,14 +186,14 @@ class _browser extends \IPS\Dispatcher\Controller
 				$reason   = (string) ( $r['reason'] ?? '' );
 				$ftype    = (string) ( $r['firearm_type'] ?? '' );
 				$ruleId   = (int)    ( $r['rule_id'] ?? 0 );
-				$derivedType = ( strncmp( $ftype, 'pica_', 5 ) === 0 ) ? 'pica'
+				$derivedType = ( strncmp( $ftype, 'awb_', 4 ) === 0 || strncmp( $ftype, 'pica_', 5 ) === 0 ) ? 'awb'
 					: ( ( $ftype === 'manual' && $ruleId === 0 ) ? 'override'
 						: ( $ruleId > 0 ? 'capacity' : 'roster' ) );
 
 				$typeStyle = match( $derivedType ) {
 					'capacity' => 'background:#fed7aa;color:#7c2d12',
 					'roster'   => 'background:#fecaca;color:#991b1b',
-					'pica'     => 'background:#e0f2fe;color:#075985',
+					'awb'      => 'background:#e0f2fe;color:#075985',
 					'override' => 'background:#e0e7ff;color:#3730a3',
 					default    => 'background:#e2e8f0;color:#475569',
 				};

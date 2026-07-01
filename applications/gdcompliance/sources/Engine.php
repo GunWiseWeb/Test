@@ -161,7 +161,7 @@ class _Engine
 			'per_state_type' => [],
 			'unparsed'       => [],
 			'sample'         => [],
-			'pica'           => [ 'tier1' => 0, 'tier2' => 0 ],
+			'awb'            => [ 'tier1' => 0, 'tier2' => 0, 'review' => 0 ],
 			'roster'         => [
 				/* Phase 2 — CA roster outcome counts. Surfaced in the ACP
 				   preview/run summary so Derrick sees the on/off/review split
@@ -225,97 +225,116 @@ class _Engine
 				if ( $type === null ) { continue; }
 				$result['firearms']++;
 
-				/* --- Phase 6 (v1.5.2): Illinois PICA pass ---
-				   720 ILCS 5/24-1.9 assault-weapons ban. Gated on rifle +
-				   semi-automatic action_type (bolt/lever/pump/break/
-				   single-shot/muzzleloader excluded per (a)(2)). Runs
-				   BEFORE the capacity pass so we can suppress the
-				   IL/rifle capacity flag when PICA hits — the PICA
-				   reason must be the one shown, not "exceeds mag limit"
-				   (that's the original bug). The pinned-magazine remedy
-				   on the frontend popup doesn't apply to feature/model
-				   bans and gates on type='capacity' so PICA rows never
-				   trigger it. */
-				$picaHit = false;
+				/* --- Phase 6 (v1.6.0): multi-state AWB pass ---
+				   Loops every state with an enabled AWB rule for rifles
+				   (gd_compliance_awb_rules). For each state, calls
+				   AwbModels::match($p, $state) which handles that
+				   state's named-model list + feature threshold + CA
+				   overall-length rule + centerfire-only exclusion (fixes
+				   IL .22LR over-flag from v1.5.x). Runs BEFORE the
+				   capacity pass so we can per-state suppress the rifle
+				   capacity flag when AWB hits — the AWB reason is the
+				   correct one to surface (feature/model bans aren't
+				   cured by pinning a magazine, unlike pure capacity).
+				   Pin remedy on the popup gates on type='capacity' so
+				   AWB rows never trigger it. */
+				$awbHitStates = [];  /* [state => true] — used to suppress capacity flag */
 				if ( $type === 'rifle' )
 				{
 					$act = strtolower( trim( (string) ( $p['action_type'] ?? '' ) ) );
 					if ( $act !== '' && strpos( $act, 'semi' ) !== false )
 					{
-						try
+						$awbStates = [];
+						try { $awbStates = \IPS\gdcompliance\AwbModels::enabledStates( 'rifle' ); }
+						catch ( \Throwable ) {}
+
+						foreach ( $awbStates as $awbState )
 						{
-							$m = \IPS\gdcompliance\PicaModels::match( $p );
-						}
-						catch ( \Throwable )
-						{
-							/* Robust fallback — use the (a)(1)(A) feature citation
-							   as tier-2 default so the frontend popup's Citation
-							   line still populates when match() throws. */
-							$m = [
-								'tier'         => 2,
-								'pattern'      => null,
-								'citation'     => \IPS\gdcompliance\PicaModels::CITATION_FEATURE,
-								'feature_hits' => [],
+							try
+							{
+								$m = \IPS\gdcompliance\AwbModels::match( $p, $awbState );
+							}
+							catch ( \Throwable ) { $m = null; }
+
+							if ( $m === null )
+							{
+								/* No rule for this state OR rimfire exclusion — skip. */
+								continue;
+							}
+
+							$awbTier = (int) ( $m['tier'] ?? 3 );
+							$feat    = !empty( $m['feature_hits'] ) ? implode( ', ', (array) $m['feature_hits'] ) : '';
+							$cite    = trim( (string) ( $m['citation'] ?? '' ) );
+
+							if ( $awbTier === 1 )
+							{
+								$reason = sprintf(
+									'%s-listed assault weapon (%s); model: %s',
+									$awbState,
+									$cite !== '' ? $cite : 'state statute',
+									(string) ( $m['pattern'] ?? 'unknown' )
+								);
+							}
+							elseif ( $awbTier === 2 )
+							{
+								$reason = 'Likely restricted under ' . $awbState . ' assault weapons law'
+									. ( $cite !== '' ? ' (' . $cite . ')' : '' )
+									. ' — semi-automatic centerfire rifle'
+									. ( $feat !== '' ? ' with ' . $feat : '' )
+									. '; verify features';
+							}
+							else
+							{
+								/* Tier 3 — low-confidence review. Semi-auto centerfire
+								   rifle that didn't meet detected features. Our
+								   feature detection is a floor, so we route to
+								   review rather than assume it's clean. NO flag
+								   is emitted for tier 3 — only a review-queue entry. */
+								$result['review_queue'][] = [
+									'upc'              => substr( $upc, 0, 50 ),
+									'roster_state'     => $awbState,
+									'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? $p['brand'] ?? '' ), 0, 120 ),
+									'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
+									'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
+									'suggested_status' => 'awb_review_' . strtolower( $awbState ),
+									'created_at'       => $now,
+								];
+								$result['awb']['review'] = ( $result['awb']['review'] ?? 0 ) + 1;
+								continue;
+							}
+
+							/* Emit flag for tier 1 / tier 2. */
+							$flags[] = [
+								'upc'             => substr( $upc, 0, 50 ),
+								'state_code'      => $awbState,
+								'firearm_type'    => 'awb_rifle',
+								'parsed_capacity' => null,
+								'rule_id'         => 0,
+								'reason'          => substr( $reason, 0, 255 ),
+								'citation'        => substr( $cite, 0, 255 ),
+								'computed_at'     => $now,
 							];
+
+							$result['per_state'][ $awbState ] = ( $result['per_state'][ $awbState ] ?? 0 ) + 1;
+							$result['per_state_type'][ $awbState ]['awb_rifle'] = ( $result['per_state_type'][ $awbState ]['awb_rifle'] ?? 0 ) + 1;
+							$result['awb'][ 'tier' . $awbTier ] = ( $result['awb'][ 'tier' . $awbTier ] ?? 0 ) + 1;
+
+							/* Tier 2 → also queue for verification. */
+							if ( $awbTier === 2 )
+							{
+								$result['review_queue'][] = [
+									'upc'              => substr( $upc, 0, 50 ),
+									'roster_state'     => $awbState,
+									'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? $p['brand'] ?? '' ), 0, 120 ),
+									'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
+									'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
+									'suggested_status' => 'awb_tier2_' . strtolower( $awbState ),
+									'created_at'       => $now,
+								];
+							}
+
+							$awbHitStates[ $awbState ] = true;
 						}
-
-						$picaTier = (int) ( $m['tier'] ?? 2 );
-						if ( $picaTier === 1 )
-						{
-							$reason = sprintf(
-								'PICA-listed assault weapon (720 ILCS 5/24-1.9); model: %s',
-								(string) ( $m['pattern'] ?? 'unknown' )
-							);
-						}
-						else
-						{
-							$feat = !empty( $m['feature_hits'] ) ? implode( ', ', (array) $m['feature_hits'] ) : '';
-							$reason = 'Likely restricted under IL assault weapons law (PICA, 720 ILCS 5/24-1.9) — semi-automatic rifle'
-								. ( $feat !== '' ? ' with ' . $feat : '' )
-								. '; verify features';
-						}
-
-						/* Populate citation with the subsection-specific reference
-						   (tier-1 → (a)(1)(J) enumerated list; tier-2 → (a)(1)(A)
-						   feature test) so Flag::forUpc surfaces it to the popup. */
-						$cite = trim( (string) ( $m['citation'] ?? '' ) );
-						if ( $cite === '' )
-						{
-							$cite = $picaTier === 1
-								? \IPS\gdcompliance\PicaModels::CITATION_LISTED
-								: \IPS\gdcompliance\PicaModels::CITATION_FEATURE;
-						}
-
-						$flags[] = [
-							'upc'             => substr( $upc, 0, 50 ),
-							'state_code'      => 'IL',
-							'firearm_type'    => 'pica_rifle',
-							'parsed_capacity' => null,
-							'rule_id'         => 0,
-							'reason'          => substr( $reason, 0, 255 ),
-							'citation'        => substr( $cite, 0, 255 ),
-							'computed_at'     => $now,
-						];
-
-						$result['per_state']['IL']         = ( $result['per_state']['IL'] ?? 0 ) + 1;
-						$result['per_state_type']['IL']['pica_rifle'] = ( $result['per_state_type']['IL']['pica_rifle'] ?? 0 ) + 1;
-						$result['pica'][ $picaTier === 1 ? 'tier1' : 'tier2' ] = ( $result['pica'][ $picaTier === 1 ? 'tier1' : 'tier2' ] ?? 0 ) + 1;
-
-						/* Tier 2 → review queue so Derrick can confirm/deny. */
-						if ( $picaTier === 2 )
-						{
-							$result['review_queue'][] = [
-								'upc'              => substr( $upc, 0, 50 ),
-								'roster_state'     => 'IL',
-								'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? $p['brand'] ?? '' ), 0, 120 ),
-								'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
-								'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
-								'suggested_status' => 'likely_pica',
-								'created_at'       => $now,
-							];
-						}
-
-						$picaHit = true;
 					}
 				}
 
@@ -332,10 +351,12 @@ class _Engine
 						{
 							$state = (string) $r['state_code'];
 
-							/* Suppress the IL/rifle capacity flag when PICA
-							   already hit — the PICA reason is the correct
-							   one to surface for that (upc, IL) pair. */
-							if ( $picaHit && $state === 'IL' && $type === 'rifle' )
+							/* Suppress the rifle capacity flag for any state
+							   where the AWB pass already hit — feature/model
+							   bans are the stronger, correct reason and
+							   pinning a magazine can't cure them. Per-state
+							   check (was IL-only in v1.5.x). */
+							if ( $type === 'rifle' && !empty( $awbHitStates[ $state ] ) )
 							{
 								continue;
 							}
