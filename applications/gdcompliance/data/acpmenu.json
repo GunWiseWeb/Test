@@ -42,6 +42,12 @@
 			"do": "",
 			"restriction": "compliance_manage"
 		},
+		"picamodels": {
+			"tab": "gdcompliance",
+			"controller": "picamodels",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
 		"settings": {
 			"tab": "gdcompliance",
 			"controller": "settings",

@@ -18,6 +18,7 @@
 if ( !defined( '\\IPS\\SUITE_UNIQUE_KEY' ) ) { exit; }
 
 require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Seeder.php';
+require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/PicaModels.php';
 
 /* -------------------------------------------------------------------------
  * SEED RULESET — mid-2026 verified state magazine-capacity laws.
@@ -30,6 +31,17 @@ try
 catch ( \Throwable $e )
 {
 	try { \IPS\Log::log( 'gdcompliance install rule seed: ' . $e->getMessage(), 'gdcompliance_install' ); } catch ( \Throwable ) {}
+}
+
+/* Seed the IL PICA named-model list (720 ILCS 5/24-1.9(a)(1)(J)). Same
+   non-destructive contract — existing rows preserved on reinstall. */
+try
+{
+	\IPS\gdcompliance\PicaModels::seedMissingModels();
+}
+catch ( \Throwable $e )
+{
+	try { \IPS\Log::log( 'gdcompliance install PICA model seed: ' . $e->getMessage(), 'gdcompliance_install' ); } catch ( \Throwable ) {}
 }
 
 /* Lang seed — every key in dev/lang.php into core_sys_lang_words per language. */

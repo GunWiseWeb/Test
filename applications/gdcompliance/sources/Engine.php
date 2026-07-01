@@ -161,6 +161,7 @@ class _Engine
 			'per_state_type' => [],
 			'unparsed'       => [],
 			'sample'         => [],
+			'pica'           => [ 'tier1' => 0, 'tier2' => 0 ],
 			'roster'         => [
 				/* Phase 2 — CA roster outcome counts. Surfaced in the ACP
 				   preview/run summary so Derrick sees the on/off/review split
@@ -224,6 +225,80 @@ class _Engine
 				if ( $type === null ) { continue; }
 				$result['firearms']++;
 
+				/* --- Phase 6 (v1.5.2): Illinois PICA pass ---
+				   720 ILCS 5/24-1.9 assault-weapons ban. Gated on rifle +
+				   semi-automatic action_type (bolt/lever/pump/break/
+				   single-shot/muzzleloader excluded per (a)(2)). Runs
+				   BEFORE the capacity pass so we can suppress the
+				   IL/rifle capacity flag when PICA hits — the PICA
+				   reason must be the one shown, not "exceeds mag limit"
+				   (that's the original bug). The pinned-magazine remedy
+				   on the frontend popup doesn't apply to feature/model
+				   bans and gates on type='capacity' so PICA rows never
+				   trigger it. */
+				$picaHit = false;
+				if ( $type === 'rifle' )
+				{
+					$act = strtolower( trim( (string) ( $p['action_type'] ?? '' ) ) );
+					if ( $act !== '' && strpos( $act, 'semi' ) !== false )
+					{
+						try
+						{
+							$m = \IPS\gdcompliance\PicaModels::match( $p );
+						}
+						catch ( \Throwable )
+						{
+							$m = [ 'tier' => 2, 'pattern' => null, 'citation' => '720 ILCS 5/24-1.9', 'feature_hits' => [] ];
+						}
+
+						$picaTier = (int) ( $m['tier'] ?? 2 );
+						if ( $picaTier === 1 )
+						{
+							$reason = sprintf(
+								'PICA-listed assault weapon (720 ILCS 5/24-1.9); model: %s',
+								(string) ( $m['pattern'] ?? 'unknown' )
+							);
+						}
+						else
+						{
+							$feat = !empty( $m['feature_hits'] ) ? implode( ', ', (array) $m['feature_hits'] ) : '';
+							$reason = 'Likely restricted under IL assault weapons law (PICA, 720 ILCS 5/24-1.9) — semi-automatic rifle'
+								. ( $feat !== '' ? ' with ' . $feat : '' )
+								. '; verify features';
+						}
+
+						$flags[] = [
+							'upc'             => substr( $upc, 0, 50 ),
+							'state_code'      => 'IL',
+							'firearm_type'    => 'pica_rifle',
+							'parsed_capacity' => null,
+							'rule_id'         => 0,
+							'reason'          => substr( $reason, 0, 255 ),
+							'computed_at'     => $now,
+						];
+
+						$result['per_state']['IL']         = ( $result['per_state']['IL'] ?? 0 ) + 1;
+						$result['per_state_type']['IL']['pica_rifle'] = ( $result['per_state_type']['IL']['pica_rifle'] ?? 0 ) + 1;
+						$result['pica'][ $picaTier === 1 ? 'tier1' : 'tier2' ] = ( $result['pica'][ $picaTier === 1 ? 'tier1' : 'tier2' ] ?? 0 ) + 1;
+
+						/* Tier 2 → review queue so Derrick can confirm/deny. */
+						if ( $picaTier === 2 )
+						{
+							$result['review_queue'][] = [
+								'upc'              => substr( $upc, 0, 50 ),
+								'roster_state'     => 'IL',
+								'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? $p['brand'] ?? '' ), 0, 120 ),
+								'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
+								'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
+								'suggested_status' => 'likely_pica',
+								'created_at'       => $now,
+							];
+						}
+
+						$picaHit = true;
+					}
+				}
+
 				/* --- Phase 1: capacity-rule pass --- */
 				$capRaw = isset( $p['capacity'] ) ? (string) $p['capacity'] : '';
 				$cap    = self::parseCapacity( $capRaw );
@@ -235,7 +310,16 @@ class _Engine
 						$limit = (int) $r['max_capacity'];
 						if ( $cap > $limit )
 						{
-							$state  = (string) $r['state_code'];
+							$state = (string) $r['state_code'];
+
+							/* Suppress the IL/rifle capacity flag when PICA
+							   already hit — the PICA reason is the correct
+							   one to surface for that (upc, IL) pair. */
+							if ( $picaHit && $state === 'IL' && $type === 'rifle' )
+							{
+								continue;
+							}
+
 							$reason = sprintf(
 								'%s mag %d > %s limit %d',
 								ucfirst( $type ),

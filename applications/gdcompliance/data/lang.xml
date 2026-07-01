@@ -11,7 +11,24 @@
 <word key="menu__gdcompliance_compliance_overrides" js="0"><![CDATA[Manual Overrides]]></word>
 <word key="menu__gdcompliance_compliance_lookup" js="0"><![CDATA[Product Lookup]]></word>
 <word key="menu__gdcompliance_compliance_browser" js="0"><![CDATA[Restrictions Browser]]></word>
+<word key="menu__gdcompliance_compliance_picamodels" js="0"><![CDATA[PICA Models (IL)]]></word>
 <word key="menu__gdcompliance_compliance_settings" js="0"><![CDATA[Settings]]></word>
+<word key="gdcompliance_acp_pica_title" js="0"><![CDATA[Illinois PICA Named Models]]></word>
+<word key="gdcompliance_acp_pica_intro" js="0"><![CDATA[Statutory named-model list from 720 ILCS 5/24-1.9(a)(1)(J). Rifles whose title/brand/model/description match ANY enabled pattern get a Tier-1 PICA flag with high confidence. Semi-auto rifles that match nothing here still get a Tier-2 "likely PICA — verify" flag for the review queue.]]></word>
+<word key="gdcompliance_acp_pica_add" js="0"><![CDATA[Add pattern]]></word>
+<word key="gdcompliance_acp_pica_reseed" js="0"><![CDATA[Reseed statutory list]]></word>
+<word key="gdcompliance_acp_pica_reseed_done" js="0"><![CDATA[PICA model reseed complete]]></word>
+<word key="acplog__gdcompliance_pica_reseeded" js="0"><![CDATA[Reseeded PICA statutory model list (non-destructive)]]></word>
+<word key="gdcompliance_acp_pica_col_pattern" js="0"><![CDATA[Pattern]]></word>
+<word key="gdcompliance_acp_pica_col_pattern_norm" js="0"><![CDATA[Normalized]]></word>
+<word key="gdcompliance_acp_pica_col_platform_group" js="0"><![CDATA[Platform]]></word>
+<word key="gdcompliance_acp_pica_col_citation" js="0"><![CDATA[Citation]]></word>
+<word key="gdcompliance_acp_pica_col_enabled" js="0"><![CDATA[Enabled]]></word>
+<word key="gdcompliance_pica_f_pattern" js="0"><![CDATA[Pattern (as it appears in catalog titles)]]></word>
+<word key="gdcompliance_pica_f_platform_group" js="0"><![CDATA[Platform group (e.g. AR-15, AK, SCAR)]]></word>
+<word key="gdcompliance_pica_f_citation" js="0"><![CDATA[Statutory citation]]></word>
+<word key="gdcompliance_pica_f_enabled" js="0"><![CDATA[Enabled]]></word>
+<word key="gdcompliance_reason_pica" js="0"><![CDATA[PICA (IL)]]></word>
 <word key="gdcompliance_acp_rules_reseed" js="0"><![CDATA[Reseed missing rules]]></word>
 <word key="gdcompliance_acp_rules_reseed_done" js="0"><![CDATA[Reseed complete]]></word>
 <word key="acplog__gdcompliance_rules_reseeded" js="0"><![CDATA[Reseeded canonical compliance rules (non-destructive)]]></word>

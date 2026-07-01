@@ -35,6 +35,7 @@ class _Flag
 	const TYPE_CAPACITY = 'capacity';
 	const TYPE_ROSTER   = 'roster';
 	const TYPE_OVERRIDE = 'override';
+	const TYPE_PICA     = 'pica';
 
 	/**
 	 * US state abbreviation → full name (50 states + DC). Used by
@@ -105,7 +106,11 @@ class _Flag
 					$cite   = trim( (string) ( $row['source_note'] ?? '' ) );
 
 					$type = static::TYPE_ROSTER;
-					if ( $ftype === 'manual' && $ruleId === 0 )
+					if ( strncmp( $ftype, 'pica_', 5 ) === 0 )
+					{
+						$type = static::TYPE_PICA;
+					}
+					elseif ( $ftype === 'manual' && $ruleId === 0 )
 					{
 						$type = static::TYPE_OVERRIDE;
 					}
@@ -155,7 +160,11 @@ class _Flag
 					$reason = trim( (string) ( $row['reason'] ?? '' ) );
 
 					$type = static::TYPE_ROSTER;
-					if ( $ftype === 'manual' && $ruleId === 0 )
+					if ( strncmp( $ftype, 'pica_', 5 ) === 0 )
+					{
+						$type = static::TYPE_PICA;
+					}
+					elseif ( $ftype === 'manual' && $ruleId === 0 )
 					{
 						$type = static::TYPE_OVERRIDE;
 					}

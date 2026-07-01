@@ -116,6 +116,23 @@
 			"idx_state":   { "type": "key", "name": "idx_state", "length": [ null ], "columns": [ "state_code" ] }
 		}
 	},
+	"gd_compliance_pica_models": {
+		"name": "gd_compliance_pica_models",
+		"columns": {
+			"id":             { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"pattern":        { "name": "pattern", "type": "VARCHAR", "length": 120, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "human-readable pattern e.g. 'M&P15'" },
+			"pattern_norm":   { "name": "pattern_norm", "type": "VARCHAR", "length": 120, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "aggressively normalized for matching" },
+			"platform_group": { "name": "platform_group", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "AR-15|AK|SCAR|.50 BMG|Other Named" },
+			"citation":       { "name": "citation", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"enabled":        { "name": "enabled", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "1", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"updated_at":     { "name": "updated_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":     { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"uq_norm":     { "type": "unique", "name": "uq_norm", "length": [ null ], "columns": [ "pattern_norm" ] },
+			"idx_enabled": { "type": "key", "name": "idx_enabled", "length": [ null ], "columns": [ "enabled" ] }
+		}
+	},
 	"gd_compliance_unparsed": {
 		"name": "gd_compliance_unparsed",
 		"columns": {

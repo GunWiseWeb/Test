@@ -1,28 +1,25 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.5.1
+ * @brief  GD Compliance — upgrade 1.5.2 (Illinois PICA assault-weapon detection)
  *
- * Fixes the v1.5.0 bug where the "DROP vestigial flag columns" step
- * SILENTLY didn't run on production. The bug: existence check via
- * information_schema was wrapped in a swallowed catch, so on any
- * transient info_schema failure $has stayed false and the DROP was
- * skipped. On the live server the columns were dropped by hand.
+ * Adds the PICA (720 ILCS 5/24-1.9) two-tier detection layer for rifles:
  *
- * This upgrade attempts the DROP UNCONDITIONALLY for every known
- * vestigial column, with its own \Throwable catch. If the column is
- * already absent, ALTER errors — caught silently, no-op. If present,
- * dropped. Idempotent, robust to any prior state.
+ *   (1) CREATE gd_compliance_pica_models — editable named-model list
+ *       for Tier 1 detection. Guarded CREATE IF NOT EXISTS.
+ *   (2) NON-DESTRUCTIVE seed of the statutory (a)(1)(J) list from
+ *       PicaModels::seedMissingModels() — admin edits preserved.
+ *   (3) Lang reseed + cache purge.
  *
- * Also carries every migration from v1.5.0's upg_10500 forward so a
- * fresh v1.0.0 → v1.5.1 hop still lands with the canonical schema
- * (CREATE IF NOT EXISTS all 5 tables, guarded ALTERs, VARCHAR(20)
- * MODIFY guard, Seeder::seedMissingRules, settings seed, lang reseed,
- * cache purge).
+ * Also carries every migration from v1.5.1's upg_10501 forward so any
+ * prior 1.x install lands with the canonical schema (CREATE IF NOT
+ * EXISTS all 6 canonical tables + guarded vestigial-column DROPs +
+ * Phase-3/4/5 settings + Seeder + lang).
  *
- * NEVER truncates gd_compliance_rules or gd_compliance_overrides.
+ * NEVER truncates gd_compliance_rules, gd_compliance_overrides, or
+ * gd_compliance_pica_models. Does NOT auto-run compute.
  */
 
-namespace IPS\gdcompliance\setup\upg_10501;
+namespace IPS\gdcompliance\setup\upg_10502;
 
 use function defined;
 
@@ -39,12 +36,11 @@ class _upgrade
 		$prefix = (string) \IPS\Db::i()->prefix;
 
 		/* ============================================================
-		 * (1) CREATE IF NOT EXISTS every canonical table.
+		 * (1) Ensure every canonical table exists at the correct width.
 		 * ============================================================ */
 
-		try
-		{
-			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_rules (
+		$creates = [
+			'gd_compliance_rules' => "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_rules (
 				id             INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
 				state_code     CHAR(2) NOT NULL DEFAULT '',
 				firearm_type   VARCHAR(20) NOT NULL DEFAULT 'all',
@@ -58,13 +54,9 @@ class _upgrade
 				PRIMARY KEY (id),
 				KEY idx_state (state_code),
 				KEY idx_enabled (enabled)
-			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
-		}
-		catch ( \Throwable ) {}
+			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-		try
-		{
-			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_flags (
+			'gd_compliance_flags' => "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_flags (
 				id              INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
 				upc             VARCHAR(50) NOT NULL DEFAULT '',
 				state_code      CHAR(2) NOT NULL DEFAULT '',
@@ -77,13 +69,43 @@ class _upgrade
 				KEY idx_upc (upc),
 				KEY idx_state (state_code),
 				KEY idx_upc_state (upc, state_code)
-			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
-		}
-		catch ( \Throwable ) {}
+			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-		try
-		{
-			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_roster (
+			'gd_compliance_overrides' => "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_overrides (
+				id         INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+				upc        VARCHAR(50) NOT NULL DEFAULT '',
+				state_code CHAR(2) NOT NULL DEFAULT '',
+				action     VARCHAR(20) NOT NULL DEFAULT 'force_restrict',
+				reason     VARCHAR(255) NULL DEFAULT NULL,
+				created_by INT(10) UNSIGNED NULL DEFAULT NULL,
+				created_at INT(10) UNSIGNED NULL DEFAULT NULL,
+				PRIMARY KEY (id),
+				UNIQUE KEY uq_upc_state (upc, state_code),
+				KEY idx_upc (upc),
+				KEY idx_state (state_code)
+			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+			'gd_compliance_review' => "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_review (
+				id               INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+				upc              VARCHAR(50) NOT NULL DEFAULT '',
+				roster_state     CHAR(2) NOT NULL DEFAULT 'CA',
+				manufacturer     VARCHAR(120) NULL DEFAULT NULL,
+				model_title      VARCHAR(255) NULL DEFAULT NULL,
+				caliber          VARCHAR(60) NULL DEFAULT NULL,
+				suggested_status VARCHAR(40) NOT NULL DEFAULT 'unmatched_review',
+				resolved         TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
+				resolved_status  VARCHAR(20) NULL DEFAULT NULL,
+				resolved_by      INT(10) UNSIGNED NULL DEFAULT NULL,
+				resolved_at      INT(10) UNSIGNED NULL DEFAULT NULL,
+				created_at       INT(10) UNSIGNED NULL DEFAULT NULL,
+				PRIMARY KEY (id),
+				KEY idx_upc (upc),
+				KEY idx_state (roster_state),
+				KEY idx_resolved (resolved),
+				KEY idx_upc_state (upc, roster_state)
+			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+			'gd_compliance_roster' => "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_roster (
 				id                INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
 				roster_state      CHAR(2) NOT NULL DEFAULT 'CA',
 				list_type         VARCHAR(12) NOT NULL DEFAULT 'approved',
@@ -113,120 +135,51 @@ class _upgrade
 				KEY idx_current (is_current),
 				KEY idx_blanket (blanket),
 				KEY idx_list_type (roster_state, list_type)
-			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
-		}
-		catch ( \Throwable ) {}
+			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-		try
-		{
-			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_review (
-				id               INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-				upc              VARCHAR(50) NOT NULL DEFAULT '',
-				roster_state     CHAR(2) NOT NULL DEFAULT 'CA',
-				manufacturer     VARCHAR(120) NULL DEFAULT NULL,
-				model_title      VARCHAR(255) NULL DEFAULT NULL,
-				caliber          VARCHAR(60) NULL DEFAULT NULL,
-				suggested_status VARCHAR(40) NOT NULL DEFAULT 'unmatched_review',
-				resolved         TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
-				resolved_status  VARCHAR(20) NULL DEFAULT NULL,
-				resolved_by      INT(10) UNSIGNED NULL DEFAULT NULL,
-				resolved_at      INT(10) UNSIGNED NULL DEFAULT NULL,
-				created_at       INT(10) UNSIGNED NULL DEFAULT NULL,
+			'gd_compliance_pica_models' => "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_pica_models (
+				id             INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+				pattern        VARCHAR(120) NOT NULL DEFAULT '',
+				pattern_norm   VARCHAR(120) NOT NULL DEFAULT '',
+				platform_group VARCHAR(40) NOT NULL DEFAULT '',
+				citation       VARCHAR(255) NULL DEFAULT NULL,
+				enabled        TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
+				updated_at     INT(10) UNSIGNED NULL DEFAULT NULL,
 				PRIMARY KEY (id),
-				KEY idx_upc (upc),
-				KEY idx_state (roster_state),
-				KEY idx_resolved (resolved),
-				KEY idx_upc_state (upc, roster_state)
-			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
-		}
-		catch ( \Throwable ) {}
+				UNIQUE KEY uq_norm (pattern_norm),
+				KEY idx_enabled (enabled)
+			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-		try
-		{
-			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_overrides (
-				id          INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-				upc         VARCHAR(50) NOT NULL DEFAULT '',
-				state_code  CHAR(2) NOT NULL DEFAULT '',
-				action      VARCHAR(20) NOT NULL DEFAULT 'force_restrict',
-				reason      VARCHAR(255) NULL DEFAULT NULL,
-				created_by  INT(10) UNSIGNED NULL DEFAULT NULL,
-				created_at  INT(10) UNSIGNED NULL DEFAULT NULL,
-				PRIMARY KEY (id),
-				UNIQUE KEY uq_upc_state (upc, state_code),
-				KEY idx_upc (upc),
-				KEY idx_state (state_code)
-			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
-		}
-		catch ( \Throwable ) {}
-
-		try
-		{
-			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_unparsed (
+			'gd_compliance_unparsed' => "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_unparsed (
 				id             INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
 				capacity_value VARCHAR(100) NOT NULL DEFAULT '',
 				count          INT(10) UNSIGNED NOT NULL DEFAULT 0,
 				updated_at     INT(10) UNSIGNED NULL DEFAULT NULL,
 				PRIMARY KEY (id)
-			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
-		}
-		catch ( \Throwable ) {}
-
-		/* ============================================================
-		 * (2) DROP VESTIGIAL DISTRIBUTOR-FEED COLUMNS — UNCONDITIONALLY.
-		 *
-		 * v1.5.0's version gated this behind an information_schema check
-		 * that got silently swallowed on prod, so the DROP was skipped.
-		 * Now: try the DROP for every known vestigial column, catch its
-		 * error, count actual successes. If the column doesn't exist,
-		 * MySQL errors "Can't DROP column; check that column exists" —
-		 * caught, no-op. If it does exist, dropped. Idempotent.
-		 * ============================================================ */
-
-		$vestigialFlagCols = [
-			'distributor_id',
-			'flag_type',
-			'flag_value',
-			'source',
-			'status',
-			'first_seen_at',
-			'last_confirmed_at',
-			'removed_by_dist_at',
-			'admin_reviewed_by',
-			'admin_reviewed_at',
-			'listing_id',
+			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 		];
-		$dropped = 0;
-		foreach ( $vestigialFlagCols as $col )
+		foreach ( $creates as $sql )
 		{
-			try
-			{
-				\IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags DROP COLUMN ' . $col );
-				$dropped++;
-			}
-			catch ( \Throwable $e )
-			{
-				/* Two expected failure modes:
-				 *   (a) column doesn't exist → "Can't DROP 'X'; check that column exists" — desired end state, no-op
-				 *   (b) column has an index dep → fallback to nullable so INSERTs still succeed
-				 * We only log (b). (a) is the happy path on re-run. */
-				$msg = strtolower( $e->getMessage() );
-				if ( strpos( $msg, "can't drop" ) === false && strpos( $msg, "check that column" ) === false && strpos( $msg, "unknown column" ) === false )
-				{
-					try
-					{
-						\IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags MODIFY ' . $col . ' TEXT NULL DEFAULT NULL' );
-					}
-					catch ( \Throwable ) {}
-					try { \IPS\Log::log( 'upg_10501 DROP flags.' . $col . ' fell back to nullable: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-				}
-			}
+			try { \IPS\Db::i()->query( $sql ); } catch ( \Throwable ) {}
 		}
-		try { \IPS\Log::log( 'upg_10501 vestigial column drop: ' . $dropped . ' of ' . count( $vestigialFlagCols ) . ' columns dropped this run', 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 
 		/* ============================================================
-		 * (3) Guarded Phase-3 ALTERs + MODIFY overrides.action.
+		 * (2) DROP vestigial distributor-feed columns unconditionally.
 		 * ============================================================ */
+		$vestigial = [
+			'distributor_id', 'flag_type', 'flag_value', 'source', 'status',
+			'first_seen_at', 'last_confirmed_at', 'removed_by_dist_at',
+			'admin_reviewed_by', 'admin_reviewed_at', 'listing_id',
+		];
+		foreach ( $vestigial as $col )
+		{
+			try { \IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags DROP COLUMN ' . $col ); }
+			catch ( \Throwable ) { /* likely doesn't exist — desired */ }
+		}
 
+		/* ============================================================
+		 * (3) Guarded Phase-3 ALTERs.
+		 * ============================================================ */
 		$rosterColumns = [
 			'roster_state'    => "CHAR(2) NOT NULL DEFAULT 'CA'",
 			'list_type'       => "VARCHAR(12) NOT NULL DEFAULT 'approved'",
@@ -239,18 +192,15 @@ class _upgrade
 		];
 		foreach ( $rosterColumns as $col => $type )
 		{
-			try
-			{
-				\IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_roster ADD COLUMN ' . $col . ' ' . $type );
-			}
-			catch ( \Throwable ) { /* column probably already exists — ok */ }
+			try { \IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_roster ADD COLUMN ' . $col . ' ' . $type ); }
+			catch ( \Throwable ) {}
 		}
 		try { \IPS\Db::i()->update( 'gd_compliance_roster', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->update( 'gd_compliance_roster', [ 'list_type'    => 'approved' ], [ "list_type='' OR list_type IS NULL" ] ); } catch ( \Throwable ) {}
-
 		try { \IPS\Db::i()->query( "ALTER TABLE " . $prefix . "gd_compliance_review ADD COLUMN roster_state CHAR(2) NOT NULL DEFAULT 'CA' AFTER upc, ADD KEY idx_state (roster_state)" ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->update( 'gd_compliance_review', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 
+		/* v1.3.1 fix — widen overrides.action if narrow. */
 		try
 		{
 			\IPS\Db::i()->query(
@@ -260,14 +210,14 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Cleanup any stray staging table from an interrupted compute run. */
+		/* Cleanup stray staging tables. */
 		try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $prefix . "gd_compliance_flags_stage" ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $prefix . "gd_compliance_flags_old" ); } catch ( \Throwable ) {}
 
 		/* ============================================================
-		 * (4) NON-DESTRUCTIVE RULE RESEED via Seeder.
+		 * (4) NON-DESTRUCTIVE Seeder calls — capacity rules + PICA models.
+		 * Both are per-row existence-checked; existing admin edits kept.
 		 * ============================================================ */
-
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Seeder.php';
@@ -275,13 +225,23 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10501 seedMissingRules: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10502 seedMissingRules: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+		}
+
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/PicaModels.php';
+			$picaCounts = \IPS\gdcompliance\PicaModels::seedMissingModels();
+			try { \IPS\Log::log( 'upg_10502 PICA seed: ' . (int) $picaCounts['inserted'] . ' inserted, ' . (int) $picaCounts['skipped'] . ' skipped, ' . (int) $picaCounts['failed'] . ' failed', 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10502 seedMissingModels: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		/* ============================================================
-		 * (5) SETTINGS SEED.
+		 * (5) SETTINGS SEED — Phase 3 URLs + Phase 5 front toggles.
 		 * ============================================================ */
-
 		foreach ( [
 			[ 'gdcompliance_ma_roster_url',      'https://www.mass.gov/doc/approved-handgun-roster-april-2026/download', 'none' ],
 			[ 'gdcompliance_md_roster_url',      'https://dlslibrary.state.md.us/publications/Exec/MDSP/PS5-405(a)_2026(1).pdf', 'none' ],
@@ -306,9 +266,8 @@ class _upgrade
 		}
 
 		/* ============================================================
-		 * (6) LANG RESEED — 6-column schema (rule #43).
+		 * (6) LANG RESEED.
 		 * ============================================================ */
-
 		$langFile = \IPS\ROOT_PATH . '/applications/gdcompliance/dev/lang.php';
 		if ( is_readable( $langFile ) )
 		{
@@ -344,7 +303,6 @@ class _upgrade
 		/* ============================================================
 		 * (7) CACHE / OPCACHE + canonical_templates purge.
 		 * ============================================================ */
-
 		try { unset( \IPS\Data\Store::i()->settings ); }             catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->acpmenu ); }              catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->extensions ); }           catch ( \Throwable ) {}

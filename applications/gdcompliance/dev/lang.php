@@ -14,6 +14,7 @@ $lang = array(
 	'menu__gdcompliance_compliance_overrides'  => 'Manual Overrides',
 	'menu__gdcompliance_compliance_lookup'     => 'Product Lookup',
 	'menu__gdcompliance_compliance_browser'    => 'Restrictions Browser',
+	'menu__gdcompliance_compliance_picamodels' => 'PICA Models (IL)',
 	'menu__gdcompliance_compliance_settings'   => 'Settings',
 
 	/* Front module + nav */
@@ -173,6 +174,24 @@ $lang = array(
 	'gdcompliance_acp_browser_type'            => 'Type',
 	'gdcompliance_acp_browser_showing'         => 'Showing',
 	'gdcompliance_acp_browser_empty'           => 'No flagged products match those filters.',
+
+	/* v1.5.2 — Illinois PICA (720 ILCS 5/24-1.9) */
+	'gdcompliance_acp_pica_title'              => 'Illinois PICA Named Models',
+	'gdcompliance_acp_pica_intro'              => 'Statutory named-model list from 720 ILCS 5/24-1.9(a)(1)(J). Rifles whose title/brand/model/description match ANY enabled pattern (aggressive normalization: strip all non-alphanumeric, lowercase) get a Tier-1 PICA flag with high confidence. Semi-auto rifles that match nothing here still get a Tier-2 "likely PICA — verify" flag for the review queue.',
+	'gdcompliance_acp_pica_add'                => 'Add pattern',
+	'gdcompliance_acp_pica_reseed'             => 'Reseed statutory list',
+	'gdcompliance_acp_pica_reseed_done'        => 'PICA model reseed complete',
+	'acplog__gdcompliance_pica_reseeded'       => 'Reseeded PICA statutory model list (non-destructive)',
+	'gdcompliance_acp_pica_col_pattern'        => 'Pattern',
+	'gdcompliance_acp_pica_col_pattern_norm'   => 'Normalized',
+	'gdcompliance_acp_pica_col_platform_group' => 'Platform',
+	'gdcompliance_acp_pica_col_citation'       => 'Citation',
+	'gdcompliance_acp_pica_col_enabled'        => 'Enabled',
+	'gdcompliance_pica_f_pattern'              => 'Pattern (as it appears in catalog titles)',
+	'gdcompliance_pica_f_platform_group'       => 'Platform group (e.g. AR-15, AK, SCAR)',
+	'gdcompliance_pica_f_citation'             => 'Statutory citation',
+	'gdcompliance_pica_f_enabled'              => 'Enabled',
+	'gdcompliance_reason_pica'                 => 'PICA (IL)',
 
 	/* Compute overrides summary strip */
 	'gdcompliance_acp_compute_overrides'       => 'Overrides applied',
