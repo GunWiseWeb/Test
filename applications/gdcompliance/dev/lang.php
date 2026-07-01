@@ -9,8 +9,10 @@ $lang = array(
 	/* ACP menu */
 	'menu__gdcompliance_compliance_rules'      => 'Rules',
 	'menu__gdcompliance_compliance_compute'    => 'Compute Flags',
-	'menu__gdcompliance_compliance_roster'     => 'CA Roster',
+	'menu__gdcompliance_compliance_roster'     => 'Rosters',
 	'menu__gdcompliance_compliance_review'     => 'Review Queue',
+	'menu__gdcompliance_compliance_overrides'  => 'Manual Overrides',
+	'menu__gdcompliance_compliance_lookup'     => 'Product Lookup',
 
 	/* Front module + nav */
 	'module__gdcompliance_compliance'          => 'Compliance',
@@ -117,6 +119,48 @@ $lang = array(
 	'gdcompliance_acp_review_col_caliber'          => 'Caliber',
 	'gdcompliance_acp_review_col_suggested_status' => 'Suggested',
 	'gdcompliance_acp_review_col_resolved_status'  => 'Resolved as',
+
+	/* Settings labels (audit — referenced but not yet in a Form; seeded
+	   preemptively so any future settings ACP form renders proper labels). */
+	'gdcompliance_settings_general'            => 'General',
+	'gdcompliance_settings_urls'               => 'Roster URLs',
+	'gdcompliance_autosync_enabled'            => 'Enable auto-sync',
+	'gdcompliance_ma_roster_url'               => 'MA roster PDF URL',
+	'gdcompliance_md_roster_url'               => 'MD MSP approved roster PDF URL',
+	'gdcompliance_md_disapproved_url'          => 'MD MSP disapproved list PDF URL',
+	'gdcompliance_dc_derive'                   => 'DC status derived from CA+MA+MD',
+
+	/* Phase 4 — Overrides */
+	'gdcompliance_acp_overrides_title'         => 'Manual Overrides',
+	'gdcompliance_acp_overrides_intro'         => 'Per-UPC per-state force restrict / force clear decisions that survive every recompute. Applied AFTER the rule pass on every run, so a rule miss (e.g. an IL-restricted gun the capacity rule doesn\'t catch) or a false positive can be fixed permanently. Deleting an override reverts that UPC+state to pure rule result on the next compute.',
+	'gdcompliance_acp_overrides_count'         => 'Total overrides',
+	'gdcompliance_acp_overrides_add'           => 'Add override',
+	'gdcompliance_acp_overrides_edit'          => 'Edit override',
+	'gdcompliance_acp_overrides_save_error'    => 'Could not save override — check upc / state / action.',
+
+	/* Overrides Table\Db column headers */
+	'gdcompliance_acp_overrides_col_upc'        => 'UPC',
+	'gdcompliance_acp_overrides_col_state_code' => 'State',
+	'gdcompliance_acp_overrides_col_action'     => 'Action',
+	'gdcompliance_acp_overrides_col_reason'     => 'Reason',
+	'gdcompliance_acp_overrides_col_created_by' => 'By',
+	'gdcompliance_acp_overrides_col_created_at' => 'When',
+
+	/* Override action labels */
+	'gdcompliance_action_force_restrict'       => 'Force restrict (add flag)',
+	'gdcompliance_action_force_clear'          => 'Force clear (remove flag)',
+	'gdcompliance_f_upc'                       => 'Product UPC',
+	'gdcompliance_f_action'                    => 'Override action',
+	'gdcompliance_f_reason'                    => 'Reason (shown on the flag)',
+
+	/* Phase 4 — Product lookup */
+	'gdcompliance_acp_lookup_title'            => 'Product Lookup',
+	'gdcompliance_acp_lookup_intro'            => 'Find a catalog product by UPC or title. See computed flags AND overrides per state, and set force-restrict / force-clear overrides directly from the detail view.',
+	'gdcompliance_acp_lookup_search'           => 'UPC or title',
+	'gdcompliance_acp_search_go'               => 'Search',
+
+	/* Compute overrides summary strip */
+	'gdcompliance_acp_compute_overrides'       => 'Overrides applied',
 
 	/* Front page */
 	'gdcompliance_page_title'                  => 'State Compliance Rules',

@@ -1,16 +1,10 @@
 {
 	"compliance": {
-		"rules": {
-			"compliance_manage": "compliance_manage"
-		},
-		"compute": {
-			"compliance_manage": "compliance_manage"
-		},
-		"roster": {
-			"compliance_manage": "compliance_manage"
-		},
-		"review": {
-			"compliance_manage": "compliance_manage"
-		}
+		"rules":     { "compliance_manage": "compliance_manage" },
+		"compute":   { "compliance_manage": "compliance_manage" },
+		"roster":    { "compliance_manage": "compliance_manage" },
+		"review":    { "compliance_manage": "compliance_manage" },
+		"overrides": { "compliance_manage": "compliance_manage" },
+		"lookup":    { "compliance_manage": "compliance_manage" }
 	}
 }

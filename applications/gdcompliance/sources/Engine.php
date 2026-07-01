@@ -396,6 +396,24 @@ class _Engine
 			catch ( \Throwable ) {}
 		}
 
+		/* Phase 4 — apply manual overrides LAST so human decisions
+		   always win over rule-computed outcomes. Overrides live in
+		   their own permanent table (gd_compliance_overrides); each
+		   force_restrict inserts / replaces its flag row, each
+		   force_clear wipes any flag row for that (upc, state). This
+		   step runs on every real compute, so overrides survive
+		   recomputes regardless of how the rule set evolves. */
+		try
+		{
+			$oc = \IPS\gdcompliance\Override::applyAll();
+			$result['overrides'] = $oc;
+		}
+		catch ( \Throwable $e )
+		{
+			$result['overrides'] = [ 'restrict' => 0, 'clear' => 0 ];
+			try { \IPS\Log::log( 'Engine::computeFlags overrides: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
 		try { \IPS\Settings::i()->changeValues( [
 			'gdcompliance_last_run'    => date( 'Y-m-d H:i:s', $now ),
 			'gdcompliance_last_counts' => json_encode( [
@@ -403,6 +421,7 @@ class _Engine
 				'firearms'  => $result['firearms'],
 				'flags'     => $result['flags'],
 				'per_state' => $result['per_state'],
+				'overrides' => $result['overrides'] ?? [],
 			] ),
 		] ); } catch ( \Throwable ) {}
 

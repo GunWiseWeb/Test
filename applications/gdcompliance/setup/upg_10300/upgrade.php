@@ -1,23 +1,35 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.2.1 (Phase 3 expansion: MD auto PDFs + disapproved + as_of_date)
+ * @brief  GD Compliance — upgrade 1.3.0 (Phase 4: manual override layer)
  *
- * Self-contained per rule #79. Covers everything since v1.1.0:
- *   - Rename gd_compliance_ca_roster → gd_compliance_roster (v1.2.0 step)
- *   - Add roster_state, blanket, date_approved (v1.2.0)
- *   - Add list_type, blanket_caliber, source_label, as_of_date, source (v1.2.1)
- *   - Backfill roster_state='CA', list_type='approved' on rows from v1.1.0
- *   - Add roster_state to gd_compliance_review + backfill
- *   - Seed new settings (gdcompliance_md_roster_url, _md_disapproved_url,
- *     _ma_roster_url, _dc_derive)
- *   - Re-seed lang
- *   - Cache clear + opcache
+ * Self-contained per rule #79. Covers every migration since the last
+ * shipped tarball's baseline (which may be v1.0.0, v1.1.0, v1.2.0, or
+ * v1.2.1 depending on when the site last upgraded):
+ *
+ *   Phase 2 (v1.1.0):
+ *     - Assumes gd_compliance_ca_roster + gd_compliance_review already
+ *       exist from install.php or a prior upgrade
+ *
+ *   Phase 3 (v1.2.0 + v1.2.1):
+ *     - Rename gd_compliance_ca_roster → gd_compliance_roster
+ *     - Add roster_state, blanket, date_approved
+ *     - Add list_type, blanket_caliber, source_label, as_of_date, source
+ *     - Backfill roster_state='CA' + list_type='approved'
+ *     - Add roster_state to gd_compliance_review + backfill
+ *     - Seed MA/MD roster URL + DC derive settings
+ *
+ *   Phase 4 (v1.3.0 — NEW):
+ *     - CREATE gd_compliance_overrides table (UNIQUE(upc,state_code))
+ *
+ *   Every version:
+ *     - Re-seed dev/lang.php → core_sys_lang_words (full audit)
+ *     - Cache clear + opcache reset
  *
  * All ALTERs guarded (information_schema check + \Throwable catch) so
  * re-runs are no-ops. Never auto-fetches any roster.
  */
 
-namespace IPS\gdcompliance\setup\upg_10201;
+namespace IPS\gdcompliance\setup\upg_10300;
 
 use function defined;
 
@@ -33,8 +45,15 @@ class _upgrade
 	{
 		$prefix = (string) \IPS\Db::i()->prefix;
 
-		/* (1) Rename gd_compliance_ca_roster → gd_compliance_roster if the
-		   1.1.0 table name is still present. */
+		/* ============================================================
+		 * PHASE 3 MIGRATIONS (from v1.2.0 + v1.2.1) — carried forward
+		 * so a site upgrading from v1.1.0 → v1.3.0 in one hop still
+		 * lands with the correct schema.
+		 * ============================================================ */
+
+		/* (1) Rename gd_compliance_ca_roster → gd_compliance_roster if
+		   the 1.1.0 table name is still present. Fall back to CREATE
+		   if neither table exists (edge case: fresh 1.0.0 → 1.3.0). */
 		try
 		{
 			$old = false;
@@ -60,8 +79,6 @@ class _upgrade
 			}
 			elseif ( !$old && !$new )
 			{
-				/* Fresh from 1.0.0 → 1.2.1 with no intermediate step. Create
-				   the current shape directly. */
 				\IPS\Db::i()->query( "CREATE TABLE " . $prefix . "gd_compliance_roster (
 					id                INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
 					roster_state      CHAR(2) NOT NULL DEFAULT 'CA',
@@ -97,10 +114,11 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10201 RENAME/CREATE roster: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10300 RENAME/CREATE roster: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
-		/* (2) Guarded ALTERs — all v1.2.0 + v1.2.1 columns. */
+		/* (2) Guarded ALTERs — all v1.2.0 + v1.2.1 columns. Each check
+		   the column then adds only if absent. */
 		$rosterColumns = [
 			'roster_state'    => "CHAR(2) NOT NULL DEFAULT 'CA'",
 			'list_type'       => "VARCHAR(12) NOT NULL DEFAULT 'approved'",
@@ -132,11 +150,11 @@ class _upgrade
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10201 ALTER roster.' . $col . ': ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10300 ALTER roster.' . $col . ': ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 			}
 		}
 
-		/* (3) Backfill roster_state='CA' + list_type='approved' on legacy rows. */
+		/* (3) Backfill roster_state='CA' + list_type='approved'. */
 		try { \IPS\Db::i()->update( 'gd_compliance_roster', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->update( 'gd_compliance_roster', [ 'list_type'    => 'approved' ], [ "list_type='' OR list_type IS NULL" ] ); } catch ( \Throwable ) {}
 
@@ -159,11 +177,52 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10201 ALTER review.roster_state: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10300 ALTER review.roster_state: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 		try { \IPS\Db::i()->update( 'gd_compliance_review', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 
-		/* (5) Seed the four settings. */
+		/* ============================================================
+		 * PHASE 4 MIGRATION (NEW v1.3.0) — manual override layer.
+		 * ============================================================ */
+
+		/* (5) CREATE gd_compliance_overrides — guarded. */
+		try
+		{
+			$has = false;
+			try
+			{
+				$has = (bool) \IPS\Db::i()->select( 'COUNT(*)', 'information_schema.TABLES', [
+					'TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', $prefix . 'gd_compliance_overrides',
+				] )->first();
+			}
+			catch ( \Throwable ) {}
+
+			if ( !$has )
+			{
+				\IPS\Db::i()->query( "CREATE TABLE " . $prefix . "gd_compliance_overrides (
+					id          INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+					upc         VARCHAR(50) NOT NULL DEFAULT '',
+					state_code  CHAR(2) NOT NULL DEFAULT '',
+					action      VARCHAR(12) NOT NULL DEFAULT 'force_restrict',
+					reason      VARCHAR(255) NULL DEFAULT NULL,
+					created_by  INT(10) UNSIGNED NULL DEFAULT NULL,
+					created_at  INT(10) UNSIGNED NULL DEFAULT NULL,
+					PRIMARY KEY (id),
+					UNIQUE KEY uq_upc_state (upc, state_code),
+					KEY idx_upc (upc),
+					KEY idx_state (state_code)
+				) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10300 CREATE overrides: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+		}
+
+		/* ============================================================
+		 * SETTINGS SEED — MA/MD roster URLs + DC derive.
+		 * ============================================================ */
+
 		foreach ( [
 			[ 'gdcompliance_ma_roster_url',      'https://www.mass.gov/doc/approved-handgun-roster-april-2026/download', 'none' ],
 			[ 'gdcompliance_md_roster_url',      'https://dlslibrary.state.md.us/publications/Exec/MDSP/PS5-405(a)_2026(1).pdf', 'none' ],
@@ -184,7 +243,11 @@ class _upgrade
 			catch ( \Throwable ) {}
 		}
 
-		/* (6) Re-seed dev/lang.php → core_sys_lang_words. */
+		/* ============================================================
+		 * LANG RESEED — dev/lang.php → core_sys_lang_words for every
+		 * language. Uses the 6-column IPS 5.0.18 schema (rule #43).
+		 * ============================================================ */
+
 		$langFile = \IPS\ROOT_PATH . '/applications/gdcompliance/dev/lang.php';
 		if ( is_readable( $langFile ) )
 		{
@@ -217,7 +280,11 @@ class _upgrade
 			}
 		}
 
-		/* (7) Caches + opcache. */
+		/* ============================================================
+		 * CACHE CLEAR + OPCACHE — every IPS store IPS pulls from at
+		 * boot, plus the PHP opcode cache so the new controllers land.
+		 * ============================================================ */
+
 		try { unset( \IPS\Data\Store::i()->settings ); }     catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->acpmenu ); }      catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}

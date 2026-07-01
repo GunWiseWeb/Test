@@ -23,6 +23,18 @@
 			"controller": "review",
 			"do": "",
 			"restriction": "compliance_manage"
+		},
+		"overrides": {
+			"tab": "gdcompliance",
+			"controller": "overrides",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
+		"lookup": {
+			"tab": "gdcompliance",
+			"controller": "lookup",
+			"do": "",
+			"restriction": "compliance_manage"
 		}
 	}
 }

@@ -257,31 +257,25 @@ class _review extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
-		/* Mirror the decision into gd_compliance_flags so the per-state
-		   restriction either lights up or clears for that UPC immediately. */
+		/* Persist the decision as an OVERRIDE, not a raw flag write. This
+		   makes the resolution survive future recomputes (Phase 4 layer):
+		   on-roster → force_clear the per-state restriction; off-roster →
+		   force_restrict it. Override::save applies the effect to
+		   gd_compliance_flags immediately AND stores the durable row in
+		   gd_compliance_overrides so the next full recompute won't erase it. */
 		$rstate = (string) ( $row['roster_state'] ?? 'CA' );
 		try
 		{
-			\IPS\Db::i()->delete( 'gd_compliance_flags', [ 'upc=? AND state_code=? AND firearm_type=?', (string) $row['upc'], $rstate, 'handgun' ] );
+			\IPS\gdcompliance\Override::save(
+				(string) $row['upc'],
+				$rstate,
+				$status === 'off_roster' ? \IPS\gdcompliance\Override::ACTION_RESTRICT : \IPS\gdcompliance\Override::ACTION_CLEAR,
+				$status === 'off_roster' ? "Not on {$rstate} roster (manual review)" : "Cleared by manual review",
+				(int) \IPS\Member::loggedIn()->member_id,
+				true
+			);
 		}
 		catch ( \Throwable ) {}
-
-		if ( $status === 'off_roster' )
-		{
-			try
-			{
-				\IPS\Db::i()->insert( 'gd_compliance_flags', [
-					'upc'             => (string) $row['upc'],
-					'state_code'      => $rstate,
-					'firearm_type'    => 'handgun',
-					'parsed_capacity' => null,
-					'rule_id'         => 0,
-					'reason'          => "Not on {$rstate} roster (manual review)",
-					'computed_at'     => time(),
-				] );
-			}
-			catch ( \Throwable ) {}
-		}
 
 		\IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=review' ), 'saved' );
 	}

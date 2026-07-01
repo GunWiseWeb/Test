@@ -6,8 +6,39 @@
 <word key="menutab__gdcompliance_icon" js="0"><![CDATA[shield-alt]]></word>
 <word key="menu__gdcompliance_compliance_rules" js="0"><![CDATA[Rules]]></word>
 <word key="menu__gdcompliance_compliance_compute" js="0"><![CDATA[Compute Flags]]></word>
-<word key="menu__gdcompliance_compliance_roster" js="0"><![CDATA[CA Roster]]></word>
+<word key="menu__gdcompliance_compliance_roster" js="0"><![CDATA[Rosters]]></word>
 <word key="menu__gdcompliance_compliance_review" js="0"><![CDATA[Review Queue]]></word>
+<word key="menu__gdcompliance_compliance_overrides" js="0"><![CDATA[Manual Overrides]]></word>
+<word key="menu__gdcompliance_compliance_lookup" js="0"><![CDATA[Product Lookup]]></word>
+<word key="gdcompliance_settings_general" js="0"><![CDATA[General]]></word>
+<word key="gdcompliance_settings_urls" js="0"><![CDATA[Roster URLs]]></word>
+<word key="gdcompliance_autosync_enabled" js="0"><![CDATA[Enable auto-sync]]></word>
+<word key="gdcompliance_ma_roster_url" js="0"><![CDATA[MA roster PDF URL]]></word>
+<word key="gdcompliance_md_roster_url" js="0"><![CDATA[MD MSP approved roster PDF URL]]></word>
+<word key="gdcompliance_md_disapproved_url" js="0"><![CDATA[MD MSP disapproved list PDF URL]]></word>
+<word key="gdcompliance_dc_derive" js="0"><![CDATA[DC status derived from CA+MA+MD]]></word>
+<word key="gdcompliance_acp_overrides_title" js="0"><![CDATA[Manual Overrides]]></word>
+<word key="gdcompliance_acp_overrides_intro" js="0"><![CDATA[Per-UPC per-state force restrict / force clear decisions that survive every recompute. Applied AFTER the rule pass on every run, so a rule miss or a false positive can be fixed permanently. Deleting an override reverts that UPC+state to pure rule result on the next compute.]]></word>
+<word key="gdcompliance_acp_overrides_count" js="0"><![CDATA[Total overrides]]></word>
+<word key="gdcompliance_acp_overrides_add" js="0"><![CDATA[Add override]]></word>
+<word key="gdcompliance_acp_overrides_edit" js="0"><![CDATA[Edit override]]></word>
+<word key="gdcompliance_acp_overrides_save_error" js="0"><![CDATA[Could not save override — check upc / state / action.]]></word>
+<word key="gdcompliance_acp_overrides_col_upc" js="0"><![CDATA[UPC]]></word>
+<word key="gdcompliance_acp_overrides_col_state_code" js="0"><![CDATA[State]]></word>
+<word key="gdcompliance_acp_overrides_col_action" js="0"><![CDATA[Action]]></word>
+<word key="gdcompliance_acp_overrides_col_reason" js="0"><![CDATA[Reason]]></word>
+<word key="gdcompliance_acp_overrides_col_created_by" js="0"><![CDATA[By]]></word>
+<word key="gdcompliance_acp_overrides_col_created_at" js="0"><![CDATA[When]]></word>
+<word key="gdcompliance_action_force_restrict" js="0"><![CDATA[Force restrict (add flag)]]></word>
+<word key="gdcompliance_action_force_clear" js="0"><![CDATA[Force clear (remove flag)]]></word>
+<word key="gdcompliance_f_upc" js="0"><![CDATA[Product UPC]]></word>
+<word key="gdcompliance_f_action" js="0"><![CDATA[Override action]]></word>
+<word key="gdcompliance_f_reason" js="0"><![CDATA[Reason (shown on the flag)]]></word>
+<word key="gdcompliance_acp_lookup_title" js="0"><![CDATA[Product Lookup]]></word>
+<word key="gdcompliance_acp_lookup_intro" js="0"><![CDATA[Find a catalog product by UPC or title. See computed flags AND overrides per state, and set force-restrict / force-clear overrides directly from the detail view.]]></word>
+<word key="gdcompliance_acp_lookup_search" js="0"><![CDATA[UPC or title]]></word>
+<word key="gdcompliance_acp_search_go" js="0"><![CDATA[Search]]></word>
+<word key="gdcompliance_acp_compute_overrides" js="0"><![CDATA[Overrides applied]]></word>
 <word key="module__gdcompliance_compliance" js="0"><![CDATA[Compliance]]></word>
 <word key="frontnavigation_gdcompliance_compliance" js="0"><![CDATA[Compliance]]></word>
 <word key="gdcompliance_acp_rules_title" js="0"><![CDATA[Compliance Rules]]></word>
