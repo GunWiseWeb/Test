@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl=''" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl='', $restrictionRows=array()" />
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 .gdsp-wrap{width:100%;margin:0;padding:18px;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#0f172a}
@@ -60,6 +60,35 @@
 @media (max-width:600px){
 	.gdsp-offers-table{min-width:0 !important}
 	.gdsp-col-stock,.gdsp-col-cond{display:none}
+}
+
+/* State-restriction banner + clickable chips + popup. Scoped under
+   .gdsp-restrict; mobile-friendly. No inline JS with template $-vars. */
+.gdsp-restrict{position:relative;margin:0 0 16px}
+.gdsp-restrict__banner{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px;border-radius:8px;background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-weight:600;font-size:.88em;line-height:1.4}
+.gdsp-restrict__icon{flex:0 0 auto;font-size:1em}
+.gdsp-restrict__label{flex:0 1 auto}
+.gdsp-restrict__chips{display:inline-flex;gap:5px;flex-wrap:wrap;align-items:center}
+.gdsp-restrict__chip{display:inline-flex;align-items:center;justify-content:center;min-width:34px;padding:3px 9px;border:1px solid #f87171;background:#fff;color:#991B1B;border-radius:999px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;font-weight:700;line-height:1.2;cursor:pointer;transition:background .12s,color .12s,border-color .12s}
+.gdsp-restrict__chip:hover,.gdsp-restrict__chip:focus{background:#991B1B;color:#fff;border-color:#7f1d1d;outline:none}
+.gdsp-restrict__chip:focus-visible{box-shadow:0 0 0 2px #fecaca}
+.gdsp-restrict__chip--roster{border-color:#dc2626}
+.gdsp-restrict__chip--capacity{border-color:#f97316;color:#7c2d12}
+.gdsp-restrict__chip--capacity:hover,.gdsp-restrict__chip--capacity:focus{background:#7c2d12;color:#fff;border-color:#7c2d12}
+.gdsp-restrict__chip--override{border-color:#6366f1;color:#3730a3}
+.gdsp-restrict__chip--override:hover,.gdsp-restrict__chip--override:focus{background:#3730a3;color:#fff;border-color:#3730a3}
+.gdsp-restrict__popup{position:absolute;z-index:60;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 12px 36px rgba(15,23,42,.18);padding:14px 16px;max-width:340px;font-size:13px;line-height:1.5;color:#1e293b}
+.gdsp-restrict__popup[hidden]{display:none}
+.gdsp-restrict__close{position:absolute;top:6px;right:8px;background:transparent;border:none;font-size:1.5em;line-height:1;color:#94a3b8;cursor:pointer;padding:0;width:24px;height:24px}
+.gdsp-restrict__close:hover,.gdsp-restrict__close:focus{color:#0f172a;outline:none}
+.gdsp-restrict__pop-title{margin:0 22px 6px 0;font-size:1em;font-weight:700;color:#0f172a}
+.gdsp-restrict__pop-reason{margin:0 0 6px;color:#334155}
+.gdsp-restrict__pop-citation{margin:0 0 6px;color:#475569;font-size:.9em}
+.gdsp-restrict__pop-citation strong{color:#1e293b;font-weight:600}
+.gdsp-restrict__pop-pin{margin:6px 0;padding:8px 10px;background:#fff7ed;border:1px solid #fdba74;border-radius:6px;color:#7c2d12;font-size:.88em}
+.gdsp-restrict__pop-disclaimer{margin:8px 0 0;padding-top:8px;border-top:1px dashed #e2e8f0;color:#64748b;font-size:.8em;font-style:italic;line-height:1.4}
+@media (max-width:600px){
+	.gdsp-restrict__popup{max-width:calc(100vw - 40px);left:8px !important;right:8px}
 }
 </style>
 <div class="gdsp-wrap">
@@ -130,10 +159,33 @@
 					{{if $product['is_ammo']}}<span class="ipsBadge ipsBadge--neutral">Ammo</span>{{endif}}
 				</div>
 
-				{{if $restrictedStatesStr}}
-				<div style="display:inline-flex;align-items:center;gap:8px;margin:0 0 16px;padding:8px 12px;border-radius:8px;background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;font-weight:600;font-size:0.88em">
-					<span aria-hidden="true">&#9888;</span>
-					<span>State Restricted &mdash; cannot ship to: {$restrictedStatesStr}</span>
+				{{if !empty($restrictionRows)}}
+				<div class="gdsp-restrict" role="region" aria-label="State Restrictions">
+					<div class="gdsp-restrict__banner">
+						<span class="gdsp-restrict__icon" aria-hidden="true">&#9888;</span>
+						<span class="gdsp-restrict__label">State Restricted &mdash; cannot ship to:</span>
+						<span class="gdsp-restrict__chips">
+							{{foreach $restrictionRows as $rr}}
+							<button type="button" class="gdsp-restrict__chip gdsp-restrict__chip--{$rr['type']}"
+								data-state="{$rr['state']}"
+								data-statename="{$rr['state_name']}"
+								data-reason="{$rr['reason']}"
+								data-citation="{$rr['citation']}"
+								data-type="{$rr['type']}"
+								aria-haspopup="dialog"
+								aria-label="{$rr['state_name']} restriction details"
+							>{$rr['state']}</button>
+							{{endforeach}}
+						</span>
+					</div>
+					<div class="gdsp-restrict__popup" role="dialog" aria-modal="false" aria-hidden="true" hidden>
+						<button type="button" class="gdsp-restrict__close" aria-label="Close">&times;</button>
+						<h3 class="gdsp-restrict__pop-title"></h3>
+						<p class="gdsp-restrict__pop-reason"></p>
+						<p class="gdsp-restrict__pop-citation" hidden><strong>Citation:</strong> <span></span></p>
+						<p class="gdsp-restrict__pop-pin" hidden>If the restriction is due to magazine capacity, this item may still be transferable if the receiving FFL pins or blocks the magazine to the state-legal capacity before transfer. Confirm with the receiving dealer.</p>
+						<p class="gdsp-restrict__pop-disclaimer">Restrictions are provided as guidance and may not reflect the most current law; verify before purchase.</p>
+					</div>
 				</div>
 				{{endif}}
 

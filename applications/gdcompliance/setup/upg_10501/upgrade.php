@@ -1,53 +1,28 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.5.0 (CONSOLIDATION)
+ * @brief  GD Compliance — upgrade 1.5.1
  *
- * A single self-contained upgrade that brings ANY prior 1.x install to
- * the canonical 1.5.0 baseline without assuming a specific starting
- * point. All ALTER / CREATE / DROP operations are idempotent (guarded
- * on information_schema + per-step \Throwable catch) so re-runs no-op.
+ * Fixes the v1.5.0 bug where the "DROP vestigial flag columns" step
+ * SILENTLY didn't run on production. The bug: existence check via
+ * information_schema was wrapped in a swallowed catch, so on any
+ * transient info_schema failure $has stayed false and the DROP was
+ * skipped. On the live server the columns were dropped by hand.
  *
- * What it does:
+ * This upgrade attempts the DROP UNCONDITIONALLY for every known
+ * vestigial column, with its own \Throwable catch. If the column is
+ * already absent, ALTER errors — caught silently, no-op. If present,
+ * dropped. Idempotent, robust to any prior state.
  *
- *   (1) CREATE IF NOT EXISTS every canonical table at the correct
- *       column widths so a fresh 1.4.x → 1.5.0 hop that skipped some
- *       Phase-3/4 migrations still lands with the right schema.
- *
- *   (2) FIX the "compute reports N flags but writes 0" bug — an early
- *       draft of gd_compliance_flags had distributor-feed columns
- *       (distributor_id, flag_type, flag_value, source, status,
- *       first_seen_at, last_confirmed_at, removed_by_dist_at,
- *       admin_reviewed_by, admin_reviewed_at, listing_id) NOT NULL with
- *       no default. Later refactors dropped every reference to those
- *       columns from the code but the LIVE tables kept them, so the
- *       Engine's clean 8-column INSERT would throw "Field 'X' doesn't
- *       have a default value" and silently write zero rows. We DROP
- *       each vestigial column, guarded — safe because grep confirms
- *       zero code references remain.
- *
- *   (3) Guarded MODIFY of gd_compliance_overrides.action to VARCHAR(20)
- *       (was VARCHAR(12) with 14-char default — MySQL error 1067). Both
- *       schema.json and the CREATE below already use VARCHAR(20) — this
- *       covers any live table that still has the narrow column.
- *
- *   (4) Non-destructive rule reseed via Seeder — brings partial 1.3.x
- *       installs back to the full 19-row canonical set WITHOUT touching
- *       any admin edits. Rules are PERMANENT reference data — never
- *       truncated or deleted here (or anywhere).
- *
- *   (5) Phase-3 settings seed (MA/MD roster URLs + DC derive) and
- *       Phase-5 settings seed (front_enabled / show_reasons / disclaimer).
- *
- *   (6) Lang reseed + cache/canonical_templates purge + opcache reset.
- *
- *   (7) Cleanup: drop any stray gd_compliance_flags_stage / _old table
- *       left by an interrupted crash-safe compute run.
+ * Also carries every migration from v1.5.0's upg_10500 forward so a
+ * fresh v1.0.0 → v1.5.1 hop still lands with the canonical schema
+ * (CREATE IF NOT EXISTS all 5 tables, guarded ALTERs, VARCHAR(20)
+ * MODIFY guard, Seeder::seedMissingRules, settings seed, lang reseed,
+ * cache purge).
  *
  * NEVER truncates gd_compliance_rules or gd_compliance_overrides.
- * NEVER auto-runs computeFlags (Derrick clicks it manually).
  */
 
-namespace IPS\gdcompliance\setup\upg_10500;
+namespace IPS\gdcompliance\setup\upg_10501;
 
 use function defined;
 
@@ -64,8 +39,9 @@ class _upgrade
 		$prefix = (string) \IPS\Db::i()->prefix;
 
 		/* ============================================================
-		 * (1a) CREATE IF NOT EXISTS gd_compliance_rules
+		 * (1) CREATE IF NOT EXISTS every canonical table.
 		 * ============================================================ */
+
 		try
 		{
 			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_rules (
@@ -84,16 +60,8 @@ class _upgrade
 				KEY idx_enabled (enabled)
 			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10500 CREATE rules: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-		}
+		catch ( \Throwable ) {}
 
-		/* ============================================================
-		 * (1b) CREATE IF NOT EXISTS gd_compliance_flags — canonical
-		 * clean 8-column shape. Live installs may have distributor
-		 * vestigials; those get dropped in step (2) below.
-		 * ============================================================ */
 		try
 		{
 			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_flags (
@@ -111,14 +79,8 @@ class _upgrade
 				KEY idx_upc_state (upc, state_code)
 			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10500 CREATE flags: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-		}
+		catch ( \Throwable ) {}
 
-		/* ============================================================
-		 * (1c) CREATE IF NOT EXISTS gd_compliance_roster
-		 * ============================================================ */
 		try
 		{
 			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_roster (
@@ -153,14 +115,8 @@ class _upgrade
 				KEY idx_list_type (roster_state, list_type)
 			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10500 CREATE roster: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-		}
+		catch ( \Throwable ) {}
 
-		/* ============================================================
-		 * (1d) CREATE IF NOT EXISTS gd_compliance_review
-		 * ============================================================ */
 		try
 		{
 			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_review (
@@ -183,15 +139,8 @@ class _upgrade
 				KEY idx_upc_state (upc, roster_state)
 			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10500 CREATE review: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-		}
+		catch ( \Throwable ) {}
 
-		/* ============================================================
-		 * (1e) CREATE IF NOT EXISTS gd_compliance_overrides (VARCHAR(20)
-		 * for action — the 1067 fix baked in at CREATE).
-		 * ============================================================ */
 		try
 		{
 			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_overrides (
@@ -208,12 +157,8 @@ class _upgrade
 				KEY idx_state (state_code)
 			) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" );
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10500 CREATE overrides: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-		}
+		catch ( \Throwable ) {}
 
-		/* Also cover gd_compliance_unparsed (stats table). */
 		try
 		{
 			\IPS\Db::i()->query( "CREATE TABLE IF NOT EXISTS " . $prefix . "gd_compliance_unparsed (
@@ -227,19 +172,16 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ============================================================
-		 * (2) DROP VESTIGIAL DISTRIBUTOR-FEED COLUMNS from
-		 * gd_compliance_flags.
+		 * (2) DROP VESTIGIAL DISTRIBUTOR-FEED COLUMNS — UNCONDITIONALLY.
 		 *
-		 * These columns come from an early draft of gd_compliance_flags
-		 * that treated the table as a distributor-feed queue. Later
-		 * refactors made it a computed per-(upc, state) restriction
-		 * store, but the LIVE tables kept the old columns. Several were
-		 * declared NOT NULL with no default, so Engine::computeFlags's
-		 * clean 8-column INSERT throws "Field '...' doesn't have a
-		 * default value" and silently writes zero rows. Grep confirms
-		 * ZERO references to any of these columns anywhere in the
-		 * codebase — dropping is safe.
+		 * v1.5.0's version gated this behind an information_schema check
+		 * that got silently swallowed on prod, so the DROP was skipped.
+		 * Now: try the DROP for every known vestigial column, catch its
+		 * error, count actual successes. If the column doesn't exist,
+		 * MySQL errors "Can't DROP column; check that column exists" —
+		 * caught, no-op. If it does exist, dropped. Idempotent.
 		 * ============================================================ */
+
 		$vestigialFlagCols = [
 			'distributor_id',
 			'flag_type',
@@ -253,49 +195,38 @@ class _upgrade
 			'admin_reviewed_at',
 			'listing_id',
 		];
+		$dropped = 0;
 		foreach ( $vestigialFlagCols as $col )
 		{
 			try
 			{
-				$has = false;
-				try
-				{
-					$has = (bool) \IPS\Db::i()->select( 'COUNT(*)', 'information_schema.COLUMNS', [
-						'TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-						$prefix . 'gd_compliance_flags', $col,
-					] )->first();
-				}
-				catch ( \Throwable ) {}
-
-				if ( $has )
-				{
-					try
-					{
-						\IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags DROP COLUMN ' . $col );
-					}
-					catch ( \Throwable $e )
-					{
-						/* Fallback: if the DROP errors (e.g. an index depends on it),
-						   at least make the column nullable so INSERTs succeed. */
-						try
-						{
-							\IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags MODIFY ' . $col . ' TEXT NULL DEFAULT NULL' );
-						}
-						catch ( \Throwable ) {}
-						try { \IPS\Log::log( 'upg_10500 DROP flags.' . $col . ' fell back to nullable: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-					}
-				}
+				\IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags DROP COLUMN ' . $col );
+				$dropped++;
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10500 DROP flags.' . $col . ': ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+				/* Two expected failure modes:
+				 *   (a) column doesn't exist → "Can't DROP 'X'; check that column exists" — desired end state, no-op
+				 *   (b) column has an index dep → fallback to nullable so INSERTs still succeed
+				 * We only log (b). (a) is the happy path on re-run. */
+				$msg = strtolower( $e->getMessage() );
+				if ( strpos( $msg, "can't drop" ) === false && strpos( $msg, "check that column" ) === false && strpos( $msg, "unknown column" ) === false )
+				{
+					try
+					{
+						\IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_flags MODIFY ' . $col . ' TEXT NULL DEFAULT NULL' );
+					}
+					catch ( \Throwable ) {}
+					try { \IPS\Log::log( 'upg_10501 DROP flags.' . $col . ' fell back to nullable: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+				}
 			}
 		}
+		try { \IPS\Log::log( 'upg_10501 vestigial column drop: ' . $dropped . ' of ' . count( $vestigialFlagCols ) . ' columns dropped this run', 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 
 		/* ============================================================
-		 * (3) Phase 3 columns on gd_compliance_roster / review.
-		 * Guarded ALTERs for any partial-install state.
+		 * (3) Guarded Phase-3 ALTERs + MODIFY overrides.action.
 		 * ============================================================ */
+
 		$rosterColumns = [
 			'roster_state'    => "CHAR(2) NOT NULL DEFAULT 'CA'",
 			'list_type'       => "VARCHAR(12) NOT NULL DEFAULT 'approved'",
@@ -310,82 +241,24 @@ class _upgrade
 		{
 			try
 			{
-				$has = false;
-				try
-				{
-					$has = (bool) \IPS\Db::i()->select( 'COUNT(*)', 'information_schema.COLUMNS', [
-						'TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-						$prefix . 'gd_compliance_roster', $col,
-					] )->first();
-				}
-				catch ( \Throwable ) {}
-				if ( !$has )
-				{
-					\IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_roster ADD COLUMN ' . $col . ' ' . $type );
-				}
+				\IPS\Db::i()->query( 'ALTER TABLE ' . $prefix . 'gd_compliance_roster ADD COLUMN ' . $col . ' ' . $type );
 			}
-			catch ( \Throwable $e )
-			{
-				try { \IPS\Log::log( 'upg_10500 ALTER roster.' . $col . ': ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-			}
+			catch ( \Throwable ) { /* column probably already exists — ok */ }
 		}
 		try { \IPS\Db::i()->update( 'gd_compliance_roster', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->update( 'gd_compliance_roster', [ 'list_type'    => 'approved' ], [ "list_type='' OR list_type IS NULL" ] ); } catch ( \Throwable ) {}
 
-		try
-		{
-			$has = false;
-			try
-			{
-				$has = (bool) \IPS\Db::i()->select( 'COUNT(*)', 'information_schema.COLUMNS', [
-					'TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-					$prefix . 'gd_compliance_review', 'roster_state',
-				] )->first();
-			}
-			catch ( \Throwable ) {}
-			if ( !$has )
-			{
-				\IPS\Db::i()->query( "ALTER TABLE " . $prefix . "gd_compliance_review ADD COLUMN roster_state CHAR(2) NOT NULL DEFAULT 'CA' AFTER upc, ADD KEY idx_state (roster_state)" );
-			}
-		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10500 ALTER review.roster_state: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-		}
+		try { \IPS\Db::i()->query( "ALTER TABLE " . $prefix . "gd_compliance_review ADD COLUMN roster_state CHAR(2) NOT NULL DEFAULT 'CA' AFTER upc, ADD KEY idx_state (roster_state)" ); } catch ( \Throwable ) {}
 		try { \IPS\Db::i()->update( 'gd_compliance_review', [ 'roster_state' => 'CA' ], [ "roster_state='' OR roster_state IS NULL" ] ); } catch ( \Throwable ) {}
 
-		/* ============================================================
-		 * (3b) Guarded MODIFY overrides.action → VARCHAR(20) for any
-		 * live table still at the 1.3.0-era VARCHAR(12) width.
-		 * ============================================================ */
 		try
 		{
-			$len = 0;
-			try
-			{
-				$row = \IPS\Db::i()->select(
-					'CHARACTER_MAXIMUM_LENGTH',
-					'information_schema.COLUMNS',
-					[
-						'TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
-						$prefix . 'gd_compliance_overrides', 'action',
-					]
-				)->first();
-				$len = (int) $row;
-			}
-			catch ( \Throwable ) {}
-			if ( $len && $len < 20 )
-			{
-				\IPS\Db::i()->query(
-					'ALTER TABLE ' . $prefix . 'gd_compliance_overrides '
-					. "MODIFY action VARCHAR(20) NOT NULL DEFAULT 'force_restrict'"
-				);
-			}
+			\IPS\Db::i()->query(
+				'ALTER TABLE ' . $prefix . 'gd_compliance_overrides '
+				. "MODIFY action VARCHAR(20) NOT NULL DEFAULT 'force_restrict'"
+			);
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10500 MODIFY overrides.action: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
-		}
+		catch ( \Throwable ) {}
 
 		/* Cleanup any stray staging table from an interrupted compute run. */
 		try { \IPS\Db::i()->query( "DROP TABLE IF EXISTS " . $prefix . "gd_compliance_flags_stage" ); } catch ( \Throwable ) {}
@@ -393,9 +266,8 @@ class _upgrade
 
 		/* ============================================================
 		 * (4) NON-DESTRUCTIVE RULE RESEED via Seeder.
-		 * Existing rules (including admin edits) are preserved; only
-		 * missing (state, firearm_type) pairs are inserted.
 		 * ============================================================ */
+
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Seeder.php';
@@ -403,12 +275,13 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10500 seedMissingRules: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10501 seedMissingRules: ' . $e->getMessage(), 'gdcompliance_upgrade' ); } catch ( \Throwable ) {}
 		}
 
 		/* ============================================================
-		 * (5) SETTINGS SEED — Phase 3 URLs + Phase 5 front toggles.
+		 * (5) SETTINGS SEED.
 		 * ============================================================ */
+
 		foreach ( [
 			[ 'gdcompliance_ma_roster_url',      'https://www.mass.gov/doc/approved-handgun-roster-april-2026/download', 'none' ],
 			[ 'gdcompliance_md_roster_url',      'https://dlslibrary.state.md.us/publications/Exec/MDSP/PS5-405(a)_2026(1).pdf', 'none' ],
@@ -435,6 +308,7 @@ class _upgrade
 		/* ============================================================
 		 * (6) LANG RESEED — 6-column schema (rule #43).
 		 * ============================================================ */
+
 		$langFile = \IPS\ROOT_PATH . '/applications/gdcompliance/dev/lang.php';
 		if ( is_readable( $langFile ) )
 		{
@@ -468,14 +342,15 @@ class _upgrade
 		}
 
 		/* ============================================================
-		 * (7) CACHE / OPCACHE.
+		 * (7) CACHE / OPCACHE + canonical_templates purge.
 		 * ============================================================ */
+
 		try { unset( \IPS\Data\Store::i()->settings ); }             catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->acpmenu ); }              catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->extensions ); }           catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->applications ); }         catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->widgets ); }              catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->canonical_templates ); } catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->canonical_templates ); }  catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); }                    catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); }                    catch ( \Throwable ) {}
 		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }

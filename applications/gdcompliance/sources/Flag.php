@@ -37,14 +37,43 @@ class _Flag
 	const TYPE_OVERRIDE = 'override';
 
 	/**
-	 * Restricted-state rows for a UPC, with reason + type.
+	 * US state abbreviation → full name (50 states + DC). Used by
+	 * forUpc() to populate state_name so callers can render "California"
+	 * as a popup heading without a lookup table on their side.
+	 *
+	 * @var array<string, string>
+	 */
+	const STATE_NAMES = [
+		'AL' => 'Alabama',       'AK' => 'Alaska',       'AZ' => 'Arizona',       'AR' => 'Arkansas',
+		'CA' => 'California',    'CO' => 'Colorado',     'CT' => 'Connecticut',   'DE' => 'Delaware',
+		'DC' => 'District of Columbia',
+		'FL' => 'Florida',       'GA' => 'Georgia',      'HI' => 'Hawaii',        'ID' => 'Idaho',
+		'IL' => 'Illinois',      'IN' => 'Indiana',      'IA' => 'Iowa',          'KS' => 'Kansas',
+		'KY' => 'Kentucky',      'LA' => 'Louisiana',    'ME' => 'Maine',         'MD' => 'Maryland',
+		'MA' => 'Massachusetts', 'MI' => 'Michigan',     'MN' => 'Minnesota',     'MS' => 'Mississippi',
+		'MO' => 'Missouri',      'MT' => 'Montana',      'NE' => 'Nebraska',      'NV' => 'Nevada',
+		'NH' => 'New Hampshire', 'NJ' => 'New Jersey',   'NM' => 'New Mexico',    'NY' => 'New York',
+		'NC' => 'North Carolina','ND' => 'North Dakota', 'OH' => 'Ohio',          'OK' => 'Oklahoma',
+		'OR' => 'Oregon',        'PA' => 'Pennsylvania', 'RI' => 'Rhode Island',  'SC' => 'South Carolina',
+		'SD' => 'South Dakota',  'TN' => 'Tennessee',    'TX' => 'Texas',         'UT' => 'Utah',
+		'VT' => 'Vermont',       'VA' => 'Virginia',     'WA' => 'Washington',    'WV' => 'West Virginia',
+		'WI' => 'Wisconsin',     'WY' => 'Wyoming',
+	];
+
+	/**
+	 * Restricted-state rows for a UPC.
 	 *
 	 *   Flag::forUpc('00007121') → [
-	 *     ['state'=>'CA', 'reason'=>'Not on CA DOJ roster', 'type'=>'roster'],
-	 *     ['state'=>'IL', 'reason'=>'Handgun mag 17 > IL limit 15', 'type'=>'capacity'],
+	 *     ['state'=>'CA','state_name'=>'California','reason'=>'Not on CA DOJ roster','type'=>'roster','citation'=>''],
+	 *     ['state'=>'IL','state_name'=>'Illinois','reason'=>'Handgun mag 17 > IL limit 15','type'=>'capacity','citation'=>'PA 102-1116 (Protect Illinois Communities Act, 2023)'],
 	 *   ]
 	 *
-	 * @return array<int, array{state:string,reason:string,type:string}>
+	 * citation is pulled from gd_compliance_rules.source_note via
+	 * LEFT JOIN on rule_id. Roster / override rows have rule_id = 0 so
+	 * their citation is '' — callers should hide the citation line when
+	 * empty rather than rendering "no citation".
+	 *
+	 * @return array<int, array{state:string,state_name:string,reason:string,type:string,citation:string}>
 	 */
 	public static function forUpc( string $upc ): array
 	{
@@ -56,38 +85,96 @@ class _Flag
 		$out = [];
 		try
 		{
-			foreach ( \IPS\Db::i()->select(
-				'state_code, firearm_type, rule_id, reason',
-				'gd_compliance_flags',
-				[ 'upc=?', $upc ],
-				'state_code ASC'
-			) as $row )
+			$prefix = (string) \IPS\Db::i()->prefix;
+			$sql    = "SELECT f.state_code, f.firearm_type, f.rule_id, f.reason, r.source_note
+				FROM " . $prefix . "gd_compliance_flags f
+				LEFT JOIN " . $prefix . "gd_compliance_rules r ON r.id = f.rule_id AND f.rule_id > 0
+				WHERE f.upc = ?
+				ORDER BY f.state_code ASC";
+			$res = \IPS\Db::i()->preparedQuery( $sql, [ $upc ] );
+			if ( $res )
 			{
-				$state = strtoupper( (string) ( $row['state_code'] ?? '' ) );
-				if ( $state === '' ) { continue; }
-
-				$ftype  = (string) ( $row['firearm_type'] ?? '' );
-				$ruleId = (int)    ( $row['rule_id']      ?? 0 );
-				$reason = trim( (string) ( $row['reason'] ?? '' ) );
-
-				$type = static::TYPE_ROSTER;
-				if ( $ftype === 'manual' && $ruleId === 0 )
+				while ( $row = $res->fetch_assoc() )
 				{
-					$type = static::TYPE_OVERRIDE;
-				}
-				elseif ( $ruleId > 0 )
-				{
-					$type = static::TYPE_CAPACITY;
-				}
+					$state = strtoupper( (string) ( $row['state_code'] ?? '' ) );
+					if ( $state === '' ) { continue; }
 
-				$out[] = [
-					'state'  => $state,
-					'reason' => $reason,
-					'type'   => $type,
-				];
+					$ftype  = (string) ( $row['firearm_type'] ?? '' );
+					$ruleId = (int)    ( $row['rule_id']      ?? 0 );
+					$reason = trim( (string) ( $row['reason'] ?? '' ) );
+					$cite   = trim( (string) ( $row['source_note'] ?? '' ) );
+
+					$type = static::TYPE_ROSTER;
+					if ( $ftype === 'manual' && $ruleId === 0 )
+					{
+						$type = static::TYPE_OVERRIDE;
+					}
+					elseif ( $ruleId > 0 )
+					{
+						$type = static::TYPE_CAPACITY;
+					}
+
+					$out[] = [
+						'state'      => $state,
+						'state_name' => static::STATE_NAMES[ $state ] ?? $state,
+						'reason'     => $reason,
+						'type'       => $type,
+						'citation'   => $cite,
+					];
+				}
 			}
 		}
-		catch ( \Throwable ) { $out = []; }
+		catch ( \Throwable )
+		{
+			/* Fallback if preparedQuery isn't available for any reason —
+			   two separate queries, in-memory JOIN. Same result shape. */
+			try
+			{
+				$ruleCite = [];
+				try
+				{
+					foreach ( \IPS\Db::i()->select( 'id, source_note', 'gd_compliance_rules' ) as $r )
+					{
+						$ruleCite[ (int) ( $r['id'] ?? 0 ) ] = (string) ( $r['source_note'] ?? '' );
+					}
+				}
+				catch ( \Throwable ) {}
+
+				foreach ( \IPS\Db::i()->select(
+					'state_code, firearm_type, rule_id, reason',
+					'gd_compliance_flags',
+					[ 'upc=?', $upc ],
+					'state_code ASC'
+				) as $row )
+				{
+					$state = strtoupper( (string) ( $row['state_code'] ?? '' ) );
+					if ( $state === '' ) { continue; }
+
+					$ftype  = (string) ( $row['firearm_type'] ?? '' );
+					$ruleId = (int)    ( $row['rule_id']      ?? 0 );
+					$reason = trim( (string) ( $row['reason'] ?? '' ) );
+
+					$type = static::TYPE_ROSTER;
+					if ( $ftype === 'manual' && $ruleId === 0 )
+					{
+						$type = static::TYPE_OVERRIDE;
+					}
+					elseif ( $ruleId > 0 )
+					{
+						$type = static::TYPE_CAPACITY;
+					}
+
+					$out[] = [
+						'state'      => $state,
+						'state_name' => static::STATE_NAMES[ $state ] ?? $state,
+						'reason'     => $reason,
+						'type'       => $type,
+						'citation'   => trim( (string) ( $ruleCite[ $ruleId ] ?? '' ) ),
+					];
+				}
+			}
+			catch ( \Throwable ) { $out = []; }
+		}
 
 		return static::$cache[ $upc ] = $out;
 	}

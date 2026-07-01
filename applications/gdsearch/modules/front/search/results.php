@@ -321,20 +321,32 @@ class _results extends \IPS\Dispatcher\Controller
             $categoryName = (string) $cat;
         } catch ( \Throwable ) {}
 
+        /* Restriction rows keyed by state — baked in from server hotfix.
+           Uses gdcompliance's clean 8-column gd_compliance_flags schema
+           (no more flag_type/flag_value/status; one row per state). */
         $restrictedStates = [];
         try {
-            foreach ( \IPS\Db::i()->select( 'flag_value', 'gd_compliance_flags',
-                [ "upc=? AND flag_type='state_restriction' AND status='active'", $upc ] ) as $val )
+            foreach ( \IPS\Db::i()->select( 'state_code', 'gd_compliance_flags', [ 'upc=?', $upc ] ) as $st )
             {
-                foreach ( explode( ',', (string) $val ) as $st ) {
-                    $st = strtoupper( trim( $st ) );
-                    if ( $st !== '' ) { $restrictedStates[ $st ] = TRUE; }
-                }
+                $st = strtoupper( trim( (string) ( is_array( $st ) ? ( $st['state_code'] ?? '' ) : $st ) ) );
+                if ( $st !== '' ) { $restrictedStates[ $st ] = TRUE; }
             }
         } catch ( \Throwable ) {}
         $restrictedStates = array_keys( $restrictedStates );
         sort( $restrictedStates );
         $restrictedStatesStr = implode( ', ', $restrictedStates );
+
+        /* Enriched rows for the clickable-chip popup (state_name, reason,
+           type, citation). Guarded: if gdcompliance is disabled or the
+           helper throws, we get an empty array and the banner won't
+           render — the storefront degrades gracefully. */
+        $restrictionRows = [];
+        try {
+            if ( class_exists( '\\IPS\\gdcompliance\\Flag' ) )
+            {
+                $restrictionRows = \IPS\gdcompliance\Flag::forUpc( $upc );
+            }
+        } catch ( \Throwable ) { $restrictionRows = []; }
 
         $priceChartSvg   = '';
         $priceChartJson  = '[]';
@@ -377,6 +389,7 @@ class _results extends \IPS\Dispatcher\Controller
         try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'pricealert.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
         try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'wishlist.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
         try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'compare.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
+        try { \IPS\Output::i()->jsFiles = array_merge( \IPS\Output::i()->jsFiles, \IPS\Output::i()->js( 'restrictpopup.js', 'gdsearch', 'interface' ) ); } catch ( \Throwable ) {}
 
         $backUrl = (string) \IPS\Http\Url::internal(
             'app=gdsearch&module=search&controller=results',
@@ -451,7 +464,7 @@ class _results extends \IPS\Dispatcher\Controller
             $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey,
             $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey,
             $listingReportUrl, $listingReportLoggedIn, $listingReportCsrfKey, $listingReportLoginUrl,
-            $offersSort, $sortOptions, $sortBaseUrl
+            $offersSort, $sortOptions, $sortBaseUrl, $restrictionRows
         );
     }
 
