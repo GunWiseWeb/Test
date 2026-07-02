@@ -47,6 +47,21 @@ class _AwbModels
 	/** @var array<string, array<string, array<string, mixed>>>|null  per-request cache: state → class → rule row */
 	protected static ?array $ruleCache = null;
 
+	/* Per-PRODUCT memoization (v1.6.4). isCenterfire and detectFeatures
+	   are state-independent, but pre-v1.6.4 they ran once per (product,
+	   state) — so a rifle went through 10 identical regex passes over
+	   its title+description for the 10 rifle-AWB states. Memoizing by
+	   product upc drops that 10× overhead to 1×. detectFeatures dominated
+	   perf because it's 6 preg_match calls on ~3KB of description text.
+	   Bounded LRU-ish flush at 8k entries so the cache doesn't grow
+	   unbounded across a 58k-row scan. */
+	/** @var array<string, bool> */
+	protected static array $centerfireCache = [];
+	/** @var array<string, array<int, string>> */
+	protected static array $featuresCache = [];
+	/** @var array<string, ?float> */
+	protected static array $oalCache = [];
+
 	/**
 	 * Aggressive normalizer: lowercase + strip every non-alphanumeric.
 	 * "M&P15" / "M&P-15" / "MP15" all collide to "mp15".
@@ -64,15 +79,28 @@ class _AwbModels
 	 */
 	public static function isCenterfire( array $product ): bool
 	{
+		/* Per-product memoization (v1.6.4). See $centerfireCache docblock. */
+		$upc = (string) ( $product['upc'] ?? '' );
+		if ( $upc !== '' && isset( static::$centerfireCache[ $upc ] ) )
+		{
+			return static::$centerfireCache[ $upc ];
+		}
+
 		$cal = strtolower( trim( (string) ( $product['caliber'] ?? '' ) ) );
 		$chamber = strtolower( trim( (string) ( $product['chamber'] ?? '' ) ) );
 		$hay = $cal . ' ' . $chamber;
-		if ( $hay === ' ' ) { return true; }
-		if ( preg_match( '/(^|\s|\.)(22\s?(lr|wmr|short|long|mag)?|22 ?magnum|17\s?(hmr|hm2|mach|wsm)|5\s?mm ?rem|22 ?win ?mag|22 ?rf)\b/i', $hay ) )
+		$result = true;
+		if ( $hay !== ' ' && preg_match( '/(^|\s|\.)(22\s?(lr|wmr|short|long|mag)?|22 ?magnum|17\s?(hmr|hm2|mach|wsm)|5\s?mm ?rem|22 ?win ?mag|22 ?rf)\b/i', $hay ) )
 		{
-			return false;
+			$result = false;
 		}
-		return true;
+
+		if ( $upc !== '' )
+		{
+			if ( count( static::$centerfireCache ) >= 8000 ) { static::$centerfireCache = []; }
+			static::$centerfireCache[ $upc ] = $result;
+		}
+		return $result;
 	}
 
 	/**
@@ -86,16 +114,20 @@ class _AwbModels
 		$raw = strtolower( trim( $raw ) );
 		if ( $raw === '' ) { return null; }
 
+		/* Memoize on the RAW string (product-independent, small key). */
+		if ( isset( static::$oalCache[ $raw ] ) ) { return static::$oalCache[ $raw ]; }
+		if ( count( static::$oalCache ) >= 8000 ) { static::$oalCache = []; }
+
 		if ( preg_match( '/(\d+)\s+(\d+)\s*\/\s*(\d+)/', $raw, $m ) )
 		{
 			$w = (int) $m[1]; $n = (int) $m[2]; $d = (int) $m[3];
-			return $d > 0 ? $w + ( $n / $d ) : (float) $w;
+			return static::$oalCache[ $raw ] = ( $d > 0 ? $w + ( $n / $d ) : (float) $w );
 		}
 		if ( preg_match( '/(\d+(?:\.\d+)?)/', $raw, $m ) )
 		{
-			return (float) $m[1];
+			return static::$oalCache[ $raw ] = (float) $m[1];
 		}
-		return null;
+		return static::$oalCache[ $raw ] = null;
 	}
 
 	/**
@@ -109,6 +141,16 @@ class _AwbModels
 	 */
 	public static function detectFeatures( array $product ): array
 	{
+		/* Per-product memoization (v1.6.4). detectFeatures runs 6 regex
+		   passes over ~3KB of description text and is the dominant per-
+		   row cost. Before memoization it ran once per (product, state)
+		   — a rifle in 10 AWB states cost 10× the work. */
+		$upc = (string) ( $product['upc'] ?? '' );
+		if ( $upc !== '' && isset( static::$featuresCache[ $upc ] ) )
+		{
+			return static::$featuresCache[ $upc ];
+		}
+
 		$hits = [];
 		$title = (string) ( $product['title'] ?? '' );
 		$desc  = substr( (string) ( $product['description'] ?? '' ), 0, 3000 );
@@ -159,7 +201,13 @@ class _AwbModels
 			$hits[] = 'barrel shroud / grenade launcher';
 		}
 
-		return array_values( array_unique( $hits ) );
+		$out = array_values( array_unique( $hits ) );
+		if ( $upc !== '' )
+		{
+			if ( count( static::$featuresCache ) >= 8000 ) { static::$featuresCache = []; }
+			static::$featuresCache[ $upc ] = $out;
+		}
+		return $out;
 	}
 
 	/**
@@ -624,8 +672,11 @@ class _AwbModels
 	 */
 	public static function clearCache(): void
 	{
-		static::$modelCache = [];
-		static::$ruleCache  = null;
+		static::$modelCache      = [];
+		static::$ruleCache       = null;
+		static::$centerfireCache = [];
+		static::$featuresCache   = [];
+		static::$oalCache        = [];
 	}
 }
 

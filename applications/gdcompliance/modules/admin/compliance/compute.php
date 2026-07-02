@@ -72,6 +72,14 @@ class _compute extends \IPS\Dispatcher\Controller
 	protected function preview(): void
 	{
 		\IPS\Session::i()->csrfCheck();
+		/* v1.6.4 — lift PHP web-request limits so the 58k-row preview
+		   doesn't hit the 30s Db.php timeout. Engine::computeFlags calls
+		   these too; belt-and-braces here so the wrapper request itself
+		   also gets the reprieve. */
+		@set_time_limit( 0 );
+		@ignore_user_abort( true );
+		@ini_set( 'memory_limit', '512M' );
+
 		$result = [ 'processed' => 0, 'firearms' => 0, 'flags' => 0, 'per_state' => [], 'per_state_type' => [], 'unparsed' => [], 'sample' => [], 'dry_run' => true ];
 		try { $result = \IPS\gdcompliance\Engine::computeFlags( true ); } catch ( \Throwable $e ) {
 			try { \IPS\Log::log( 'compute preview: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
@@ -82,6 +90,13 @@ class _compute extends \IPS\Dispatcher\Controller
 	protected function run(): void
 	{
 		\IPS\Session::i()->csrfCheck();
+		/* v1.6.4 — lift PHP web-request limits. See preview() docblock.
+		   This is the button that used to die with "Maximum execution
+		   time of 30 seconds exceeded in Db.php". */
+		@set_time_limit( 0 );
+		@ignore_user_abort( true );
+		@ini_set( 'memory_limit', '512M' );
+
 		$result = [ 'processed' => 0, 'firearms' => 0, 'flags' => 0, 'per_state' => [], 'per_state_type' => [], 'unparsed' => [], 'sample' => [], 'dry_run' => false ];
 		try { $result = \IPS\gdcompliance\Engine::computeFlags( false ); } catch ( \Throwable $e ) {
 			try { \IPS\Log::log( 'compute run: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}

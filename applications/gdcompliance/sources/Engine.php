@@ -153,6 +153,18 @@ class _Engine
 	 */
 	public static function computeFlags( bool $dryRun = false ): array
 	{
+		/* v1.6.4: raise limits before the 58k-row scan begins.
+		   set_time_limit(0) lifts the PHP web-request cap so the ACP
+		   "Run compute" button stops dying at 30s (root cause of the
+		   "Maximum execution time" error in Db.php). ignore_user_abort
+		   keeps compute going if the admin's browser drops the request.
+		   memory_limit bumped for the in-memory flag stage. Every call
+		   is @-prefixed so a locked-down PHP configuration doesn't
+		   throw — the scan will just run within whatever limits apply. */
+		@set_time_limit( 0 );
+		@ignore_user_abort( true );
+		@ini_set( 'memory_limit', '512M' );
+
 		$result = [
 			'processed'      => 0,
 			'firearms'       => 0,
@@ -174,7 +186,9 @@ class _Engine
 			],
 			'review_queue'   => [],
 			'dry_run'        => $dryRun,
+			'duration_ms'    => 0,
 		];
+		$computeStart = microtime( true );
 
 		$typeMap = self::buildTypeMap();
 		$rules   = self::activeRules();
@@ -188,6 +202,25 @@ class _Engine
 		$rosterStates = [];
 		try { $rosterStates = \IPS\gdcompliance\Roster::availableStates(); } catch ( \Throwable ) {}
 		$dcDerive = (int) ( \IPS\Settings::i()->gdcompliance_dc_derive ?? 1 ) === 1;
+
+		/* v1.6.4 preload: enabledStates() walks the ruleCache; result is
+		   stable across all rows. Preload once and hand into the loop
+		   below via captured locals — saves ~58k redundant function
+		   calls per firearm-class. Also warms the AWB rule + model
+		   caches so the per-row match() calls are O(1) hash reads. */
+		$awbRifleStates  = [];
+		$awbPistolStates = [];
+		try
+		{
+			$awbRifleStates  = \IPS\gdcompliance\AwbModels::enabledStates( 'rifle' );
+			$awbPistolStates = \IPS\gdcompliance\AwbModels::enabledStates( 'pistol' );
+		}
+		catch ( \Throwable ) {}
+		/* Clear any stale per-product memoization from a prior compute
+		   run (e.g. re-running back-to-back in the same request). */
+		try { \IPS\gdcompliance\AwbModels::clearCache(); \IPS\gdcompliance\AwbModels::enabledStates( 'rifle' ); } catch ( \Throwable ) {}
+		try { $awbRifleStates  = \IPS\gdcompliance\AwbModels::enabledStates( 'rifle' ); }  catch ( \Throwable ) {}
+		try { $awbPistolStates = \IPS\gdcompliance\AwbModels::enabledStates( 'pistol' ); } catch ( \Throwable ) {}
 
 		/* Initialize per-state counters so the summary always shows them
 		   (even with zero counts), even for states without a loaded roster. */
@@ -260,9 +293,9 @@ class _Engine
 					$act = strtolower( trim( (string) ( $p['action_type'] ?? '' ) ) );
 					if ( $act !== '' && strpos( $act, 'semi' ) !== false )
 					{
-						$awbStates = [];
-						try { $awbStates = \IPS\gdcompliance\AwbModels::enabledStates( $awbClass ); }
-						catch ( \Throwable ) {}
+						/* v1.6.4: use the preloaded state lists — no more
+						   per-row enabledStates() call. */
+						$awbStates = $awbClass === 'rifle' ? $awbRifleStates : $awbPistolStates;
 
 						foreach ( $awbStates as $awbState )
 						{
@@ -473,6 +506,7 @@ class _Engine
 
 		if ( $dryRun )
 		{
+			$result['duration_ms'] = (int) ( ( microtime( true ) - $computeStart ) * 1000 );
 			return $result;
 		}
 
@@ -654,8 +688,10 @@ class _Engine
 			] ),
 		] ); } catch ( \Throwable ) {}
 
+		$result['duration_ms'] = (int) ( ( microtime( true ) - $computeStart ) * 1000 );
+
 		try { \IPS\Log::log( 'Engine::computeFlags complete: ' . json_encode( [
-			'flags' => $result['flags'], 'per_state' => $result['per_state'],
+			'flags' => $result['flags'], 'per_state' => $result['per_state'], 'duration_ms' => $result['duration_ms'], 'row_errors' => $result['row_errors'] ?? 0,
 		] ), 'gdcompliance' ); } catch ( \Throwable ) {}
 
 		return $result;
