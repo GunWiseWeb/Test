@@ -14,8 +14,8 @@ $lang = array(
 	'menu__gdcompliance_compliance_overrides'  => 'Manual Overrides',
 	'menu__gdcompliance_compliance_lookup'     => 'Product Lookup',
 	'menu__gdcompliance_compliance_browser'    => 'Restrictions Browser',
-	'menu__gdcompliance_compliance_awbmodels'  => 'AWB Named Models',
-	'menu__gdcompliance_compliance_awbrules'   => 'AWB Rules (per state)',
+	'menu__gdcompliance_compliance_awbstates'  => 'AWB States',
+	'menu__gdcompliance_compliance_awbmodels'  => 'AWB Master Model List',
 	'menu__gdcompliance_compliance_settings'   => 'Settings',
 
 	/* Front module + nav */
@@ -194,6 +194,13 @@ $lang = array(
 	'gdcompliance_pica_f_enabled'              => 'Enabled',
 	'gdcompliance_reason_pica'                 => 'PICA (IL)',
 	'gdcompliance_reason_awb'                  => 'AWB',
+
+	/* v1.6.1 — AWB States dashboard */
+	'gdcompliance_acp_awbstates_title'        => 'AWB States Dashboard',
+	'gdcompliance_acp_awbstates_intro'        => 'One row per (state, firearm class). Model counts and flagged-product counts are live. Click "Open" for a state to edit its config, browse its named-model list, and search your catalog for banned/allowed status in that state.',
+	'gdcompliance_acp_awbstates_config'       => 'Config',
+	'gdcompliance_acp_awbstates_models'       => 'Named models',
+	'gdcompliance_acp_awbstates_search'       => 'Check UPC / title against this state',
 
 	/* v1.6.0 — Multi-state Assault Weapons Ban framework */
 	'gdcompliance_acp_awb_title'               => 'AWB Named Models',

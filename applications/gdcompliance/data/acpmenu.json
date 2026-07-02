@@ -42,15 +42,15 @@
 			"do": "",
 			"restriction": "compliance_manage"
 		},
-		"awbmodels": {
+		"awbstates": {
 			"tab": "gdcompliance",
-			"controller": "awbmodels",
+			"controller": "awbstates",
 			"do": "",
 			"restriction": "compliance_manage"
 		},
-		"awbrules": {
+		"awbmodels": {
 			"tab": "gdcompliance",
-			"controller": "awbrules",
+			"controller": "awbmodels",
 			"do": "",
 			"restriction": "compliance_manage"
 		},

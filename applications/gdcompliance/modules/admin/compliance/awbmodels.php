@@ -21,7 +21,21 @@ class _awbmodels extends \IPS\Dispatcher\Controller
 {
 	public static bool $csrfProtected = TRUE;
 
-	const STATES = [ 'IL' => 'Illinois (PICA)', 'CA' => 'California', 'NY' => 'New York (SAFE)' ];
+	const STATES = [
+		'IL' => 'Illinois (PICA)',
+		'CA' => 'California',
+		'NY' => 'New York (SAFE)',
+		'NJ' => 'New Jersey',
+		'WA' => 'Washington',
+		'DE' => 'Delaware',
+		'MD' => 'Maryland',
+		'MA' => 'Massachusetts',
+		'DC' => 'DC',
+		'RI' => 'Rhode Island',
+		'CT' => 'Connecticut (held)',
+		'VA' => 'Virginia (flux)',
+		'HI' => 'Hawaii (pistols)',
+	];
 
 	public function execute(): void
 	{
@@ -49,9 +63,31 @@ class _awbmodels extends \IPS\Dispatcher\Controller
 				. '</div></div>';
 		}
 
+		$platformFilter = trim( (string) ( \IPS\Request::i()->platform_group ?? '' ) );
+
 		$baseUrl  = \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=awbmodels' );
-		$tableUrl = $stateFilter !== '' ? $baseUrl->setQueryString( 'state_code', $stateFilter ) : $baseUrl;
-		$where    = $stateFilter !== '' ? [ [ 'state_code=?', $stateFilter ] ] : [];
+		$qs = [];
+		if ( $stateFilter    !== '' ) { $qs['state_code']     = $stateFilter; }
+		if ( $platformFilter !== '' ) { $qs['platform_group'] = $platformFilter; }
+		$tableUrl = empty( $qs ) ? $baseUrl : $baseUrl->setQueryString( $qs );
+
+		$whereParts = [ '1=1' ];
+		$whereArgs  = [];
+		if ( $stateFilter !== '' )    { $whereParts[] = 'state_code=?';     $whereArgs[] = $stateFilter; }
+		if ( $platformFilter !== '' ) { $whereParts[] = 'platform_group=?'; $whereArgs[] = $platformFilter; }
+		$where = [ array_merge( [ implode( ' AND ', $whereParts ) ], $whereArgs ) ];
+
+		/* Distinct platform groups for the filter chips. */
+		$platforms = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'DISTINCT platform_group', 'gd_compliance_awb_models', null, 'platform_group ASC' ) as $row )
+			{
+				$pg = (string) ( is_array( $row ) ? $row['platform_group'] : $row );
+				if ( $pg !== '' ) { $platforms[] = $pg; }
+			}
+		}
+		catch ( \Throwable ) {}
 
 		$table = new \IPS\Helpers\Table\Db( 'gd_compliance_awb_models', $tableUrl, $where );
 		$table->langPrefix    = 'gdcompliance_acp_awb_col_';
@@ -87,14 +123,35 @@ class _awbmodels extends \IPS\Dispatcher\Controller
 		$addUrl    = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=awbmodels&do=form' );
 		$reseedUrl = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=awbmodels&do=reseed' )->csrf();
 
-		$stateTabs = '<div style="margin:0 0 10px;display:flex;gap:6px;flex-wrap:wrap">';
-		foreach ( array_merge( [ '' => 'All states' ], self::STATES ) as $key => $label )
+		$preserveQs = fn( array $override ) => (string) $baseUrl->setQueryString( array_filter( array_merge( [
+			'state_code'     => $stateFilter !== ''    ? $stateFilter    : null,
+			'platform_group' => $platformFilter !== '' ? $platformFilter : null,
+		], $override ), fn( $v ) => $v !== null ) );
+
+		$stateTabs = '<div style="margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap"><span style="font-size:12px;color:#64748b;font-weight:600;align-self:center;margin-right:4px">STATE:</span>';
+		foreach ( array_merge( [ '' => 'All' ], self::STATES ) as $key => $label )
 		{
 			$active = $stateFilter === $key ? ' ipsButton--primary' : ' ipsButton--soft';
-			$href   = $key === '' ? (string) $baseUrl : (string) $baseUrl->setQueryString( 'state_code', $key );
-			$stateTabs .= '<a class="ipsButton ipsButton--small' . $active . '" href="' . $h( $href ) . '">' . $h( (string) $label ) . '</a>';
+			$href   = $preserveQs( [ 'state_code' => $key === '' ? null : $key ] );
+			$stateTabs .= '<a class="ipsButton ipsButton--verySmall' . $active . '" href="' . $h( $href ) . '">' . $h( (string) $label ) . '</a>';
 		}
 		$stateTabs .= '</div>';
+
+		$platformTabs = '';
+		if ( !empty( $platforms ) )
+		{
+			$platformTabs = '<div style="margin:0 0 10px;display:flex;gap:6px;flex-wrap:wrap"><span style="font-size:12px;color:#64748b;font-weight:600;align-self:center;margin-right:4px">PLATFORM:</span>';
+			$active0 = $platformFilter === '' ? ' ipsButton--primary' : ' ipsButton--soft';
+			$platformTabs .= '<a class="ipsButton ipsButton--verySmall' . $active0 . '" href="' . $h( $preserveQs( [ 'platform_group' => null ] ) ) . '">All</a>';
+			foreach ( $platforms as $pg )
+			{
+				$active = $platformFilter === $pg ? ' ipsButton--primary' : ' ipsButton--soft';
+				$href   = $preserveQs( [ 'platform_group' => $pg ] );
+				$platformTabs .= '<a class="ipsButton ipsButton--verySmall' . $active . '" href="' . $h( $href ) . '">' . $h( $pg ) . '</a>';
+			}
+			$platformTabs .= '</div>';
+		}
+		$stateTabs .= $platformTabs;
 
 		$intro = '<div class="ipsBox" style="margin-bottom:14px"><div class="ipsBox_body ipsPad">'
 			. '<h2 class="ipsType_sectionHead" style="margin:0 0 8px">' . $h( $lang->addToStack( 'gdcompliance_acp_awb_title' ) ) . '</h2>'

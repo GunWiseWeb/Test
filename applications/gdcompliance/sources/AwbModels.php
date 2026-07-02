@@ -256,18 +256,20 @@ class _AwbModels
 
 	/**
 	 * Run the AWB test for a product against ONE state's config.
-	 * The Engine calls this in a loop over enabledStates('rifle').
+	 * The Engine calls this in a loop over enabledStates('rifle') for
+	 * rifles and enabledStates('pistol') for handguns.
 	 *
 	 * Caller must have already gated on:
-	 *   - firearm type = 'rifle' (buildTypeMap)
+	 *   - firearm type = 'rifle' / 'handgun' (buildTypeMap) matching
+	 *     $firearmClass
 	 *   - action_type contains 'semi'
 	 * This method itself handles the centerfire exclusion and rule lookup.
 	 *
 	 * @return array{tier:int,pattern:?string,citation:string,feature_hits:array<int,string>}|null
 	 */
-	public static function match( array $product, string $stateCode ): ?array
+	public static function match( array $product, string $stateCode, string $firearmClass = 'rifle' ): ?array
 	{
-		$rule = self::ruleFor( $stateCode, 'rifle' );
+		$rule = self::ruleFor( $stateCode, $firearmClass );
 		if ( $rule === null ) { return null; }
 
 		/* Centerfire-only exclusion (fixes IL .22LR regression). */
@@ -464,19 +466,39 @@ class _AwbModels
 			'notes'                   => $notes ? substr( $notes, 0, 255 ) : null,
 		];
 
+		$mkPistol = fn ( string $state, int $thresh, string $cite, ?string $eff = null, int $enabled = 1, ?string $notes = null ) => [
+			'state_code'              => $state,
+			'firearm_class'           => 'pistol',
+			'feature_count_threshold' => $thresh,
+			'centerfire_only'         => 1,
+			'max_overall_length_in'   => null,
+			'min_capacity_fixed'      => 10,
+			'citation'                => substr( $cite, 0, 255 ),
+			'effective_date'          => $eff,
+			'expires_date'            => null,
+			'enabled'                 => $enabled,
+			'notes'                   => $notes ? substr( $notes, 0, 255 ) : null,
+		];
+
 		return [
+			/* --- ENABLED rifle AWB states (v1.6.1 activations) --- */
 			$mkRifle( 'IL', 1, '720 ILCS 5/24-1.9(a)(1)(A)', null, 1, null, 'PICA one-feature test; rimfire exempt' ),
 			$mkRifle( 'CA', 1, 'CA Pen Code §30510/§30515', null, 1, 30.0, 'One-feature; also <30 in OAL rule (Pen 30515)' ),
-			$mkRifle( 'NY', 1, 'NY Penal §265.00(22) (SAFE Act)', null, 1, null, 'One-feature since SAFE Act' ),
-			$mkRifle( 'CT', 1, 'CT Gen Stat §53-202a', null, 0, null, 'One-feature; seeded disabled — enable when catalog reviewed' ),
-			$mkRifle( 'NJ', 1, 'NJ Stat §2C:39-1w', null, 0, null, 'One-feature; seeded disabled — enable when catalog reviewed' ),
-			$mkRifle( 'MA', 2, 'MGL c.140 §121 (2024 amendments)', null, 0, null, 'Two-feature since 2024 amendments; seeded disabled' ),
-			$mkRifle( 'MD', 2, 'MD Public Safety §5-101(r)', null, 0, null, 'Two-feature "regulated firearm" list; seeded disabled' ),
-			$mkRifle( 'WA', 1, 'RCW 9.41.010 (SB 5265 as amended)', null, 0, null, 'One-feature sale/transfer; seeded disabled' ),
-			$mkRifle( 'DC', 1, 'DC Code §7-2501.01(3A)', null, 0, null, 'One-feature; seeded disabled — Benson injunction flux' ),
-			$mkRifle( 'DE', 1, 'DE HB 450 (2022)', null, 0, null, 'One-feature; seeded disabled — enable when catalog reviewed' ),
+			$mkRifle( 'NY', 1, 'NY Penal §265.00(22) (SAFE Act)', null, 1, null, 'One-feature since SAFE Act (2013 as amended)' ),
+			$mkRifle( 'NJ', 1, 'N.J.S.A. 2C:39-1(w)', null, 1, null, 'One-feature since S2309 amendments; thumbhole + second handgrip added' ),
+			$mkRifle( 'WA', 1, 'RCW 9.41.010 (HB 1240, 2023)', null, 1, null, 'One-feature sale/transfer/manufacture ban' ),
+			$mkRifle( 'DE', 1, '11 Del. C. §1466 (HB 450, 2022)', null, 1, null, 'Delaware Lethal Firearms Safety Act one-feature' ),
+			$mkRifle( 'MD', 2, 'MD Crim Law §4-301 (regulated firearm list)', null, 1, null, 'Two-feature test + enumerated regulated-firearm list' ),
+			$mkRifle( 'MA', 2, 'MGL c.140 §121 (Ch. 135 of Acts of 2024)', null, 1, null, 'Two-feature statutory; MA AG interpretation may be broader — verify' ),
+			$mkRifle( 'DC', 1, 'DC Code §7-2501.01(3A)', null, 1, null, 'One-feature; Benson injunction flux — Derrick may need to disable if enforcement changes' ),
 			$mkRifle( 'RI', 1, 'RI S 359 (2025)', '2026-07-01', 1, null, 'Effective 2026-07-01 sale/transfer only; auto-activates by date' ),
+
+			/* --- HELD PENDING VERIFICATION --- */
+			$mkRifle( 'CT', 1, 'CT Gen Stat §53-202a', null, 0, null, 'CT threshold needs statute verification (2023 amendment) before enabling — sources conflict on one- vs two-feature' ),
 			$mkRifle( 'VA', 1, 'VA SB 749 (2025)', '2026-07-01', 0, null, 'Effective 2026-07-01 BUT 4 lawsuits + non-enforcement statements; seeded disabled — Derrick toggles when settled' ),
+
+			/* --- PISTOL-ONLY AWB (HI) --- */
+			$mkPistol( 'HI', 1, 'HRS §134-1 (assault pistol definition)', null, 1, 'HI bans assault pistols only, not rifles; framework only evaluates pistols against this row' ),
 		];
 	}
 
@@ -566,7 +588,27 @@ class _AwbModels
 			[ 'Weaver Nighthawk', 'Other Named' ], [ 'Wilkinson Linda', 'Other Named' ],
 		];
 
-		foreach ( [ 'IL' => $il, 'CA' => $ca, 'NY' => $ny ] as $state => $cite )
+		/* Replicate the shared AR/AK/named core across EVERY enabled AWB
+		   rifle-state. Every state's copycat clause covers functionally
+		   equivalent rifles, so the core patterns are common. Per-state
+		   additions can be layered on via ACP or later prompts. */
+		$stateCites = [
+			'IL' => $il,
+			'CA' => $ca,
+			'NY' => $ny,
+			'NJ' => 'N.J.S.A. 2C:39-1(w)',
+			'WA' => 'RCW 9.41.010 (HB 1240, 2023)',
+			'DE' => '11 Del. C. §1466 (HB 450, 2022)',
+			'MD' => 'MD Crim Law §4-301',
+			'MA' => 'MGL c.140 §121',
+			'DC' => 'DC Code §7-2501.01(3A)',
+			'RI' => 'RI S 359 (2025)',
+			/* CT + VA get seeded so that a future toggle-to-enabled doesn't
+			   require another prompt to seed patterns. */
+			'CT' => 'CT Gen Stat §53-202a',
+			'VA' => 'VA SB 749 (2025)',
+		];
+		foreach ( $stateCites as $state => $cite )
 		{
 			foreach ( $corePatterns as [ $pat, $group ] )
 			{

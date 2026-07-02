@@ -239,20 +239,24 @@ class _Engine
 				   Pin remedy on the popup gates on type='capacity' so
 				   AWB rows never trigger it. */
 				$awbHitStates = [];  /* [state => true] — used to suppress capacity flag */
-				if ( $type === 'rifle' )
+				$awbClass = null;
+				if ( $type === 'rifle' )    { $awbClass = 'rifle'; }
+				elseif ( $type === 'handgun' ) { $awbClass = 'pistol'; }
+
+				if ( $awbClass !== null )
 				{
 					$act = strtolower( trim( (string) ( $p['action_type'] ?? '' ) ) );
 					if ( $act !== '' && strpos( $act, 'semi' ) !== false )
 					{
 						$awbStates = [];
-						try { $awbStates = \IPS\gdcompliance\AwbModels::enabledStates( 'rifle' ); }
+						try { $awbStates = \IPS\gdcompliance\AwbModels::enabledStates( $awbClass ); }
 						catch ( \Throwable ) {}
 
 						foreach ( $awbStates as $awbState )
 						{
 							try
 							{
-								$m = \IPS\gdcompliance\AwbModels::match( $p, $awbState );
+								$m = \IPS\gdcompliance\AwbModels::match( $p, $awbState, $awbClass );
 							}
 							catch ( \Throwable ) { $m = null; }
 
@@ -304,10 +308,11 @@ class _Engine
 							}
 
 							/* Emit flag for tier 1 / tier 2. */
+							$awbFtype = 'awb_' . $awbClass;
 							$flags[] = [
 								'upc'             => substr( $upc, 0, 50 ),
 								'state_code'      => $awbState,
-								'firearm_type'    => 'awb_rifle',
+								'firearm_type'    => $awbFtype,
 								'parsed_capacity' => null,
 								'rule_id'         => 0,
 								'reason'          => substr( $reason, 0, 255 ),
@@ -316,7 +321,7 @@ class _Engine
 							];
 
 							$result['per_state'][ $awbState ] = ( $result['per_state'][ $awbState ] ?? 0 ) + 1;
-							$result['per_state_type'][ $awbState ]['awb_rifle'] = ( $result['per_state_type'][ $awbState ]['awb_rifle'] ?? 0 ) + 1;
+							$result['per_state_type'][ $awbState ][ $awbFtype ] = ( $result['per_state_type'][ $awbState ][ $awbFtype ] ?? 0 ) + 1;
 							$result['awb'][ 'tier' . $awbTier ] = ( $result['awb'][ 'tier' . $awbTier ] ?? 0 ) + 1;
 
 							/* Tier 2 → also queue for verification. */

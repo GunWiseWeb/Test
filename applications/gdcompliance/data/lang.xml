@@ -11,8 +11,13 @@
 <word key="menu__gdcompliance_compliance_overrides" js="0"><![CDATA[Manual Overrides]]></word>
 <word key="menu__gdcompliance_compliance_lookup" js="0"><![CDATA[Product Lookup]]></word>
 <word key="menu__gdcompliance_compliance_browser" js="0"><![CDATA[Restrictions Browser]]></word>
-<word key="menu__gdcompliance_compliance_awbmodels" js="0"><![CDATA[AWB Named Models]]></word>
-<word key="menu__gdcompliance_compliance_awbrules" js="0"><![CDATA[AWB Rules (per state)]]></word>
+<word key="menu__gdcompliance_compliance_awbstates" js="0"><![CDATA[AWB States]]></word>
+<word key="menu__gdcompliance_compliance_awbmodels" js="0"><![CDATA[AWB Master Model List]]></word>
+<word key="gdcompliance_acp_awbstates_title" js="0"><![CDATA[AWB States Dashboard]]></word>
+<word key="gdcompliance_acp_awbstates_intro" js="0"><![CDATA[One row per (state, firearm class). Click "Open" for a state to edit its config, browse its named-model list, and search your catalog for banned/allowed status in that state.]]></word>
+<word key="gdcompliance_acp_awbstates_config" js="0"><![CDATA[Config]]></word>
+<word key="gdcompliance_acp_awbstates_models" js="0"><![CDATA[Named models]]></word>
+<word key="gdcompliance_acp_awbstates_search" js="0"><![CDATA[Check UPC / title against this state]]></word>
 <word key="menu__gdcompliance_compliance_settings" js="0"><![CDATA[Settings]]></word>
 <word key="gdcompliance_acp_pica_title" js="0"><![CDATA[Illinois PICA Named Models]]></word>
 <word key="gdcompliance_acp_pica_intro" js="0"><![CDATA[Statutory named-model list from 720 ILCS 5/24-1.9(a)(1)(J). Rifles whose title/brand/model/description match ANY enabled pattern get a Tier-1 PICA flag with high confidence. Semi-auto rifles that match nothing here still get a Tier-2 "likely PICA — verify" flag for the review queue.]]></word>
