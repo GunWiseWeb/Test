@@ -47,11 +47,20 @@ class _roster extends \IPS\Dispatcher\Controller
 		$mdDisapprovedUrl2  = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refreshMDDisapproved' )->csrf();
 		$mdUploadUrl        = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=mdImport' );
 		$refreshAllUrl      = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=refreshAll' )->csrf();
+		$saveSourcesUrl     = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=saveSources' );
+		$uploadMaUrl        = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=uploadMaPdf' );
+		$uploadMdApprUrl    = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=uploadMdApprovedPdf' );
+		$uploadMdDisUrl     = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster&do=uploadMdDisapprovedPdf' );
 
-		$maUrl           = htmlspecialchars( (string) ( \IPS\Settings::i()->gdcompliance_ma_roster_url        ?? \IPS\gdcompliance\Roster::MA_ROSTER_URL_DEFAULT ), ENT_QUOTES, 'UTF-8' );
-		$mdApprovedUrl   = htmlspecialchars( (string) ( \IPS\Settings::i()->gdcompliance_md_roster_url        ?? \IPS\gdcompliance\Roster::MD_ROSTER_URL_DEFAULT ), ENT_QUOTES, 'UTF-8' );
-		$mdDisapprovedU  = htmlspecialchars( (string) ( \IPS\Settings::i()->gdcompliance_md_disapproved_url   ?? \IPS\gdcompliance\Roster::MD_DISAPPROVED_URL_DEFAULT ), ENT_QUOTES, 'UTF-8' );
-		$caUrl           = htmlspecialchars( \IPS\gdcompliance\Roster::ROSTER_URL, ENT_QUOTES, 'UTF-8' );
+		$maUrlRaw           = (string) ( \IPS\Settings::i()->gdcompliance_ma_roster_url      ?? \IPS\gdcompliance\Roster::MA_ROSTER_URL_DEFAULT );
+		$mdApprovedUrlRaw   = (string) ( \IPS\Settings::i()->gdcompliance_md_roster_url      ?? \IPS\gdcompliance\Roster::MD_ROSTER_URL_DEFAULT );
+		$mdDisapprovedURaw  = (string) ( \IPS\Settings::i()->gdcompliance_md_disapproved_url ?? \IPS\gdcompliance\Roster::MD_DISAPPROVED_URL_DEFAULT );
+		$caUrlRaw           = (string) ( \IPS\Settings::i()->gdcompliance_ca_roster_url      ?? \IPS\gdcompliance\Roster::ROSTER_URL );
+		$maUrl              = htmlspecialchars( $maUrlRaw,          ENT_QUOTES, 'UTF-8' );
+		$mdApprovedUrl      = htmlspecialchars( $mdApprovedUrlRaw,  ENT_QUOTES, 'UTF-8' );
+		$mdDisapprovedU     = htmlspecialchars( $mdDisapprovedURaw, ENT_QUOTES, 'UTF-8' );
+		$caUrl              = htmlspecialchars( $caUrlRaw,          ENT_QUOTES, 'UTF-8' );
+		$csrfField          = htmlspecialchars( (string) \IPS\Session::i()->csrfKey, ENT_QUOTES, 'UTF-8' );
 
 		/* Data-vintage per (state, list_type) — surfaces as_of_date so
 		   Derrick sees exactly how stale each list is. */
@@ -78,6 +87,20 @@ class _roster extends \IPS\Dispatcher\Controller
 			. $h( 'gdcompliance_acp_roster_refresh_all_hint' )
 			. '</span></p>'
 
+			/* Editable source URLs (v1.6.2). Every URL is a real setting;
+			   Save writes via Settings::changeValues. */
+			. '<details style="margin:0 0 14px;padding:10px 12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px">'
+			. '<summary style="cursor:pointer;font-weight:600;color:#075985">' . $h( 'gdcompliance_acp_roster_sources_title' ) . '</summary>'
+			. '<form method="post" action="' . htmlspecialchars( $saveSourcesUrl, ENT_QUOTES, 'UTF-8' ) . '" style="margin-top:10px;display:grid;gap:8px">'
+			. '<input type="hidden" name="csrfKey" value="' . $csrfField . '">'
+			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px"><span>CA DOJ roster URL</span><input type="url" name="gdcompliance_ca_roster_url" value="' . $caUrl . '" required></label>'
+			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px"><span>MA roster PDF URL</span><input type="url" name="gdcompliance_ma_roster_url" value="' . $maUrl . '"></label>'
+			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px"><span>MD approved-list PDF URL</span><input type="url" name="gdcompliance_md_roster_url" value="' . $mdApprovedUrl . '"></label>'
+			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px"><span>MD disapproved-list PDF URL</span><input type="url" name="gdcompliance_md_disapproved_url" value="' . $mdDisapprovedU . '"></label>'
+			. '<div><button type="submit" class="ipsButton ipsButton--primary ipsButton--small">' . $h( 'gdcompliance_acp_roster_save_sources' ) . '</button></div>'
+			. '</form>'
+			. '</details>'
+
 			/* CA */
 			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:10px">'
 			. '<strong style="min-width:60px">CA</strong>'
@@ -85,25 +108,47 @@ class _roster extends \IPS\Dispatcher\Controller
 			. '<a href="' . htmlspecialchars( $caRefreshUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton--primary ipsButton--small" style="margin-left:auto">' . $h( 'gdcompliance_acp_roster_refresh' ) . '</a>'
 			. '</div>'
 
-			/* MA */
-			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:10px">'
+			/* MA — auto-fetch often 403s (mass.gov WAF blocks datacenter UAs).
+			   The "Upload PDF" is the primary path here. */
+			. '<div style="padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:10px">'
+			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px">'
 			. '<strong style="min-width:60px">MA</strong>'
-			. '<span style="color:#475569;font-size:13px">' . number_format( $counts['MA'] ) . ' rows &middot; ' . $fmtAsOf( $asOf['MA']['approved'] ?? null ) . ' &middot; <a href="' . $maUrl . '" target="_blank" rel="noopener">PDF source</a> (set <code>gdcompliance_ma_roster_url</code> if URL changes)</span>'
-			. '<a href="' . htmlspecialchars( $maRefreshUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton--primary ipsButton--small" style="margin-left:auto">' . $h( 'gdcompliance_acp_roster_refresh_ma' ) . '</a>'
+			. '<span style="color:#475569;font-size:13px">' . number_format( $counts['MA'] ) . ' rows &middot; ' . $fmtAsOf( $asOf['MA']['approved'] ?? null ) . ' &middot; <a href="' . $maUrl . '" target="_blank" rel="noopener">PDF source</a> &middot; <em style="color:#92400e">mass.gov often 403s automated fetches — upload the PDF you downloaded in your browser</em></span>'
+			. '<a href="' . htmlspecialchars( $maRefreshUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton--secondary ipsButton--small" style="margin-left:auto">' . $h( 'gdcompliance_acp_roster_refresh_ma' ) . '</a>'
+			. '</div>'
+			. '<form action="' . htmlspecialchars( $uploadMaUrl, ENT_QUOTES, 'UTF-8' ) . '" method="post" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">'
+			. '<input type="hidden" name="csrfKey" value="' . $csrfField . '">'
+			. '<input type="file" name="ma_pdf" accept="application/pdf,.pdf" required>'
+			. '<button type="submit" class="ipsButton ipsButton--primary ipsButton--small">' . $h( 'gdcompliance_acp_roster_upload_ma' ) . '</button>'
+			. '</form>'
 			. '</div>'
 
-			/* MD Approved (auto PDF) */
-			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:10px">'
+			/* MD Approved */
+			. '<div style="padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:10px">'
+			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px">'
 			. '<strong style="min-width:60px">MD approved</strong>'
-			. '<span style="color:#475569;font-size:13px">' . $fmtAsOf( $asOf['MD']['approved'] ?? null ) . ' &middot; <a href="' . $mdApprovedUrl . '" target="_blank" rel="noopener">MSP PDF (yearly edition)</a></span>'
+			. '<span style="color:#475569;font-size:13px">' . number_format( $counts['MD'] ) . ' MD rows total &middot; ' . $fmtAsOf( $asOf['MD']['approved'] ?? null ) . ' &middot; <a href="' . $mdApprovedUrl . '" target="_blank" rel="noopener">MSP PDF (yearly edition)</a></span>'
 			. '<a href="' . htmlspecialchars( $mdRefreshUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton--primary ipsButton--small" style="margin-left:auto">' . $h( 'gdcompliance_acp_roster_refresh_md' ) . '</a>'
 			. '</div>'
+			. '<form action="' . htmlspecialchars( $uploadMdApprUrl, ENT_QUOTES, 'UTF-8' ) . '" method="post" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">'
+			. '<input type="hidden" name="csrfKey" value="' . $csrfField . '">'
+			. '<input type="file" name="md_pdf" accept="application/pdf,.pdf" required>'
+			. '<button type="submit" class="ipsButton ipsButton--secondary ipsButton--small">' . $h( 'gdcompliance_acp_roster_upload_md_approved' ) . '</button>'
+			. '</form>'
+			. '</div>'
 
-			/* MD Disapproved (auto PDF — hard restrict signal) */
-			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;margin-bottom:10px">'
+			/* MD Disapproved */
+			. '<div style="padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;margin-bottom:10px">'
+			. '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px">'
 			. '<strong style="min-width:60px;color:#9a3412">MD disapproved</strong>'
 			. '<span style="color:#7c2d12;font-size:13px">' . $fmtAsOf( $asOf['MD']['disapproved'] ?? null ) . ' &middot; <a href="' . $mdDisapprovedU . '" target="_blank" rel="noopener">MSP denylist PDF</a> &middot; matching this list = <strong>hard restrict</strong></span>'
 			. '<a href="' . htmlspecialchars( $mdDisapprovedUrl2, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton--primary ipsButton--small" style="margin-left:auto">' . $h( 'gdcompliance_acp_roster_refresh_md_dis' ) . '</a>'
+			. '</div>'
+			. '<form action="' . htmlspecialchars( $uploadMdDisUrl, ENT_QUOTES, 'UTF-8' ) . '" method="post" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">'
+			. '<input type="hidden" name="csrfKey" value="' . $csrfField . '">'
+			. '<input type="file" name="md_pdf" accept="application/pdf,.pdf" required>'
+			. '<button type="submit" class="ipsButton ipsButton--secondary ipsButton--small">' . $h( 'gdcompliance_acp_roster_upload_md_disapproved' ) . '</button>'
+			. '</form>'
 			. '</div>'
 
 			/* MD Manual CSV Override */
@@ -389,6 +434,166 @@ class _roster extends \IPS\Dispatcher\Controller
 		$msg = (string) \IPS\Member::loggedIn()->language()->addToStack( 'gdcompliance_acp_roster_md_done', false, [
 			'sprintf' => [ (int) $counts['rows'], (int) $counts['blanket'], count( (array) $counts['errors'] ) ],
 		] );
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
+			$msg
+		);
+	}
+
+	/**
+	 * Save the four editable roster source URLs. Uses \IPS\Settings::changeValues
+	 * so the values persist + the settings datastore is invalidated.
+	 */
+	protected function saveSources(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$keys = [
+			'gdcompliance_ca_roster_url',
+			'gdcompliance_ma_roster_url',
+			'gdcompliance_md_roster_url',
+			'gdcompliance_md_disapproved_url',
+		];
+		$changes = [];
+		foreach ( $keys as $k )
+		{
+			$v = trim( (string) ( \IPS\Request::i()->$k ?? '' ) );
+			if ( $v !== '' )
+			{
+				$changes[ $k ] = substr( $v, 0, 500 );
+			}
+		}
+
+		try
+		{
+			if ( !empty( $changes ) )
+			{
+				\IPS\Settings::i()->changeValues( $changes );
+			}
+			try { unset( \IPS\Data\Store::i()->settings ); } catch ( \Throwable ) {}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'saveSources: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
+			'saved: ' . count( $changes ) . ' URL(s)'
+		);
+	}
+
+	/**
+	 * Read $_FILES[$field] and return raw bytes, or null on error. Validates
+	 * PDF magic bytes so an admin can't accidentally upload a .txt file.
+	 */
+	protected static function readUploadedPdfBytes( string $field, int $maxBytes, array &$errors ): ?string
+	{
+		if ( !isset( $_FILES[ $field ] ) || !is_array( $_FILES[ $field ] ) )
+		{
+			$errors[] = 'no file uploaded';
+			return null;
+		}
+		$err = (int) ( $_FILES[ $field ]['error'] ?? UPLOAD_ERR_NO_FILE );
+		if ( $err !== UPLOAD_ERR_OK )
+		{
+			$errors[] = 'upload error code ' . $err;
+			return null;
+		}
+		$size = (int) ( $_FILES[ $field ]['size'] ?? 0 );
+		if ( $size <= 0 || $size > $maxBytes )
+		{
+			$errors[] = 'file size ' . $size . ' bytes not in (0, ' . $maxBytes . ']';
+			return null;
+		}
+		$tmp = (string) ( $_FILES[ $field ]['tmp_name'] ?? '' );
+		if ( $tmp === '' || !is_uploaded_file( $tmp ) )
+		{
+			$errors[] = 'invalid tmp_name';
+			return null;
+		}
+		$bytes = (string) @file_get_contents( $tmp );
+		if ( strncmp( $bytes, '%PDF-', 5 ) !== 0 )
+		{
+			$errors[] = 'not a PDF (missing %PDF- magic; got ' . substr( bin2hex( $bytes ), 0, 16 ) . ')';
+			return null;
+		}
+		return $bytes;
+	}
+
+	/**
+	 * Upload → parse → replace MA rows. Primary path for MA since
+	 * mass.gov's WAF frequently 403s automated fetches.
+	 */
+	protected function uploadMaPdf(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$errors = [];
+		$bytes  = self::readUploadedPdfBytes( 'ma_pdf', 25 * 1024 * 1024, $errors );
+
+		$counts = [ 'rows' => 0, 'errors' => $errors, 'extractor' => '', 'url' => '(uploaded)' ];
+		if ( $bytes !== null )
+		{
+			try { $counts = \IPS\gdcompliance\Roster::fetchMA( $bytes ); }
+			catch ( \Throwable $e )
+			{
+				$counts['errors'][] = 'threw: ' . $e->getMessage();
+				try { \IPS\Log::log( 'uploadMaPdf: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			}
+		}
+
+		$msg = 'MA upload: ' . (int) $counts['rows'] . ' rows' . self::errorTail( 'MA upload', $counts );
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
+			$msg
+		);
+	}
+
+	protected function uploadMdApprovedPdf(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$errors = [];
+		$bytes  = self::readUploadedPdfBytes( 'md_pdf', 25 * 1024 * 1024, $errors );
+
+		$counts = [ 'rows' => 0, 'errors' => $errors, 'extractor' => '', 'url' => '(uploaded)', 'as_of_date' => null, 'split' => 0, 'blanket_caliber' => 0 ];
+		if ( $bytes !== null )
+		{
+			try { $counts = \IPS\gdcompliance\Roster::fetchMD( $bytes ); }
+			catch ( \Throwable $e )
+			{
+				$counts['errors'][] = 'threw: ' . $e->getMessage();
+				try { \IPS\Log::log( 'uploadMdApprovedPdf: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			}
+		}
+
+		$msg = 'MD approved upload: ' . (int) $counts['rows'] . ' rows' . self::errorTail( 'MD approved upload', $counts );
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
+			$msg
+		);
+	}
+
+	protected function uploadMdDisapprovedPdf(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$errors = [];
+		$bytes  = self::readUploadedPdfBytes( 'md_pdf', 25 * 1024 * 1024, $errors );
+
+		$counts = [ 'rows' => 0, 'errors' => $errors, 'extractor' => '', 'url' => '(uploaded)', 'as_of_date' => null ];
+		if ( $bytes !== null )
+		{
+			try { $counts = \IPS\gdcompliance\Roster::fetchMDDisapproved( $bytes ); }
+			catch ( \Throwable $e )
+			{
+				$counts['errors'][] = 'threw: ' . $e->getMessage();
+				try { \IPS\Log::log( 'uploadMdDisapprovedPdf: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			}
+		}
+
+		$msg = 'MD disapproved upload: ' . (int) $counts['rows'] . ' rows' . self::errorTail( 'MD disapproved upload', $counts );
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=roster' ),
 			$msg

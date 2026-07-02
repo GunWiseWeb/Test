@@ -255,11 +255,16 @@ class _Roster
 		];
 		$start = microtime( true );
 
+		$baseUrl = self::ROSTER_URL;
+		try { $baseUrl = (string) ( \IPS\Settings::i()->gdcompliance_ca_roster_url ?? self::ROSTER_URL ); }
+		catch ( \Throwable ) {}
+		if ( trim( $baseUrl ) === '' ) { $baseUrl = self::ROSTER_URL; }
+
 		$collected = [];
 		$lastCount = -1;
 		for ( $page = 0; $page < self::MAX_PAGES; $page++ )
 		{
-			$url = $page === 0 ? self::ROSTER_URL : self::ROSTER_URL . '?page=' . $page;
+			$url = $page === 0 ? $baseUrl : $baseUrl . '?page=' . $page;
 
 			try
 			{
@@ -527,26 +532,48 @@ class _Roster
 	 *
 	 * @return array{rows:int,current:int,errors:array<int,string>,duration_ms:int,url:string,extractor:string}
 	 */
-	public static function fetchMA(): array
+	public static function fetchMA( ?string $bytesOverride = null ): array
 	{
 		$result = [ 'rows' => 0, 'current' => 0, 'errors' => [], 'duration_ms' => 0, 'url' => '', 'extractor' => '' ];
 		$start  = microtime( true );
 
 		$url = trim( (string) ( \IPS\Settings::i()->gdcompliance_ma_roster_url ?? '' ) );
 		if ( $url === '' ) { $url = self::MA_ROSTER_URL_DEFAULT; }
-		$result['url'] = $url;
+		$result['url'] = $bytesOverride !== null ? '(uploaded)' : $url;
 
-		/* (1) Download PDF bytes. */
+		/* (1) Get PDF bytes — either from an admin-uploaded file OR download
+		   from the source URL. Sending browser-ish headers to mass.gov is
+		   a best-effort against the WAF that blocks datacenter/curl UAs
+		   with HTTP 403 — it helps some environments, not all. When it
+		   doesn't, Derrick uses the "Upload roster PDF" button instead. */
 		$bytes = '';
-		try
+		if ( $bytesOverride !== null )
 		{
-			$bytes = (string) \IPS\Http\Url::external( $url )->request( self::PAGE_TIMEOUT_S )->get();
+			$bytes = $bytesOverride;
 		}
-		catch ( \Throwable $e )
+		else
 		{
-			$result['errors'][] = 'download: ' . $e->getMessage();
-			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
-			return $result;
+			try
+			{
+				$req = \IPS\Http\Url::external( $url )->request( self::PAGE_TIMEOUT_S );
+				try
+				{
+					$req = $req->setHeaders( [
+						'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+						'Accept'          => 'application/pdf,*/*;q=0.8',
+						'Accept-Language' => 'en-US,en;q=0.9',
+						'Referer'         => 'https://www.mass.gov/',
+					] );
+				}
+				catch ( \Throwable ) {}
+				$bytes = (string) $req->get();
+			}
+			catch ( \Throwable $e )
+			{
+				$result['errors'][] = 'download: ' . $e->getMessage() . ' — try Upload roster PDF instead (mass.gov often 403s automated requests)';
+				$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+				return $result;
+			}
 		}
 		if ( $bytes === '' || strncmp( $bytes, '%PDF', 4 ) !== 0 )
 		{
@@ -622,8 +649,23 @@ class _Roster
 	 */
 	protected static function extractPdfText( string $bytes ): array
 	{
-		/* (1) shell pdftotext if available. Write to a temp file then run
-		   "pdftotext -layout <file> -" to stdout. */
+		/* v1.6.2: use the bundled pure-PHP extractor. It handles the
+		   flate-compressed content streams that MSP / MA / other state
+		   government PDFs ship with (the pre-v1.6.2 regex-Tj returned
+		   empty on those, which is why fetchMD/fetchMDDisapproved were
+		   silently reporting "extractor: none"). */
+		try
+		{
+			$text = \IPS\gdcompliance\Pdf::extractText( $bytes );
+			if ( strlen( $text ) > 200 )
+			{
+				return [ $text, 'pure-php' ];
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* Legacy shell pdftotext (in case the sysadmin later installs
+		   poppler-utils). Kept as a preferred path when available. */
 		if ( function_exists( 'shell_exec' ) && function_exists( 'proc_open' ) )
 		{
 			$tmp = @tempnam( sys_get_temp_dir(), 'gdcompma_' );
@@ -640,8 +682,7 @@ class _Roster
 			}
 		}
 
-		/* (2) Pure-PHP fallback — Smalot/PdfParser if it has been
-		   autoloaded by another app. */
+		/* Smalot/PdfParser if it has been autoloaded by another app. */
 		if ( class_exists( '\\Smalot\\PdfParser\\Parser' ) )
 		{
 			try
@@ -657,16 +698,10 @@ class _Roster
 			catch ( \Throwable ) {}
 		}
 
-		/* (3) Crude regex fallback — extracts strings shown via the Tj
-		   operator from uncompressed content streams. This won't work on
-		   flate-compressed streams; it's a last resort that at least gives
-		   Derrick something visible in the error path. */
-		$text = '';
-		if ( preg_match_all( '/\(((?:\\\\.|[^()\\\\])*)\)\s*Tj/', $bytes, $m ) )
-		{
-			$text = implode( "\n", array_map( fn( $s ) => stripcslashes( $s ), $m[1] ) );
-		}
-		return [ $text, $text !== '' ? 'regex-tj' : 'none' ];
+		/* Return whatever the pure-PHP extractor got, even if short —
+		   caller logs the extractor label and row count so the failure
+		   mode is observable. */
+		return [ '', 'none' ];
 	}
 
 	/**
@@ -935,22 +970,29 @@ class _Roster
 	 *
 	 * @return array{rows:int,split:int,blanket_caliber:int,errors:array<int,string>,duration_ms:int,url:string,extractor:string,as_of_date:?string}
 	 */
-	public static function fetchMD(): array
+	public static function fetchMD( ?string $bytesOverride = null ): array
 	{
 		$result = [ 'rows' => 0, 'split' => 0, 'blanket_caliber' => 0, 'errors' => [], 'duration_ms' => 0, 'url' => '', 'extractor' => '', 'as_of_date' => null ];
 		$start  = microtime( true );
 
 		$url = trim( (string) ( \IPS\Settings::i()->gdcompliance_md_roster_url ?? '' ) );
 		if ( $url === '' ) { $url = self::MD_ROSTER_URL_DEFAULT; }
-		$result['url'] = $url;
+		$result['url'] = $bytesOverride !== null ? '(uploaded)' : $url;
 
 		$bytes = '';
-		try { $bytes = (string) \IPS\Http\Url::external( $url )->request( self::PAGE_TIMEOUT_S )->get(); }
-		catch ( \Throwable $e )
+		if ( $bytesOverride !== null )
 		{
-			$result['errors'][] = 'download: ' . $e->getMessage();
-			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
-			return $result;
+			$bytes = $bytesOverride;
+		}
+		else
+		{
+			try { $bytes = (string) \IPS\Http\Url::external( $url )->request( self::PAGE_TIMEOUT_S )->get(); }
+			catch ( \Throwable $e )
+			{
+				$result['errors'][] = 'download: ' . $e->getMessage();
+				$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+				return $result;
+			}
 		}
 		if ( $bytes === '' || strncmp( $bytes, '%PDF', 4 ) !== 0 )
 		{
@@ -1161,22 +1203,29 @@ class _Roster
 	 *
 	 * @return array{rows:int,errors:array<int,string>,duration_ms:int,url:string,extractor:string,as_of_date:?string}
 	 */
-	public static function fetchMDDisapproved(): array
+	public static function fetchMDDisapproved( ?string $bytesOverride = null ): array
 	{
 		$result = [ 'rows' => 0, 'errors' => [], 'duration_ms' => 0, 'url' => '', 'extractor' => '', 'as_of_date' => null ];
 		$start  = microtime( true );
 
 		$url = trim( (string) ( \IPS\Settings::i()->gdcompliance_md_disapproved_url ?? '' ) );
 		if ( $url === '' ) { $url = self::MD_DISAPPROVED_URL_DEFAULT; }
-		$result['url'] = $url;
+		$result['url'] = $bytesOverride !== null ? '(uploaded)' : $url;
 
 		$bytes = '';
-		try { $bytes = (string) \IPS\Http\Url::external( $url )->request( self::PAGE_TIMEOUT_S )->get(); }
-		catch ( \Throwable $e )
+		if ( $bytesOverride !== null )
 		{
-			$result['errors'][] = 'download: ' . $e->getMessage();
-			$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
-			return $result;
+			$bytes = $bytesOverride;
+		}
+		else
+		{
+			try { $bytes = (string) \IPS\Http\Url::external( $url )->request( self::PAGE_TIMEOUT_S )->get(); }
+			catch ( \Throwable $e )
+			{
+				$result['errors'][] = 'download: ' . $e->getMessage();
+				$result['duration_ms'] = (int) ( ( microtime( true ) - $start ) * 1000 );
+				return $result;
+			}
 		}
 		if ( $bytes === '' || strncmp( $bytes, '%PDF', 4 ) !== 0 )
 		{

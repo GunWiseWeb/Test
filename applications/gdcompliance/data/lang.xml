@@ -80,6 +80,11 @@
 <word key="gdcompliance_awbrules_f_notes" js="0"><![CDATA[Notes]]></word>
 <word key="gdcompliance_acp_roster_refresh_all" js="0"><![CDATA[Refresh all rosters (CA + MA + MD)]]></word>
 <word key="gdcompliance_acp_roster_refresh_all_hint" js="0"><![CDATA[Sequentially runs every fetcher; per-source failures surface in the flash message so you can see exactly what went wrong.]]></word>
+<word key="gdcompliance_acp_roster_sources_title" js="0"><![CDATA[Edit roster source URLs]]></word>
+<word key="gdcompliance_acp_roster_save_sources" js="0"><![CDATA[Save source URLs]]></word>
+<word key="gdcompliance_acp_roster_upload_ma" js="0"><![CDATA[Upload MA roster PDF]]></word>
+<word key="gdcompliance_acp_roster_upload_md_approved" js="0"><![CDATA[Upload MD approved PDF]]></word>
+<word key="gdcompliance_acp_roster_upload_md_disapproved" js="0"><![CDATA[Upload MD disapproved PDF]]></word>
 <word key="gdcompliance_acp_rules_reseed" js="0"><![CDATA[Reseed missing rules]]></word>
 <word key="gdcompliance_acp_rules_reseed_done" js="0"><![CDATA[Reseed complete]]></word>
 <word key="acplog__gdcompliance_rules_reseeded" js="0"><![CDATA[Reseeded canonical compliance rules (non-destructive)]]></word>

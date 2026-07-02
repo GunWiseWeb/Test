@@ -251,6 +251,13 @@ $lang = array(
 	'gdcompliance_acp_roster_refresh_all'      => 'Refresh all rosters (CA + MA + MD)',
 	'gdcompliance_acp_roster_refresh_all_hint' => 'Sequentially runs every fetcher; per-source failures surface in the flash message so you can see exactly what went wrong.',
 
+	/* v1.6.2 — editable source URLs + upload */
+	'gdcompliance_acp_roster_sources_title'    => 'Edit roster source URLs',
+	'gdcompliance_acp_roster_save_sources'    => 'Save source URLs',
+	'gdcompliance_acp_roster_upload_ma'       => 'Upload MA roster PDF',
+	'gdcompliance_acp_roster_upload_md_approved'    => 'Upload MD approved PDF',
+	'gdcompliance_acp_roster_upload_md_disapproved' => 'Upload MD disapproved PDF',
+
 	/* Compute overrides summary strip */
 	'gdcompliance_acp_compute_overrides'       => 'Overrides applied',
 

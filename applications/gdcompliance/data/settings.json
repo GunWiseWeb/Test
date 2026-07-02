@@ -1,6 +1,7 @@
 [
 	{"key": "gdcompliance_last_run",        "default": "",   "report": "none"},
 	{"key": "gdcompliance_last_counts",     "default": "{}", "report": "none"},
+	{"key": "gdcompliance_ca_roster_url",          "default": "https://oag.ca.gov/firearms/certified-handguns/search", "report": "none"},
 	{"key": "gdcompliance_ma_roster_url",          "default": "https://www.mass.gov/doc/approved-handgun-roster-april-2026/download", "report": "none"},
 	{"key": "gdcompliance_md_roster_url",          "default": "https://dlslibrary.state.md.us/publications/Exec/MDSP/PS5-405(a)_2026(1).pdf", "report": "none"},
 	{"key": "gdcompliance_md_disapproved_url",     "default": "https://mdsp.maryland.gov/media/594", "report": "none"},
