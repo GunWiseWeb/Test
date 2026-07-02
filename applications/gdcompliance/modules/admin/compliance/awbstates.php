@@ -180,7 +180,8 @@ class _awbstates extends \IPS\Dispatcher\Controller
 			\IPS\Session::i()->csrfCheck();
 			try
 			{
-				$len = trim( (string) ( \IPS\Request::i()->max_overall_length_in ?? '' ) );
+				$len       = trim( (string) ( \IPS\Request::i()->max_overall_length_in ?? '' ) );
+				$exemption = trim( (string) ( \IPS\Request::i()->exemption_note ?? '' ) );
 				\IPS\Db::i()->update( 'gd_compliance_awb_rules', [
 					'feature_count_threshold' => max( 1, (int) \IPS\Request::i()->feature_count_threshold ),
 					'centerfire_only'         => (int) ( \IPS\Request::i()->centerfire_only ?? 0 ) === 1 ? 1 : 0,
@@ -190,6 +191,7 @@ class _awbstates extends \IPS\Dispatcher\Controller
 					'expires_date'            => self::cleanDate( (string) \IPS\Request::i()->expires_date ),
 					'enabled'                 => (int) ( \IPS\Request::i()->enabled ?? 0 ) === 1 ? 1 : 0,
 					'notes'                   => substr( (string) \IPS\Request::i()->notes, 0, 255 ),
+					'exemption_note'          => $exemption === '' ? null : $exemption,
 					'updated_at'              => time(),
 				], [ 'id=?', (int) $rule['id'] ] );
 				try { \IPS\gdcompliance\AwbModels::clearCache(); } catch ( \Throwable ) {}
@@ -243,6 +245,11 @@ class _awbstates extends \IPS\Dispatcher\Controller
 			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px"><span>Effective date (YYYY-MM-DD; blank = active now)</span><input type="text" name="effective_date" placeholder="YYYY-MM-DD" maxlength="10" value="' . $c( 'effective_date' ) . '"></label>'
 			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px"><span>Expires date</span><input type="text" name="expires_date" placeholder="YYYY-MM-DD" maxlength="10" value="' . $c( 'expires_date' ) . '"></label>'
 			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px;grid-column:span 2"><span>Notes</span><textarea name="notes" rows="2">' . $c( 'notes' ) . '</textarea></label>'
+			. '<label style="display:flex;flex-direction:column;gap:3px;font-size:12px;grid-column:span 2">'
+			. '<span>' . $h( $lang->addToStack( 'gdcompliance_acp_awbstates_exemption_note' ) ) . '</span>'
+			. '<textarea name="exemption_note" rows="5" placeholder="Free-text disclaimer surfaced in the customer popup and ACP for this state\'s AWB flags. Leave blank to hide.">' . $c( 'exemption_note' ) . '</textarea>'
+			. '<span style="color:#64748b;font-size:11px;line-height:1.4">' . $h( $lang->addToStack( 'gdcompliance_acp_awbstates_exemption_note_help' ) ) . '</span>'
+			. '</label>'
 			. '</div>'
 			. '<div style="margin-top:12px"><button type="submit" class="ipsButton ipsButton--primary ipsButton--small">Save config</button></div>'
 			. '</form>'

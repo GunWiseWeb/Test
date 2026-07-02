@@ -201,6 +201,8 @@ $lang = array(
 	'gdcompliance_acp_awbstates_config'       => 'Config',
 	'gdcompliance_acp_awbstates_models'       => 'Named models',
 	'gdcompliance_acp_awbstates_search'       => 'Check UPC / title against this state',
+	'gdcompliance_acp_awbstates_exemption_note' => 'Exemption note (customer disclaimer)',
+	'gdcompliance_acp_awbstates_exemption_note_help' => 'Shown in the customer restriction popup below the reason and citation, and in the ACP UPC lookup. The AWB flag stays ON — this is a disclaimer pointing the buyer to verify eligibility with their FFL. Leave blank to hide.',
 
 	/* v1.6.0 — Multi-state Assault Weapons Ban framework */
 	'gdcompliance_acp_awb_title'               => 'AWB Named Models',

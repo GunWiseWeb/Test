@@ -19,6 +19,8 @@
 			var citeWrap   = wrap.querySelector('.gdsp-restrict__pop-citation');
 			var citeSpan   = citeWrap ? citeWrap.querySelector('span') : null;
 			var pinEl      = wrap.querySelector('.gdsp-restrict__pop-pin');
+			var exWrap     = wrap.querySelector('.gdsp-restrict__pop-exemption');
+			var exBody     = exWrap ? exWrap.querySelector('.gdsp-restrict__pop-exemption-body') : null;
 			var chips      = wrap.querySelectorAll('.gdsp-restrict__chip');
 			var activeChip = null;
 
@@ -46,6 +48,7 @@
 				var name = chip.getAttribute('data-statename') || chip.getAttribute('data-state') || '';
 				var reason = chip.getAttribute('data-reason') || '';
 				var cite   = chip.getAttribute('data-citation') || '';
+				var exempt = chip.getAttribute('data-exemption') || '';
 				var type   = chip.getAttribute('data-type') || '';
 
 				if (titleEl)  { titleEl.textContent  = name; }
@@ -62,6 +65,15 @@
 
 				if (pinEl) {
 					pinEl.hidden = (type !== 'capacity');
+				}
+
+				if (exWrap) {
+					if (exempt && exBody) {
+						exBody.textContent = exempt;
+						exWrap.hidden = false;
+					} else {
+						exWrap.hidden = true;
+					}
 				}
 
 				popup.hidden = false;

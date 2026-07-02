@@ -500,7 +500,7 @@ class _AwbModels
 	 */
 	public static function rulesetSeed(): array
 	{
-		$mkRifle = fn ( string $state, int $thresh, string $cite, ?string $eff = null, int $enabled = 1, ?float $maxOal = null, ?string $notes = null ) => [
+		$mkRifle = fn ( string $state, int $thresh, string $cite, ?string $eff = null, int $enabled = 1, ?float $maxOal = null, ?string $notes = null, ?string $exemption = null ) => [
 			'state_code'              => $state,
 			'firearm_class'           => 'rifle',
 			'feature_count_threshold' => $thresh,
@@ -512,9 +512,10 @@ class _AwbModels
 			'expires_date'            => null,
 			'enabled'                 => $enabled,
 			'notes'                   => $notes ? substr( $notes, 0, 255 ) : null,
+			'exemption_note'          => $exemption,
 		];
 
-		$mkPistol = fn ( string $state, int $thresh, string $cite, ?string $eff = null, int $enabled = 1, ?string $notes = null ) => [
+		$mkPistol = fn ( string $state, int $thresh, string $cite, ?string $eff = null, int $enabled = 1, ?string $notes = null, ?string $exemption = null ) => [
 			'state_code'              => $state,
 			'firearm_class'           => 'pistol',
 			'feature_count_threshold' => $thresh,
@@ -526,6 +527,7 @@ class _AwbModels
 			'expires_date'            => null,
 			'enabled'                 => $enabled,
 			'notes'                   => $notes ? substr( $notes, 0, 255 ) : null,
+			'exemption_note'          => $exemption,
 		];
 
 		return [
@@ -541,8 +543,13 @@ class _AwbModels
 			$mkRifle( 'DC', 1, 'DC Code §7-2501.01(3A)', null, 1, null, 'One-feature; Benson injunction flux — Derrick may need to disable if enforcement changes' ),
 			$mkRifle( 'RI', 1, 'RI S 359 (2025)', '2026-07-01', 1, null, 'Effective 2026-07-01 sale/transfer only; auto-activates by date' ),
 
+			/* CT enacted + verified (v1.6.7). Conn. Gen. Stat. §53-202a et seq.
+			   One-feature test for semi-auto centerfire rifles w/ detachable
+			   mag; plus enumerated named list + fixed-mag>10 + OAL<30 as
+			   independent triggers. Exemptions are BUYER-side (LE, military);
+			   the AWB flag STAYS ON — the exemption_note is a disclaimer. */
+			$mkRifle( 'CT', 1, 'Conn. Gen. Stat. §53-202a', null, 1, 30.0, 'One-feature; also fixed-mag>10 and OAL<30 as independent triggers per §53-202a', "Restricted for sale to the general public under Connecticut's assault weapons law (Conn. Gen. Stat. §53-202a et seq.). Limited exemptions may apply — including active sworn law enforcement, qualified retired law enforcement, and military personnel acting within official duties. Eligibility and all required documentation must be verified by your FFL at the time of transfer. This listing does not constitute a determination that any individual buyer qualifies." ),
 			/* --- HELD PENDING VERIFICATION --- */
-			$mkRifle( 'CT', 1, 'CT Gen Stat §53-202a', null, 0, null, 'CT threshold needs statute verification (2023 amendment) before enabling — sources conflict on one- vs two-feature' ),
 			$mkRifle( 'VA', 1, 'VA SB 749 (2025)', '2026-07-01', 0, null, 'Effective 2026-07-01 BUT 4 lawsuits + non-enforcement statements; seeded disabled — Derrick toggles when settled' ),
 
 			/* --- PISTOL-ONLY AWB (HI) --- */

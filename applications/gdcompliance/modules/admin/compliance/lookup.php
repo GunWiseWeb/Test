@@ -145,6 +145,26 @@ class _lookup extends \IPS\Dispatcher\Controller
 		catch ( \Throwable ) {}
 		$overrides = \IPS\gdcompliance\Override::forUpc( $upc );
 
+		/* Per-state AWB exemption_note. Rifle wins over pistol when both
+		   exist for a state (matches how AWB flags render per state). */
+		$awbExemption = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'state_code, firearm_class, exemption_note',
+				'gd_compliance_awb_rules', [ "exemption_note IS NOT NULL AND exemption_note<>''" ] ) as $er )
+			{
+				$st  = strtoupper( (string) ( $er['state_code'] ?? '' ) );
+				$cls = strtolower( (string) ( $er['firearm_class'] ?? '' ) );
+				$en  = trim( (string) ( $er['exemption_note'] ?? '' ) );
+				if ( $st === '' || $en === '' ) { continue; }
+				if ( !isset( $awbExemption[ $st ] ) || $cls === 'rifle' )
+				{
+					$awbExemption[ $st ] = $en;
+				}
+			}
+		}
+		catch ( \Throwable ) { $awbExemption = []; }
+
 		$states = array_unique( array_merge( array_keys( $flags ), array_keys( $overrides ) ) );
 		sort( $states );
 
@@ -228,17 +248,29 @@ class _lookup extends \IPS\Dispatcher\Controller
 			{
 				$flagRow    = $flags[ $st ] ?? null;
 				$flagReason = is_array( $flagRow ) ? (string) ( $flagRow['reason'] ?? '' ) : (string) $flagRow;
+				$ftype      = is_array( $flagRow ) ? (string) ( $flagRow['firearm_type'] ?? '' ) : '';
+				$isAwbRow   = ( strncmp( $ftype, 'awb_', 4 ) === 0 || strncmp( $ftype, 'pica_', 5 ) === 0 );
+				$exemption  = ( $isAwbRow && isset( $awbExemption[ $st ] ) ) ? (string) $awbExemption[ $st ] : '';
 				$ov         = $overrides[ $st ] ?? null;
 				$ovLabel    = $ov ? '<strong style="color:' . ( $ov['action'] === 'force_restrict' ? '#991b1b' : '#14532d' ) . '">' . strtoupper( (string) $ov['action'] ) . '</strong>' . ( $ov['reason'] ? '<br><span style="color:#64748b;font-size:12px">' . $h( (string) $ov['reason'] ) . '</span>' : '' ) : '<span style="color:#cbd5e1">—</span>';
 
 				$restrictUrl = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=overrides&do=form' )
 					->setQueryString( [ 'upc' => $upc, 'state' => $st ] );
 
+				$reasonCell = $h( $flagReason ?: '' );
+				if ( $exemption !== '' )
+				{
+					$reasonCell .= '<div style="margin-top:6px;padding:6px 8px;background:#fff7ed;border:1px solid #fdba74;border-radius:6px;color:#7c2d12;font-size:12px;line-height:1.4">'
+						. '<strong style="font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:#9a3412">Exemption note</strong><br>'
+						. nl2br( $h( $exemption ) )
+						. '</div>';
+				}
+
 				$out .= '<tr>'
-					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-weight:700">' . $h( $st ) . '</td>'
-					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#475569;font-size:13px">' . $h( $flagReason ?: '' ) . '</td>'
-					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9">' . $ovLabel . '</td>'
-					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:right"><a href="' . $h( $restrictUrl ) . '" class="ipsButton ipsButton--secondary ipsButton--verySmall">' . ( $ov ? 'Edit override' : 'Set override' ) . '</a></td>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-weight:700;vertical-align:top">' . $h( $st ) . '</td>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#475569;font-size:13px;vertical-align:top">' . $reasonCell . '</td>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top">' . $ovLabel . '</td>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:right;vertical-align:top"><a href="' . $h( $restrictUrl ) . '" class="ipsButton ipsButton--secondary ipsButton--verySmall">' . ( $ov ? 'Edit override' : 'Set override' ) . '</a></td>'
 					. '</tr>';
 			}
 			$out .= '</tbody></table>';

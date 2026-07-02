@@ -18,6 +18,8 @@
 <word key="gdcompliance_acp_awbstates_config" js="0"><![CDATA[Config]]></word>
 <word key="gdcompliance_acp_awbstates_models" js="0"><![CDATA[Named models]]></word>
 <word key="gdcompliance_acp_awbstates_search" js="0"><![CDATA[Check UPC / title against this state]]></word>
+<word key="gdcompliance_acp_awbstates_exemption_note" js="0"><![CDATA[Exemption note (customer disclaimer)]]></word>
+<word key="gdcompliance_acp_awbstates_exemption_note_help" js="0"><![CDATA[Shown in the customer restriction popup below the reason and citation, and in the ACP UPC lookup. The AWB flag stays ON — this is a disclaimer pointing the buyer to verify eligibility with their FFL. Leave blank to hide.]]></word>
 <word key="menu__gdcompliance_compliance_settings" js="0"><![CDATA[Settings]]></word>
 <word key="gdcompliance_acp_pica_title" js="0"><![CDATA[Illinois PICA Named Models]]></word>
 <word key="gdcompliance_acp_pica_intro" js="0"><![CDATA[Statutory named-model list from 720 ILCS 5/24-1.9(a)(1)(J). Rifles whose title/brand/model/description match ANY enabled pattern get a Tier-1 PICA flag with high confidence. Semi-auto rifles that match nothing here still get a Tier-2 "likely PICA — verify" flag for the review queue.]]></word>

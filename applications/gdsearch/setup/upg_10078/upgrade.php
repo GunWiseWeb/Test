@@ -1,16 +1,20 @@
 <?php
 /**
- * @brief  GD Search — upgrade 1.0.77
+ * @brief  GD Search — upgrade 1.0.78
  *
- * Template-only tweak: enlarge state-restriction chips on the product
- * page (min-width 34→40, padding 3px 9px→5px 11px, font-size .85em→1em,
- * gap 5→6). Re-runs the templates_10046 overlay so existing installs
- * pick up the new product.phtml body from core_theme_templates.
+ * Product-page restriction popup gains a per-state exemption note
+ * (rendered when gdcompliance surfaces one — currently CT AWB). The
+ * chip carries a new data-exemption attribute; the popup gains a
+ * yellow disclaimer block below the pin remedy. Companion is
+ * gdcompliance v1.6.7 which supplies the exemption_note column
+ * on gd_compliance_awb_rules and populates CT's default text.
  *
- * No DB changes — just cache purges after the reseed.
+ * Template + JS only — re-runs templates_10046.php to reseed the
+ * product template body into core_theme_templates so existing
+ * installs pick up the new markup.
  */
 
-namespace IPS\gdsearch\setup\upg_10077;
+namespace IPS\gdsearch\setup\upg_10078;
 
 use function defined;
 
@@ -24,9 +28,6 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* Reseed the product template (and any other overlay templates)
-		   with the updated body — templates_10046.php holds the canonical
-		   product.phtml write for existing installs. */
 		try { require_once \IPS\ROOT_PATH . '/applications/gdsearch/setup/templates_10046.php'; }
 		catch ( \Throwable ) {}
 

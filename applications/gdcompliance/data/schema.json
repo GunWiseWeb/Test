@@ -151,6 +151,7 @@
 			"expires_date":            { "name": "expires_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
 			"enabled":                 { "name": "enabled", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "1", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
 			"notes":                   { "name": "notes", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"exemption_note":          { "name": "exemption_note", "type": "TEXT", "length": 0, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "free-text disclaimer surfaced in the front-end popup and ACP for this state's AWB flags" },
 			"updated_at":              { "name": "updated_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
 		},
 		"indexes": {

@@ -76,7 +76,7 @@ class _Flag
 	 * their citation is '' — callers should hide the citation line when
 	 * empty rather than rendering "no citation".
 	 *
-	 * @return array<int, array{state:string,state_name:string,reason:string,type:string,citation:string}>
+	 * @return array<int, array{state:string,state_name:string,reason:string,type:string,citation:string,exemption_note:string}>
 	 */
 	public static function forUpc( string $upc ): array
 	{
@@ -84,6 +84,30 @@ class _Flag
 		if ( $upc === '' ) { return []; }
 
 		if ( isset( static::$cache[ $upc ] ) ) { return static::$cache[ $upc ]; }
+
+		/* Prefetch per-state AWB exemption notes so the popup + ACP can
+		   surface CT's LE/military disclaimer (etc.) without a per-row
+		   query. Keyed by state_code — rifle wins over pistol when both
+		   exist for a state (matches how AWB flags are rendered per
+		   state, not per firearm_class). Empty on any schema shortfall. */
+		$awbExemption = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'state_code, firearm_class, exemption_note',
+				'gd_compliance_awb_rules', [ "exemption_note IS NOT NULL AND exemption_note<>''" ] ) as $er )
+			{
+				$st  = strtoupper( (string) ( $er['state_code'] ?? '' ) );
+				$cls = strtolower( (string) ( $er['firearm_class'] ?? '' ) );
+				$en  = trim( (string) ( $er['exemption_note'] ?? '' ) );
+				if ( $st === '' || $en === '' ) { continue; }
+				/* rifle wins if both are populated */
+				if ( !isset( $awbExemption[ $st ] ) || $cls === 'rifle' )
+				{
+					$awbExemption[ $st ] = $en;
+				}
+			}
+		}
+		catch ( \Throwable ) { $awbExemption = []; }
 
 		$out = [];
 		try
@@ -132,11 +156,12 @@ class _Flag
 					}
 
 					$out[] = [
-						'state'      => $state,
-						'state_name' => static::STATE_NAMES[ $state ] ?? $state,
-						'reason'     => $reason,
-						'type'       => $type,
-						'citation'   => $cite,
+						'state'          => $state,
+						'state_name'     => static::STATE_NAMES[ $state ] ?? $state,
+						'reason'         => $reason,
+						'type'           => $type,
+						'citation'       => $cite,
+						'exemption_note' => ( $type === static::TYPE_AWB ) ? (string) ( $awbExemption[ $state ] ?? '' ) : '',
 					];
 				}
 			}
@@ -195,11 +220,12 @@ class _Flag
 					}
 
 					$out[] = [
-						'state'      => $state,
-						'state_name' => static::STATE_NAMES[ $state ] ?? $state,
-						'reason'     => $reason,
-						'type'       => $type,
-						'citation'   => $cite,
+						'state'          => $state,
+						'state_name'     => static::STATE_NAMES[ $state ] ?? $state,
+						'reason'         => $reason,
+						'type'           => $type,
+						'citation'       => $cite,
+						'exemption_note' => ( $type === static::TYPE_AWB ) ? (string) ( $awbExemption[ $state ] ?? '' ) : '',
 					];
 				}
 			}
