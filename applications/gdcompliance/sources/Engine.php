@@ -165,6 +165,28 @@ class _Engine
 		@ignore_user_abort( true );
 		@ini_set( 'memory_limit', '512M' );
 
+		/* v1.6.6 PERF ROOT CAUSE: the compute accumulates very large
+		   forward-only arrays that all stay alive for the whole loop —
+		   $flags (→ ~32k rows), $result['review_queue'] (→ ~11.7k rows),
+		   and the buffered 58k-row catalog result (with descriptions) held
+		   in memory simultaneously. PHP's cycle-collecting garbage collector
+		   fires whenever its root buffer reaches 10,000 roots; with hundreds
+		   of thousands of live array zvals building up, every collection
+		   cycle re-scans an ever-growing live set, and that cost compounds
+		   as the loop advances. This is invisible in every isolated
+		   component test (small N → GC never meaningfully fires) and is NOT
+		   mitigated by a bigger memory_limit (GC cadence is tied to the
+		   root-buffer count, not the memory ceiling — which is exactly why
+		   the memory_limit=2G re-run stayed slow). It also explains why the
+		   582s appeared the instant the roster pass was fixed to actually
+		   run: that is when review_queue + roster flags began accumulating,
+		   pushing the live-zval count past the GC threshold. These arrays
+		   contain no reference cycles, so cycle collection buys us nothing
+		   here. Disable it for the duration and restore the prior state
+		   before every return. */
+		$gcWasEnabled = \gc_enabled();
+		\gc_disable();
+
 		$result = [
 			'processed'      => 0,
 			'firearms'       => 0,
@@ -245,6 +267,10 @@ class _Engine
 
 		$now    = time();
 		$flags  = [];
+
+		/* v1.6.6 PERF instrumentation — wall-clock of the main catalog loop
+		   only (the region the GDCK checkpoint proved holds ~all the time). */
+		$__loopStart = microtime( true );
 
 		try
 		{
@@ -502,11 +528,27 @@ class _Engine
 			try { \IPS\Log::log( 'Engine::computeFlags scan (iterator): ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
+		/* v1.6.6 PERF checkpoint — proves the fix in a single run. Baseline
+		   before the gc_disable change: GDCK loop-done ~582s. Target now:
+		   ~10-20s with gc_runs ~0 (GC did not fire during the loop). If the
+		   loop is STILL slow here, GC was not the (only) cause and the next
+		   step is per-section timing (awb/capacity/roster) — but the ruled-
+		   out component tests make that unlikely. One log write per compute. */
+		try {
+			$__loopSecs = round( microtime( true ) - $__loopStart, 1 );
+			$__gcRuns   = function_exists( 'gc_status' ) ? (int) ( \gc_status()['runs'] ?? -1 ) : -1;
+			$__msg = 'GDCK loop-done ' . $__loopSecs . 's; gc_runs=' . $__gcRuns
+				. '; firearms=' . (int) $result['firearms'] . '; flags=' . count( $flags );
+			try { \IPS\Log::log( 'Engine::computeFlags ' . $__msg, 'gdcompliance_perf' ); } catch ( \Throwable ) {}
+			@error_log( $__msg );
+		} catch ( \Throwable ) {}
+
 		$result['flags'] = count( $flags );
 
 		if ( $dryRun )
 		{
 			$result['duration_ms'] = (int) ( ( microtime( true ) - $computeStart ) * 1000 );
+			if ( $gcWasEnabled ) { \gc_enable(); }
 			return $result;
 		}
 
@@ -700,6 +742,7 @@ class _Engine
 			'flags' => $result['flags'], 'per_state' => $result['per_state'], 'duration_ms' => $result['duration_ms'], 'row_errors' => $result['row_errors'] ?? 0,
 		] ), 'gdcompliance' ); } catch ( \Throwable ) {}
 
+		if ( $gcWasEnabled ) { \gc_enable(); }
 		return $result;
 	}
 
