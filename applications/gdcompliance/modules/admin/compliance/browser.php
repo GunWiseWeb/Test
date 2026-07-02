@@ -118,25 +118,27 @@ class _browser extends \IPS\Dispatcher\Controller
 		$page = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
 		$per  = 50;
 
-		/* JOINs go via preparedQuery — \IPS\Db::i()->select() backtick-quotes
-		   the entire table-name argument as one identifier, breaking any
-		   "table_a a LEFT JOIN table_b b" form. */
-		$prefix    = (string) \IPS\Db::i()->prefix;
-		$whereSql  = implode( ' AND ', $whereParts );
+		/* v1.6.5: IPS-native select()->join() with [table, alias] tuples.
+		   Earlier preparedQuery rewrite returned mysqli_stmt whose
+		   ->fetch_assoc() throws "undefined method"; the IPS select+join
+		   form emits proper backtick-quoted aliases and iterates rows
+		   without any stmt dance. Where-fragments still use f. / c.
+		   aliases; args are passed through the trailing where args
+		   array. */
+		$whereWithArgs = array_merge( [ implode( ' AND ', $whereParts ) ], $whereArgs );
 
 		$totalRows = 0;
 		try
 		{
-			$res = \IPS\Db::i()->preparedQuery(
-				"SELECT COUNT(*) AS c FROM " . $prefix . "gd_compliance_flags f "
-				. "LEFT JOIN " . $prefix . "gd_catalog c ON c.upc = f.upc "
-				. "WHERE " . $whereSql,
-				$whereArgs
-			);
-			if ( $res && ( $countRow = $res->fetch_assoc() ) )
-			{
-				$totalRows = (int) $countRow['c'];
-			}
+			$totalRows = (int) \IPS\Db::i()->select(
+				'COUNT(*)',
+				[ 'gd_compliance_flags', 'f' ],
+				$whereWithArgs
+			)->join(
+				[ 'gd_catalog', 'c' ],
+				'c.upc=f.upc',
+				'LEFT'
+			)->first();
 		}
 		catch ( \Throwable $e )
 		{
@@ -150,22 +152,21 @@ class _browser extends \IPS\Dispatcher\Controller
 		$rows = [];
 		try
 		{
-			$res = \IPS\Db::i()->preparedQuery(
-				"SELECT f.id AS fid, f.upc, f.state_code, f.firearm_type, f.parsed_capacity, f.rule_id, f.reason, f.computed_at, "
-				. "c.title, c.manufacturer, c.model "
-				. "FROM " . $prefix . "gd_compliance_flags f "
-				. "LEFT JOIN " . $prefix . "gd_catalog c ON c.upc = f.upc "
-				. "WHERE " . $whereSql . " "
-				. "ORDER BY f.state_code ASC, f.upc ASC "
-				. "LIMIT " . (int) $offset . ", " . (int) $per,
-				$whereArgs
+			$rowIter = \IPS\Db::i()->select(
+				'f.id AS fid, f.upc, f.state_code, f.firearm_type, f.parsed_capacity, f.rule_id, f.reason, f.computed_at, '
+				. 'c.title, c.manufacturer, c.model',
+				[ 'gd_compliance_flags', 'f' ],
+				$whereWithArgs,
+				'f.state_code ASC, f.upc ASC',
+				[ $offset, $per ]
+			)->join(
+				[ 'gd_catalog', 'c' ],
+				'c.upc=f.upc',
+				'LEFT'
 			);
-			if ( $res )
+			foreach ( $rowIter as $r )
 			{
-				while ( $r = $res->fetch_assoc() )
-				{
-					$rows[] = $r;
-				}
+				$rows[] = $r;
 			}
 		}
 		catch ( \Throwable $e )

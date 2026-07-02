@@ -554,10 +554,16 @@ class _Engine
 
 				if ( !empty( $flags ) )
 				{
-					foreach ( array_chunk( $flags, 500 ) as $ci => $chunk )
+					/* v1.6.5 — bulk INSERT.
+					   pre-v1.6.5: \IPS\Db::i()->insert($table, $arrayOfRows)
+					   issues ONE INSERT per row, so 32k rows = 32k round-
+					   trips = ~300s of wall-clock. Now each chunk is one
+					   `INSERT INTO ... VALUES (?,?,...),(?,?,...),...`
+					   preparedQuery — a single round-trip per 1,500 rows. */
+					foreach ( array_chunk( $flags, 1500 ) as $ci => $chunk )
 					{
 						$chunkIdx = $ci;
-						\IPS\Db::i()->insert( $stageTable, $chunk );
+						self::bulkInsert( $stageTable, $chunk );
 						$stagedRows += count( $chunk );
 					}
 				}
@@ -634,9 +640,9 @@ class _Engine
 				$key = (string) ( $r['upc'] ?? '' ) . '|' . (string) ( $r['roster_state'] ?? '' );
 				return empty( $existing[ $key ] );
 			} );
-			foreach ( array_chunk( array_values( $fresh ), 500 ) as $chunk )
+			foreach ( array_chunk( array_values( $fresh ), 1500 ) as $chunk )
 			{
-				try { \IPS\Db::i()->insert( 'gd_compliance_review', $chunk ); }
+				try { self::bulkInsert( $prefix . 'gd_compliance_review', $chunk ); }
 				catch ( \Throwable $e )
 				{
 					try { \IPS\Log::log( 'Engine::computeFlags review insert: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
@@ -705,6 +711,63 @@ class _Engine
 	 * the bookkeeping logic exists in one place. $isDerived=true marks DC
 	 * outcomes in the reason text.
 	 */
+	/**
+	 * Bulk multi-row parameterized INSERT (v1.6.5).
+	 *
+	 * Pre-v1.6.5, the stage-build loop called
+	 *   \IPS\Db::i()->insert( $table, $arrayOfRows )
+	 * which IPS interprets as an array-of-rows and issues ONE INSERT
+	 * per row internally. 32,000 flags therefore cost 32,000 network
+	 * round-trips to MySQL ≈ 300 seconds of wall-clock. That was 92%
+	 * of a 323-second compute.
+	 *
+	 * This helper emits ONE
+	 *   INSERT INTO `<table>` (col1, col2, ...) VALUES (?,?,...),(?,?,...),(...)
+	 * preparedQuery per chunk. Values are parameterized so we stay
+	 * injection-safe. Column list comes from array_keys() of the first
+	 * row — every row MUST have the same keys (which they do inside
+	 * compute; a flag or review row is built from a single struct).
+	 *
+	 * Returns the number of rows sent. Throws on DB error so the caller's
+	 * existing catch can drop the stage and roll back.
+	 *
+	 * @param string $fullyQualifiedTable  Full table name including prefix (e.g. from $prefix . 'gd_compliance_flags_stage')
+	 * @param array<int, array<string, mixed>> $rows
+	 */
+	protected static function bulkInsert( string $fullyQualifiedTable, array $rows ): int
+	{
+		if ( empty( $rows ) ) { return 0; }
+		$first = reset( $rows );
+		if ( !is_array( $first ) || empty( $first ) ) { return 0; }
+
+		$cols     = array_keys( $first );
+		$colCount = count( $cols );
+
+		/* Backtick-quote the column names — cheap sanitation. Field
+		   names come from static config in this code, but the pattern
+		   is defensive. */
+		$colList = implode( ',', array_map( fn( string $c ) => '`' . str_replace( '`', '', $c ) . '`', $cols ) );
+
+		/* One placeholder group per row. */
+		$groupTemplate = '(' . implode( ',', array_fill( 0, $colCount, '?' ) ) . ')';
+		$groups        = implode( ',', array_fill( 0, count( $rows ), $groupTemplate ) );
+
+		/* Flatten values in column order, per row. */
+		$flat = [];
+		foreach ( $rows as $row )
+		{
+			foreach ( $cols as $c )
+			{
+				$flat[] = $row[ $c ] ?? null;
+			}
+		}
+
+		$sql = 'INSERT INTO ' . $fullyQualifiedTable . ' (' . $colList . ') VALUES ' . $groups;
+		\IPS\Db::i()->preparedQuery( $sql, $flat );
+
+		return count( $rows );
+	}
+
 	/**
 	 * Per-state statute reference for roster off-listing flags. Populated
 	 * inline on the flag row so Flag::forUpc surfaces it in the frontend

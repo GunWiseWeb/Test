@@ -1,33 +1,26 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.4 (fast compute + timeout-proof ACP)
+ * @brief  GD Compliance — upgrade 1.6.5 (bulk INSERT for compute; dashboard fix bake)
  *
- * Code-only release. No schema changes, no data touched.
+ * Code-only release. No schema, no data touched.
  *
  * What ships:
- *   - Engine::computeFlags starts with @set_time_limit(0) +
- *     @ignore_user_abort(true) + @ini_set('memory_limit','512M'), so
- *     the 58k-row scan can't die at the 30s Db.php cap
- *   - AWB enabled-state lists are preloaded once before the foreach and
- *     passed into the loop, so the per-row enabledStates() call goes
- *     away (was the cheapest of the preload wins, but real)
- *   - AwbModels::isCenterfire / detectFeatures / parseOverallLengthIn
- *     memoize by product UPC (or raw string) with an 8k-entry rolling
- *     cap — the big preload win. detectFeatures is 6 preg_match calls
- *     on ~3KB of description text; before v1.6.4 it ran ONCE PER STATE
- *     per rifle (10× redundant across the enabled AWB states), now runs
- *     ONCE per rifle.
- *   - Compute controller's preview + run also raise the same PHP
- *     limits, belt-and-braces
+ *   - Engine::bulkInsert() helper. computeFlags now bulk-inserts the
+ *     flag stage build + review queue in chunks of 1,500 as a single
+ *     parameterized multi-row INSERT per chunk. Pre-v1.6.5 the code
+ *     used \IPS\Db::i()->insert($table, $arrayOfRows) which internally
+ *     issued ONE INSERT per row (32k round-trips ≈ 300s of wall-clock
+ *     — 92% of the 323s compute).
+ *   - AWB States dashboard + Restrictions Browser converted from raw
+ *     preparedQuery (which returned a mysqli_stmt whose ->fetch_assoc()
+ *     throws "undefined method") to IPS-native
+ *     select([table, alias])->join([table, alias], condition, 'LEFT')
+ *     — same pattern gddealer/gddeals use for their joins.
  *
- * Roster::primeCache / classifyHandgun already read from in-memory
- * self::$cache with zero per-row DB queries — verified during audit,
- * no change needed there.
- *
- * upg_10604 just reseeds lang + purges caches. Never touches data.
+ * upg_10605 just reseeds lang + purges caches.
  */
 
-namespace IPS\gdcompliance\setup\upg_10604;
+namespace IPS\gdcompliance\setup\upg_10605;
 
 use function defined;
 
@@ -41,8 +34,6 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* Lang reseed — no new keys this version, but keeps existing rows
-		   converged so a re-install always matches source. */
 		$langFile = \IPS\ROOT_PATH . '/applications/gdcompliance/dev/lang.php';
 		if ( is_readable( $langFile ) )
 		{

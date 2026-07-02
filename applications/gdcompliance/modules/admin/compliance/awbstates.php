@@ -279,26 +279,29 @@ class _awbstates extends \IPS\Dispatcher\Controller
 		$out .= '</div></div>';
 
 		/* --- Flagged products for this state ---
-		   Use preparedQuery() for the JOIN because \IPS\Db::i()->select()
-		   backtick-quotes the entire table-name argument as one identifier
-		   (so a raw "table_a a LEFT JOIN table_b b ON …" string throws
-		   "Table doesn't exist"). preparedQuery hands the SQL through
-		   verbatim with ? placeholders. */
+		   v1.6.5: use IPS-native select()->join() with the [table, alias]
+		   table-spec form. Earlier v1.6.3 rewrite used preparedQuery to
+		   sidestep the "Table doesn't exist" bug when passing a raw
+		   'table_a a LEFT JOIN table_b b' string, but preparedQuery
+		   returns mysqli_stmt and $stmt->fetch_assoc() throws "Call to
+		   undefined method". The [table, alias] form + ->join([table,
+		   alias], condition, 'LEFT') is the IPS-native pattern used by
+		   gddealer/gddeals; it emits a proper backtick-quoted alias
+		   without any stmt-fetch dance. */
 		$flagBaseUrl = \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=awbstates&do=view' )
 			->setQueryString( [ 'state' => $state, 'class' => $class ] );
-		$prefix    = (string) \IPS\Db::i()->prefix;
+		$where     = [
+			"state_code=? AND (firearm_type LIKE 'awb\\_%' OR firearm_type LIKE 'pica\\_%')",
+			$state,
+		];
 		$flagCount = 0;
 		try
 		{
-			$res = \IPS\Db::i()->preparedQuery(
-				"SELECT COUNT(*) AS c FROM " . $prefix . "gd_compliance_flags f "
-				. "WHERE f.state_code = ? AND (f.firearm_type LIKE 'awb\\_%' OR f.firearm_type LIKE 'pica\\_%')",
-				[ $state ]
-			);
-			if ( $res && ( $row = $res->fetch_assoc() ) )
-			{
-				$flagCount = (int) $row['c'];
-			}
+			$flagCount = (int) \IPS\Db::i()->select(
+				'COUNT(*)',
+				'gd_compliance_flags',
+				$where
+			)->first();
 		}
 		catch ( \Throwable $e )
 		{
@@ -319,20 +322,24 @@ class _awbstates extends \IPS\Dispatcher\Controller
 			if ( $page > $pages ) { $page = $pages; $offset = ( $page - 1 ) * $per; }
 
 			$rows = [];
-			$res = \IPS\Db::i()->preparedQuery(
-				"SELECT f.upc, f.reason, f.citation, c.title, c.brand, c.model "
-				. "FROM " . $prefix . "gd_compliance_flags f "
-				. "LEFT JOIN " . $prefix . "gd_catalog c ON c.upc = f.upc "
-				. "WHERE f.state_code = ? AND (f.firearm_type LIKE 'awb\\_%' OR f.firearm_type LIKE 'pica\\_%') "
-				. "ORDER BY f.upc ASC LIMIT " . (int) $offset . ", " . (int) $per,
-				[ $state ]
+			$joinWhere = [
+				"f.state_code=? AND (f.firearm_type LIKE 'awb\\_%' OR f.firearm_type LIKE 'pica\\_%')",
+				$state,
+			];
+			$select = \IPS\Db::i()->select(
+				'f.upc, f.reason, f.citation, c.title, c.brand, c.model',
+				[ 'gd_compliance_flags', 'f' ],
+				$joinWhere,
+				'f.upc ASC',
+				[ $offset, $per ]
+			)->join(
+				[ 'gd_catalog', 'c' ],
+				'c.upc=f.upc',
+				'LEFT'
 			);
-			if ( $res )
+			foreach ( $select as $row )
 			{
-				while ( $row = $res->fetch_assoc() )
-				{
-					$rows[] = $row;
-				}
+				$rows[] = $row;
 			}
 
 			if ( empty( $rows ) )
