@@ -278,23 +278,32 @@ class _awbstates extends \IPS\Dispatcher\Controller
 		}
 		$out .= '</div></div>';
 
-		/* --- Flagged products for this state --- */
+		/* --- Flagged products for this state ---
+		   Use preparedQuery() for the JOIN because \IPS\Db::i()->select()
+		   backtick-quotes the entire table-name argument as one identifier
+		   (so a raw "table_a a LEFT JOIN table_b b ON …" string throws
+		   "Table doesn't exist"). preparedQuery hands the SQL through
+		   verbatim with ? placeholders. */
 		$flagBaseUrl = \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=awbstates&do=view' )
 			->setQueryString( [ 'state' => $state, 'class' => $class ] );
-		$where = [ [
-			"f.state_code=? AND (f.firearm_type LIKE 'awb_%' OR f.firearm_type LIKE 'pica_%')",
-			$state,
-		] ];
+		$prefix    = (string) \IPS\Db::i()->prefix;
 		$flagCount = 0;
 		try
 		{
-			$flagCount = (int) \IPS\Db::i()->select(
-				'COUNT(*)',
-				'gd_compliance_flags f',
-				$where[0]
-			)->first();
+			$res = \IPS\Db::i()->preparedQuery(
+				"SELECT COUNT(*) AS c FROM " . $prefix . "gd_compliance_flags f "
+				. "WHERE f.state_code = ? AND (f.firearm_type LIKE 'awb\\_%' OR f.firearm_type LIKE 'pica\\_%')",
+				[ $state ]
+			);
+			if ( $res && ( $row = $res->fetch_assoc() ) )
+			{
+				$flagCount = (int) $row['c'];
+			}
 		}
-		catch ( \Throwable ) {}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'awbstates flagCount: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
 
 		$out .= '<div class="ipsBox"><div class="ipsBox_body ipsPad">'
 			. '<h3 style="margin:0 0 10px;font-size:14px;color:#334155">Flagged catalog products in ' . $h( $state ) . ' <span style="color:#64748b;font-weight:400">(' . number_format( $flagCount ) . ' total)</span></h3>';
@@ -310,15 +319,20 @@ class _awbstates extends \IPS\Dispatcher\Controller
 			if ( $page > $pages ) { $page = $pages; $offset = ( $page - 1 ) * $per; }
 
 			$rows = [];
-			foreach ( \IPS\Db::i()->select(
-				'f.upc, f.reason, f.citation, c.title, c.brand, c.model',
-				'gd_compliance_flags f LEFT JOIN ' . \IPS\Db::i()->prefix . 'gd_catalog c ON c.upc=f.upc',
-				[ "f.state_code=? AND (f.firearm_type LIKE 'awb_%' OR f.firearm_type LIKE 'pica_%')", $state ],
-				'f.upc ASC',
-				[ $offset, $per ]
-			) as $row )
+			$res = \IPS\Db::i()->preparedQuery(
+				"SELECT f.upc, f.reason, f.citation, c.title, c.brand, c.model "
+				. "FROM " . $prefix . "gd_compliance_flags f "
+				. "LEFT JOIN " . $prefix . "gd_catalog c ON c.upc = f.upc "
+				. "WHERE f.state_code = ? AND (f.firearm_type LIKE 'awb\\_%' OR f.firearm_type LIKE 'pica\\_%') "
+				. "ORDER BY f.upc ASC LIMIT " . (int) $offset . ", " . (int) $per,
+				[ $state ]
+			);
+			if ( $res )
 			{
-				$rows[] = $row;
+				while ( $row = $res->fetch_assoc() )
+				{
+					$rows[] = $row;
+				}
 			}
 
 			if ( empty( $rows ) )

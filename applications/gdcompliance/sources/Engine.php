@@ -157,6 +157,7 @@ class _Engine
 			'processed'      => 0,
 			'firearms'       => 0,
 			'flags'          => 0,
+			'row_errors'     => 0,
 			'per_state'      => [],
 			'per_state_type' => [],
 			'unparsed'       => [],
@@ -224,6 +225,17 @@ class _Engine
 				$type = $typeMap[ $cat ] ?? null;
 				if ( $type === null ) { continue; }
 				$result['firearms']++;
+
+				/* PER-ROW GUARD (v1.6.3): one bad row must NEVER wipe the
+				   whole scan. Prior versions wrapped the entire foreach in a
+				   single try/catch, so a single-row exception (e.g. the
+				   pseudo-variable-in-static-context crash — see rule #1 of
+				   this refactor: static methods use self::, never a caller
+				   instance ref) aborted the loop, log-swallowed the error,
+				   and persisted whatever partial flags had been built. Now
+				   every row lives inside its own try; the outer try/catch
+				   remains as a safety net for iterator-level errors. */
+				try {
 
 				/* --- Phase 6 (v1.6.0): multi-state AWB pass ---
 				   Loops every state with an enabled AWB rule for rifles
@@ -426,7 +438,7 @@ class _Engine
 						}
 						$status = (string) ( $cls['status'] ?? 'unmatched_review' );
 						$perState[ $rstate ] = $status;
-						$this::recordRosterOutcome( $result, $flags, $upc, $rstate, $status, $cls, $p, $now );
+						self::recordRosterOutcome( $result, $flags, $upc, $rstate, $status, $cls, $p, $now );
 					}
 
 					/* DC derived from CA+MA+MD union. Only computes when all
@@ -435,18 +447,26 @@ class _Engine
 					if ( $dcDerive && count( $perState ) === 3 )
 					{
 						$dc = \IPS\gdcompliance\Roster::deriveDC( $perState );
-						$this::recordRosterOutcome( $result, $flags, $upc, 'DC',
+						self::recordRosterOutcome( $result, $flags, $upc, 'DC',
 							(string) $dc['status'],
 							[ 'reason' => $dc['reason'], 'candidates' => [] ],
 							$p, $now, true
 						);
 					}
 				}
+				}
+				catch ( \Throwable $rowE )
+				{
+					/* Isolate the poison row — count it, log ONCE per row
+					   with the upc, and keep scanning. */
+					$result['row_errors'] = ( $result['row_errors'] ?? 0 ) + 1;
+					try { \IPS\Log::log( 'Engine::computeFlags row upc=' . $upc . ': ' . $rowE->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'Engine::computeFlags scan: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'Engine::computeFlags scan (iterator): ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
 		$result['flags'] = count( $flags );

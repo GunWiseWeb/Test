@@ -118,14 +118,25 @@ class _browser extends \IPS\Dispatcher\Controller
 		$page = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
 		$per  = 50;
 
+		/* JOINs go via preparedQuery — \IPS\Db::i()->select() backtick-quotes
+		   the entire table-name argument as one identifier, breaking any
+		   "table_a a LEFT JOIN table_b b" form. */
+		$prefix    = (string) \IPS\Db::i()->prefix;
+		$whereSql  = implode( ' AND ', $whereParts );
+
 		$totalRows = 0;
 		try
 		{
-			$totalRows = (int) \IPS\Db::i()->select(
-				'COUNT(*)',
-				'gd_compliance_flags f LEFT JOIN ' . \IPS\Db::i()->prefix . 'gd_catalog c ON c.upc=f.upc',
-				$where
-			)->first();
+			$res = \IPS\Db::i()->preparedQuery(
+				"SELECT COUNT(*) AS c FROM " . $prefix . "gd_compliance_flags f "
+				. "LEFT JOIN " . $prefix . "gd_catalog c ON c.upc = f.upc "
+				. "WHERE " . $whereSql,
+				$whereArgs
+			);
+			if ( $res && ( $countRow = $res->fetch_assoc() ) )
+			{
+				$totalRows = (int) $countRow['c'];
+			}
 		}
 		catch ( \Throwable $e )
 		{
@@ -139,16 +150,22 @@ class _browser extends \IPS\Dispatcher\Controller
 		$rows = [];
 		try
 		{
-			foreach ( \IPS\Db::i()->select(
-				'f.id AS fid, f.upc, f.state_code, f.firearm_type, f.parsed_capacity, f.rule_id, f.reason, f.computed_at, '
-				. 'c.title, c.manufacturer, c.model',
-				'gd_compliance_flags f LEFT JOIN ' . \IPS\Db::i()->prefix . 'gd_catalog c ON c.upc=f.upc',
-				$where,
-				'f.state_code ASC, f.upc ASC',
-				[ $offset, $per ]
-			) as $r )
+			$res = \IPS\Db::i()->preparedQuery(
+				"SELECT f.id AS fid, f.upc, f.state_code, f.firearm_type, f.parsed_capacity, f.rule_id, f.reason, f.computed_at, "
+				. "c.title, c.manufacturer, c.model "
+				. "FROM " . $prefix . "gd_compliance_flags f "
+				. "LEFT JOIN " . $prefix . "gd_catalog c ON c.upc = f.upc "
+				. "WHERE " . $whereSql . " "
+				. "ORDER BY f.state_code ASC, f.upc ASC "
+				. "LIMIT " . (int) $offset . ", " . (int) $per,
+				$whereArgs
+			);
+			if ( $res )
 			{
-				$rows[] = $r;
+				while ( $r = $res->fetch_assoc() )
+				{
+					$rows[] = $r;
+				}
 			}
 		}
 		catch ( \Throwable $e )
