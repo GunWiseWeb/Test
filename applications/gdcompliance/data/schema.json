@@ -172,5 +172,21 @@
 			"PRIMARY":   { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
 			"uq_value":  { "type": "unique", "name": "uq_value", "length": [ 100 ], "columns": [ "capacity_value" ] }
 		}
+	},
+	"gd_compliance_lowers": {
+		"name": "gd_compliance_lowers",
+		"columns": {
+			"id":         { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"pattern":    { "name": "pattern", "type": "VARCHAR", "length": 191, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "title/model/MPN/UPC substring, case-insensitive" },
+			"platform":   { "name": "platform", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "AR-15|AK|AR-10|... optional" },
+			"action":     { "name": "action", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": false, "default": "force_flag", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "force_flag|force_clear|review — wins over auto logic" },
+			"note":       { "name": "note", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"created_at": { "name": "created_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":     { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+			"uq_pattern":  { "type": "unique", "name": "uq_pattern", "length": [ 191 ], "columns": [ "pattern" ] },
+			"idx_action":  { "type": "key", "name": "idx_action", "length": [ null ], "columns": [ "action" ] }
+		}
 	}
 }

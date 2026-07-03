@@ -107,6 +107,110 @@ class _Engine
 	}
 
 	/**
+	 * v1.6.10 — classify a bare magazine's firearm class from its
+	 * `caliber` (and title as a fallback). Returns 'shotgun' | 'pistol'
+	 * | 'rifle' | 'ambiguous'. Order matters: shotgun gauges are
+	 * checked FIRST because a plain "12" would otherwise fail every
+	 * later test. Ambiguous → the caller picks the higher of rifle/
+	 * handgun limits so we never falsely trip on a state's shotgun
+	 * limit (fixes the v1.6.9 IL-5 bug).
+	 */
+	public static function classifyMagClass( string $caliber, string $title = '' ): string
+	{
+		$cal = strtolower( trim( $caliber ) );
+		$ttl = strtolower( trim( $title ) );
+
+		/* Shotgun gauges (never in the rifle/pistol families) — must be
+		   surrounded by a non-digit or line boundary to keep "12ga" and
+		   ".410" apart from "1.223" and "410 s&w"-style noise. */
+		$shotgunTokens = [ '12ga', '20ga', '410', '410ga', '16ga', '28ga', '10ga',
+			'12 gauge', '20 gauge', '410 bore', '16 gauge', '28 gauge', '10 gauge',
+			'.410', '.410 bore' ];
+		foreach ( $shotgunTokens as $t )
+		{
+			if ( ( $cal !== '' && strpos( $cal, $t ) !== false )
+			  || ( $ttl !== '' && strpos( $ttl, $t ) !== false ) )
+			{
+				return 'shotgun';
+			}
+		}
+
+		/* Handgun cartridges (typed by a compact set that covers 95% of
+		   pistol mags on the market). '.38' would false-positive against
+		   '.380' if bare, so the '.38' entries include a specific space
+		   suffix or 'spec'/'special' anchor. */
+		$handgunTokens = [
+			'9mm', '9 mm', '9x19', '9 x 19', 'luger',
+			'.40 s&w', '40 s&w', '.40sw', '40sw', '10mm',
+			'.45 acp', '45 acp', '.45acp', '45acp', '.45 gap', '45 gap',
+			'.380', '380 acp', '.380 acp', '.380acp',
+			'.357 sig', '357 sig', '.357sig',
+			'.38 special', '38 special', '.38 spl', '38 spl',
+			'.32 acp', '32 acp',
+			'.25 acp', '25 acp',
+			'.44 mag', '44 mag', '.44 magnum', '44 magnum',
+			'.500 s&w', '500 s&w',
+			'.454 casull', '454 casull',
+		];
+		foreach ( $handgunTokens as $t )
+		{
+			if ( ( $cal !== '' && strpos( $cal, $t ) !== false )
+			  || ( $ttl !== '' && strpos( $ttl, $t ) !== false ) )
+			{
+				return 'handgun';
+			}
+		}
+
+		/* Title fallback for pistol/handgun mags without a caliber field. */
+		if ( strpos( $ttl, 'pistol mag' ) !== false
+		  || strpos( $ttl, 'handgun mag' ) !== false
+		  || strpos( $ttl, 'pistol magazine' ) !== false )
+		{
+			return 'handgun';
+		}
+
+		/* Common centerfire rifle cartridges. */
+		$rifleTokens = [
+			'5.56', '5.56x45', '5.56 nato',
+			'.223', '.223 rem', '223 rem',
+			'.308', '.308 win', '308 win',
+			'7.62', '7.62x39', '7.62x51', '7.62 nato',
+			'6.5', '6.5 creedmoor', '6.5 grendel', '6.5 prc',
+			'.300', '300 blk', '300 blackout', '.300blk', '.300 wsm', '.300 win',
+			'.224', '224 valkyrie',
+			'6.8', '6.8 spc',
+			'.458', '458 socom',
+			'.350', '350 legend',
+			'.30-06', '30-06', '.30 06',
+			'.30-30', '30-30',
+			'.243', '243 win',
+			'.270', '270 win',
+			'.22-250', '22-250',
+			'.204', '204 ruger',
+			'.17 remington', '17 rem',
+		];
+		foreach ( $rifleTokens as $t )
+		{
+			if ( ( $cal !== '' && strpos( $cal, $t ) !== false )
+			  || ( $ttl !== '' && strpos( $ttl, $t ) !== false ) )
+			{
+				return 'rifle';
+			}
+		}
+
+		/* Title fallback for rifle mags. */
+		if ( strpos( $ttl, 'ar-15' ) !== false || strpos( $ttl, 'ar15' ) !== false
+		  || strpos( $ttl, 'ar-10' ) !== false || strpos( $ttl, 'ar10' ) !== false
+		  || strpos( $ttl, 'ak-47' ) !== false || strpos( $ttl, 'ak47' ) !== false
+		  || strpos( $ttl, 'rifle mag' ) !== false )
+		{
+			return 'rifle';
+		}
+
+		return 'ambiguous';
+	}
+
+	/**
 	 * Pull every ACTIVE rule from gd_compliance_rules:
 	 *   enabled=1
 	 *   AND (effective_date IS NULL OR effective_date <= today)
@@ -273,28 +377,40 @@ class _Engine
 			$rulesByType[ $type ][] = $r;
 		}
 
-		/* v1.6.9 — per-state MAGAZINE ceiling for the bare-magazine
-		   category (cat38) pass. A standalone LCM has no firearm_type,
-		   so we compare its parsed capacity to the state's LOWEST
-		   applicable limit across handgun/rifle/shotgun/all — that's
-		   the conservative, defensible ceiling for a loose magazine.
-		   Format: [ state_code => [ limit => int, rule_id => int,
-		   citation => string ] ], keyed by state, with the strictest
-		   (min-limit) rule per state as the reference. */
-		$magStateLimits = [];
+		/* v1.6.10 — per-state, per-firearm-type magazine ceilings for the
+		   bare-magazine (cat38) pass. A standalone LCM needs to compare
+		   against the RIGHT state limit for its actual type (rifle mag →
+		   rifle limit, pistol mag → handgun limit, shotgun mag → shotgun
+		   limit). v1.6.9 used the state's minimum, which produced the IL
+		   bug: a 30-rd 5.56 AR mag was compared to IL's shotgun limit
+		   (5) instead of the rifle limit (10).
+
+		   Format: $magLimitsByStateType[ $state ][ 'handgun' | 'rifle' |
+		   'shotgun' ] = [ 'limit' => int, 'rule_id' => int,
+		   'citation' => string ]. 'all'-typed rules cascade into every
+		   sub-type. Selecting the ACTUAL limit for the mag's classified
+		   class is done at flag-time, not here. */
+		$magLimitsByStateType = [];
 		foreach ( $rules as $r )
 		{
 			$state = strtoupper( (string) ( $r['state_code'] ?? '' ) );
 			if ( $state === '' ) { continue; }
 			$limit = (int) ( $r['max_capacity'] ?? 0 );
 			if ( $limit <= 0 ) { continue; }
-			if ( !isset( $magStateLimits[ $state ] ) || $limit < $magStateLimits[ $state ]['limit'] )
+			$rtype = strtolower( (string) ( $r['firearm_type'] ?? 'all' ) );
+			$row   = [
+				'limit'    => $limit,
+				'rule_id'  => (int) ( $r['id'] ?? 0 ),
+				'citation' => (string) ( $r['source_note'] ?? '' ),
+			];
+			$applyTo = ( $rtype === 'all' ) ? [ 'handgun', 'rifle', 'shotgun' ] : [ $rtype ];
+			foreach ( $applyTo as $tt )
 			{
-				$magStateLimits[ $state ] = [
-					'limit'    => $limit,
-					'rule_id'  => (int) ( $r['id'] ?? 0 ),
-					'citation' => (string) ( $r['source_note'] ?? '' ),
-				];
+				if ( !isset( $magLimitsByStateType[ $state ][ $tt ] )
+				  || $limit < $magLimitsByStateType[ $state ][ $tt ]['limit'] )
+				{
+					$magLimitsByStateType[ $state ][ $tt ] = $row;
+				}
 			}
 		}
 
@@ -314,15 +430,18 @@ class _Engine
 				$cat = (int)    ( $p['category_id'] ?? 0 );
 				if ( $upc === '' || $cat <= 0 ) { continue; }
 
-				/* --- v1.6.9 Phase 7A: AR/AK lower-receiver AWB pass ---
-				   cat154 (Lower Receivers, clean) + cat69 (Frames & Receivers,
-				   JUNK — title-gated inside Lowers::classify to keep parts
-				   from false-flagging). A serialized AR/AK-pattern lower IS
-				   the assault weapon; no feature/model test needed. Ambiguous
-				   cat154 rows (no platform keyword — bolt-action lowers, .22
-				   rimfire lowers, mystery brands) route to REVIEW instead of
-				   a hard flag. Runs BEFORE the typeMap null-skip because
-				   these categories don't roll up to the 1/7/16 firearm
+				/* --- v1.6.10 Phase 7A: AR/AK lower-receiver AWB pass ---
+				   cat154 (Lower Receivers, clean) is now FLAGGED by
+				   default; cat69 (Frames & Receivers, JUNK) is title-
+				   gated inside Lowers::classify. The classifier
+				   consults the curated gd_compliance_lowers table
+				   FIRST (admin overrides win). Then it excludes parts
+				   / uppers / MLOK / handguards, routes bolt/lever/
+				   pump/rimfire hunting-rifle lowers to review, and
+				   defaults every remaining cat154 row to flag.
+
+				   Runs BEFORE the typeMap null-skip because these
+				   categories don't roll up to the 1/7/16 firearm
 				   top-levels. */
 				if ( $cat === \IPS\gdcompliance\Lowers::CATEGORY_LOWER
 				  || $cat === \IPS\gdcompliance\Lowers::CATEGORY_FRAMES_JUNK )
@@ -334,6 +453,7 @@ class _Engine
 						{
 							$vr      = (string) ( $lowerVerdict['verdict'] ?? '' );
 							$pattern = (string) ( $lowerVerdict['pattern'] ?? '' );
+							$src     = (string) ( $lowerVerdict['source']  ?? 'auto' );
 
 							if ( $vr === 'flag' )
 							{
@@ -351,10 +471,11 @@ class _Engine
 									catch ( \Throwable ) { $cite = ''; }
 
 									$reason = sprintf(
-										'AR/AK-pattern lower receiver — restricted assault-weapon component under %s law%s%s',
+										'AR/AK-pattern lower receiver — restricted assault-weapon component under %s law%s%s%s',
 										$awbState,
 										$cite !== '' ? ' (' . $cite . ')' : '',
-										$pattern !== '' ? '; matched pattern: ' . $pattern : ''
+										$pattern !== '' ? '; matched pattern: ' . $pattern : '',
+										$src === 'curated' ? ' [curated]' : ''
 									);
 
 									$flags[] = [
@@ -376,7 +497,8 @@ class _Engine
 							}
 							elseif ( $vr === 'review' )
 							{
-								/* Uncertain lower — surface for human review. */
+								/* Uncertain lower (bolt-action / rimfire /
+								   curated review). Surface for human review. */
 								$result['review_queue'][] = [
 									'upc'              => substr( $upc, 0, 50 ),
 									'roster_state'     => '',
@@ -388,21 +510,27 @@ class _Engine
 								];
 								$result['awb']['lower_review'] = ( $result['awb']['lower_review'] ?? 0 ) + 1;
 							}
+							elseif ( $vr === 'clear' )
+							{
+								/* Curated force_clear — count so ACP can
+								   report; do not flag, do not queue. */
+								$result['awb']['lower_cleared'] = ( $result['awb']['lower_cleared'] ?? 0 ) + 1;
+							}
 						}
 					}
 					catch ( \Throwable ) {}
 					continue;
 				}
 
-				/* --- v1.6.9 Phase 7B: standalone MAGAZINE capacity pass ---
-				   cat38 (Magazines) — a bare LCM is restricted in every
-				   capacity-limit state whose ceiling it exceeds. Uses the
-				   integer leading-digit parse (parseCapacity), NOT LIKE:
-				   LIKE '%15%' matches "150", "5.56x45", etc. cat58 is
-				   game calls / random accessories and is NEVER treated
-				   as magazines. Skipped magazines with unparseable
-				   capacity are counted but not flagged. Runs BEFORE the
-				   typeMap null-skip. */
+				/* --- v1.6.10 Phase 7B: standalone MAGAZINE capacity pass ---
+				   cat38 (Magazines) classified by CALIBER, then compared
+				   against the state's limit for that firearm class.
+				   Fixes the v1.6.9 IL bug where a 30-rd 5.56 AR mag was
+				   compared to IL's shotgun limit (5) — it should be the
+				   rifle limit (10). Uses parseCapacity (leading integer),
+				   NEVER LIKE (LIKE '%15%' matches "150", "5.56x45", etc.).
+				   cat58 is game calls / accessories and is NEVER treated
+				   as magazines. Runs BEFORE the typeMap null-skip. */
 				if ( $cat === 38 )
 				{
 					try
@@ -411,16 +539,70 @@ class _Engine
 						$magCap = self::parseCapacity( $magRaw );
 						if ( $magCap !== null && $magCap > 0 )
 						{
-							$result['firearms']++; /* accounted for in the scan stats */
+							$result['firearms']++; /* accounted for in scan stats */
+
+							/* Classify the mag's firearm class from caliber
+							   (+ title fallback). Order matters — shotgun
+							   gauge tokens are checked first because a
+							   plain "12" would otherwise fail every other
+							   test. Ambiguous → default to the HIGHER of
+							   rifle/handgun limits to avoid the IL-5 bug. */
+							$magClass = self::classifyMagClass(
+								(string) ( $p['caliber'] ?? '' ),
+								(string) ( $p['title']   ?? '' )
+							);
+
 							$hit = false;
-							foreach ( $magStateLimits as $magState => $lim )
+							foreach ( $magLimitsByStateType as $magState => $byType )
 							{
+								/* Select the applicable limit for the mag's
+								   classified class. Ambiguous mags pick
+								   the HIGHER of rifle/handgun to prevent
+								   false shotgun-limit hits. */
+								if ( $magClass === 'shotgun' && isset( $byType['shotgun'] ) )
+								{
+									$lim = $byType['shotgun'];
+									$lbl = 'shotgun';
+								}
+								elseif ( $magClass === 'handgun' && isset( $byType['handgun'] ) )
+								{
+									$lim = $byType['handgun'];
+									$lbl = 'handgun';
+								}
+								elseif ( $magClass === 'rifle' && isset( $byType['rifle'] ) )
+								{
+									$lim = $byType['rifle'];
+									$lbl = 'rifle';
+								}
+								else
+								{
+									/* Ambiguous OR class-specific rule missing —
+									   pick the higher of rifle/handgun. */
+									$r = $byType['rifle']   ?? null;
+									$h = $byType['handgun'] ?? null;
+									if ( $r === null && $h === null )
+									{
+										continue; /* state has no applicable rule */
+									}
+									if ( $r !== null && ( $h === null || (int) $r['limit'] >= (int) $h['limit'] ) )
+									{
+										$lim = $r;
+										$lbl = 'rifle';
+									}
+									else
+									{
+										$lim = $h;
+										$lbl = 'handgun';
+									}
+								}
+
 								if ( $magCap > (int) $lim['limit'] )
 								{
 									$reason = sprintf(
-										'%d-round magazine exceeds %s limit of %d rounds%s',
+										'%d-round magazine exceeds %s %s limit of %d rounds%s',
 										$magCap,
 										$magState,
+										$lbl,
 										(int) $lim['limit'],
 										$lim['citation'] !== '' ? ' (' . $lim['citation'] . ')' : ''
 									);

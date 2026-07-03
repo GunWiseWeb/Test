@@ -54,6 +54,18 @@
 			"do": "",
 			"restriction": "compliance_manage"
 		},
+		"lowers": {
+			"tab": "gdcompliance",
+			"controller": "lowers",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
+		"magazines": {
+			"tab": "gdcompliance",
+			"controller": "magazines",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
 		"settings": {
 			"tab": "gdcompliance",
 			"controller": "settings",

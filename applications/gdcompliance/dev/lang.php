@@ -16,7 +16,30 @@ $lang = array(
 	'menu__gdcompliance_compliance_browser'    => 'Restrictions Browser',
 	'menu__gdcompliance_compliance_awbstates'  => 'AWB States',
 	'menu__gdcompliance_compliance_awbmodels'  => 'AWB Master Model List',
+	'menu__gdcompliance_compliance_lowers'     => 'Lowers & Receivers',
+	'menu__gdcompliance_compliance_magazines'  => 'Magazines',
 	'menu__gdcompliance_compliance_settings'   => 'Settings',
+
+	/* v1.6.10 — Lowers ACP */
+	'gdcompliance_acp_lowers_title'           => 'Lowers & Receivers',
+	'gdcompliance_acp_lowers_intro'           => 'AR/AK-pattern LOWER RECEIVERS are the serialized firearm — treated as an assault-weapon component in the rifle-class AWB states. cat154 flags by default; cat69 is title-gated; bolt/lever/rimfire lowers route to review; parts and uppers are excluded. Add curated overrides below to force-flag or force-clear specific patterns.',
+	'gdcompliance_acp_lowers_test'            => 'Test a UPC against the classifier',
+	'gdcompliance_acp_lowers_curated'         => 'Curated overrides',
+	'gdcompliance_acp_lowers_curated_intro'   => 'Each row is a title/model/MPN/UPC substring, case-insensitive. Curated matches WIN over auto logic. force_flag → always flag. force_clear → never flag. review → route to review queue.',
+	'gdcompliance_acp_lowers_add'             => 'Add curated entry',
+	'gdcompliance_acp_lowers_col_pattern'     => 'Pattern',
+	'gdcompliance_acp_lowers_col_platform'    => 'Platform',
+	'gdcompliance_acp_lowers_col_action'      => 'Action',
+	'gdcompliance_acp_lowers_col_note'        => 'Note',
+	'gdcompliance_lowers_f_pattern'           => 'Pattern (case-insensitive substring, matched against title/brand/model/MPN/UPC)',
+	'gdcompliance_lowers_f_platform'          => 'Platform label (e.g. AR-15, AK) — optional',
+	'gdcompliance_lowers_f_action'            => 'Action',
+	'gdcompliance_lowers_f_note'              => 'Note (shown in the tester, not in flag reasons) — optional',
+
+	/* v1.6.10 — Magazines ACP */
+	'gdcompliance_acp_mag_title'              => 'Magazines',
+	'gdcompliance_acp_mag_intro'              => 'Standalone MAGAZINE flags (cat38) — a bare LCM classified by caliber and compared against the state\'s handgun / rifle / shotgun limit. Curation is via the per-UPC override list (Overrides) — this page provides the quick "Set override" link for any mis-flagged magazine.',
+	'gdcompliance_acp_mag_override'           => 'Set override',
 
 	/* Front module + nav */
 	'module__gdcompliance_compliance'          => 'Compliance',

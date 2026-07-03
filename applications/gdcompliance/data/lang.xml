@@ -13,6 +13,25 @@
 <word key="menu__gdcompliance_compliance_browser" js="0"><![CDATA[Restrictions Browser]]></word>
 <word key="menu__gdcompliance_compliance_awbstates" js="0"><![CDATA[AWB States]]></word>
 <word key="menu__gdcompliance_compliance_awbmodels" js="0"><![CDATA[AWB Master Model List]]></word>
+<word key="menu__gdcompliance_compliance_lowers" js="0"><![CDATA[Lowers & Receivers]]></word>
+<word key="menu__gdcompliance_compliance_magazines" js="0"><![CDATA[Magazines]]></word>
+<word key="gdcompliance_acp_lowers_title" js="0"><![CDATA[Lowers & Receivers]]></word>
+<word key="gdcompliance_acp_lowers_intro" js="0"><![CDATA[AR/AK-pattern LOWER RECEIVERS are the serialized firearm — treated as an assault-weapon component in the rifle-class AWB states. cat154 flags by default; cat69 is title-gated; bolt/lever/rimfire lowers route to review; parts and uppers are excluded. Add curated overrides below to force-flag or force-clear specific patterns.]]></word>
+<word key="gdcompliance_acp_lowers_test" js="0"><![CDATA[Test a UPC against the classifier]]></word>
+<word key="gdcompliance_acp_lowers_curated" js="0"><![CDATA[Curated overrides]]></word>
+<word key="gdcompliance_acp_lowers_curated_intro" js="0"><![CDATA[Each row is a title/model/MPN/UPC substring, case-insensitive. Curated matches WIN over auto logic. force_flag → always flag. force_clear → never flag. review → route to review queue.]]></word>
+<word key="gdcompliance_acp_lowers_add" js="0"><![CDATA[Add curated entry]]></word>
+<word key="gdcompliance_acp_lowers_col_pattern" js="0"><![CDATA[Pattern]]></word>
+<word key="gdcompliance_acp_lowers_col_platform" js="0"><![CDATA[Platform]]></word>
+<word key="gdcompliance_acp_lowers_col_action" js="0"><![CDATA[Action]]></word>
+<word key="gdcompliance_acp_lowers_col_note" js="0"><![CDATA[Note]]></word>
+<word key="gdcompliance_lowers_f_pattern" js="0"><![CDATA[Pattern (case-insensitive substring, matched against title/brand/model/MPN/UPC)]]></word>
+<word key="gdcompliance_lowers_f_platform" js="0"><![CDATA[Platform label (e.g. AR-15, AK) — optional]]></word>
+<word key="gdcompliance_lowers_f_action" js="0"><![CDATA[Action]]></word>
+<word key="gdcompliance_lowers_f_note" js="0"><![CDATA[Note (shown in the tester, not in flag reasons) — optional]]></word>
+<word key="gdcompliance_acp_mag_title" js="0"><![CDATA[Magazines]]></word>
+<word key="gdcompliance_acp_mag_intro" js="0"><![CDATA[Standalone MAGAZINE flags (cat38) — a bare LCM classified by caliber and compared against the state's handgun / rifle / shotgun limit. Curation is via the per-UPC override list (Overrides) — this page provides the quick "Set override" link for any mis-flagged magazine.]]></word>
+<word key="gdcompliance_acp_mag_override" js="0"><![CDATA[Set override]]></word>
 <word key="gdcompliance_acp_awbstates_title" js="0"><![CDATA[AWB States Dashboard]]></word>
 <word key="gdcompliance_acp_awbstates_intro" js="0"><![CDATA[One row per (state, firearm class). Click "Open" for a state to edit its config, browse its named-model list, and search your catalog for banned/allowed status in that state.]]></word>
 <word key="gdcompliance_acp_awbstates_config" js="0"><![CDATA[Config]]></word>
