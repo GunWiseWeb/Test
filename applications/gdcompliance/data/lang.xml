@@ -20,6 +20,8 @@
 <word key="gdcompliance_acp_lowers_test" js="0"><![CDATA[Test a UPC against the classifier]]></word>
 <word key="gdcompliance_acp_lowers_flagged_title" js="0"><![CDATA[Flagged Lower Receivers]]></word>
 <word key="gdcompliance_acp_lowers_flagged_intro" js="0"><![CDATA[Serialized AR/AK-pattern lower receivers currently flagged in gd_compliance_flags (firearm_type=awb_lower). One row per distinct UPC — the "States" count is how many enabled rifle-class AWB states the flag applies to.]]></word>
+<word key="gdcompliance_acp_lowers_states_caption" js="0"><![CDATA[AR/AK-pattern lower receivers are restricted for sale in each of these states. Lowers apply uniformly across the set (no per-state filter — a serialized AWB-pattern lower IS the assault weapon).]]></word>
+<word key="gdcompliance_acp_lowers_override" js="0"><![CDATA[Set override]]></word>
 <word key="gdcompliance_acp_lowers_curated" js="0"><![CDATA[Curated overrides (win over auto-matching)]]></word>
 <word key="gdcompliance_acp_lowers_curated_intro" js="0"><![CDATA[Each row is a title/model/MPN/UPC substring, case-insensitive. Curated matches WIN over auto logic. force_flag → always flag. force_clear → never flag. review → route to review queue.]]></word>
 <word key="gdcompliance_acp_lowers_add" js="0"><![CDATA[Add curated entry]]></word>

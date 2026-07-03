@@ -1,31 +1,29 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.13
+ * @brief  GD Compliance — upgrade 1.6.14
  *
- * Landing:
- *   1. Lowers::classify() default flipped from 'flag' → 'review' for
- *      ambiguous cat154 lowers (no AR/AK brand or platform signal).
- *      Prevents false-flagging Tandemkross Cthulhu Ruger .22 pistol
- *      lowers and similar non-AR receivers. Ships in sources/Lowers.php.
- *   2. New tier-1 AR-lower brand list — Aero Precision, PSA, Anderson,
- *      Spike's, Shark Coast, Bravo Company, Noveske, etc. — plus an
- *      ambiguous-brand tier (Ruger, Colt) that only flags with AR
- *      context and no rimfire/pistol/revolver block token.
- *   3. Brand-level curated `tandemkross` force_clear seed (guarded —
- *      idempotent uq_pattern index catches duplicates). Replaces the
- *      per-UPC Cthulhu clears with one brand-level entry that catches
- *      current + future Tandemkross variants.
+ * ACP-display-only: "Lowers & Receivers" page rebuilt to mirror the
+ * Magazines page chrome section-for-section:
  *
- * Ambiguous rows land in the v1.6.12 Lowers review tab (review_type
- * = 'lower', suggested_status = 'lower_review', roster_state = '').
+ *   1. Summary ipsBox with sectionHead + 4 stat cards.
+ *   2. Rifle-class AWB state badge strip (informational).
+ *   3. Flagged Lower Receivers table (native select+join on
+ *      gd_compliance_flags × gd_catalog, DISTINCT by upc,
+ *      per-row Set-override link matching the Magazines placement).
+ *   4. Per-UPC test box (preserved).
+ *   5. Curated overrides Table\Db (preserved).
+ *
+ * No matching-logic changes, no schema changes, no recompute
+ * required. Reads existing awb_lower flags at render time.
  *
  * DEFENSIVE — because this replaces the sole upg dir per rule #79,
- * carries the v1.6.12 gd_compliance_review.review_type column ADD
- * and the v1.6.10 gd_compliance_lowers CREATE forward for any
- * install skipping intermediate versions.
+ * carries the v1.6.10 gd_compliance_lowers CREATE, the v1.6.12
+ * gd_compliance_review.review_type ADD + backfill, and the v1.6.13
+ * tandemkross force_clear seed forward for any install skipping
+ * intermediate versions.
  */
 
-namespace IPS\gdcompliance\setup\upg_10613;
+namespace IPS\gdcompliance\setup\upg_10614;
 
 use function defined;
 
@@ -39,7 +37,7 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* ---------- Defensive gd_compliance_lowers table (v1.6.10) ---------- */
+		/* ---------- Defensive gd_compliance_lowers CREATE (v1.6.10) ---------- */
 		$hasLowers = FALSE;
 		try
 		{
@@ -67,7 +65,7 @@ class _upgrade
 					],
 				] );
 			}
-			catch ( \Throwable ) { /* non-fatal — page rendering still works empty */ }
+			catch ( \Throwable ) { /* non-fatal — the page still renders empty */ }
 		}
 
 		/* ---------- Defensive gd_compliance_review.review_type (v1.6.12) ---------- */
@@ -95,38 +93,31 @@ class _upgrade
 					'values'         => [],
 					'comment'        => 'roster|awb_firearm|lower|magazine — the review category',
 				] );
-			}
-			catch ( \Throwable $e )
-			{
-				try { \IPS\Log::log( 'upg_10613 addColumn review_type: ' . $e->getMessage(), 'gdcompliance_upg_10613' ); }
-				catch ( \Throwable ) {}
-			}
 
-			/* Backfill (only when column was freshly added — skips
-			   the loop cost on installs already at v1.6.12+). */
-			$backfills = [
-				[ 'awb_firearm', "suggested_status LIKE 'awb\\_review\\_%'" ],
-				[ 'awb_firearm', "suggested_status LIKE 'awb\\_tier2\\_%'" ],
-				[ 'awb_firearm', "suggested_status LIKE 'awb\\_%' AND review_type='roster'" ],
-				[ 'lower',       "suggested_status LIKE 'lower\\_%'" ],
-				[ 'magazine',    "suggested_status LIKE 'magazine\\_%'" ],
-				[ 'roster',      "suggested_status='unmatched_review'" ],
-			];
-			foreach ( $backfills as [ $type, $whereFrag ] )
-			{
-				try
+				/* Backfill only on fresh add. */
+				$backfills = [
+					[ 'awb_firearm', "suggested_status LIKE 'awb\\_review\\_%'" ],
+					[ 'awb_firearm', "suggested_status LIKE 'awb\\_tier2\\_%'" ],
+					[ 'awb_firearm', "suggested_status LIKE 'awb\\_%' AND review_type='roster'" ],
+					[ 'lower',       "suggested_status LIKE 'lower\\_%'" ],
+					[ 'magazine',    "suggested_status LIKE 'magazine\\_%'" ],
+					[ 'roster',      "suggested_status='unmatched_review'" ],
+				];
+				foreach ( $backfills as [ $type, $whereFrag ] )
 				{
-					\IPS\Db::i()->update(
-						'gd_compliance_review',
-						[ 'review_type' => $type ],
-						[ $whereFrag . ' AND review_type<>?', $type ]
-					);
+					try
+					{
+						\IPS\Db::i()->update( 'gd_compliance_review',
+							[ 'review_type' => $type ],
+							[ $whereFrag . ' AND review_type<>?', $type ] );
+					}
+					catch ( \Throwable ) {}
 				}
-				catch ( \Throwable ) {}
 			}
+			catch ( \Throwable ) {}
 		}
 
-		/* ---------- Seed 'tandemkross' brand-level force_clear ---------- */
+		/* ---------- Defensive tandemkross force_clear seed (v1.6.13) ---------- */
 		try
 		{
 			$existing = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_compliance_lowers',
@@ -142,14 +133,38 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10613 tandemkross seed: ' . $e->getMessage(), 'gdcompliance_upg_10613' ); }
-			catch ( \Throwable ) {}
-		}
+		catch ( \Throwable ) {}
 
-		/* Warm Lowers so the new brand tables are live in this PHP
-		   process without a class reload. */
+		/* ---------- Lang seed — v1.6.14 new labels ---------- */
+		$newStrings = [
+			'gdcompliance_acp_lowers_states_caption' => 'AR/AK-pattern lower receivers are restricted for sale in each of these states. Lowers apply uniformly across the set (no per-state filter — a serialized AWB-pattern lower IS the assault weapon).',
+			'gdcompliance_acp_lowers_override'       => 'Set override',
+		];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+			{
+				foreach ( $newStrings as $key => $val )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'core_sys_lang_words', [
+							'lang_id'      => (int) $langId,
+							'word_app'     => 'gdcompliance',
+							'word_key'     => (string) $key,
+							'word_default' => (string) $val,
+							'word_js'      => 0,
+							'word_export'  => 1,
+						] );
+					}
+					catch ( \Throwable ) {}
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* Warm Lowers so the acp page picks up the latest classifier
+		   without an extra class load. */
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Lowers.php';
@@ -157,13 +172,14 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* ---------- Cache purges ---------- */
-		try { unset( \IPS\Data\Store::i()->settings ); }           catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->applications ); }       catch ( \Throwable ) {}
-		try { unset( \IPS\Data\Store::i()->extensions ); }         catch ( \Throwable ) {}
+		/* ---------- Cache purges — canonical_templates for the ACP shell ---------- */
+		try { unset( \IPS\Data\Store::i()->acpmenu ); }             catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->settings ); }            catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->applications ); }        catch ( \Throwable ) {}
+		try { unset( \IPS\Data\Store::i()->extensions ); }          catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->canonical_templates ); } catch ( \Throwable ) {}
-		try { \IPS\Data\Store::i()->clearAll(); }                  catch ( \Throwable ) {}
-		try { \IPS\Data\Cache::i()->clearAll(); }                  catch ( \Throwable ) {}
+		try { \IPS\Data\Store::i()->clearAll(); }                   catch ( \Throwable ) {}
+		try { \IPS\Data\Cache::i()->clearAll(); }                   catch ( \Throwable ) {}
 		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
 
 		return TRUE;
