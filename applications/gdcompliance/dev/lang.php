@@ -26,7 +26,7 @@ $lang = array(
 	'gdcompliance_acp_lowers_test'            => 'Test a UPC against the classifier',
 	'gdcompliance_acp_lowers_flagged_title'   => 'Flagged Lower Receivers',
 	'gdcompliance_acp_lowers_flagged_intro'   => 'Serialized AR/AK-pattern lower receivers currently flagged in gd_compliance_flags (firearm_type=awb_lower). One row per distinct UPC — the "States" count is how many enabled rifle-class AWB states the flag applies to.',
-	'gdcompliance_acp_lowers_states_caption'  => 'AR/AK-pattern lower receivers are restricted for sale in each of these states. Lowers apply uniformly across the set (no per-state filter — a serialized AWB-pattern lower IS the assault weapon).',
+	'gdcompliance_acp_lowers_states_caption'  => 'AR/AK-pattern lower receivers are restricted for sale in each of these states. Click a state to filter the list below and reach per-(UPC, state) overrides — clear or restrict a single lower in a single state.',
 	'gdcompliance_acp_lowers_override'        => 'Set override',
 	'gdcompliance_acp_lowers_curated'         => 'Curated overrides (win over auto-matching)',
 	'gdcompliance_acp_lowers_curated_intro'   => 'Each row is a title/model/MPN/UPC substring, case-insensitive. Curated matches WIN over auto logic. force_flag → always flag. force_clear → never flag. review → route to review queue.',

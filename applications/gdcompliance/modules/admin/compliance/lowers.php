@@ -1,21 +1,25 @@
 <?php
 /**
- * @brief  GD Compliance — Lowers & Receivers (v1.6.14)
+ * @brief  GD Compliance — Lowers & Receivers (v1.6.15)
  *
- * Section-for-section mirror of the Magazines page chrome:
+ * Section-for-section mirror of the Magazines page workflow:
  *   1. Summary ipsBox with sectionHead + stat cards (flagged
  *      lowers / pending review / curated overrides).
- *   2. Rifle-class AWB state badge strip — INFORMATIONAL only, not
- *      clickable filters. Lowers apply uniformly across every enabled
- *      rifle-class AWB state (an AR/AK-pattern lower IS restricted in
- *      all of them), so a per-state filter would just split a list
- *      that has no per-state axis.
- *   3. Flagged-Lower-Receivers table — DISTINCT UPCs from
- *      gd_compliance_flags WHERE firearm_type='awb_lower', joined to
- *      gd_catalog via native ->select([table, alias], ...)->join(...)
- *      (NEVER raw preparedQuery). Per-row "Set override" link into
- *      the Overrides controller, same placement as the Magazines
- *      page.
+ *   2. CLICKABLE state filter buttons — rifle-class AWB states from
+ *      gd_compliance_awb_rules. Clicking a state filters the
+ *      flagged-list to that state, giving Derrick per-(upc, state)
+ *      drill-in. (v1.6.14 rendered these as non-clickable info
+ *      badges, which removed the per-state override workflow.)
+ *   3. Flagged-Lower-Receivers table:
+ *        - "All" (no state filter) → GROUP BY f.upc, one row per
+ *          distinct lower with a state_count. Per-row "Set override"
+ *          link pre-fills upc only; admin picks state on the form.
+ *        - State filter → WHERE f.state_code=?, one row per lower
+ *          in that state. Per-row "Set override" link pre-fills
+ *          upc + state so a per-(upc, state) clear or restrict is
+ *          one click. Same chrome as magazines' per-row link.
+ *      Native ->select([table, alias], ...)->join([table, alias], ...);
+ *      NEVER raw preparedQuery.
  *   4. Test box — per-UPC live Lowers::classify() verdict.
  *   5. Curated overrides Table\Db — the add / edit / delete CRUD on
  *      gd_compliance_lowers.
@@ -117,6 +121,11 @@ class _lowers extends \IPS\Dispatcher\Controller
 		/* ============================================================
 		 * STATE BADGE STRIP (informational, not clickable filters)
 		 * ============================================================ */
+		/* Read + validate the state filter from the URL. Matches
+		   magazines.php ~line 41-42. */
+		$stateFilter = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
+		if ( strlen( $stateFilter ) !== 2 ) { $stateFilter = ''; }
+
 		$awbStates = [];
 		try
 		{
@@ -131,6 +140,28 @@ class _lowers extends \IPS\Dispatcher\Controller
 		$awbStates = array_values( array_unique( $awbStates ) );
 		sort( $awbStates );
 
+		/* Per-state awb_lower flag counts for the button labels. */
+		$perState = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select(
+				'state_code, COUNT(*) AS c',
+				'gd_compliance_flags',
+				[ 'firearm_type=?', 'awb_lower' ],
+				null,
+				null,
+				'state_code'
+			) as $row )
+			{
+				$perState[ (string) $row['state_code'] ] = (int) $row['c'];
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* ---------- Clickable STATE filter buttons (mirrors magazines
+		   ~lines 82-93). Non-clickable badges were the v1.6.14 gap —
+		   Derrick needs to drill INTO a state to reach the per-(upc,
+		   state) override. */
 		$statesHtml  = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center">'
 			. '<span style="font-size:12px;color:#64748b;font-weight:600;align-self:center;margin-right:4px">STATES:</span>';
 		if ( empty( $awbStates ) )
@@ -139,9 +170,14 @@ class _lowers extends \IPS\Dispatcher\Controller
 		}
 		else
 		{
+			$allActive = $stateFilter === '' ? ' ipsButton--primary' : ' ipsButton--soft';
+			$statesHtml .= '<a class="ipsButton ipsButton--verySmall' . $allActive . '" href="' . $h( (string) $baseUrl ) . '">All (' . number_format( $distinctFlagged ) . ')</a>';
 			foreach ( $awbStates as $sc )
 			{
-				$statesHtml .= '<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#dbeafe;color:#1e3a8a">' . $h( $sc ) . '</span>';
+				$active = $stateFilter === $sc ? ' ipsButton--primary' : ' ipsButton--soft';
+				$href   = (string) $baseUrl->setQueryString( 'state', $sc );
+				$cnt    = (int) ( $perState[ $sc ] ?? 0 );
+				$statesHtml .= '<a class="ipsButton ipsButton--verySmall' . $active . '" href="' . $h( $href ) . '">' . $h( $sc ) . ' (' . number_format( $cnt ) . ')</a>';
 			}
 		}
 		$statesHtml .= '</div>'
@@ -152,27 +188,76 @@ class _lowers extends \IPS\Dispatcher\Controller
 		/* ============================================================
 		 * FLAGGED LOWER RECEIVERS TABLE (mirrors magazines flag table)
 		 * ============================================================
-		 * A serialized AR/AK-pattern lower flags across ALL rifle-class
-		 * AWB states, so gd_compliance_flags has one row per (upc,
-		 * state) — for the Lowers page we collapse to distinct UPCs
-		 * (GROUP BY f.upc) and show state_count as an extra column.
-		 * Native ->select([table, alias], ...)->join([table, alias], ...).
-		 * NO raw preparedQuery here. */
+		 * A serialized AR/AK-pattern lower flags across every enabled
+		 * rifle-class AWB state — one gd_compliance_flags row per (upc,
+		 * state). Behavior mirrors magazines' state workflow:
+		 *
+		 *   All mode (no state filter) — GROUP BY f.upc → one row per
+		 *     distinct lower, plus a "States" count column. Per-row
+		 *     "Set override" link pre-fills upc only; admin picks the
+		 *     state on the override form.
+		 *
+		 *   State mode (state=XX) — WHERE f.state_code=? → one row per
+		 *     lower flagged in that state. Per-row "Set override" link
+		 *     pre-fills upc + state so a per-(upc, state) clear or
+		 *     restrict is one click away — the workflow that v1.6.14
+		 *     was missing.
+		 *
+		 * Native Db::select([table, alias], ...)->join([table, alias],
+		 * ...); NO raw preparedQuery. */
 		$page = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
 		$per  = 50;
 		$off  = ( $page - 1 ) * $per;
 
+		$flagWhere = [ "f.firearm_type=?" ];
+		$flagArgs  = [ 'awb_lower' ];
+		if ( $stateFilter !== '' )
+		{
+			$flagWhere[] = 'f.state_code=?';
+			$flagArgs[]  = $stateFilter;
+		}
+		$flagWhereSql = implode( ' AND ', $flagWhere );
+
+		/* Total distinct UPCs matching the current filter — drives the
+		   header count + pager. In state mode this equals COUNT(*) of
+		   rows since state_code+upc is unique. */
+		$listCount = 0;
+		try
+		{
+			$listCount = (int) \IPS\Db::i()->select(
+				'COUNT(DISTINCT upc)',
+				'gd_compliance_flags',
+				array_merge( [ $flagWhereSql ], $flagArgs )
+			)->first();
+		}
+		catch ( \Throwable ) {}
+
 		$rowsHtml = '';
 		try
 		{
-			$sel = \IPS\Db::i()->select(
-				'f.upc, COUNT(*) AS state_count, MAX(f.reason) AS sample_reason, c.brand, c.title, c.caliber, c.mpn',
-				[ 'gd_compliance_flags', 'f' ],
-				[ "f.firearm_type=?", 'awb_lower' ],
-				'c.brand ASC, c.title ASC',
-				[ $off, $per ],
-				'f.upc'
-			)->join( [ 'gd_catalog', 'c' ], 'c.upc = f.upc', 'LEFT' );
+			if ( $stateFilter === '' )
+			{
+				/* All mode — group by upc, show state_count column. */
+				$sel = \IPS\Db::i()->select(
+					'f.upc, COUNT(*) AS state_count, MAX(f.reason) AS sample_reason, c.brand, c.title, c.caliber, c.mpn',
+					[ 'gd_compliance_flags', 'f' ],
+					array_merge( [ $flagWhereSql ], $flagArgs ),
+					'c.brand ASC, c.title ASC',
+					[ $off, $per ],
+					'f.upc'
+				)->join( [ 'gd_catalog', 'c' ], 'c.upc = f.upc', 'LEFT' );
+			}
+			else
+			{
+				/* State mode — one row per (upc, state). No group by. */
+				$sel = \IPS\Db::i()->select(
+					'f.upc, f.state_code, f.reason, f.citation, c.brand, c.title, c.caliber, c.mpn',
+					[ 'gd_compliance_flags', 'f' ],
+					array_merge( [ $flagWhereSql ], $flagArgs ),
+					'c.brand ASC, c.title ASC',
+					[ $off, $per ]
+				)->join( [ 'gd_catalog', 'c' ], 'c.upc = f.upc', 'LEFT' );
+			}
 
 			foreach ( $sel as $r )
 			{
@@ -181,10 +266,21 @@ class _lowers extends \IPS\Dispatcher\Controller
 				$title = (string) ( $r['title'] ?? '' );
 				$cal   = (string) ( $r['caliber'] ?? '' );
 				$mpn   = (string) ( $r['mpn'] ?? '' );
-				$sc    = (int)    ( $r['state_count'] ?? 0 );
+
+				if ( $stateFilter === '' )
+				{
+					$stateCol    = '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:700;font-family:ui-monospace,monospace;color:#991b1b">' . number_format( (int) ( $r['state_count'] ?? 0 ) ) . '</td>';
+					$overrideQs  = [ 'upc' => $upc ];
+				}
+				else
+				{
+					$rowState = (string) ( $r['state_code'] ?? $stateFilter );
+					$stateCol = '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9"><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#dbeafe;color:#1e3a8a">' . $h( $rowState ) . '</span></td>';
+					$overrideQs = [ 'upc' => $upc, 'state' => $rowState ];
+				}
 
 				$overrideUrl = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=overrides&do=form' )
-					->setQueryString( [ 'upc' => $upc ] );
+					->setQueryString( $overrideQs );
 
 				$rowsHtml .= '<tr>'
 					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-family:ui-monospace,monospace;font-size:12px">' . $h( $upc ) . '</td>'
@@ -192,7 +288,7 @@ class _lowers extends \IPS\Dispatcher\Controller
 					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:13px">' . $h( strlen( $title ) > 80 ? substr( $title, 0, 77 ) . '…' : $title ) . '</td>'
 					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#475569;font-size:12px">' . $h( $cal !== '' ? $cal : '—' ) . '</td>'
 					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-family:ui-monospace,monospace;font-size:12px;color:#64748b">' . $h( $mpn !== '' ? $mpn : '—' ) . '</td>'
-					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:700;font-family:ui-monospace,monospace;color:#991b1b">' . number_format( $sc ) . '</td>'
+					. $stateCol
 					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:right"><a href="' . $h( $overrideUrl ) . '" class="ipsButton ipsButton--secondary ipsButton--verySmall">' . $h( $lang->addToStack( 'gdcompliance_acp_lowers_override' ) ) . '</a></td>'
 					. '</tr>';
 			}
@@ -204,12 +300,19 @@ class _lowers extends \IPS\Dispatcher\Controller
 
 		if ( $rowsHtml === '' )
 		{
-			$rowsHtml = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8">No lower-receiver flags yet. Run the compute pass to populate — cat154 rows classified as \'flag\' will land here.</td></tr>';
+			$rowsHtml = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8">No lower-receiver flags'
+				. ( $stateFilter !== '' ? ' for ' . $h( $stateFilter ) : '' )
+				. '. Run the compute pass to populate — cat154 rows classified as \'flag\' will land here.</td></tr>';
 		}
+
+		$stateColHeader = $stateFilter === '' ? 'States' : 'State';
 
 		$table = '<div class="ipsBox" style="margin-bottom:14px"><div class="ipsBox_body ipsPad">'
 			. '<h3 style="margin:0 0 6px;font-size:14px;color:#334155">' . $h( $lang->addToStack( 'gdcompliance_acp_lowers_flagged_title' ) )
-			. ' <span style="color:#64748b;font-weight:400">(' . number_format( $distinctFlagged ) . ')</span></h3>'
+			. ' <span style="color:#64748b;font-weight:400">('
+			. number_format( $listCount )
+			. ( $stateFilter !== '' ? ' in ' . $h( $stateFilter ) : '' )
+			. ')</span></h3>'
 			. '<table style="width:100%;border-collapse:collapse">'
 			. '<thead><tr style="background:#f8fafc">'
 			. '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">UPC</th>'
@@ -217,7 +320,7 @@ class _lowers extends \IPS\Dispatcher\Controller
 			. '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">Title</th>'
 			. '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">Caliber</th>'
 			. '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">MPN</th>'
-			. '<th style="text-align:right;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">States</th>'
+			. '<th style="text-align:' . ( $stateFilter === '' ? 'right' : 'left' ) . ';padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">' . $stateColHeader . '</th>'
 			. '<th style="padding:8px 10px;border-bottom:2px solid #e2e8f0"></th>'
 			. '</tr></thead>'
 			. '<tbody>' . $rowsHtml . '</tbody>'
@@ -225,11 +328,17 @@ class _lowers extends \IPS\Dispatcher\Controller
 			. '</div></div>';
 
 		$pager = '';
-		if ( $distinctFlagged > $per )
+		if ( $listCount > $per )
 		{
-			$totalPages = (int) ceil( $distinctFlagged / $per );
-			$prevHref   = (string) $baseUrl->setQueryString( array_filter( [ 'page' => $page > 1 ? $page - 1 : null ] ) );
-			$nextHref   = (string) $baseUrl->setQueryString( array_filter( [ 'page' => $page < $totalPages ? $page + 1 : null ] ) );
+			$totalPages = (int) ceil( $listCount / $per );
+			$prevHref   = (string) $baseUrl->setQueryString( array_filter( [
+				'state' => $stateFilter !== '' ? $stateFilter : null,
+				'page'  => $page > 1 ? $page - 1 : null,
+			] ) );
+			$nextHref   = (string) $baseUrl->setQueryString( array_filter( [
+				'state' => $stateFilter !== '' ? $stateFilter : null,
+				'page'  => $page < $totalPages ? $page + 1 : null,
+			] ) );
 			$pager = '<div style="display:flex;gap:8px;justify-content:center;margin:0 0 14px;font-size:13px;color:#64748b">'
 				. ( $page > 1 ? '<a class="ipsButton ipsButton--soft ipsButton--verySmall" href="' . $h( $prevHref ) . '">&larr; Prev</a>' : '' )
 				. '<span style="padding:4px 8px">Page ' . $page . ' / ' . $totalPages . '</span>'

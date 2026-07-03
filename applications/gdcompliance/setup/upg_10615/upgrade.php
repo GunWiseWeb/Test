@@ -1,29 +1,22 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.14
+ * @brief  GD Compliance — upgrade 1.6.15
  *
- * ACP-display-only: "Lowers & Receivers" page rebuilt to mirror the
- * Magazines page chrome section-for-section:
+ * ACP-display-only: makes the Lowers page's state row CLICKABLE, so
+ * an admin can drill into a single state's flagged lowers and reach
+ * the per-(upc, state) override — the workflow that was missing in
+ * v1.6.14 when the states rendered as non-clickable info badges.
  *
- *   1. Summary ipsBox with sectionHead + 4 stat cards.
- *   2. Rifle-class AWB state badge strip (informational).
- *   3. Flagged Lower Receivers table (native select+join on
- *      gd_compliance_flags × gd_catalog, DISTINCT by upc,
- *      per-row Set-override link matching the Magazines placement).
- *   4. Per-UPC test box (preserved).
- *   5. Curated overrides Table\Db (preserved).
- *
- * No matching-logic changes, no schema changes, no recompute
- * required. Reads existing awb_lower flags at render time.
+ * No engine changes. No schema changes. No recompute required.
  *
  * DEFENSIVE — because this replaces the sole upg dir per rule #79,
  * carries the v1.6.10 gd_compliance_lowers CREATE, the v1.6.12
  * gd_compliance_review.review_type ADD + backfill, and the v1.6.13
- * tandemkross force_clear seed forward for any install skipping
- * intermediate versions.
+ * tandemkross force_clear seed forward for skip-upgrades from
+ * 1.6.9 → 1.6.15.
  */
 
-namespace IPS\gdcompliance\setup\upg_10614;
+namespace IPS\gdcompliance\setup\upg_10615;
 
 use function defined;
 
@@ -94,7 +87,6 @@ class _upgrade
 					'comment'        => 'roster|awb_firearm|lower|magazine — the review category',
 				] );
 
-				/* Backfill only on fresh add. */
 				$backfills = [
 					[ 'awb_firearm', "suggested_status LIKE 'awb\\_review\\_%'" ],
 					[ 'awb_firearm', "suggested_status LIKE 'awb\\_tier2\\_%'" ],
@@ -135,10 +127,9 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* ---------- Lang seed — v1.6.14 new labels ---------- */
+		/* ---------- Reword the states caption — states are now clickable ---------- */
 		$newStrings = [
-			'gdcompliance_acp_lowers_states_caption' => 'AR/AK-pattern lower receivers are restricted for sale in each of these states. Lowers apply uniformly across the set (no per-state filter — a serialized AWB-pattern lower IS the assault weapon).',
-			'gdcompliance_acp_lowers_override'       => 'Set override',
+			'gdcompliance_acp_lowers_states_caption' => 'AR/AK-pattern lower receivers are restricted for sale in each of these states. Click a state to filter the list below and reach per-(UPC, state) overrides — clear or restrict a single lower in a single state.',
 		];
 		try
 		{
@@ -163,8 +154,6 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Warm Lowers so the acp page picks up the latest classifier
-		   without an extra class load. */
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Lowers.php';
@@ -172,7 +161,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* ---------- Cache purges — canonical_templates for the ACP shell ---------- */
+		/* ---------- Cache purges (ACP template change) ---------- */
 		try { unset( \IPS\Data\Store::i()->acpmenu ); }             catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->settings ); }            catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->applications ); }        catch ( \Throwable ) {}
