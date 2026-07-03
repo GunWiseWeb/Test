@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl='', $restrictionRows=array()" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl='', $restrictionRows=array(), $advisoryRows=array()" />
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 .gdsp-wrap{width:100%;margin:0;padding:18px;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#0f172a}
@@ -89,6 +89,24 @@
 .gdsp-restrict__pop-exemption{margin:8px 0 6px;padding:8px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:6px;color:#713f12;font-size:.85em;line-height:1.5;white-space:pre-line}
 .gdsp-restrict__pop-exemption-label{display:block;margin-bottom:4px;font-size:.72em;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#854d0e}
 .gdsp-restrict__pop-disclaimer{margin:8px 0 0;padding-top:8px;border-top:1px dashed #e2e8f0;color:#64748b;font-size:.8em;font-style:italic;line-height:1.4}
+.gdsp-advisory{position:relative;margin:0 0 16px}
+.gdsp-advisory__banner{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px;border-radius:8px;background:#FEF3C7;border:1px solid #FCD34D;color:#78350F;font-weight:600;font-size:.88em;line-height:1.4}
+.gdsp-advisory__icon{flex:0 0 auto;font-size:1em}
+.gdsp-advisory__label{flex:0 1 auto}
+.gdsp-advisory__chips{display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center}
+.gdsp-advisory__chip{display:inline-flex;align-items:center;justify-content:center;min-width:40px;padding:5px 11px;border:1px solid #F59E0B;background:#fff;color:#78350F;border-radius:999px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1em;font-weight:700;line-height:1.2;cursor:pointer;transition:background .12s,color .12s,border-color .12s}
+.gdsp-advisory__chip:hover,.gdsp-advisory__chip:focus{background:#78350F;color:#fff;border-color:#78350F;outline:none}
+.gdsp-advisory__chip:focus-visible{box-shadow:0 0 0 2px #FDE68A}
+.gdsp-advisory__popup{position:absolute;z-index:60;background:#fff;border:1px solid #FCD34D;border-radius:10px;box-shadow:0 12px 36px rgba(120,53,15,.18);padding:14px 16px;max-width:380px;font-size:13px;line-height:1.5;color:#1e293b}
+.gdsp-advisory__popup[hidden]{display:none}
+.gdsp-advisory__close{position:absolute;top:6px;right:8px;background:transparent;border:none;font-size:1.5em;line-height:1;color:#94a3b8;cursor:pointer;padding:0;width:24px;height:24px}
+.gdsp-advisory__close:hover,.gdsp-advisory__close:focus{color:#0f172a;outline:none}
+.gdsp-advisory__pop-title{margin:0 22px 6px 0;font-size:1em;font-weight:700;color:#78350F}
+.gdsp-advisory__pop-reason{margin:0 0 6px;color:#334155;white-space:pre-line}
+.gdsp-advisory__pop-citation{margin:0 0 6px;color:#475569;font-size:.9em}
+.gdsp-advisory__pop-citation strong{color:#1e293b;font-weight:600}
+.gdsp-advisory__pop-disclaimer{margin:8px 0 0;padding-top:8px;border-top:1px dashed #e2e8f0;color:#64748b;font-size:.8em;font-style:italic;line-height:1.4}
+.gdsp-advisory__ship-note{display:block;margin:2px 0 0;font-size:.75em;font-weight:500;color:#78350F;opacity:.85}
 @media (max-width:600px){
 	.gdsp-restrict__popup{max-width:calc(100vw - 40px);left:8px !important;right:8px}
 }
@@ -160,6 +178,37 @@
 					{{if $product['nfa_item']}}<span class="ipsBadge ipsBadge--negative">{lang="gdsearch_nfa_item"}</span>{{endif}}
 					{{if $product['is_ammo']}}<span class="ipsBadge ipsBadge--neutral">Ammo</span>{{endif}}
 				</div>
+
+				{{if !empty($advisoryRows)}}
+				<div class="gdsp-advisory" role="region" aria-label="Buyer Permit Advisories">
+					<div class="gdsp-advisory__banner">
+						<span class="gdsp-advisory__icon" aria-hidden="true">&#9432;</span>
+						<span class="gdsp-advisory__label">
+							Buyer permit / eligibility card required in:
+							<span class="gdsp-advisory__ship-note">This item can ship. The buyer must meet a state permit/training requirement at the FFL.</span>
+						</span>
+						<span class="gdsp-advisory__chips">
+							{{foreach $advisoryRows as $ar}}
+							<button type="button" class="gdsp-advisory__chip"
+								data-state="{$ar['state']}"
+								data-statename="{$ar['state_name']}"
+								data-reason="{$ar['reason']}"
+								data-citation="{$ar['citation']}"
+								aria-haspopup="dialog"
+								aria-label="{$ar['state_name']} buyer permit advisory"
+							>{$ar['state']}</button>
+							{{endforeach}}
+						</span>
+					</div>
+					<div class="gdsp-advisory__popup" role="dialog" aria-modal="false" aria-hidden="true" hidden>
+						<button type="button" class="gdsp-advisory__close" aria-label="Close">&times;</button>
+						<h3 class="gdsp-advisory__pop-title"></h3>
+						<p class="gdsp-advisory__pop-reason"></p>
+						<p class="gdsp-advisory__pop-citation" hidden><strong>Citation:</strong> <span></span></p>
+						<p class="gdsp-advisory__pop-disclaimer">This is a BUYER requirement — not a sale prohibition. The item can ship to your FFL; the purchaser completes the permit / eligibility step there. Verify current requirements with the receiving dealer before purchase.</p>
+					</div>
+				</div>
+				{{endif}}
 
 				{{if !empty($restrictionRows)}}
 				<div class="gdsp-restrict" role="region" aria-label="State Restrictions">

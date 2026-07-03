@@ -1,27 +1,31 @@
 /*
- * gdsearch — state-restriction chip popup.
+ * gdsearch — state-restriction + buyer-permit-advisory chip popup.
  * No template interpolation, no $-vars. Reads state/reason/citation/type
  * from data-* attributes on each chip and toggles the shared popup div.
- * Scoped under .gdsp-restrict, mobile-friendly.
+ * Two scopes handled by the same handler shape:
+ *   .gdsp-restrict — red "cannot ship" restriction chips.
+ *   .gdsp-advisory — yellow buyer-permit chips (v1.6.17, CO / MN).
+ * The advisory scope has no pin/exemption blocks; init() handles the
+ * missing selectors gracefully.
  */
 (function () {
 	'use strict';
 
-	function init() {
-		var wraps = document.querySelectorAll('.gdsp-restrict');
+	function initScope(scopeSelector, cls) {
+		var wraps = document.querySelectorAll(scopeSelector);
 		if (!wraps || !wraps.length) { return; }
 
 		wraps.forEach(function (wrap) {
-			var popup      = wrap.querySelector('.gdsp-restrict__popup');
-			var closeBtn   = wrap.querySelector('.gdsp-restrict__close');
-			var titleEl    = wrap.querySelector('.gdsp-restrict__pop-title');
-			var reasonEl   = wrap.querySelector('.gdsp-restrict__pop-reason');
-			var citeWrap   = wrap.querySelector('.gdsp-restrict__pop-citation');
+			var popup      = wrap.querySelector('.' + cls + '__popup');
+			var closeBtn   = wrap.querySelector('.' + cls + '__close');
+			var titleEl    = wrap.querySelector('.' + cls + '__pop-title');
+			var reasonEl   = wrap.querySelector('.' + cls + '__pop-reason');
+			var citeWrap   = wrap.querySelector('.' + cls + '__pop-citation');
 			var citeSpan   = citeWrap ? citeWrap.querySelector('span') : null;
-			var pinEl      = wrap.querySelector('.gdsp-restrict__pop-pin');
-			var exWrap     = wrap.querySelector('.gdsp-restrict__pop-exemption');
-			var exBody     = exWrap ? exWrap.querySelector('.gdsp-restrict__pop-exemption-body') : null;
-			var chips      = wrap.querySelectorAll('.gdsp-restrict__chip');
+			var pinEl      = wrap.querySelector('.' + cls + '__pop-pin');       // restrict only
+			var exWrap     = wrap.querySelector('.' + cls + '__pop-exemption'); // restrict only
+			var exBody     = exWrap ? exWrap.querySelector('.' + cls + '__pop-exemption-body') : null;
+			var chips      = wrap.querySelectorAll('.' + cls + '__chip');
 			var activeChip = null;
 
 			if (!popup || !chips.length) { return; }
@@ -131,6 +135,11 @@
 				if (ev.key === 'Escape' && !popup.hidden) { closePopup(); }
 			});
 		});
+	}
+
+	function init() {
+		initScope('.gdsp-restrict', 'gdsp-restrict');
+		initScope('.gdsp-advisory', 'gdsp-advisory');
 	}
 
 	if (document.readyState === 'loading') {

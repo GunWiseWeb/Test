@@ -323,10 +323,14 @@ class _results extends \IPS\Dispatcher\Controller
 
         /* Restriction rows keyed by state — baked in from server hotfix.
            Uses gdcompliance's clean 8-column gd_compliance_flags schema
-           (no more flag_type/flag_value/status; one row per state). */
+           (no more flag_type/flag_value/status; one row per state).
+           v1.6.17: excludes firearm_type='advisory' from the red
+           "cannot ship" state list — advisories are buyer-permit
+           requirements, not sale prohibitions. */
         $restrictedStates = [];
         try {
-            foreach ( \IPS\Db::i()->select( 'state_code', 'gd_compliance_flags', [ 'upc=?', $upc ] ) as $st )
+            foreach ( \IPS\Db::i()->select( 'state_code', 'gd_compliance_flags',
+                [ 'upc=? AND firearm_type<>?', $upc, 'advisory' ] ) as $st )
             {
                 $st = strtoupper( trim( (string) ( is_array( $st ) ? ( $st['state_code'] ?? '' ) : $st ) ) );
                 if ( $st !== '' ) { $restrictedStates[ $st ] = TRUE; }
@@ -339,14 +343,33 @@ class _results extends \IPS\Dispatcher\Controller
         /* Enriched rows for the clickable-chip popup (state_name, reason,
            type, citation). Guarded: if gdcompliance is disabled or the
            helper throws, we get an empty array and the banner won't
-           render — the storefront degrades gracefully. */
-        $restrictionRows = [];
+           render — the storefront degrades gracefully.
+
+           v1.6.17 — split the returned rows into two arrays. Advisories
+           (type='advisory' — CO SB25-003, MN §624.712, etc.) get their
+           own YELLOW block; they are NEVER shown in the red "cannot
+           ship to:" banner. */
+        $allRestrictionRows = [];
         try {
             if ( class_exists( '\\IPS\\gdcompliance\\Flag' ) )
             {
-                $restrictionRows = \IPS\gdcompliance\Flag::forUpc( $upc );
+                $allRestrictionRows = \IPS\gdcompliance\Flag::forUpc( $upc );
             }
-        } catch ( \Throwable ) { $restrictionRows = []; }
+        } catch ( \Throwable ) { $allRestrictionRows = []; }
+
+        $restrictionRows = [];
+        $advisoryRows    = [];
+        foreach ( $allRestrictionRows as $rr )
+        {
+            if ( ( $rr['type'] ?? '' ) === 'advisory' )
+            {
+                $advisoryRows[] = $rr;
+            }
+            else
+            {
+                $restrictionRows[] = $rr;
+            }
+        }
 
         $priceChartSvg   = '';
         $priceChartJson  = '[]';
@@ -464,7 +487,7 @@ class _results extends \IPS\Dispatcher\Controller
             $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey,
             $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey,
             $listingReportUrl, $listingReportLoggedIn, $listingReportCsrfKey, $listingReportLoginUrl,
-            $offersSort, $sortOptions, $sortBaseUrl, $restrictionRows
+            $offersSort, $sortOptions, $sortBaseUrl, $restrictionRows, $advisoryRows
         );
     }
 

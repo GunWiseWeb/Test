@@ -15,6 +15,9 @@
 <word key="menu__gdcompliance_compliance_awbmodels" js="0"><![CDATA[AWB Master Model List]]></word>
 <word key="menu__gdcompliance_compliance_lowers" js="0"><![CDATA[Lowers & Receivers]]></word>
 <word key="menu__gdcompliance_compliance_magazines" js="0"><![CDATA[Magazines]]></word>
+<word key="menu__gdcompliance_compliance_advisories" js="0"><![CDATA[Advisories]]></word>
+<word key="gdcompliance_acp_adv_title" js="0"><![CDATA[Buyer-Permit Advisories]]></word>
+<word key="gdcompliance_acp_adv_intro" js="0"><![CDATA[Advisories are NOT sale restrictions. Each row here means the item CAN ship to that state, but the BUYER must meet a permit / eligibility-card / training step at the FFL. CO covers semi-auto centerfire rifles under SB25-003 (eff. 2026-08-01); MN covers AR/AK-pattern semi-auto rifles under Minn. Stat. §624.712 (in effect since 2023-08-01). Reason text is customer-visible in a yellow advisory block on the product page.]]></word>
 <word key="gdcompliance_acp_lowers_title" js="0"><![CDATA[Lowers & Receivers]]></word>
 <word key="gdcompliance_acp_lowers_intro" js="0"><![CDATA[AR/AK-pattern LOWER RECEIVERS are the serialized firearm — treated as an assault-weapon component in the rifle-class AWB states. cat154 flags by default; cat69 is title-gated; bolt/lever/rimfire lowers route to review; parts and uppers are excluded. Add curated overrides below to force-flag or force-clear specific patterns.]]></word>
 <word key="gdcompliance_acp_lowers_test" js="0"><![CDATA[Test a UPC against the classifier]]></word>

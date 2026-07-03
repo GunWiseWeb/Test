@@ -356,6 +356,14 @@ class _Engine
 		}
 		catch ( \Throwable ) {}
 
+		/* v1.6.17 — reset Advisories per-request memo before the sweep. */
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Advisories.php';
+			\IPS\gdcompliance\Advisories::clearCache();
+		}
+		catch ( \Throwable ) {}
+
 		/* Initialize per-state counters so the summary always shows them
 		   (even with zero counts), even for states without a loaded roster. */
 		foreach ( [ 'CA', 'MA', 'MD', 'DC' ] as $s )
@@ -775,6 +783,43 @@ class _Engine
 						}
 					}
 				}
+
+				/* --- v1.6.17 Phase 6b: buyer-permit ADVISORY pass ---
+				   Emits advisory flags (firearm_type='advisory') for
+				   states where the buyer needs a permit/card/training
+				   to purchase — CO SSF (SB25-003) + MN SAMSAW
+				   (§624.712). NOT a restriction; the item ships.
+				   Front-end classifies these as Flag::TYPE_ADVISORY
+				   and renders yellow, never in the red cannot-ship
+				   banner. Runs AFTER the AWB pass so it can attach
+				   to the same rifles the feature test already flagged
+				   for AWB-restrict states (no conflict — CA restricts,
+				   CO/MN advise; different states, different meaning). */
+				try
+				{
+					$adv = \IPS\gdcompliance\Advisories::matchesFor( $p, $type );
+					foreach ( $adv as $a )
+					{
+						$aState = strtoupper( (string) ( $a['state']    ?? '' ) );
+						$aReason = trim( (string) ( $a['reason']   ?? '' ) );
+						$aCite   = trim( (string) ( $a['citation'] ?? '' ) );
+						if ( $aState === '' || $aReason === '' ) { continue; }
+						$flags[] = [
+							'upc'             => substr( $upc, 0, 50 ),
+							'state_code'      => $aState,
+							'firearm_type'    => 'advisory',
+							'parsed_capacity' => null,
+							'rule_id'         => 0,
+							'reason'          => substr( $aReason, 0, 255 ),
+							'citation'        => substr( $aCite,   0, 255 ),
+							'computed_at'     => $now,
+						];
+						$result['per_state'][ $aState ] = ( $result['per_state'][ $aState ] ?? 0 ) + 1;
+						$result['per_state_type'][ $aState ]['advisory'] = ( $result['per_state_type'][ $aState ]['advisory'] ?? 0 ) + 1;
+						$result['advisory'][ $aState ] = ( $result['advisory'][ $aState ] ?? 0 ) + 1;
+					}
+				}
+				catch ( \Throwable ) { /* per-row, non-fatal */ }
 
 				/* --- Phase 1: capacity-rule pass --- */
 				$capRaw = isset( $p['capacity'] ) ? (string) $p['capacity'] : '';

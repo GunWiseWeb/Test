@@ -1,24 +1,22 @@
 <?php
 /**
- * @brief  GD Search — upgrade 1.0.79
+ * @brief  GD Search — upgrade 1.0.80
  *
- * Product-page restriction popup gains a firearm_type awareness so the
- * pin-remedy language ("if the restriction is due to magazine capacity,
- * this item may still be transferable if the receiving FFL pins or
- * blocks the magazine") is hidden for STANDALONE MAGAZINE (LCM) flags
- * — pinning a loose magazine isn't a real remedy; the mag itself is
- * the restricted item.
- *
- * Companion is gdcompliance v1.6.9 which emits the new firearm_type
- * values (awb_lower, magazine) from Engine::computeFlags and includes
- * firearm_type in Flag::forUpc's return shape so the chip carries a
- * data-ftype attribute.
+ * Frontend companion to gdcompliance v1.6.17:
+ *   - product.phtml gains a distinct YELLOW buyer-permit advisory
+ *     block above the red "cannot ship to:" restriction banner, plus
+ *     its own popup markup. Advisories are NOT restrictions.
+ *   - restrictpopup.js now supports two scopes — .gdsp-restrict (red)
+ *     and .gdsp-advisory (yellow) — via a single initScope() helper.
+ *   - results.php splits Flag::forUpc() into $restrictionRows +
+ *     $advisoryRows and hands both to the template.
  *
  * Template + JS only — re-runs templates_10046.php to reseed the
- * product template body into core_theme_templates.
+ * product template body into core_theme_templates so existing
+ * installs pick up the new markup.
  */
 
-namespace IPS\gdsearch\setup\upg_10079;
+namespace IPS\gdsearch\setup\upg_10080;
 
 use function defined;
 

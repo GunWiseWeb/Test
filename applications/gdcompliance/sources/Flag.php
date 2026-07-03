@@ -36,6 +36,7 @@ class _Flag
 	const TYPE_ROSTER   = 'roster';
 	const TYPE_OVERRIDE = 'override';
 	const TYPE_AWB      = 'awb';
+	const TYPE_ADVISORY = 'advisory';
 	/** @deprecated  Use TYPE_AWB. Kept for v1.5.x consumers. */
 	const TYPE_PICA     = 'awb';
 
@@ -141,7 +142,14 @@ class _Flag
 					}
 
 					$type = static::TYPE_ROSTER;
-					if ( strncmp( $ftype, 'awb_', 4 ) === 0 || strncmp( $ftype, 'pica_', 5 ) === 0 )
+					if ( $ftype === 'advisory' )
+					{
+						/* v1.6.17 — buyer-permit ADVISORY. Item ships;
+						   buyer needs a permit/card. Renders yellow,
+						   NEVER in the red cannot-ship banner. */
+						$type = static::TYPE_ADVISORY;
+					}
+					elseif ( strncmp( $ftype, 'awb_', 4 ) === 0 || strncmp( $ftype, 'pica_', 5 ) === 0 )
 					{
 						/* awb_* (v1.6+) OR pica_* (v1.5.x rows still on disk) */
 						$type = static::TYPE_AWB;
@@ -198,7 +206,11 @@ class _Flag
 					$reason = trim( (string) ( $row['reason'] ?? '' ) );
 
 					$type = static::TYPE_ROSTER;
-					if ( strncmp( $ftype, 'awb_', 4 ) === 0 || strncmp( $ftype, 'pica_', 5 ) === 0 )
+					if ( $ftype === 'advisory' )
+					{
+						$type = static::TYPE_ADVISORY;
+					}
+					elseif ( strncmp( $ftype, 'awb_', 4 ) === 0 || strncmp( $ftype, 'pica_', 5 ) === 0 )
 					{
 						/* awb_* (v1.6+) OR pica_* (v1.5.x rows still on disk) */
 						$type = static::TYPE_AWB;
@@ -232,6 +244,20 @@ class _Flag
 				}
 			}
 			catch ( \Throwable ) { $out = []; }
+		}
+
+		/* v1.6.17 — sort so advisory rows land after restrict rows
+		   in the returned array. The storefront splits by type; this
+		   just keeps the "restrictions first, advisories second"
+		   ordering consistent when both exist. */
+		if ( !empty( $out ) )
+		{
+			usort( $out, function ( $a, $b ) {
+				$aa = ( $a['type'] === static::TYPE_ADVISORY ) ? 1 : 0;
+				$bb = ( $b['type'] === static::TYPE_ADVISORY ) ? 1 : 0;
+				if ( $aa !== $bb ) { return $aa <=> $bb; }
+				return strcmp( (string) ( $a['state'] ?? '' ), (string) ( $b['state'] ?? '' ) );
+			} );
 		}
 
 		return static::$cache[ $upc ] = $out;

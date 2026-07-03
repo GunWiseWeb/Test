@@ -66,6 +66,12 @@
 			"do": "",
 			"restriction": "compliance_manage"
 		},
+		"advisories": {
+			"tab": "gdcompliance",
+			"controller": "advisories",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
 		"settings": {
 			"tab": "gdcompliance",
 			"controller": "settings",
