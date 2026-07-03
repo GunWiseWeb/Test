@@ -328,7 +328,7 @@ class _review extends \IPS\Dispatcher\Controller
 		{
 			return self::ROSTER_STATES;
 		}
-		if ( $typeFilter === 'awb_firearm' || $typeFilter === 'lower' )
+		if ( $typeFilter === 'awb_firearm' )
 		{
 			$out = [];
 			try
@@ -342,6 +342,16 @@ class _review extends \IPS\Dispatcher\Controller
 			}
 			catch ( \Throwable ) {}
 			return array_values( array_unique( $out ) );
+		}
+		if ( $typeFilter === 'lower' )
+		{
+			/* v1.6.13 — lowers are not per-state. A serialized AR
+			   lower is restricted uniformly across every enabled
+			   rifle-class AWB state, so a state filter would just
+			   narrow to nothing (Engine writes roster_state='' on
+			   lower reviews). Return an empty state list so no
+			   STATE row renders for this category. */
+			return [];
 		}
 		if ( $typeFilter === 'magazine' )
 		{

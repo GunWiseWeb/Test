@@ -13,22 +13,41 @@
  * unless there's a clear signal they're a non-AWB action (bolt/lever/
  * pump/rimfire hunting rifle).
  *
- * Layer order (first non-null wins):
- *   1. Curated gd_compliance_lowers rows — force_clear / force_flag /
- *      review. Admin edits win over auto logic.
+ * v1.6.13 — THREE-TIER classification (Option B, Derrick's pick):
+ *   Tier 1 (positive AR/AK signal)  → flag         (awb_lower)
+ *   Tier 2 (positive non-AR signal) → clear/review (bolt/lever/rimfire, curated)
+ *   Tier 3 (ambiguous, no signal)   → REVIEW       (NOT flag)
+ *
+ * Prior versions defaulted ambiguous cat154 rows to flag with the
+ * sentinel "semi-auto pattern lower". That false-flagged Tandemkross
+ * Cthulhu .22 pistol lowers (Ruger MK-series) — non-AWB parts that
+ * happen to sit in cat154. Conservative default now: unknowns wait
+ * for human confirmation via the v1.6.12 Lowers review tab instead
+ * of auto-flagging.
+ *
+ * Layer order (first hit wins):
+ *   1. Curated gd_compliance_lowers rows (substring over haystack +
+ *      UPC) — force_clear / force_flag / review. Admin edits win.
  *   2. Non-lower exclusions (parts, uppers, handguards, MLOK, etc.) →
  *      return null (skip entirely).
  *   3. Category gate (cat154 always; cat69 title-gated).
- *   4. Non-AWB action check (bolt / lever / pump / rimfire-only) →
- *      verdict='review'.
- *   5. Default → verdict='flag' with the matched platform pattern for
- *      the reason string, or the sentinel 'semi-auto pattern lower'
- *      when the title is model-only.
+ *   4. Non-AWB action check (bolt / lever / pump / rimfire-only /
+ *      known bolt-rifle families) → verdict='review'.
+ *   5. Positive AR-brand signal:
+ *      5a. AR_LOWER_BRANDS_UNAMBIGUOUS (Aero, PSA, Anderson,
+ *          Spike's, Shark Coast, etc.) → verdict='flag'.
+ *      5b. AR_LOWER_BRANDS_AMBIGUOUS (Ruger, Colt — both make
+ *          non-AR products too) → flag ONLY if an AR_CONTEXT
+ *          token also appears AND no AR_AMBIGUOUS_BLOCK token
+ *          (rimfire / pistol / revolver / 10/22 / takedown).
+ *   6. Positive platform-keyword signal (AR-15 / AR-10 / AK / M4
+ *      / etc. anywhere in haystack) → verdict='flag'.
+ *   7. Default → verdict='review'. NOT flag.
  *
  * Verdicts returned by classify():
- *   ['verdict'=>'flag',   'pattern'=>'AR-15' | 'semi-auto pattern lower', 'source'=>'auto'|'curated']
- *   ['verdict'=>'review', 'pattern'=>null,    'source'=>'auto'|'curated', 'reason_hint'=>'bolt-action', ...]
- *   ['verdict'=>'clear',  'pattern'=>null,    'source'=>'curated']  (curated force_clear only)
+ *   ['verdict'=>'flag',   'pattern'=>'AR-15'|'aero precision'|..., 'source'=>'auto-brand'|'auto-platform'|'curated']
+ *   ['verdict'=>'review', 'pattern'=>null,                         'source'=>'auto'|'curated', 'reason_hint'=>...]
+ *   ['verdict'=>'clear',  'pattern'=>null,                         'source'=>'curated']
  *   null   — not a lower / not evaluated (parts, uppers, wrong category)
  *
  * Cat facts (verified):
@@ -156,6 +175,99 @@ class _Lowers
 		'.17 hmr', '17 hmr', '.17hmr',
 		'.22 wmr', '22 wmr', '.22wmr', '.22 magnum', '22 magnum',
 		'17 wsm', '.17 wsm', '17wsm',
+	];
+
+	/**
+	 * v1.6.13 — known AR/AK lower-maker brands. Case-insensitive
+	 * substring match against the same haystack the platform pattern
+	 * check uses (title + brand + manufacturer + model + MPN). ANY hit
+	 * = tier-1 flag.
+	 *
+	 * Unambiguous list: brands whose lower-receiver output is
+	 * overwhelmingly AR/AK pattern. No context check needed — a match
+	 * flags.
+	 *
+	 * @var string[]
+	 */
+	const AR_LOWER_BRANDS_UNAMBIGUOUS = [
+		'aero precision', 'aero m4e1', 'm4e1', 'm5 ', /* Aero AR-10 */
+		'palmetto state', 'psa ', 'palmetto',
+		'anderson manufacturing', 'anderson am-15', 'am-15',
+		"spike's tactical", 'spikes tactical', "spike's", 'spikes',
+		'bravo company', 'bcm ',
+		'geissele', 'super duty',
+		'noveske',
+		'daniel defense',
+		'lewis machine', 'lmt ', 'mars-l',
+		'radian', 'radian adac',
+		'seekins', 'sp223', 'sp10',
+		'battle arms',
+		'doublestar', 'double star',
+		'f-1 firearms', 'f1 firearms',
+		'rock river', 'rock river arms', 'rra ',
+		'rainier arms',
+		'faxon',
+		'sons of liberty', 'solgw',
+		'shark coast', 'shark coast tactical',
+		'stag arms',
+		'sig m400', 'sig 716',
+		'ruger ar-556', 'ruger sfar',
+	];
+
+	/**
+	 * v1.6.13 — brands that make BOTH AR lowers and non-AR products
+	 * (Ruger's AR-556 vs 10/22 rimfire; Colt's AR-15 vs revolvers).
+	 * Brand hit is not enough on its own; also require an
+	 * AR_CONTEXT token AND absence of an AR_AMBIGUOUS_BLOCK token.
+	 *
+	 * @var string[]
+	 */
+	const AR_LOWER_BRANDS_AMBIGUOUS = [
+		'ruger',
+		'colt',
+	];
+
+	/**
+	 * v1.6.13 — positive AR/rifle context tokens. If an ambiguous
+	 * brand hit is accompanied by ANY of these, the brand match
+	 * counts as tier-1 flag.
+	 *
+	 * @var string[]
+	 */
+	const AR_CONTEXT_TOKENS = [
+		'ar-15', 'ar15', 'ar 15',
+		'ar-10', 'ar10', 'ar 10',
+		'ar-9',  'ar9',  'ar 9',
+		'ar-556', 'ar556',
+		'.223', '223 rem', '.223 rem',
+		'5.56', '5.56x45', '5.56 nato',
+		'.308', '.308 win', '308 win',
+		'7.62', '7.62x39', '7.62x51', '7.62 nato',
+		'6.5 grendel', '6.5 creedmoor', '6.5 prc',
+		'.300 blk', '300 blackout', '.300 blackout',
+		'.300 win',
+		'multi-cal', 'multi cal', 'multi caliber',
+		'multi-caliber',
+	];
+
+	/**
+	 * v1.6.13 — ambiguous-brand block tokens. If ANY of these appear
+	 * alongside a Ruger/Colt hit, the row is NOT an AR lower — it's
+	 * the non-AR part of the brand's lineup. Blocks the ambiguous
+	 * brand match; the row falls through to the review default.
+	 *
+	 * @var string[]
+	 */
+	const AR_AMBIGUOUS_BLOCK_TOKENS = [
+		'.22 lr', '.22lr', '22 lr', '22lr', '.22 long', '22 long',
+		'.17 hmr', '17 hmr',
+		'.22 wmr', '22 wmr', '.22 magnum',
+		'rimfire',
+		'10/22', '10-22', 'ruger 10',
+		'takedown',
+		'revolver',
+		'mark iv', 'mark 4', 'ruger mk', 'mk-series', 'mk series',
+		'22/45',
 	];
 
 	/**
@@ -361,22 +473,76 @@ class _Lowers
 			}
 		}
 
-		/* ----- Layer 4: default flag. cat154 IS Lower Receivers; cat69
-		         passed the title gate. Nothing above excluded or routed
-		         to review — treat as an AWB-pattern serialized lower. */
-		$matched = null;
+		/* ----- Layer 5a: unambiguous AR-lower brand hit → flag. ----- */
+		foreach ( self::AR_LOWER_BRANDS_UNAMBIGUOUS as $brand )
+		{
+			if ( strpos( $haystack, $brand ) !== false )
+			{
+				$out = [
+					'verdict' => 'flag',
+					'pattern' => trim( $brand ),
+					'source'  => 'auto-brand',
+				];
+				return static::$cache[ $upc ] = $out;
+			}
+		}
+
+		/* ----- Layer 5b: ambiguous AR-lower brand hit — needs AR
+		         context AND no non-AR block token. Catches Ruger
+		         AR-556 while excluding Tandemkross Ruger .22 lowers. */
+		foreach ( self::AR_LOWER_BRANDS_AMBIGUOUS as $brand )
+		{
+			if ( strpos( $haystack, $brand ) === false ) { continue; }
+
+			$hasArContext = false;
+			foreach ( self::AR_CONTEXT_TOKENS as $ct )
+			{
+				if ( strpos( $haystack, $ct ) !== false ) { $hasArContext = true; break; }
+			}
+			if ( !$hasArContext ) { continue; }
+
+			$hasBlock = false;
+			foreach ( self::AR_AMBIGUOUS_BLOCK_TOKENS as $bt )
+			{
+				if ( strpos( $haystack, $bt ) !== false ) { $hasBlock = true; break; }
+			}
+			if ( $hasBlock ) { continue; }
+
+			$out = [
+				'verdict' => 'flag',
+				'pattern' => trim( $brand ) . ' (AR context)',
+				'source'  => 'auto-brand-ctx',
+			];
+			return static::$cache[ $upc ] = $out;
+		}
+
+		/* ----- Layer 6: platform-keyword hit anywhere in the haystack
+		         (AR-15 / AR-10 / AK / M4 / etc.) → flag. Handles
+		         product titles that spell out the platform without a
+		         known brand hit. ----- */
 		foreach ( self::LOWER_PLATFORM_PATTERNS as $pat )
 		{
 			if ( strpos( $haystack, strtolower( $pat ) ) !== false )
 			{
-				$matched = $pat;
-				break;
+				$out = [
+					'verdict' => 'flag',
+					'pattern' => $pat,
+					'source'  => 'auto-platform',
+				];
+				return static::$cache[ $upc ] = $out;
 			}
 		}
+
+		/* ----- Layer 7: default REVIEW (Option B — v1.6.13). No AR/AK
+		         signal from brand OR platform keyword. Ambiguous cat154
+		         lowers wait for human confirmation in the Lowers review
+		         tab rather than false-flagging non-AR .22 pistol lowers
+		         etc. Reason hint surfaces in the tester + review view. */
 		$out = [
-			'verdict' => 'flag',
-			'pattern' => $matched ?? 'semi-auto pattern lower',
-			'source'  => 'auto',
+			'verdict'     => 'review',
+			'pattern'     => null,
+			'source'      => 'auto',
+			'reason_hint' => 'ambiguous lower — no AR/AK platform or brand signal',
 		];
 		return static::$cache[ $upc ] = $out;
 	}
