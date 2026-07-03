@@ -76,7 +76,7 @@ class _Flag
 	 * their citation is '' — callers should hide the citation line when
 	 * empty rather than rendering "no citation".
 	 *
-	 * @return array<int, array{state:string,state_name:string,reason:string,type:string,citation:string,exemption_note:string}>
+	 * @return array<int, array{state:string,state_name:string,reason:string,type:string,firearm_type:string,citation:string,exemption_note:string}>
 	 */
 	public static function forUpc( string $upc ): array
 	{
@@ -160,6 +160,7 @@ class _Flag
 						'state_name'     => static::STATE_NAMES[ $state ] ?? $state,
 						'reason'         => $reason,
 						'type'           => $type,
+						'firearm_type'   => $ftype,
 						'citation'       => $cite,
 						'exemption_note' => ( $type === static::TYPE_AWB ) ? (string) ( $awbExemption[ $state ] ?? '' ) : '',
 					];
@@ -224,6 +225,7 @@ class _Flag
 						'state_name'     => static::STATE_NAMES[ $state ] ?? $state,
 						'reason'         => $reason,
 						'type'           => $type,
+						'firearm_type'   => $ftype,
 						'citation'       => $cite,
 						'exemption_note' => ( $type === static::TYPE_AWB ) ? (string) ( $awbExemption[ $state ] ?? '' ) : '',
 					];

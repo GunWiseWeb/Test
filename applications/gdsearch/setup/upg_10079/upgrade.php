@@ -1,20 +1,24 @@
 <?php
 /**
- * @brief  GD Search — upgrade 1.0.78
+ * @brief  GD Search — upgrade 1.0.79
  *
- * Product-page restriction popup gains a per-state exemption note
- * (rendered when gdcompliance surfaces one — currently CT AWB). The
- * chip carries a new data-exemption attribute; the popup gains a
- * yellow disclaimer block below the pin remedy. Companion is
- * gdcompliance v1.6.7 which supplies the exemption_note column
- * on gd_compliance_awb_rules and populates CT's default text.
+ * Product-page restriction popup gains a firearm_type awareness so the
+ * pin-remedy language ("if the restriction is due to magazine capacity,
+ * this item may still be transferable if the receiving FFL pins or
+ * blocks the magazine") is hidden for STANDALONE MAGAZINE (LCM) flags
+ * — pinning a loose magazine isn't a real remedy; the mag itself is
+ * the restricted item.
+ *
+ * Companion is gdcompliance v1.6.9 which emits the new firearm_type
+ * values (awb_lower, magazine) from Engine::computeFlags and includes
+ * firearm_type in Flag::forUpc's return shape so the chip carries a
+ * data-ftype attribute.
  *
  * Template + JS only — re-runs templates_10046.php to reseed the
- * product template body into core_theme_templates so existing
- * installs pick up the new markup.
+ * product template body into core_theme_templates.
  */
 
-namespace IPS\gdsearch\setup\upg_10078;
+namespace IPS\gdsearch\setup\upg_10079;
 
 use function defined;
 

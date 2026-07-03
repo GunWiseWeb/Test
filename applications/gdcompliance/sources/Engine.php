@@ -244,6 +244,14 @@ class _Engine
 		try { $awbRifleStates  = \IPS\gdcompliance\AwbModels::enabledStates( 'rifle' ); }  catch ( \Throwable ) {}
 		try { $awbPistolStates = \IPS\gdcompliance\AwbModels::enabledStates( 'pistol' ); } catch ( \Throwable ) {}
 
+		/* v1.6.9 — reset Lowers per-request memo before the sweep. */
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Lowers.php';
+			\IPS\gdcompliance\Lowers::clearCache();
+		}
+		catch ( \Throwable ) {}
+
 		/* Initialize per-state counters so the summary always shows them
 		   (even with zero counts), even for states without a loaded roster. */
 		foreach ( [ 'CA', 'MA', 'MD', 'DC' ] as $s )
@@ -265,6 +273,31 @@ class _Engine
 			$rulesByType[ $type ][] = $r;
 		}
 
+		/* v1.6.9 — per-state MAGAZINE ceiling for the bare-magazine
+		   category (cat38) pass. A standalone LCM has no firearm_type,
+		   so we compare its parsed capacity to the state's LOWEST
+		   applicable limit across handgun/rifle/shotgun/all — that's
+		   the conservative, defensible ceiling for a loose magazine.
+		   Format: [ state_code => [ limit => int, rule_id => int,
+		   citation => string ] ], keyed by state, with the strictest
+		   (min-limit) rule per state as the reference. */
+		$magStateLimits = [];
+		foreach ( $rules as $r )
+		{
+			$state = strtoupper( (string) ( $r['state_code'] ?? '' ) );
+			if ( $state === '' ) { continue; }
+			$limit = (int) ( $r['max_capacity'] ?? 0 );
+			if ( $limit <= 0 ) { continue; }
+			if ( !isset( $magStateLimits[ $state ] ) || $limit < $magStateLimits[ $state ]['limit'] )
+			{
+				$magStateLimits[ $state ] = [
+					'limit'    => $limit,
+					'rule_id'  => (int) ( $r['id'] ?? 0 ),
+					'citation' => (string) ( $r['source_note'] ?? '' ),
+				];
+			}
+		}
+
 		$now    = time();
 		$flags  = [];
 
@@ -280,6 +313,150 @@ class _Engine
 				$upc = (string) ( $p['upc'] ?? '' );
 				$cat = (int)    ( $p['category_id'] ?? 0 );
 				if ( $upc === '' || $cat <= 0 ) { continue; }
+
+				/* --- v1.6.9 Phase 7A: AR/AK lower-receiver AWB pass ---
+				   cat154 (Lower Receivers, clean) + cat69 (Frames & Receivers,
+				   JUNK — title-gated inside Lowers::classify to keep parts
+				   from false-flagging). A serialized AR/AK-pattern lower IS
+				   the assault weapon; no feature/model test needed. Ambiguous
+				   cat154 rows (no platform keyword — bolt-action lowers, .22
+				   rimfire lowers, mystery brands) route to REVIEW instead of
+				   a hard flag. Runs BEFORE the typeMap null-skip because
+				   these categories don't roll up to the 1/7/16 firearm
+				   top-levels. */
+				if ( $cat === \IPS\gdcompliance\Lowers::CATEGORY_LOWER
+				  || $cat === \IPS\gdcompliance\Lowers::CATEGORY_FRAMES_JUNK )
+				{
+					try
+					{
+						$lowerVerdict = \IPS\gdcompliance\Lowers::classify( $p );
+						if ( is_array( $lowerVerdict ) )
+						{
+							$vr      = (string) ( $lowerVerdict['verdict'] ?? '' );
+							$pattern = (string) ( $lowerVerdict['pattern'] ?? '' );
+
+							if ( $vr === 'flag' )
+							{
+								/* AR/AK rifle lowers → the rifle-class AWB
+								   states only. HI is a pistol-class rule
+								   so it's already absent from
+								   $awbRifleStates. VA is enabled=0 so it's
+								   absent too. */
+								foreach ( $awbRifleStates as $awbState )
+								{
+									try
+									{
+										$cite = \IPS\gdcompliance\AwbModels::citationFor( $awbState, 'rifle' );
+									}
+									catch ( \Throwable ) { $cite = ''; }
+
+									$reason = sprintf(
+										'AR/AK-pattern lower receiver — restricted assault-weapon component under %s law%s%s',
+										$awbState,
+										$cite !== '' ? ' (' . $cite . ')' : '',
+										$pattern !== '' ? '; matched pattern: ' . $pattern : ''
+									);
+
+									$flags[] = [
+										'upc'             => substr( $upc, 0, 50 ),
+										'state_code'      => $awbState,
+										'firearm_type'    => 'awb_lower',
+										'parsed_capacity' => null,
+										'rule_id'         => 0,
+										'reason'          => substr( $reason, 0, 255 ),
+										'citation'        => substr( (string) $cite, 0, 255 ),
+										'computed_at'     => $now,
+									];
+
+									$result['per_state'][ $awbState ] = ( $result['per_state'][ $awbState ] ?? 0 ) + 1;
+									$result['per_state_type'][ $awbState ]['awb_lower'] = ( $result['per_state_type'][ $awbState ]['awb_lower'] ?? 0 ) + 1;
+									$result['awb']['lower'] = ( $result['awb']['lower'] ?? 0 ) + 1;
+								}
+								$result['firearms']++;
+							}
+							elseif ( $vr === 'review' )
+							{
+								/* Uncertain lower — surface for human review. */
+								$result['review_queue'][] = [
+									'upc'              => substr( $upc, 0, 50 ),
+									'roster_state'     => '',
+									'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? $p['brand'] ?? '' ), 0, 120 ),
+									'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
+									'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
+									'suggested_status' => 'lower_review',
+									'created_at'       => $now,
+								];
+								$result['awb']['lower_review'] = ( $result['awb']['lower_review'] ?? 0 ) + 1;
+							}
+						}
+					}
+					catch ( \Throwable ) {}
+					continue;
+				}
+
+				/* --- v1.6.9 Phase 7B: standalone MAGAZINE capacity pass ---
+				   cat38 (Magazines) — a bare LCM is restricted in every
+				   capacity-limit state whose ceiling it exceeds. Uses the
+				   integer leading-digit parse (parseCapacity), NOT LIKE:
+				   LIKE '%15%' matches "150", "5.56x45", etc. cat58 is
+				   game calls / random accessories and is NEVER treated
+				   as magazines. Skipped magazines with unparseable
+				   capacity are counted but not flagged. Runs BEFORE the
+				   typeMap null-skip. */
+				if ( $cat === 38 )
+				{
+					try
+					{
+						$magRaw = isset( $p['capacity'] ) ? (string) $p['capacity'] : '';
+						$magCap = self::parseCapacity( $magRaw );
+						if ( $magCap !== null && $magCap > 0 )
+						{
+							$result['firearms']++; /* accounted for in the scan stats */
+							$hit = false;
+							foreach ( $magStateLimits as $magState => $lim )
+							{
+								if ( $magCap > (int) $lim['limit'] )
+								{
+									$reason = sprintf(
+										'%d-round magazine exceeds %s limit of %d rounds%s',
+										$magCap,
+										$magState,
+										(int) $lim['limit'],
+										$lim['citation'] !== '' ? ' (' . $lim['citation'] . ')' : ''
+									);
+									$flags[] = [
+										'upc'             => substr( $upc, 0, 50 ),
+										'state_code'      => $magState,
+										'firearm_type'    => 'magazine',
+										'parsed_capacity' => $magCap,
+										'rule_id'         => (int) $lim['rule_id'],
+										'reason'          => substr( $reason, 0, 255 ),
+										'citation'        => substr( (string) $lim['citation'], 0, 255 ),
+										'computed_at'     => $now,
+									];
+									$result['per_state'][ $magState ] = ( $result['per_state'][ $magState ] ?? 0 ) + 1;
+									$result['per_state_type'][ $magState ]['magazine'] = ( $result['per_state_type'][ $magState ]['magazine'] ?? 0 ) + 1;
+									$hit = true;
+								}
+							}
+							if ( $hit )
+							{
+								$result['mag']['flagged'] = ( $result['mag']['flagged'] ?? 0 ) + 1;
+							}
+							else
+							{
+								$result['mag']['clean'] = ( $result['mag']['clean'] ?? 0 ) + 1;
+							}
+						}
+						elseif ( $magRaw !== '' )
+						{
+							$key = substr( $magRaw, 0, 100 );
+							$result['unparsed'][ $key ] = ( $result['unparsed'][ $key ] ?? 0 ) + 1;
+						}
+					}
+					catch ( \Throwable ) {}
+					continue;
+				}
 
 				$type = $typeMap[ $cat ] ?? null;
 				if ( $type === null ) { continue; }

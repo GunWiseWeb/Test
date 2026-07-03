@@ -247,6 +247,19 @@ class _AwbModels
 	}
 
 	/**
+	 * v1.6.9 — convenience: the citation string for a state's AWB rule
+	 * of the given firearm class. Returns '' if the state has no
+	 * enabled rule for that class. Used by the lower-receiver flag path
+	 * so each state's AWB reason carries its own statutory reference.
+	 */
+	public static function citationFor( string $stateCode, string $firearmClass = 'rifle' ): string
+	{
+		$row = static::ruleFor( $stateCode, $firearmClass );
+		if ( !is_array( $row ) ) { return ''; }
+		return (string) ( $row['citation'] ?? '' );
+	}
+
+	/**
 	 * States (uppercased) that currently have an ENABLED AWB rule for
 	 * the given firearm class.
 	 *

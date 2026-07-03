@@ -50,6 +50,7 @@
 				var cite   = chip.getAttribute('data-citation') || '';
 				var exempt = chip.getAttribute('data-exemption') || '';
 				var type   = chip.getAttribute('data-type') || '';
+				var ftype  = chip.getAttribute('data-ftype') || '';
 
 				if (titleEl)  { titleEl.textContent  = name; }
 				if (reasonEl) { reasonEl.textContent = humanReason(reason, type); }
@@ -64,7 +65,12 @@
 				}
 
 				if (pinEl) {
-					pinEl.hidden = (type !== 'capacity');
+					// Pin-remedy language ("FFL can pin the magazine to comply")
+					// only applies when the RESTRICTED item is a firearm whose
+					// capacity issue could be cured by swapping/blocking its
+					// magazine. For a bare LCM (firearm_type === 'magazine')
+					// the mag itself is the restricted item — no pin remedy.
+					pinEl.hidden = (type !== 'capacity' || ftype === 'magazine');
 				}
 
 				if (exWrap) {
