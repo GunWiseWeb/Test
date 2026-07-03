@@ -221,11 +221,28 @@
 <word key="gdcompliance_acp_roster_col_barrel" js="0"><![CDATA[Barrel]]></word>
 <word key="gdcompliance_acp_roster_col_expired_date" js="0"><![CDATA[Expired]]></word>
 <word key="gdcompliance_acp_roster_col_is_current" js="0"><![CDATA[Status]]></word>
-<word key="gdcompliance_acp_review_title" js="0"><![CDATA[CA Roster Review Queue]]></word>
-<word key="gdcompliance_acp_review_intro" js="0"><![CDATA[Handguns the matcher could not confidently place on or off the roster. Each row shows the near-miss roster candidates the matcher considered. Resolve each manually — "Mark on-roster" clears the CA restriction for that UPC, "Mark off-roster" sets the CA flag. Decisions persist across re-computes (only unresolved rows are wiped + re-populated on each compute).]]></word>
+<word key="gdcompliance_acp_review_title" js="0"><![CDATA[Compliance Review Queue]]></word>
+<word key="gdcompliance_acp_review_intro" js="0"><![CDATA[Items pending manual review across every category. Filter by CATEGORY to focus on roster / AWB firearms / lowers / magazines; STATE narrows within a category.]]></word>
+<word key="gdcompliance_acp_review_title_all" js="0"><![CDATA[Compliance Review Queue]]></word>
+<word key="gdcompliance_acp_review_intro_all" js="0"><![CDATA[All pending items across categories. Choose a CATEGORY tab to narrow.]]></word>
+<word key="gdcompliance_acp_review_title_roster" js="0"><![CDATA[Roster Review Queue]]></word>
+<word key="gdcompliance_acp_review_intro_roster" js="0"><![CDATA[Handguns the matcher could not confidently place on or off a state roster. Each row shows the near-miss roster candidates the matcher considered. Resolve manually — Mark on-roster clears the state restriction for that UPC; Mark off-roster sets the state flag. Decisions persist across recomputes.]]></word>
+<word key="gdcompliance_acp_review_title_awb" js="0"><![CDATA[AWB Firearm Review Queue]]></word>
+<word key="gdcompliance_acp_review_intro_awb" js="0"><![CDATA[Semi-auto centerfire firearms flagged for feature-based review (tier-2 or tier-3 AWB). Verify the model / features against the state statute — Confirm AWB writes a force_restrict override; Not an AWB writes a force_clear.]]></word>
+<word key="gdcompliance_acp_review_title_lower" js="0"><![CDATA[Lower Receiver Review Queue]]></word>
+<word key="gdcompliance_acp_review_intro_lower" js="0"><![CDATA[Ambiguous cat154 lower receivers (bolt-action / rimfire / unknown platform) needing confirmation. Confirm restricted lower applies a force_restrict override across every enabled rifle-class AWB state; Not an AWB lower clears them all.]]></word>
+<word key="gdcompliance_acp_review_title_magazine" js="0"><![CDATA[Magazine Review Queue]]></word>
+<word key="gdcompliance_acp_review_intro_magazine" js="0"><![CDATA[Standalone magazines needing manual review. Confirm over-capacity keeps / adds the state restriction; Not restricted clears it.]]></word>
+<word key="gdcompliance_acp_review_mark_confirm_awb" js="0"><![CDATA[Confirm AWB (restrict)]]></word>
+<word key="gdcompliance_acp_review_mark_not_awb" js="0"><![CDATA[Not an AWB (clear)]]></word>
+<word key="gdcompliance_acp_review_mark_confirm_lower" js="0"><![CDATA[Confirm restricted lower]]></word>
+<word key="gdcompliance_acp_review_mark_not_lower" js="0"><![CDATA[Not an AWB lower (clear)]]></word>
+<word key="gdcompliance_acp_review_mark_confirm_mag" js="0"><![CDATA[Confirm over-capacity (restrict)]]></word>
+<word key="gdcompliance_acp_review_mark_not_mag" js="0"><![CDATA[Not restricted (clear)]]></word>
+<word key="gdcompliance_acp_review_col_review_type" js="0"><![CDATA[Category]]></word>
 <word key="gdcompliance_acp_review_pending" js="0"><![CDATA[Pending]]></word>
 <word key="gdcompliance_acp_review_resolved" js="0"><![CDATA[Resolved]]></word>
-<word key="gdcompliance_acp_review_mark_on" js="0"><![CDATA[Mark on-roster (CA-legal)]]></word>
+<word key="gdcompliance_acp_review_mark_on" js="0"><![CDATA[Mark on-roster (clear)]]></word>
 <word key="gdcompliance_acp_review_mark_off" js="0"><![CDATA[Mark off-roster (restrict)]]></word>
 <word key="gdcompliance_acp_review_reopen" js="0"><![CDATA[Re-open for review]]></word>
 <word key="gdcompliance_acp_review_candidates" js="0"><![CDATA[Near-miss roster candidates]]></word>

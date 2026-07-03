@@ -502,6 +502,7 @@ class _Engine
 								$result['review_queue'][] = [
 									'upc'              => substr( $upc, 0, 50 ),
 									'roster_state'     => '',
+									'review_type'      => 'lower',
 									'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? $p['brand'] ?? '' ), 0, 120 ),
 									'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
 									'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
@@ -727,6 +728,7 @@ class _Engine
 								$result['review_queue'][] = [
 									'upc'              => substr( $upc, 0, 50 ),
 									'roster_state'     => $awbState,
+									'review_type'      => 'awb_firearm',
 									'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? $p['brand'] ?? '' ), 0, 120 ),
 									'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
 									'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
@@ -760,6 +762,7 @@ class _Engine
 								$result['review_queue'][] = [
 									'upc'              => substr( $upc, 0, 50 ),
 									'roster_state'     => $awbState,
+									'review_type'      => 'awb_firearm',
 									'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? $p['brand'] ?? '' ), 0, 120 ),
 									'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
 									'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
@@ -1234,6 +1237,7 @@ class _Engine
 		$result['review_queue'][] = [
 			'upc'              => substr( $upc, 0, 50 ),
 			'roster_state'     => $rstate,
+			'review_type'      => 'roster',
 			'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? '' ), 0, 120 ),
 			'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
 			'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
