@@ -220,17 +220,27 @@ class _lowers extends \IPS\Dispatcher\Controller
 
 		/* Total distinct UPCs matching the current filter — drives the
 		   header count + pager. In state mode this equals COUNT(*) of
-		   rows since state_code+upc is unique. */
+		   rows since state_code+upc is unique.
+		   BUG (v1.6.14/1.6.15): the count query passed the table name
+		   without an alias ('gd_compliance_flags') while $flagWhereSql
+		   references f.firearm_type=? / f.state_code=?. MySQL raised
+		   "Unknown column 'f.firearm_type'" which the try/catch
+		   swallowed, leaving $listCount=0 → the pager conditional
+		   never fired. Use the aliased-table form to match the list
+		   select and the where clause (mirrors magazines.php line 112). */
 		$listCount = 0;
 		try
 		{
 			$listCount = (int) \IPS\Db::i()->select(
-				'COUNT(DISTINCT upc)',
-				'gd_compliance_flags',
+				'COUNT(DISTINCT f.upc)',
+				[ 'gd_compliance_flags', 'f' ],
 				array_merge( [ $flagWhereSql ], $flagArgs )
 			)->first();
 		}
-		catch ( \Throwable ) {}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'lowers listCount: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
 
 		$rowsHtml = '';
 		try

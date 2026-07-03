@@ -1,22 +1,35 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.15
+ * @brief  GD Compliance — upgrade 1.6.16
  *
- * ACP-display-only: makes the Lowers page's state row CLICKABLE, so
- * an admin can drill into a single state's flagged lowers and reach
- * the per-(upc, state) override — the workflow that was missing in
- * v1.6.14 when the states rendered as non-clickable info badges.
+ * ACP-display-only. Fixes the Lowers page pagination that shipped
+ * broken in v1.6.14/v1.6.15:
+ *
+ * ROOT CAUSE — the flagged-lowers count query was
+ *   \IPS\Db::i()->select( 'COUNT(DISTINCT upc)', 'gd_compliance_flags',
+ *       [ 'f.firearm_type=? [ AND f.state_code=? ]', … ] )
+ * The table was passed as a bare string (no alias) while the WHERE
+ * referenced the `f.` alias. MySQL raised "Unknown column
+ * 'f.firearm_type' in 'where clause'", which the surrounding
+ * try/catch swallowed. $listCount stayed at 0, so the pager
+ * conditional (`if ( $listCount > $per )`) never fired, and Prev/
+ * Next never rendered — the admin couldn't reach page 2.
+ *
+ * FIX — count query now uses the aliased-table form
+ *   [ 'gd_compliance_flags', 'f' ]
+ * matching the list SELECT + magazines.php's line 112 pattern.
+ * $per remains 50 (same as Magazines). Pager preserves the state
+ * filter via array_filter([...'state'=>$stateFilter...]).
  *
  * No engine changes. No schema changes. No recompute required.
  *
- * DEFENSIVE — because this replaces the sole upg dir per rule #79,
- * carries the v1.6.10 gd_compliance_lowers CREATE, the v1.6.12
- * gd_compliance_review.review_type ADD + backfill, and the v1.6.13
- * tandemkross force_clear seed forward for skip-upgrades from
- * 1.6.9 → 1.6.15.
+ * DEFENSIVE — carries the v1.6.10 gd_compliance_lowers CREATE, the
+ * v1.6.12 gd_compliance_review.review_type ADD + backfill, and the
+ * v1.6.13 tandemkross force_clear seed forward for skip-upgrades
+ * from 1.6.9 → 1.6.16.
  */
 
-namespace IPS\gdcompliance\setup\upg_10615;
+namespace IPS\gdcompliance\setup\upg_10616;
 
 use function defined;
 
@@ -58,7 +71,7 @@ class _upgrade
 					],
 				] );
 			}
-			catch ( \Throwable ) { /* non-fatal — the page still renders empty */ }
+			catch ( \Throwable ) { /* non-fatal */ }
 		}
 
 		/* ---------- Defensive gd_compliance_review.review_type (v1.6.12) ---------- */
@@ -123,33 +136,6 @@ class _upgrade
 					'note'       => 'Ruger .22 pistol/rimfire lower maker (Cthulhu, etc.) — not AWB. Brand-level clear supersedes per-UPC entries.',
 					'created_at' => time(),
 				] );
-			}
-		}
-		catch ( \Throwable ) {}
-
-		/* ---------- Reword the states caption — states are now clickable ---------- */
-		$newStrings = [
-			'gdcompliance_acp_lowers_states_caption' => 'AR/AK-pattern lower receivers are restricted for sale in each of these states. Click a state to filter the list below and reach per-(UPC, state) overrides — clear or restrict a single lower in a single state.',
-		];
-		try
-		{
-			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
-			{
-				foreach ( $newStrings as $key => $val )
-				{
-					try
-					{
-						\IPS\Db::i()->replace( 'core_sys_lang_words', [
-							'lang_id'      => (int) $langId,
-							'word_app'     => 'gdcompliance',
-							'word_key'     => (string) $key,
-							'word_default' => (string) $val,
-							'word_js'      => 0,
-							'word_export'  => 1,
-						] );
-					}
-					catch ( \Throwable ) {}
-				}
 			}
 		}
 		catch ( \Throwable ) {}
