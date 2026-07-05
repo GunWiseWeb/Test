@@ -1,1 +1,7 @@
-{}
+{
+	"core": {
+		"Notifications": {
+			"Report": "IPS\\gdcompliance\\extensions\\core\\Notifications\\Report"
+		}
+	}
+}

@@ -1,24 +1,28 @@
 <?php
 /**
- * @brief  GD Compliance — Public State Compliance Lookup (v1.6.22 Stage 1)
+ * @brief  GD Compliance — Public State Compliance Lookup (Stage 1 + Stage 2)
  *
- * gdcompliance's FIRST public/front module. A visitor picks their state
- * and enters a UPC or MPN; the page shows whether that item is
- * restricted / carries an advisory / has no flags for that state.
- * Read-only over gd_compliance_flags — no writes, no member state.
+ * Stage 1 (v1.6.22 → v1.6.23): visitor picks a state + enters UPC/MPN,
+ * page shows restricted / advisory / no-restrictions for that state.
+ * Read-only over gd_compliance_flags.
+ *
+ * Stage 2 (v1.6.24): logged-in member can flag a suspected misclass-
+ * ification via a "Report a problem" button on the result block. Report
+ * is stored in gd_compliance_reports; guest sees a login prompt; the
+ * report POST is CSRF-checked with csrfKey in the POST body (never in
+ * the URL — IN_DEV forbids that per rule #81).
+ *
+ * Rate limit: max N reports per hour per member (setting
+ * gdcompliance_report_ratelimit, default 5). Login-required + this
+ * rate limit together cover spam without needing captcha.
  *
  * FURL: /state-lookup/ (registered in data/furl.json).
  *
- * NO ACP permission check — this is publicly viewable (guest-friendly).
- * Any state-changing action (report button, etc.) will be gated with
- * CSRF at the point of the POST in later stages. This stage is
- * server-rendered GET / POST-back with no JS complexity.
+ * NO ACP permission check — the page is publicly viewable. State-
+ * changing action (submit report) checks login + CSRF at the POST.
  *
  * Stage plan:
- *   Stage 1 (THIS): basic lookup + editable disclaimer.
- *   Stage 2 (later): "report a mistake" button → review queue.
  *   Stage 3 (later): advanced search / full-state banned-list pull.
- * Keep this file clean and self-contained so stages 2-3 layer on.
  */
 
 namespace IPS\gdcompliance\modules\front\lookup;
@@ -50,6 +54,12 @@ class _lookup extends \IPS\Dispatcher\Controller
 		'VT' => 'Vermont',       'VA' => 'Virginia',     'WA' => 'Washington',    'WV' => 'West Virginia',
 		'WI' => 'Wisconsin',     'WY' => 'Wyoming',
 	];
+
+	/** Set by buildResult() so manage() can render a matching report button. */
+	protected string $lastClassification = '';
+
+	/** Set by buildResult() so submit() can compare / trust nothing. */
+	protected string $lastUpc = '';
 
 	/**
 	 * NOTE: publicly viewable — no ACP permission check. The public
@@ -90,10 +100,27 @@ class _lookup extends \IPS\Dispatcher\Controller
 
 		$submitted = ( $stateSel !== '' && $q !== '' );
 
+		/* Post-submit flash from a report POST. Ephemeral URL param;
+		   nothing state-changing here — just a friendly banner. */
+		$reportFlash = (string) ( \IPS\Request::i()->reported ?? '' );
+		if ( !in_array( $reportFlash, [ 'ok', 'ratelimit', 'error', 'login' ], true ) )
+		{
+			$reportFlash = '';
+		}
+
 		$resultHtml = '';
 		if ( $submitted )
 		{
 			$resultHtml = $this->buildResult( $stateSel, $q );
+		}
+
+		/* Login-gated report block — rendered ONLY when we have a real
+		   classification for the visitor to flag (product-in-catalog).
+		   Guests see a "log in to report" prompt. */
+		$reportBlockHtml = '';
+		if ( $submitted && $this->lastClassification !== '' && $this->lastUpc !== '' )
+		{
+			$reportBlockHtml = $this->buildReportBlock( $this->lastUpc, $stateSel, $this->lastClassification, $reportFlash );
 		}
 
 		/* Render the page. Server-side, no inline JS $-vars per the
@@ -155,6 +182,26 @@ class _lookup extends \IPS\Dispatcher\Controller
 			. '.gdcl-clear{background:#f0fdf4;border:1px solid #86efac;color:#065f46;padding:14px;border-radius:10px}'
 			. '.gdcl-notfound{background:#f1f5f9;border:1px solid #cbd5e1;color:#334155;padding:14px;border-radius:10px}'
 			. '.gdcl-muted{color:#64748b;font-size:.85em}'
+			. '.gdcl-report-wrap{margin-top:14px}'
+			. '.gdcl-report-flash{padding:10px 12px;border-radius:8px;font-size:.9em;margin-bottom:10px;line-height:1.5}'
+			. '.gdcl-report-flash--ok{background:#ecfeff;border:1px solid #a5f3fc;color:#155e75}'
+			. '.gdcl-report-flash--warn{background:#fef3c7;border:1px solid #fde68a;color:#78350f}'
+			. '.gdcl-report{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px}'
+			. '.gdcl-report[open]{padding:14px}'
+			. '.gdcl-report-btn{display:inline-block;background:transparent;color:#1e40af;border:1px solid #cbd5e1;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.85em;text-decoration:none;list-style:none}'
+			. '.gdcl-report-btn::-webkit-details-marker{display:none}'
+			. '.gdcl-report-btn:hover{background:#f1f5f9}'
+			. '.gdcl-report-form{margin-top:12px}'
+			. '.gdcl-report-fields{display:flex;gap:14px;margin-bottom:10px}'
+			. '.gdcl-report-fields > div{flex:1 1 auto}'
+			. '.gdcl-report-fields label{display:block;font-size:.75em;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}'
+			. '.gdcl-report-readonly{background:#f8fafc;border:1px solid #e2e8f0;color:#334155;padding:8px 10px;border-radius:6px;font-family:ui-monospace,monospace;font-size:.9em}'
+			. '.gdcl-report-form label{display:block;font-size:.8em;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin:8px 0 3px}'
+			. '.gdcl-report-form textarea{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.95em;color:#0f172a;font-family:inherit;resize:vertical}'
+			. '.gdcl-report-form textarea:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}'
+			. '.gdcl-report-submit{display:inline-block;background:#1e40af;color:#fff;border:none;font-weight:600;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:.9em;margin-top:10px}'
+			. '.gdcl-report-submit:hover{background:#1e3a8a}'
+			. '.gdcl-report-hint{margin:8px 0 0;font-size:.8em;color:#64748b;line-height:1.5}'
 			. '</style>'
 
 			. '<div class="gdcl-wrap">'
@@ -180,6 +227,7 @@ class _lookup extends \IPS\Dispatcher\Controller
 			. '</form>'
 
 			. $resultHtml
+			. $reportBlockHtml
 			. '</div>';
 
 		\IPS\Output::i()->output = $html;
@@ -242,6 +290,7 @@ class _lookup extends \IPS\Dispatcher\Controller
 		$productTitle = (string) ( $product['title'] ?? '' );
 		$productBrand = (string) ( $product['brand'] ?? '' );
 		$titleLine    = trim( ( $productBrand !== '' ? $productBrand . ' — ' : '' ) . $productTitle );
+		$this->lastUpc = $productUpc;
 
 		/* --- 3) Flag lookup for this UPC + state --- */
 		$flagRows = [];
@@ -285,6 +334,7 @@ class _lookup extends \IPS\Dispatcher\Controller
 		/* --- Result: restrict wins the headline; advisories render below. --- */
 		if ( !empty( $restrictFlags ) )
 		{
+			$this->lastClassification = 'restricted';
 			$out = '<div class="gdcl-result">'
 				. '<h2><span class="gdcl-badge restrict">⛔ Restricted</span>' . $h( (string) $lang->addToStack(
 					'gdcompliance_lookup_restricted_headline', FALSE, [ 'sprintf' => [ $stateName ] ]
@@ -323,6 +373,7 @@ class _lookup extends \IPS\Dispatcher\Controller
 		/* --- Advisory-only (no restrict) --- */
 		if ( !empty( $advisoryFlags ) )
 		{
+			$this->lastClassification = 'advisory';
 			$out = '<div class="gdcl-result">'
 				. '<h2><span class="gdcl-badge advisory">ⓘ Advisory</span>' . $h( (string) $lang->addToStack(
 					'gdcompliance_lookup_advisory_headline', FALSE, [ 'sprintf' => [ $stateName ] ]
@@ -346,6 +397,7 @@ class _lookup extends \IPS\Dispatcher\Controller
 		}
 
 		/* --- No flags --- */
+		$this->lastClassification = 'no_restrictions';
 		return '<div class="gdcl-result">'
 			. '<h2><span class="gdcl-badge clear">✓ ' . $h( (string) $lang->addToStack(
 				'gdcompliance_lookup_norestrict_headline', FALSE, [ 'sprintf' => [ $stateName ] ]
@@ -373,6 +425,240 @@ class _lookup extends \IPS\Dispatcher\Controller
 			. '<h1 style="color:#0f172a">' . $h( $lang->addToStack( 'gdcompliance_lookup_page_title' ) ) . '</h1>'
 			. '<p style="color:#475569">' . $h( $lang->addToStack( 'gdcompliance_lookup_disabled_msg' ) ) . '</p>'
 			. '</div>';
+	}
+
+	/**
+	 * Build the "Report a problem" block that renders below the result.
+	 *
+	 * Guest → "Log in to report a classification issue" (link to IPS
+	 * login with return_url set back to the lookup page for this q).
+	 * Member → collapsed <details> with UPC/state pre-filled read-only
+	 * fields, a note textarea, and a CSRF-protected POST form.
+	 *
+	 * The flash param ('ok', 'ratelimit', 'error', 'login') surfaces
+	 * the outcome of a prior POST so the visitor sees a friendly
+	 * confirmation right where the button used to be.
+	 */
+	protected function buildReportBlock( string $productUpc, string $stateCode, string $classification, string $flash ): string
+	{
+		$lang   = \IPS\Member::loggedIn()->language();
+		$h      = fn( string $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
+		$member = \IPS\Member::loggedIn();
+
+		/* Flash first. */
+		$flashHtml = '';
+		if ( $flash === 'ok' )
+		{
+			$flashHtml = '<div class="gdcl-report-flash gdcl-report-flash--ok">'
+				. $h( $lang->addToStack( 'gdcompliance_lookup_report_thanks' ) )
+				. '</div>';
+		}
+		elseif ( $flash === 'ratelimit' )
+		{
+			$flashHtml = '<div class="gdcl-report-flash gdcl-report-flash--warn">'
+				. $h( $lang->addToStack( 'gdcompliance_lookup_report_ratelimited' ) )
+				. '</div>';
+		}
+		elseif ( $flash === 'error' )
+		{
+			$flashHtml = '<div class="gdcl-report-flash gdcl-report-flash--warn">'
+				. $h( $lang->addToStack( 'gdcompliance_lookup_report_error' ) )
+				. '</div>';
+		}
+		elseif ( $flash === 'login' )
+		{
+			$flashHtml = '<div class="gdcl-report-flash gdcl-report-flash--warn">'
+				. $h( $lang->addToStack( 'gdcompliance_lookup_report_login_required' ) )
+				. '</div>';
+		}
+
+		/* Guest → login prompt. Return URL preserves the query so the
+		   member lands back on the same result page. */
+		if ( !$member->member_id )
+		{
+			$returnUrl = (string) \IPS\Http\Url::internal(
+				'app=gdcompliance&module=lookup&controller=lookup&state=' . rawurlencode( $stateCode ) . '&q=' . rawurlencode( $productUpc ),
+				'front', 'gdcompliance_state_lookup'
+			);
+			$loginUrl = (string) \IPS\Http\Url::internal(
+				'app=core&module=system&controller=login&ref=' . base64_encode( $returnUrl )
+			);
+			return '<div class="gdcl-report-wrap">'
+				. $flashHtml
+				. '<a href="' . $h( $loginUrl ) . '" class="gdcl-report-btn">'
+				. $h( $lang->addToStack( 'gdcompliance_lookup_report_login_cta' ) )
+				. '</a>'
+				. '</div>';
+		}
+
+		/* Member: collapsible <details> form. */
+		$submitUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=lookup&controller=lookup&do=submitReport',
+			'front', 'gdcompliance_state_lookup'
+		);
+		$csrfKey = (string) \IPS\Session::i()->csrfKey;
+		$stateName = self::STATE_NAMES[ $stateCode ] ?? $stateCode;
+
+		return '<div class="gdcl-report-wrap">'
+			. $flashHtml
+			. '<details class="gdcl-report">'
+			. '<summary class="gdcl-report-btn">' . $h( $lang->addToStack( 'gdcompliance_lookup_report_cta' ) ) . '</summary>'
+			. '<form method="post" action="' . $h( $submitUrl ) . '" class="gdcl-report-form">'
+			. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
+			. '<input type="hidden" name="upc" value="' . $h( $productUpc ) . '">'
+			. '<input type="hidden" name="state" value="' . $h( $stateCode ) . '">'
+			. '<input type="hidden" name="classification" value="' . $h( $classification ) . '">'
+			. '<div class="gdcl-report-fields">'
+			. '<div><label>UPC</label><div class="gdcl-report-readonly">' . $h( $productUpc ) . '</div></div>'
+			. '<div><label>State</label><div class="gdcl-report-readonly">' . $h( $stateName ) . '</div></div>'
+			. '</div>'
+			. '<label for="gdcl-report-note">' . $h( $lang->addToStack( 'gdcompliance_lookup_report_note_label' ) ) . '</label>'
+			. '<textarea id="gdcl-report-note" name="note" rows="4" maxlength="2000" required placeholder="' . $h( $lang->addToStack( 'gdcompliance_lookup_report_note_placeholder' ) ) . '"></textarea>'
+			. '<button type="submit" class="gdcl-report-submit">' . $h( $lang->addToStack( 'gdcompliance_lookup_report_submit' ) ) . '</button>'
+			. '<p class="gdcl-report-hint">' . $h( $lang->addToStack( 'gdcompliance_lookup_report_hint' ) ) . '</p>'
+			. '</form>'
+			. '</details>'
+			. '</div>';
+	}
+
+	/**
+	 * POST /state-lookup/?do=submitReport
+	 *
+	 * Auth: login required (guests bounced with ?reported=login flash).
+	 * CSRF: csrfKey in POST body — validated via Session::csrfCheck().
+	 * Rate limit: N per member per hour, per setting
+	 *             gdcompliance_report_ratelimit (default 5).
+	 *
+	 * Trust: member_id from Session (never POST). UPC + state are
+	 * re-validated against gd_catalog + STATE_NAMES; classification is
+	 * trusted only as a label for what the visitor saw (audit only —
+	 * we don't recompute on the report row).
+	 */
+	public function submitReport(): void
+	{
+		$lang = \IPS\Member::loggedIn()->language();
+
+		/* Login gate. */
+		$member = \IPS\Member::loggedIn();
+		if ( !$member->member_id )
+		{
+			$this->bounceReport( '', '', 'login' );
+			return;
+		}
+
+		/* CSRF. csrfKey lives in POST body (rule #62 / #81). */
+		try { \IPS\Session::i()->csrfCheck(); }
+		catch ( \Throwable )
+		{
+			$this->bounceReport( '', '', 'error' );
+			return;
+		}
+
+		/* Inputs. Validate state + classification; UPC bounded + charset-limited. */
+		$stateCode = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
+		if ( !isset( self::STATE_NAMES[ $stateCode ] ) )
+		{
+			$this->bounceReport( '', '', 'error' );
+			return;
+		}
+
+		$upcRaw = trim( (string) ( \IPS\Request::i()->upc ?? '' ) );
+		$upc    = substr( $upcRaw, 0, 64 );
+		if ( $upc === '' || !preg_match( '/^[A-Za-z0-9\-\._\/ ]+$/', $upc ) )
+		{
+			$this->bounceReport( '', $stateCode, 'error' );
+			return;
+		}
+
+		$classification = (string) ( \IPS\Request::i()->classification ?? '' );
+		if ( !in_array( $classification, [ 'restricted', 'no_restrictions', 'advisory' ], true ) )
+		{
+			$classification = '';
+		}
+
+		$note = trim( (string) ( \IPS\Request::i()->note ?? '' ) );
+		$note = mb_substr( $note, 0, 2000 );
+		if ( $note === '' )
+		{
+			$this->bounceReport( $upc, $stateCode, 'error' );
+			return;
+		}
+
+		/* Rate limit. Independent per-member; setting-driven. */
+		$limit = (int) ( \IPS\Settings::i()->gdcompliance_report_ratelimit ?? 5 );
+		if ( $limit < 1 ) { $limit = 5; }
+		$since = time() - 3600;
+		$recent = 0;
+		try
+		{
+			$recent = (int) \IPS\Db::i()->select(
+				'COUNT(*)', 'gd_compliance_reports',
+				[ 'member_id=? AND created_at > ?', (int) $member->member_id, $since ]
+			)->first();
+		}
+		catch ( \Throwable ) {}
+		if ( $recent >= $limit )
+		{
+			$this->bounceReport( $upc, $stateCode, 'ratelimit' );
+			return;
+		}
+
+		/* Ignore reports for products we don't carry (defensive — the
+		   button only renders when we do, but a hand-crafted POST could
+		   send anything). */
+		$exists = false;
+		try
+		{
+			$exists = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ 'upc=?', $upc ] )->first() > 0;
+		}
+		catch ( \Throwable ) {}
+		if ( !$exists )
+		{
+			$this->bounceReport( $upc, $stateCode, 'error' );
+			return;
+		}
+
+		/* Insert the report row. */
+		try
+		{
+			\IPS\Db::i()->insert( 'gd_compliance_reports', [
+				'member_id'               => (int) $member->member_id,
+				'upc'                     => $upc,
+				'state_code'              => $stateCode,
+				'reported_classification' => $classification,
+				'note'                    => $note,
+				'status'                  => 'pending',
+				'created_at'              => time(),
+				'ip_address'              => (string) mb_substr( (string) ( \IPS\Request::i()->ipAddress() ?? '' ), 0, 45 ),
+			] );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'submitReport insert: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			$this->bounceReport( $upc, $stateCode, 'error' );
+			return;
+		}
+
+		$this->bounceReport( $upc, $stateCode, 'ok' );
+	}
+
+	/**
+	 * Bare redirect back to the lookup page with the same state+q and
+	 * a small ?reported=… flash. No second arg on redirect() — that
+	 * shows an interstitial (rule #21).
+	 */
+	protected function bounceReport( string $upc, string $stateCode, string $status ): void
+	{
+		$q = [
+			'app'        => 'gdcompliance',
+			'module'     => 'lookup',
+			'controller' => 'lookup',
+			'reported'   => $status,
+		];
+		if ( $stateCode !== '' ) { $q['state'] = $stateCode; }
+		if ( $upc       !== '' ) { $q['q']     = $upc; }
+		$url = (string) \IPS\Http\Url::internal( http_build_query( $q ), 'front', 'gdcompliance_state_lookup' );
+		\IPS\Output::i()->redirect( $url );
 	}
 
 	/**

@@ -342,5 +342,49 @@
 <word key="gdcompliance_lookup_not_found" js="0"><![CDATA[We could not find %s in our catalog, so we have no compliance information for it.]]></word>
 <word key="gdcompliance_lookup_not_found_hint" js="0"><![CDATA[Double-check the UPC / MPN. Only items currently in our catalog are covered by this tool.]]></word>
 <word key="gdcompliance_lookup_disabled_msg" js="0"><![CDATA[The state-lookup page is temporarily unavailable. Please check back later.]]></word>
+<word key="gdcompliance_lookup_report_cta" js="0"><![CDATA[Report a problem with this result]]></word>
+<word key="gdcompliance_lookup_report_login_cta" js="0"><![CDATA[Log in to report a classification issue]]></word>
+<word key="gdcompliance_lookup_report_login_required" js="0"><![CDATA[Please log in to submit a report.]]></word>
+<word key="gdcompliance_lookup_report_note_label" js="0"><![CDATA[Tell us what looks wrong]]></word>
+<word key="gdcompliance_lookup_report_note_placeholder" js="0"><![CDATA[What do you believe is misclassified, and why? Feel free to link a state statute or catalog page.]]></word>
+<word key="gdcompliance_lookup_report_submit" js="0"><![CDATA[Submit report]]></word>
+<word key="gdcompliance_lookup_report_hint" js="0"><![CDATA[Reports are reviewed by staff. Corrections can take up to 90 days to be reflected in the catalog. If you are logged in, you will be notified when your report is resolved.]]></word>
+<word key="gdcompliance_lookup_report_thanks" js="0"><![CDATA[Thank you — your report has been received and will be reviewed. Any resulting correction can take up to 90 days to be reflected in the catalog. You will be notified when your report is resolved.]]></word>
+<word key="gdcompliance_lookup_report_ratelimited" js="0"><![CDATA[You have submitted several reports recently. Please try again later.]]></word>
+<word key="gdcompliance_lookup_report_error" js="0"><![CDATA[We could not accept your report. Please check the form and try again.]]></word>
+<word key="menu__gdcompliance_compliance_reports" js="0"><![CDATA[Compliance Reports]]></word>
+<word key="gdcompliance_acp_reports_title" js="0"><![CDATA[Compliance Reports]]></word>
+<word key="gdcompliance_acp_reports_intro" js="0"><![CDATA[Member-submitted reports from the public /state-lookup/ page. Resolve a report to create an override that flips the classification on next recompute, or dismiss to close without action. Either action notifies the reporter.]]></word>
+<word key="gdcompliance_acp_reports_tab_pending" js="0"><![CDATA[Pending]]></word>
+<word key="gdcompliance_acp_reports_tab_resolved" js="0"><![CDATA[Resolved]]></word>
+<word key="gdcompliance_acp_reports_tab_dismissed" js="0"><![CDATA[Dismissed]]></word>
+<word key="gdcompliance_acp_reports_tab_all" js="0"><![CDATA[All]]></word>
+<word key="gdcompliance_acp_reports_col_member_id" js="0"><![CDATA[Reporter]]></word>
+<word key="gdcompliance_acp_reports_col_upc" js="0"><![CDATA[UPC]]></word>
+<word key="gdcompliance_acp_reports_col_state_code" js="0"><![CDATA[State]]></word>
+<word key="gdcompliance_acp_reports_col_reported_classification" js="0"><![CDATA[Reported]]></word>
+<word key="gdcompliance_acp_reports_col_note" js="0"><![CDATA[Note]]></word>
+<word key="gdcompliance_acp_reports_col_status" js="0"><![CDATA[Status]]></word>
+<word key="gdcompliance_acp_reports_col_created_at" js="0"><![CDATA[Submitted]]></word>
+<word key="gdcompliance_acp_reports_action_resolve" js="0"><![CDATA[Resolve]]></word>
+<word key="gdcompliance_acp_reports_action_dismiss" js="0"><![CDATA[Dismiss]]></word>
+<word key="gdcompliance_acp_reports_action_view" js="0"><![CDATA[View]]></word>
+<word key="gdcompliance_acp_reports_resolve_title" js="0"><![CDATA[Resolve report]]></word>
+<word key="gdcompliance_acp_reports_dismiss_title" js="0"><![CDATA[Dismiss report]]></word>
+<word key="gdcompliance_acp_reports_resolve_override" js="0"><![CDATA[Create catalog override on resolve?]]></word>
+<word key="gdcompliance_acp_reports_resolve_override_none" js="0"><![CDATA[No override — classification was correct or handled separately.]]></word>
+<word key="gdcompliance_acp_reports_resolve_override_force_clear" js="0"><![CDATA[Force clear — no restrictions for this UPC in this state.]]></word>
+<word key="gdcompliance_acp_reports_resolve_override_force_restrict" js="0"><![CDATA[Force restrict — this UPC IS restricted in this state.]]></word>
+<word key="gdcompliance_acp_reports_resolution_note" js="0"><![CDATA[Resolution note (surfaced to the reporter)]]></word>
+<word key="gdcompliance_acp_reports_resolution_note_hint" js="0"><![CDATA[Optional. Kept short — this is delivered inline with the notification.]]></word>
+<word key="gdcompliance_acp_reports_cancel" js="0"><![CDATA[Cancel]]></word>
+<word key="gdcompliance_report_ratelimit" js="0"><![CDATA[Max reports per member per hour]]></word>
+<word key="gdcompliance_report_ratelimit_desc" js="0"><![CDATA[Rate limit for submissions to the /state-lookup/ report form. Login is already required; this backstops spam.]]></word>
+<word key="gdcompliance_notif_report" js="0"><![CDATA[Compliance report reviewed]]></word>
+<word key="gdcompliance_notif_report_desc" js="0"><![CDATA[When staff resolves or dismisses a compliance report you submitted from the /state-lookup/ page.]]></word>
+<word key="notification__gdcompliance_report_resolved" js="0"><![CDATA[Compliance report resolved]]></word>
+<word key="notification__gdcompliance_report_resolved_desc" js="0"><![CDATA[Notify me when a compliance report I submitted is resolved.]]></word>
+<word key="notification__gdcompliance_report_dismissed" js="0"><![CDATA[Compliance report dismissed]]></word>
+<word key="notification__gdcompliance_report_dismissed_desc" js="0"><![CDATA[Notify me when a compliance report I submitted is dismissed.]]></word>
 </app>
 </language>

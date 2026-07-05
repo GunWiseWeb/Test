@@ -407,6 +407,58 @@ $lang = array(
 	'gdcompliance_lookup_not_found_hint'       => 'Double-check the UPC / MPN. Only items currently in our catalog are covered by this tool.',
 	'gdcompliance_lookup_disabled_msg'         => 'The state-lookup page is temporarily unavailable. Please check back later.',
 
+	/* v1.6.24 — public "report a problem" (login-gated) */
+	'gdcompliance_lookup_report_cta'            => 'Report a problem with this result',
+	'gdcompliance_lookup_report_login_cta'      => 'Log in to report a classification issue',
+	'gdcompliance_lookup_report_login_required' => 'Please log in to submit a report.',
+	'gdcompliance_lookup_report_note_label'     => 'Tell us what looks wrong',
+	'gdcompliance_lookup_report_note_placeholder' => 'What do you believe is misclassified, and why? Feel free to link a state statute or catalog page.',
+	'gdcompliance_lookup_report_submit'         => 'Submit report',
+	'gdcompliance_lookup_report_hint'           => 'Reports are reviewed by staff. Corrections can take up to 90 days to be reflected in the catalog. If you are logged in, you will be notified when your report is resolved.',
+	'gdcompliance_lookup_report_thanks'         => 'Thank you — your report has been received and will be reviewed. Any resulting correction can take up to 90 days to be reflected in the catalog. You will be notified when your report is resolved.',
+	'gdcompliance_lookup_report_ratelimited'    => 'You have submitted several reports recently. Please try again later.',
+	'gdcompliance_lookup_report_error'          => 'We could not accept your report. Please check the form and try again.',
+
+	/* v1.6.24 — ACP triage strings */
+	'menu__gdcompliance_compliance_reports'     => 'Compliance Reports',
+	'gdcompliance_acp_reports_title'            => 'Compliance Reports',
+	'gdcompliance_acp_reports_intro'            => 'Member-submitted reports from the public /state-lookup/ page. Resolve a report to create an override that flips the classification on next recompute, or dismiss to close without action. Either action notifies the reporter.',
+	'gdcompliance_acp_reports_tab_pending'      => 'Pending',
+	'gdcompliance_acp_reports_tab_resolved'     => 'Resolved',
+	'gdcompliance_acp_reports_tab_dismissed'    => 'Dismissed',
+	'gdcompliance_acp_reports_tab_all'          => 'All',
+	'gdcompliance_acp_reports_col_member_id'                 => 'Reporter',
+	'gdcompliance_acp_reports_col_upc'                       => 'UPC',
+	'gdcompliance_acp_reports_col_state_code'                => 'State',
+	'gdcompliance_acp_reports_col_reported_classification'   => 'Reported',
+	'gdcompliance_acp_reports_col_note'                      => 'Note',
+	'gdcompliance_acp_reports_col_status'                    => 'Status',
+	'gdcompliance_acp_reports_col_created_at'                => 'Submitted',
+	'gdcompliance_acp_reports_action_resolve'   => 'Resolve',
+	'gdcompliance_acp_reports_action_dismiss'   => 'Dismiss',
+	'gdcompliance_acp_reports_action_view'      => 'View',
+	'gdcompliance_acp_reports_resolve_title'    => 'Resolve report',
+	'gdcompliance_acp_reports_dismiss_title'    => 'Dismiss report',
+	'gdcompliance_acp_reports_resolve_override' => 'Create catalog override on resolve?',
+	'gdcompliance_acp_reports_resolve_override_none'           => 'No override — classification was correct or handled separately.',
+	'gdcompliance_acp_reports_resolve_override_force_clear'    => 'Force clear — no restrictions for this UPC in this state.',
+	'gdcompliance_acp_reports_resolve_override_force_restrict' => 'Force restrict — this UPC IS restricted in this state.',
+	'gdcompliance_acp_reports_resolution_note'      => 'Resolution note (surfaced to the reporter)',
+	'gdcompliance_acp_reports_resolution_note_hint' => 'Optional. Kept short — this is delivered inline with the notification.',
+	'gdcompliance_acp_reports_cancel'          => 'Cancel',
+
+	/* v1.6.24 — Settings */
+	'gdcompliance_report_ratelimit'      => 'Max reports per member per hour',
+	'gdcompliance_report_ratelimit_desc' => 'Rate limit for submissions to the /state-lookup/ report form. Login is already required; this backstops spam.',
+
+	/* v1.6.24 — Notification framework strings */
+	'gdcompliance_notif_report'                        => 'Compliance report reviewed',
+	'gdcompliance_notif_report_desc'                   => 'When staff resolves or dismisses a compliance report you submitted from the /state-lookup/ page.',
+	'notification__gdcompliance_report_resolved'       => 'Compliance report resolved',
+	'notification__gdcompliance_report_resolved_desc'  => 'Notify me when a compliance report I submitted is resolved.',
+	'notification__gdcompliance_report_dismissed'      => 'Compliance report dismissed',
+	'notification__gdcompliance_report_dismissed_desc' => 'Notify me when a compliance report I submitted is dismissed.',
+
 	/* Phase 5 — Widget */
 	'block_gdRestrictionNotice'                => 'Product Restriction Notice',
 	'gdcompliance_widget_upc_fallback'         => 'Fallback UPC (only used if no product UPC in URL)',

@@ -257,6 +257,30 @@
 			"idx_enabled":    { "type": "key", "name": "idx_enabled", "length": [ null ], "columns": [ "enabled" ] }
 		}
 	},
+	"gd_compliance_reports": {
+		"name": "gd_compliance_reports",
+		"columns": {
+			"id":                      { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"member_id":               { "name": "member_id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "reporter — from session, never trust POST" },
+			"upc":                     { "name": "upc", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"state_code":              { "name": "state_code", "type": "CHAR", "length": 2, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"reported_classification": { "name": "reported_classification", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "restricted|no_restrictions|advisory — what the lookup showed at submit time" },
+			"note":                    { "name": "note", "type": "TEXT", "length": 0, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "reporter explanation" },
+			"status":                  { "name": "status", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": false, "default": "pending", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "pending|resolved|dismissed" },
+			"resolution_note":         { "name": "resolution_note", "type": "TEXT", "length": 0, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "admin note surfaced to reporter" },
+			"resolved_by":             { "name": "resolved_by", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "admin member_id" },
+			"resolved_at":             { "name": "resolved_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"created_at":              { "name": "created_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"ip_address":              { "name": "ip_address", "type": "VARCHAR", "length": 45, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "abuse audit only" }
+		},
+		"indexes": {
+			"PRIMARY":     { "type": "primary", "name": "PRIMARY",     "length": [ null ], "columns": [ "id" ] },
+			"idx_status":  { "type": "key",     "name": "idx_status",  "length": [ null ], "columns": [ "status" ] },
+			"idx_member":  { "type": "key",     "name": "idx_member",  "length": [ null ], "columns": [ "member_id" ] },
+			"idx_upc":     { "type": "key",     "name": "idx_upc",     "length": [ null ], "columns": [ "upc" ] },
+			"idx_created": { "type": "key",     "name": "idx_created", "length": [ null ], "columns": [ "created_at" ] }
+		}
+	},
 	"gd_compliance_lowers": {
 		"name": "gd_compliance_lowers",
 		"columns": {

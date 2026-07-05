@@ -24,6 +24,12 @@
 			"do": "",
 			"restriction": "compliance_manage"
 		},
+		"reports": {
+			"tab": "gdcompliance",
+			"controller": "reports",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
 		"overrides": {
 			"tab": "gdcompliance",
 			"controller": "overrides",

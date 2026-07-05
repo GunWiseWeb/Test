@@ -80,6 +80,24 @@ if ( is_readable( $langFile ) )
 	}
 }
 
+/* Notification defaults — v1.6.24 report resolved/dismissed. */
+try
+{
+	foreach ( [ 'gdcompliance_report_resolved', 'gdcompliance_report_dismissed' ] as $nkey )
+	{
+		try
+		{
+			\IPS\Db::i()->replace( 'core_notification_defaults', [
+				'notification_app' => 'gdcompliance',
+				'notification_key' => $nkey,
+				'default'          => '["inline","email"]',
+			] );
+		}
+		catch ( \Throwable ) {}
+	}
+}
+catch ( \Throwable ) {}
+
 /* ACP permission row. */
 try
 {
