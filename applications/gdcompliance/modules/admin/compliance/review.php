@@ -58,6 +58,7 @@ class _review extends \IPS\Dispatcher\Controller
 		'awb_firearm' => 'AWB Firearms',
 		'lower'       => 'Lowers',
 		'magazine'    => 'Magazines',
+		'melting'     => 'Melting-Point',
 	];
 
 	const ROSTER_STATES = [ 'CA', 'MA', 'MD', 'DC' ];
@@ -310,6 +311,7 @@ class _review extends \IPS\Dispatcher\Controller
 			'awb_firearm' => [ 'gdcompliance_acp_review_title_awb',      'gdcompliance_acp_review_intro_awb' ],
 			'lower'       => [ 'gdcompliance_acp_review_title_lower',    'gdcompliance_acp_review_intro_lower' ],
 			'magazine'    => [ 'gdcompliance_acp_review_title_magazine', 'gdcompliance_acp_review_intro_magazine' ],
+			'melting'     => [ 'gdcompliance_acp_review_title_melting',  'gdcompliance_acp_review_intro_melting' ],
 			default       => [ 'gdcompliance_acp_review_title_all',      'gdcompliance_acp_review_intro_all' ],
 		};
 	}
@@ -353,6 +355,15 @@ class _review extends \IPS\Dispatcher\Controller
 			   STATE row renders for this category. */
 			return [];
 		}
+		if ( $typeFilter === 'melting' )
+		{
+			/* v1.6.20 — melting-point reviews are per-product, not
+			   per-state (Engine writes roster_state='' on melting
+			   reviews). Resolving one row applies force_flag /
+			   force_clear across every enabled melting-point state,
+			   matching the flag-emission model. */
+			return [];
+		}
 		if ( $typeFilter === 'magazine' )
 		{
 			$out = [];
@@ -383,10 +394,11 @@ class _review extends \IPS\Dispatcher\Controller
 	protected static function resolutionsFor( string $reviewType ): array
 	{
 		return match( $reviewType ) {
-			'awb_firearm' => [ 'confirm_awb',      'not_awb',      'gdcompliance_acp_review_mark_confirm_awb',   'gdcompliance_acp_review_mark_not_awb' ],
-			'lower'       => [ 'confirm_lower',    'not_lower',    'gdcompliance_acp_review_mark_confirm_lower', 'gdcompliance_acp_review_mark_not_lower' ],
-			'magazine'    => [ 'confirm_magazine', 'not_magazine', 'gdcompliance_acp_review_mark_confirm_mag',   'gdcompliance_acp_review_mark_not_mag' ],
-			default       => [ 'off_roster',       'on_roster',    'gdcompliance_acp_review_mark_off',           'gdcompliance_acp_review_mark_on' ],
+			'awb_firearm' => [ 'confirm_awb',      'not_awb',      'gdcompliance_acp_review_mark_confirm_awb',     'gdcompliance_acp_review_mark_not_awb' ],
+			'lower'       => [ 'confirm_lower',    'not_lower',    'gdcompliance_acp_review_mark_confirm_lower',   'gdcompliance_acp_review_mark_not_lower' ],
+			'magazine'    => [ 'confirm_magazine', 'not_magazine', 'gdcompliance_acp_review_mark_confirm_mag',     'gdcompliance_acp_review_mark_not_mag' ],
+			'melting'     => [ 'confirm_melting',  'not_melting',  'gdcompliance_acp_review_mark_confirm_melting', 'gdcompliance_acp_review_mark_not_melting' ],
+			default       => [ 'off_roster',       'on_roster',    'gdcompliance_acp_review_mark_off',             'gdcompliance_acp_review_mark_on' ],
 		};
 	}
 
@@ -485,7 +497,7 @@ class _review extends \IPS\Dispatcher\Controller
 
 		$id     = (int) ( \IPS\Request::i()->id ?? 0 );
 		$status = (string) ( \IPS\Request::i()->status ?? '' );
-		$valid  = [ 'on_roster', 'off_roster', 'confirm_awb', 'not_awb', 'confirm_lower', 'not_lower', 'confirm_magazine', 'not_magazine' ];
+		$valid  = [ 'on_roster', 'off_roster', 'confirm_awb', 'not_awb', 'confirm_lower', 'not_lower', 'confirm_magazine', 'not_magazine', 'confirm_melting', 'not_melting' ];
 		if ( !in_array( $status, $valid, true ) )
 		{
 			\IPS\Output::i()->redirect( \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=review' ) );
@@ -525,8 +537,8 @@ class _review extends \IPS\Dispatcher\Controller
 		$rt       = (string) ( $row['review_type'] ?? 'roster' );
 		$rowState = (string) ( $row['roster_state'] ?? '' );
 
-		$restrict = [ 'off_roster', 'confirm_awb', 'confirm_lower', 'confirm_magazine' ];
-		$clear    = [ 'on_roster',  'not_awb',     'not_lower',     'not_magazine' ];
+		$restrict = [ 'off_roster', 'confirm_awb', 'confirm_lower', 'confirm_magazine', 'confirm_melting' ];
+		$clear    = [ 'on_roster',  'not_awb',     'not_lower',     'not_magazine',    'not_melting' ];
 		$action   = in_array( $status, $restrict, true )
 			? \IPS\gdcompliance\Override::ACTION_RESTRICT
 			: \IPS\gdcompliance\Override::ACTION_CLEAR;
@@ -538,6 +550,25 @@ class _review extends \IPS\Dispatcher\Controller
 		if ( $rt === 'lower' && $rowState === '' )
 		{
 			$targetStates = self::stateOptionsFor( 'lower' );
+		}
+		elseif ( $rt === 'melting' && $rowState === '' )
+		{
+			/* v1.6.20 — melting-point resolutions apply across every
+			   enabled melting-point state, matching how the flags
+			   were emitted per-state. Pull the state list live from
+			   gd_compliance_melting_rules; fall back to the seeded
+			   six-state constant if the table is unavailable. */
+			$mpStates = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'state_code', 'gd_compliance_melting_rules', [ 'enabled=?', 1 ] ) as $sc )
+				{
+					$s = strtoupper( (string) ( is_array( $sc ) ? ( $sc['state_code'] ?? '' ) : $sc ) );
+					if ( strlen( $s ) === 2 ) { $mpStates[] = $s; }
+				}
+			}
+			catch ( \Throwable ) {}
+			$targetStates = !empty( $mpStates ) ? $mpStates : [ 'HI', 'IL', 'MD', 'MA', 'MN', 'NY' ];
 		}
 		elseif ( $rowState !== '' )
 		{
@@ -582,6 +613,8 @@ class _review extends \IPS\Dispatcher\Controller
 			'not_lower'        => "Cleared — not an AWB lower via manual review{$where}",
 			'confirm_magazine' => "Confirmed over-capacity magazine via manual review{$where}",
 			'not_magazine'     => "Cleared — not restricted via manual review{$where}",
+			'confirm_melting'  => "Confirmed zinc-alloy frame (Saturday-Night-Special ban) via manual review{$where}",
+			'not_melting'      => "Cleared — steel frame confirmed via manual review{$where}",
 			default            => "Manual review resolution: {$status}",
 		};
 	}

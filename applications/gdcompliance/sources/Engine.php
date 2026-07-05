@@ -847,7 +847,29 @@ class _Engine
 					try
 					{
 						$mpVerdict = \IPS\gdcompliance\MeltingPoint::classify( $p );
-						if ( is_array( $mpVerdict ) && ( $mpVerdict['verdict'] ?? '' ) === 'flag' )
+						if ( is_array( $mpVerdict ) && ( $mpVerdict['verdict'] ?? '' ) === 'review' )
+						{
+							/* v1.6.20 — Heritage (etc.) with no explicit
+							   frame-material signal in title. Route to
+							   the v1.6.12 review queue under a new
+							   'melting' review_type so Derrick judges
+							   per-row (frame material may not be in
+							   the title at all — sometimes it's in the
+							   description or MPN). One review row per
+							   product (no per-state fan-out). */
+							$result['review_queue'][] = [
+								'upc'              => substr( $upc, 0, 50 ),
+								'roster_state'     => '',
+								'review_type'      => 'melting',
+								'manufacturer'     => substr( (string) ( $p['manufacturer'] ?? $p['brand'] ?? '' ), 0, 120 ),
+								'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
+								'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
+								'suggested_status' => 'melting_review',
+								'created_at'       => $now,
+							];
+							$result['melting_point']['review'] = ( $result['melting_point']['review'] ?? 0 ) + 1;
+						}
+						elseif ( is_array( $mpVerdict ) && ( $mpVerdict['verdict'] ?? '' ) === 'flag' )
 						{
 							$mpSrc  = (string) ( $mpVerdict['source'] ?? 'auto' );
 							$mpHint = (string) ( $mpVerdict['reason_hint'] ?? '' );

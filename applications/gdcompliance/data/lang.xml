@@ -256,6 +256,10 @@
 <word key="gdcompliance_acp_review_intro_lower" js="0"><![CDATA[Ambiguous cat154 lower receivers (bolt-action / rimfire / unknown platform) needing confirmation. Confirm restricted lower applies a force_restrict override across every enabled rifle-class AWB state; Not an AWB lower clears them all.]]></word>
 <word key="gdcompliance_acp_review_title_magazine" js="0"><![CDATA[Magazine Review Queue]]></word>
 <word key="gdcompliance_acp_review_intro_magazine" js="0"><![CDATA[Standalone magazines needing manual review. Confirm over-capacity keeps / adds the state restriction; Not restricted clears it.]]></word>
+<word key="gdcompliance_acp_review_title_melting" js="0"><![CDATA[Melting-Point Review Queue]]></word>
+<word key="gdcompliance_acp_review_intro_melting" js="0"><![CDATA[Handguns whose frame material could not be classified from the title. Common case: Heritage Rough Rider models whose title says "Steel Barrel" but has no explicit "Zinc / Alloy Frame" or "Steel Frame" phrase — the frame material may be in the description or MPN. Confirm zinc-alloy frame writes a force_restrict across every enabled melting-point state (HI/IL/MD/MA/MN/NY); Confirm steel frame writes a force_clear across the same set.]]></word>
+<word key="gdcompliance_acp_review_mark_confirm_melting" js="0"><![CDATA[Confirm zinc-alloy frame (restrict)]]></word>
+<word key="gdcompliance_acp_review_mark_not_melting" js="0"><![CDATA[Confirm steel frame (clear)]]></word>
 <word key="gdcompliance_acp_review_mark_confirm_awb" js="0"><![CDATA[Confirm AWB (restrict)]]></word>
 <word key="gdcompliance_acp_review_mark_not_awb" js="0"><![CDATA[Not an AWB (clear)]]></word>
 <word key="gdcompliance_acp_review_mark_confirm_lower" js="0"><![CDATA[Confirm restricted lower]]></word>

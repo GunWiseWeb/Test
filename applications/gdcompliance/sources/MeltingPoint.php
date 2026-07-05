@@ -28,9 +28,21 @@
  *   - Hi-Point titles may say "Black Steel" — that's the SLIDE, not
  *     the frame. Hi-Point frames are Zamak-3 zinc alloy → ALWAYS
  *     banned. Never clear Hi-Point on "steel" in title.
- *   - Heritage Rough Rider: title contains 'steel' → STEEL FRAME =
- *     LEGAL (clear). No 'steel' → ALLOY FRAME = banned (flag).
- *     The steel-title CLEAR rule applies to HERITAGE MFG ONLY.
+ *   - CRITICAL Heritage frame rule (do NOT key on bare 'steel'):
+ *     Nearly every Heritage Rough Rider title contains 'steel' — but
+ *     it describes the BARREL ("Black Steel Barrel"), while the FRAME
+ *     is zinc ("Black Zinc Alloy Frame"). ~80 of 82 Heritage handguns
+ *     say "Zinc Alloy Frame" → BANNED. Only ~1 (the Roscoe) says
+ *     "Steel Frame" → legal. A rule of "steel in title → clear" would
+ *     FALSELY CLEAR ~80 banned zinc-frame revolvers. So key on the
+ *     FRAME specifically:
+ *       title contains 'zinc' OR 'alloy frame' → FLAG (zinc frame)
+ *       title contains 'steel frame'           → CLEAR (legal steel)
+ *       else                                   → REVIEW (Derrick
+ *                                                judges; do NOT
+ *                                                auto-clear on bare
+ *                                                'steel', do NOT
+ *                                                auto-flag).
  *
  * Layer order (first hit wins):
  *   1. Category gate — cat1/2/3 only. Anything else → null (skip).
@@ -93,13 +105,40 @@ class _MeltingPoint
 	];
 
 	/**
-	 * Brands whose title-'steel' means STEEL FRAME → clear. Applied
-	 * only to the brand key here. Do NOT extend this to Hi-Point.
+	 * Brands with a per-brand FRAME material classifier — the auto
+	 * "brand hit → flag" default doesn't apply directly; instead we
+	 * key on frame-material tokens in the title. Do NOT extend this
+	 * to Hi-Point — Hi-Point frames are zinc regardless of any title
+	 * material words.
 	 *
 	 * @var string[]
 	 */
-	const STEEL_TITLE_BRANDS = [
+	const FRAME_MATERIAL_BRANDS = [
 		'Heritage Mfg',
+	];
+
+	/**
+	 * Tokens that indicate a ZINC / alloy FRAME (banned) when brand
+	 * is in FRAME_MATERIAL_BRANDS. Order matters only for readability.
+	 *
+	 * @var string[]
+	 */
+	const ZINC_FRAME_TOKENS = [
+		'zinc alloy frame',
+		'zinc frame',
+		'alloy frame',
+		'zinc',
+	];
+
+	/**
+	 * Tokens that indicate a STEEL FRAME (legal) when brand is in
+	 * FRAME_MATERIAL_BRANDS. Must be the two-word phrase — bare
+	 * 'steel' commonly describes the barrel and is NOT a clear.
+	 *
+	 * @var string[]
+	 */
+	const STEEL_FRAME_TOKENS = [
+		'steel frame',
 	];
 
 	/** Per-request memoization keyed by upc. */
@@ -226,16 +265,51 @@ class _MeltingPoint
 			return static::$cache[ $upc ] = null;
 		}
 
-		/* ----- Layer 3: Heritage steel-title clear —
-		   applies to HERITAGE MFG ONLY. Hi-Point 'Black Steel' refers
-		   to the SLIDE; Hi-Point frames are zinc → always flag. */
-		if ( in_array( $matched, self::STEEL_TITLE_BRANDS, true )
-		  && strpos( $titleLC, 'steel' ) !== false )
+		/* ----- Layer 3: per-brand FRAME MATERIAL classifier —
+		   applies to Heritage Mfg only (FRAME_MATERIAL_BRANDS). Keys
+		   on FRAME tokens, never bare 'steel' (which normally names
+		   the barrel on Rough Riders). Hi-Point deliberately excluded:
+		   its frames are Zamak-3 zinc regardless of any title token. */
+		if ( in_array( $matched, self::FRAME_MATERIAL_BRANDS, true ) )
 		{
+			$zincHit = null;
+			foreach ( self::ZINC_FRAME_TOKENS as $t )
+			{
+				if ( strpos( $titleLC, $t ) !== false ) { $zincHit = $t; break; }
+			}
+			$steelHit = null;
+			foreach ( self::STEEL_FRAME_TOKENS as $t )
+			{
+				if ( strpos( $titleLC, $t ) !== false ) { $steelHit = $t; break; }
+			}
+
+			/* Zinc signal wins over steel — a "zinc alloy frame" title
+			   with a "steel barrel" phrase is a zinc-frame revolver
+			   regardless. */
+			if ( $zincHit !== null )
+			{
+				$out = [
+					'verdict'     => 'flag',
+					'source'      => 'auto',
+					'reason_hint' => 'zinc frame per title (' . $zincHit . ')',
+				];
+				return static::$cache[ $upc ] = $out;
+			}
+			if ( $steelHit !== null )
+			{
+				$out = [
+					'verdict'     => 'clear',
+					'source'      => 'auto',
+					'reason_hint' => 'steel frame per title',
+				];
+				return static::$cache[ $upc ] = $out;
+			}
+			/* Neither frame signal — do NOT guess. Route to review
+			   so Derrick judges each unmarked Heritage row. */
 			$out = [
-				'verdict'     => 'clear',
+				'verdict'     => 'review',
 				'source'      => 'auto',
-				'reason_hint' => 'steel frame per title',
+				'reason_hint' => $matched . ' — no explicit frame material in title',
 			];
 			return static::$cache[ $upc ] = $out;
 		}
