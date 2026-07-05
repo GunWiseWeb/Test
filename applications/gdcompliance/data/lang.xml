@@ -409,5 +409,15 @@
 <word key="gdcompliance_lookup_csv_download" js="0"><![CDATA[Download CSV]]></word>
 <word key="gdcompliance_lookup_row_report" js="0"><![CDATA[Report a problem]]></word>
 <word key="gdcompliance_lookup_row_available_label" js="0"><![CDATA[Available]]></word>
+<word key="gdcompliance_csv_allowed_groups" js="0"><![CDATA[Groups allowed to download the restricted-list CSV]]></word>
+<word key="gdcompliance_csv_allowed_groups_desc" js="0"><![CDATA[Comma-separated member group IDs. Members in any listed group can download the /state-lookup/ restricted-list CSV; everyone else sees an upsell prompt. Guests always denied. Default seeds the Administrators group.]]></word>
+<word key="gdcompliance_csv_upsell_url" js="0"><![CDATA[CSV upsell link]]></word>
+<word key="gdcompliance_csv_upsell_url_desc" js="0"><![CDATA[Where the "Upgrade" button on the CSV upsell block links to. Point at your membership / subscription page. Leave as # to render a disabled "Learn more" label instead of a link.]]></word>
+<word key="gdcompliance_csv_upsell_text" js="0"><![CDATA[CSV upsell message]]></word>
+<word key="gdcompliance_csv_upsell_text_desc" js="0"><![CDATA[Text shown to non-allowed visitors in place of the CSV download button.]]></word>
+<word key="gdcompliance_csv_upsell_default" js="0"><![CDATA[Downloading the full restricted-list CSV is a membership benefit. Upgrade your membership to enable bulk downloads.]]></word>
+<word key="gdcompliance_csv_locked_title" js="0"><![CDATA[Download CSV — members only]]></word>
+<word key="gdcompliance_csv_cta_upgrade" js="0"><![CDATA[Upgrade]]></word>
+<word key="gdcompliance_csv_cta_learn" js="0"><![CDATA[Learn more]]></word>
 </app>
 </language>

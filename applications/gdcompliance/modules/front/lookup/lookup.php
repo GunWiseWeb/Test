@@ -198,26 +198,27 @@ class _lookup extends \IPS\Dispatcher\Controller
 	protected function pageStyles(): string
 	{
 		return '<style>'
-			/* v1.6.26: outer wrap grows to 1446px (full desktop); the
-			   single-column "reading" blocks (hero, disclaimer, single-
-			   lookup form, single-result result, report-wrap) each cap
-			   themselves at 820px so prose stays a comfortable measure
-			   while data tables (filters, lists, actions, pager) get
-			   the full 1446px. Everything shrinks gracefully below. */
+			/* v1.6.27: ONE consistent page width. Outer wrap = 1446px on
+			   desktop, everything inside spans that. The per-block 820px
+			   caps that v1.6.26 introduced made the page lopsided
+			   (hero/disclaimer/form narrow, filter/list wide) — removed.
+			   Only max-width in the file is on .gdcl-wrap. Disclaimer
+			   PARAGRAPH text stays readable via inner max-width on the
+			   text run, not on the outer box. */
 			. '.gdcl-wrap{max-width:1446px;margin:24px auto;padding:0 16px;font-family:\'Inter\',system-ui,-apple-system,sans-serif;color:#0f172a}'
-			. '.gdcl-hero{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:24px;margin:0 auto 18px;max-width:820px;box-shadow:0 2px 10px rgba(15,23,42,.04)}'
+			. '.gdcl-hero{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:24px;margin:0 0 18px;box-shadow:0 2px 10px rgba(15,23,42,.04)}'
 			. '.gdcl-hero h1{margin:0 0 6px;font-size:1.5em;font-weight:700;color:#0f172a}'
 			. '.gdcl-hero p{margin:0;color:#475569;font-size:.95em;line-height:1.5}'
-			. '.gdcl-disclaimer{background:#fefce8;border:1px solid #facc15;color:#713f12;border-radius:10px;padding:12px 14px;margin:0 auto 16px;max-width:820px;font-size:.9em;line-height:1.5}'
+			. '.gdcl-disclaimer{background:#fefce8;border:1px solid #facc15;color:#713f12;border-radius:10px;padding:12px 14px;margin:0 0 16px;font-size:.9em;line-height:1.5}'
 			. '.gdcl-disclaimer strong{color:#854d0e}'
-			. '.gdcl-form{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin:0 auto 18px;max-width:820px}'
+			. '.gdcl-form{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin:0 0 18px}'
 			. '.gdcl-form label{display:block;margin:0 0 4px;font-size:.82em;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.04em}'
 			. '.gdcl-form select,.gdcl-form input[type=text]{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:1em;background:#fff;color:#0f172a}'
 			. '.gdcl-form select:focus,.gdcl-form input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}'
 			. '.gdcl-row{margin-bottom:12px}'
 			. '.gdcl-submit{display:inline-block;background:#1e40af;color:#fff;border:none;font-weight:600;padding:11px 22px;border-radius:8px;cursor:pointer;font-size:.95em}'
 			. '.gdcl-submit:hover{background:#1e3a8a}'
-			. '.gdcl-result{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin:0 auto 18px;max-width:820px}'
+			. '.gdcl-result{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin:0 0 18px}'
 			. '.gdcl-result h2{margin:0 0 6px;font-size:1.15em;font-weight:700}'
 			. '.gdcl-result .title{margin:6px 0 12px;color:#334155;font-size:.9em}'
 			. '.gdcl-badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;margin-right:8px}'
@@ -233,7 +234,7 @@ class _lookup extends \IPS\Dispatcher\Controller
 			. '.gdcl-clear{background:#f0fdf4;border:1px solid #86efac;color:#065f46;padding:14px;border-radius:10px}'
 			. '.gdcl-notfound{background:#f1f5f9;border:1px solid #cbd5e1;color:#334155;padding:14px;border-radius:10px}'
 			. '.gdcl-muted{color:#64748b;font-size:.85em}'
-			. '.gdcl-report-wrap{margin:14px auto 0;max-width:820px}'
+			. '.gdcl-report-wrap{margin:14px 0 0}'
 			. '.gdcl-report-flash{padding:10px 12px;border-radius:8px;font-size:.9em;margin-bottom:10px;line-height:1.5}'
 			. '.gdcl-report-flash--ok{background:#ecfeff;border:1px solid #a5f3fc;color:#155e75}'
 			. '.gdcl-report-flash--warn{background:#fef3c7;border:1px solid #fde68a;color:#78350f}'
@@ -312,6 +313,18 @@ class _lookup extends \IPS\Dispatcher\Controller
 			. '.gdcl-actions .btn--sec{background:#fff;color:#1e40af;border:1px solid #cbd5e1}'
 			. '.gdcl-actions .btn--sec:hover{background:#f1f5f9}'
 			. '.gdcl-empty{background:#f8fafc;border:1px dashed #cbd5e1;color:#64748b;padding:24px;text-align:center;border-radius:10px;margin-bottom:14px}'
+			/* v1.6.27 CSV upsell block — locked-affordance card shown
+			   to guests / non-allowed members instead of a real
+			   download link. */
+			. '.gdcl-csv-upsell{background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:16px 18px;margin-bottom:14px;display:flex;gap:14px;align-items:flex-start}'
+			. '.gdcl-csv-upsell__icon{font-size:1.6em;flex-shrink:0;line-height:1.1}'
+			. '.gdcl-csv-upsell__body{flex:1 1 auto;min-width:0}'
+			. '.gdcl-csv-upsell__body h3{margin:0 0 6px;color:#78350f;font-size:1em;font-weight:700}'
+			. '.gdcl-csv-upsell__body p{margin:0 0 10px;color:#713f12;font-size:.9em;line-height:1.5}'
+			. '.gdcl-csv-upsell__body .btn{background:#1e40af;color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;font-size:.9em;text-decoration:none;display:inline-block;border:none}'
+			. '.gdcl-csv-upsell__body .btn:hover{background:#1e3a8a}'
+			. '.gdcl-csv-upsell__body .btn--dim{background:#e5e7eb;color:#6b7280;cursor:default}'
+			. '.gdcl-csv-upsell__body .btn--dim:hover{background:#e5e7eb}'
 			. '.gdcl-section-head{margin:14px 0 6px;color:#334155;font-size:.9em;font-weight:700;text-transform:uppercase;letter-spacing:.05em}'
 			. '</style>';
 	}
@@ -949,6 +962,57 @@ class _lookup extends \IPS\Dispatcher\Controller
 	}
 
 	/**
+	 * v1.6.27 — is the current visitor allowed to download the
+	 * restricted-list CSV? Gate = setting gdcompliance_csv_allowed_groups
+	 * (comma-separated group IDs). Guests are ALWAYS not allowed
+	 * (guest group id is 2 and would need to be explicitly listed —
+	 * we don't ship it in the default).
+	 *
+	 * Uses IPS's Member::inGroup() which walks primary + secondary
+	 * groups so a secondary-group-only match still counts. Empty /
+	 * malformed setting → nobody allowed (fail-closed).
+	 */
+	protected function canDownloadCsv(): bool
+	{
+		$raw = (string) ( \IPS\Settings::i()->gdcompliance_csv_allowed_groups ?? '' );
+		$allowed = array_values( array_filter( array_map( 'intval', explode( ',', $raw ) ) ) );
+		if ( empty( $allowed ) ) { return false; }
+
+		$member = \IPS\Member::loggedIn();
+		if ( !$member || !$member->member_id ) { return false; }
+
+		try
+		{
+			if ( method_exists( $member, 'inGroup' ) )
+			{
+				return (bool) $member->inGroup( $allowed );
+			}
+		}
+		catch ( \Throwable ) {}
+
+		/* Fallback: manual primary + secondary membership walk. */
+		$memberGroups = [ (int) $member->member_group_id ];
+		foreach ( explode( ',', (string) ( $member->mgroup_others ?? '' ) ) as $g )
+		{
+			$gi = (int) $g;
+			if ( $gi > 0 ) { $memberGroups[] = $gi; }
+		}
+		return (bool) array_intersect( $memberGroups, $allowed );
+	}
+
+	/**
+	 * Upsell URL — where a not-allowed visitor is sent when they hit
+	 * the CSV export or click the (locked) download button. Setting
+	 * gdcompliance_csv_upsell_url; falls back to '#' if unset (Derrick
+	 * points it at the subscription page from ACP).
+	 */
+	protected function csvUpsellUrl(): string
+	{
+		$u = trim( (string) ( \IPS\Settings::i()->gdcompliance_csv_upsell_url ?? '' ) );
+		return $u !== '' ? $u : '#';
+	}
+
+	/**
 	 * Row-level "Report a problem" affordance for advanced-search /
 	 * statelist results. Links back to the Single Lookup URL with
 	 * state+q pre-filled — Stage 2's buildReportBlock() takes over
@@ -1511,15 +1575,42 @@ class _lookup extends \IPS\Dispatcher\Controller
 		if ( $page > $totalPages ) { $page = $totalPages; }
 		$offset = ( $page - 1 ) * $per;
 
-		$exportUrl = (string) \IPS\Http\Url::internal(
-			'app=gdcompliance&module=lookup&controller=lookup&do=statelist&state=' . rawurlencode( $stateSel ) . '&export=csv',
-			'front', 'gdcompliance_state_lookup'
-		);
+		/* v1.6.27 — CSV button vs upsell prompt. Allowed member gets a
+		   real download link; guest / not-allowed member gets an
+		   upsell block that links to the subscription URL. Direct-URL
+		   hits are blocked SERVER-SIDE in streamRestrictedCsv(). */
+		$canDl = $this->canDownloadCsv();
+		if ( $canDl )
+		{
+			$exportUrl = (string) \IPS\Http\Url::internal(
+				'app=gdcompliance&module=lookup&controller=lookup&do=statelist&state=' . rawurlencode( $stateSel ) . '&export=csv',
+				'front', 'gdcompliance_state_lookup'
+			);
+			$html .= '<div class="gdcl-actions">'
+				. '<a href="' . $h( $exportUrl ) . '" class="btn">⬇ Download CSV (restricted-' . $h( $stateSel ) . '.csv)</a>'
+				. '</div>';
+		}
+		else
+		{
+			$upsellUrl  = $this->csvUpsellUrl();
+			$upsellText = trim( (string) ( \IPS\Settings::i()->gdcompliance_csv_upsell_text ?? '' ) );
+			if ( $upsellText === '' )
+			{
+				$upsellText = 'Downloading the full restricted-list CSV is a membership benefit. Upgrade your membership to enable bulk downloads.';
+			}
+			$ctaLabel = ( $upsellUrl === '#' ) ? 'Learn more' : 'Upgrade';
+			$html .= '<div class="gdcl-csv-upsell">'
+				. '<div class="gdcl-csv-upsell__icon">🔒</div>'
+				. '<div class="gdcl-csv-upsell__body">'
+				. '<h3>Download CSV (restricted-' . $h( $stateSel ) . '.csv) — members only</h3>'
+				. '<p>' . $h( $upsellText ) . '</p>'
+				. ( $upsellUrl !== '#'
+					? '<a href="' . $h( $upsellUrl ) . '" class="btn">' . $h( $ctaLabel ) . ' →</a>'
+					: '<span class="btn btn--dim">' . $h( $ctaLabel ) . '</span>' )
+				. '</div></div>';
+		}
 
-		$html .= '<div class="gdcl-actions">'
-			. '<a href="' . $h( $exportUrl ) . '" class="btn">⬇ Download CSV (restricted-' . $h( $stateSel ) . '.csv)</a>'
-			. '</div>'
-			. '<p class="gdcl-count">Restricted in <strong>' . $h( $stateName ) . '</strong>: <strong>' . number_format( $total ) . '</strong> items</p>';
+		$html .= '<p class="gdcl-count">Restricted in <strong>' . $h( $stateName ) . '</strong>: <strong>' . number_format( $total ) . '</strong> items</p>';
 
 		$rows = [];
 		try
@@ -1591,6 +1682,15 @@ class _lookup extends \IPS\Dispatcher\Controller
 	 */
 	protected function streamRestrictedCsv( string $stateCode ): void
 	{
+		/* v1.6.27 SERVER-SIDE GATE — must run BEFORE any byte of the
+		   CSV goes out. Someone hitting the export URL directly gets
+		   bounced to the upsell URL; they never see the CSV. */
+		if ( !$this->canDownloadCsv() )
+		{
+			\IPS\Output::i()->redirect( $this->csvUpsellUrl() );
+			return;
+		}
+
 		$max = (int) ( \IPS\Settings::i()->gdcompliance_lookup_csv_max ?? 50000 );
 		if ( $max < 100 || $max > 200000 ) { $max = 50000; }
 

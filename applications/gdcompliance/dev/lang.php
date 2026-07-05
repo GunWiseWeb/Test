@@ -484,6 +484,18 @@ $lang = array(
 	'gdcompliance_lookup_row_report'       => 'Report a problem',
 	'gdcompliance_lookup_row_available_label' => 'Available',
 
+	/* v1.6.27 — CSV export gate + upsell */
+	'gdcompliance_csv_allowed_groups'      => 'Groups allowed to download the restricted-list CSV',
+	'gdcompliance_csv_allowed_groups_desc' => 'Comma-separated member group IDs. Members in any listed group can download the /state-lookup/ restricted-list CSV; everyone else sees an upsell prompt. Guests always denied. Default seeds the Administrators group.',
+	'gdcompliance_csv_upsell_url'          => 'CSV upsell link',
+	'gdcompliance_csv_upsell_url_desc'     => 'Where the "Upgrade" button on the CSV upsell block links to. Point at your membership / subscription page. Leave as # to render a disabled "Learn more" label instead of a link.',
+	'gdcompliance_csv_upsell_text'         => 'CSV upsell message',
+	'gdcompliance_csv_upsell_text_desc'    => 'Text shown to non-allowed visitors in place of the CSV download button.',
+	'gdcompliance_csv_upsell_default'      => 'Downloading the full restricted-list CSV is a membership benefit. Upgrade your membership to enable bulk downloads.',
+	'gdcompliance_csv_locked_title'        => 'Download CSV — members only',
+	'gdcompliance_csv_cta_upgrade'         => 'Upgrade',
+	'gdcompliance_csv_cta_learn'           => 'Learn more',
+
 	/* Phase 5 — Widget */
 	'block_gdRestrictionNotice'                => 'Product Restriction Notice',
 	'gdcompliance_widget_upc_fallback'         => 'Fallback UPC (only used if no product UPC in URL)',

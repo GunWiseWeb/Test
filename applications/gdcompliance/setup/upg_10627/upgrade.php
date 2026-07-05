@@ -1,46 +1,48 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.26
+ * @brief  GD Compliance — upgrade 1.6.27
  *
- * NOTE ON VERSION — the corresponding prompt asked for 1.6.25, but
- * v1.6.25 already shipped as the state-lookup Stage 3 (advanced
- * search + statelist + CSV). Next available number is 1.6.26.
+ * NOTE ON VERSION — the corresponding prompt asked for 1.6.26, but
+ * v1.6.26 already shipped (category filter Lowers/Magazines/Accessories
+ * + row-button wrapping fix + 1446px full-width). Next available
+ * number is 1.6.27.
  *
- * WHAT SHIPS IN 1.6.26 — State Lookup polish:
+ * WHAT SHIPS IN 1.6.27:
  *
- *   - Category filter gains Lowers, Magazines, Accessories entries.
- *     categoryIdsForType() maps these to fixed category_ids
- *     (Lowers=154, Magazines=38, Accessories=58+60) so both
- *     Restricted and Available modes filter them correctly. The
- *     firearm classes (Handguns/Rifles/Shotguns) still roll up via
- *     Engine::buildTypeMap.
- *   - Row-level "Report a problem" button no longer wraps under long
- *     product titles. Row is a proper flex container with justify-
- *     content:space-between + flex-wrap:nowrap; title column carries
- *     min-width:0 + overflow-wrap:break-word so it shrinks/wraps
- *     within its column instead of pushing the button below.
- *   - Full 1446px desktop wrap. Prose blocks (hero, disclaimer,
- *     single-lookup form, single-result result box, report block)
- *     cap themselves at 820px so reading measure stays comfortable;
- *     data blocks (tabs, filters, list, actions, pager) get the
- *     full width where it actually helps.
+ * 1. CSV EXPORT GATE — the /state-lookup/ restricted-list CSV export
+ *    is now gated behind member groups. Everything else (single
+ *    lookup, on-screen restricted list, advanced search) stays
+ *    PUBLIC. Only the CSV DOWNLOAD is gated.
+ *      - Setting gdcompliance_csv_allowed_groups (comma-separated
+ *        group IDs). Default seeded with every group that has
+ *        g_access_cp=1 (all admin/root groups on this install) so
+ *        admins get access out of the box.
+ *      - Setting gdcompliance_csv_upsell_url (default '#'). Derrick
+ *        sets it in ACP to point at his subscription page.
+ *      - Setting gdcompliance_csv_upsell_text (default default
+ *        upsell copy). Editable in ACP.
+ *      - Enforcement is SERVER-SIDE in the controller's
+ *        streamRestrictedCsv() — before any CSV bytes leave. A guest
+ *        or non-allowed member hitting ?export=csv directly gets
+ *        redirected to the upsell URL, not the file.
+ *      - The Restricted List view shows an "upsell block" in place
+ *        of the download link for non-allowed visitors — button
+ *        shows locked styling + upsell copy + link to upsell URL.
+ *
+ * 2. WIDTH CONSISTENCY — v1.6.26 introduced per-block 820px caps
+ *    that made the page lopsided (form/hero narrow, filter/list
+ *    wide). Removed. Only max-width in the file is on .gdcl-wrap
+ *    (1446px). Every direct child of .gdcl-wrap spans that width.
  *
  * SELF-CONTAINED (rule #79). Only upg dir for this app; every prior
- * migration folded forward:
- *   - v1.6.25 lookup_available_note + csv_max settings + Stage 3 lang
- *   - v1.6.24 gd_compliance_reports table + report ratelimit +
- *     Notifications extension registration + notification defaults
- *   - v1.6.23 lookup lang re-seed
- *   - v1.6.22 defensive settings ensure
+ * migration folded forward defensively (gd_compliance_reports create,
+ * every setting from 1.6.22-1.6.26, extension self-heal, full lang
+ * re-seed, notification defaults, ACP perm row, cache purge).
  *
- * NO NEW SCHEMA, NO NEW SETTINGS, NO NEW LANG KEYS in 1.6.26 —
- * category labels are inline strings in the picker. This upgrade
- * exists solely to (a) carry prior migrations forward defensively
- * and (b) bust the template/opcode caches so the CSS-touched
- * lookup.php reloads cleanly.
+ * No schema changes THIS version. Only new settings + lang.
  */
 
-namespace IPS\gdcompliance\setup\upg_10626;
+namespace IPS\gdcompliance\setup\upg_10627;
 
 use function defined;
 
@@ -89,17 +91,39 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10626 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10627 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
 		/* ------------------------------------------------------------
-		 * 2) SETTINGS carry-forward.
+		 * 2) SETTINGS — all prior + NEW 1.6.27 CSV gate settings.
 		 * ------------------------------------------------------------ */
 		$defaultDisclaimer =
 			"State Firearm Compliance Lookup — Important Notice. This tool provides general information based on our product catalog and our understanding of current state law. It is not legal advice and is not a guarantee of legality. Firearm laws change frequently, vary by locality, and depend on individual circumstances. A result of 'no restrictions found' means our system did not flag this item for the selected state — it does not affirmatively certify the item is legal for you to purchase or possess. Always verify with your FFL and consult current state and local law before completing any purchase or transfer. Gun Wise LLC assumes no liability for reliance on this tool.";
 
 		$defaultAvailableNote =
 			"This 'available' list reflects items our compliance engine did not flag for the selected state. While our engine catches the vast majority of restrictions, no automated system is ever 100% accurate — it cannot account for every local ordinance, recent law change, or individual circumstance. Always confirm with your local laws and your FFL before purchasing to make sure an item is legal for you in your area.";
+
+		$defaultUpsellText =
+			"Downloading the full restricted-list CSV is a membership benefit. Upgrade your membership to enable bulk downloads.";
+
+		/* Detect ALL groups with ACP access — these are the safe
+		   defaults for gdcompliance_csv_allowed_groups. Falls back to
+		   '4' (IPS default Administrators) if the query somehow returns
+		   nothing (fresh install with no groups yet). */
+		$defaultAllowedGroups = '4';
+		try
+		{
+			$adminIds = [];
+			foreach ( \IPS\Db::i()->select( 'g_id', 'core_groups', [ 'g_access_cp=?', 1 ] ) as $gid )
+			{
+				$adminIds[] = (int) $gid;
+			}
+			if ( !empty( $adminIds ) )
+			{
+				$defaultAllowedGroups = implode( ',', $adminIds );
+			}
+		}
+		catch ( \Throwable ) {}
 
 		try
 		{
@@ -126,6 +150,21 @@ class _upgrade
 			{
 				$changes['gdcompliance_lookup_csv_max'] = 50000;
 			}
+			/* v1.6.27 NEW */
+			$currentAllowed = (string) ( \IPS\Settings::i()->gdcompliance_csv_allowed_groups ?? '' );
+			if ( $currentAllowed === '' )
+			{
+				$changes['gdcompliance_csv_allowed_groups'] = $defaultAllowedGroups;
+			}
+			if ( !isset( \IPS\Settings::i()->gdcompliance_csv_upsell_url ) )
+			{
+				$changes['gdcompliance_csv_upsell_url'] = '#';
+			}
+			$currentUpsellText = (string) ( \IPS\Settings::i()->gdcompliance_csv_upsell_text ?? '' );
+			if ( $currentUpsellText === '' )
+			{
+				$changes['gdcompliance_csv_upsell_text'] = $defaultUpsellText;
+			}
 			if ( !empty( $changes ) )
 			{
 				\IPS\Settings::i()->changeValues( $changes );
@@ -133,10 +172,14 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
+		/* Direct row inserts if the setting rows don't exist. */
 		$directInserts = [
 			'gdcompliance_report_ratelimit'         => [ '5',      '5',      'full' ],
 			'gdcompliance_lookup_available_note'    => [ $defaultAvailableNote, $defaultAvailableNote, 'none' ],
 			'gdcompliance_lookup_csv_max'           => [ '50000',  '50000',  'full' ],
+			'gdcompliance_csv_allowed_groups'       => [ $defaultAllowedGroups, '4', 'full' ],
+			'gdcompliance_csv_upsell_url'           => [ '#',      '#',      'none' ],
+			'gdcompliance_csv_upsell_text'          => [ $defaultUpsellText, $defaultUpsellText, 'none' ],
 		];
 		foreach ( $directInserts as $key => [ $val, $def, $report ] )
 		{
@@ -217,9 +260,9 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 4) LANG carry-forward — every lookup/reports key from
-		 *    v1.6.22 → v1.6.25. Per-row try/catch (rule #44); 6-col
-		 *    schema only (rule #43). No NEW keys in v1.6.26.
+		 * 4) LANG — every prior lookup/reports key + NEW 1.6.27 CSV
+		 *    gate + upsell strings. Per-row try/catch (rule #44).
+		 *    6-column schema only (rule #43).
 		 * ------------------------------------------------------------ */
 		$newStrings = [
 			'gdcompliance_acp_settings_lookup_header'   => 'Public State Compliance Lookup (/state-lookup/)',
@@ -322,6 +365,18 @@ class _upgrade
 			'gdcompliance_lookup_csv_download'     => 'Download CSV',
 			'gdcompliance_lookup_row_report'       => 'Report a problem',
 			'gdcompliance_lookup_row_available_label' => 'Available',
+
+			/* v1.6.27 NEW */
+			'gdcompliance_csv_allowed_groups'      => 'Groups allowed to download the restricted-list CSV',
+			'gdcompliance_csv_allowed_groups_desc' => 'Comma-separated member group IDs. Members in any listed group can download the /state-lookup/ restricted-list CSV; everyone else sees an upsell prompt. Guests always denied. Default seeds the Administrators group.',
+			'gdcompliance_csv_upsell_url'          => 'CSV upsell link',
+			'gdcompliance_csv_upsell_url_desc'     => 'Where the "Upgrade" button on the CSV upsell block links to. Point at your membership / subscription page. Leave as # to render a disabled "Learn more" label instead of a link.',
+			'gdcompliance_csv_upsell_text'         => 'CSV upsell message',
+			'gdcompliance_csv_upsell_text_desc'    => 'Text shown to non-allowed visitors in place of the CSV download button.',
+			'gdcompliance_csv_upsell_default'      => $defaultUpsellText,
+			'gdcompliance_csv_locked_title'        => 'Download CSV — members only',
+			'gdcompliance_csv_cta_upgrade'         => 'Upgrade',
+			'gdcompliance_csv_cta_learn'           => 'Learn more',
 		];
 
 		try
@@ -366,9 +421,7 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 6) CACHE PURGES — critical for this ship since the change is
-		 *    display code; opcache must be flushed or the browser
-		 *    keeps seeing the old CSS.
+		 * 6) CACHE PURGES.
 		 * ------------------------------------------------------------ */
 		try { unset( \IPS\Data\Store::i()->lang ); }               catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_front ); }      catch ( \Throwable ) {}
