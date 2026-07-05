@@ -20,7 +20,25 @@ $lang = array(
 	'menu__gdcompliance_compliance_magazines'  => 'Magazines',
 	'menu__gdcompliance_compliance_advisories' => 'Advisories',
 	'menu__gdcompliance_compliance_meltingpoint' => 'Melting-Point',
+	'menu__gdcompliance_compliance_rof'        => 'Rate-of-Fire Devices',
 	'menu__gdcompliance_compliance_settings'   => 'Settings',
+
+	/* v1.6.21 — rate-of-fire enhancer ban (binary triggers, FRTs,
+	   bump stocks, trigger cranks) */
+	'gdcompliance_acp_rof_title'               => 'Rate-of-Fire Devices',
+	'gdcompliance_acp_rof_intro'               => 'Bans on rate-of-fire enhancement devices: binary triggers, forced-reset triggers (FRTs), bump stocks, trigger cranks. Enabled in CA, CT, DE, DC, HI, IL, MA, MD, NJ, NV, NY, OR, RI, WA. ⚠️ MN is NOT enabled — its binary-trigger ban was struck down by the MN Court of Appeals on 2026-05-26. Matcher requires the Franklin Armory brand qualifier for binary/BFS titles (bare "BFS" hits knives, "FRT" hits front sights, "Rare Breed" hits turkey calls). Safe phrases (bump stock, trigger crank) only match inside cat58 Parts & Accessories and cat60 Triggers & Trigger Groups.',
+	'gdcompliance_acp_rof_flagged_title'       => 'Flagged devices',
+	'gdcompliance_acp_rof_flagged_intro'       => 'Every product currently carrying a rate_of_fire flag. Click a state to filter and reach per-(UPC, state) override — force_clear suppresses the restriction for that product in that state.',
+	'gdcompliance_acp_rof_override'            => 'Set override',
+	'gdcompliance_acp_rof_curated'             => 'Curated overrides (win over auto-matching)',
+	'gdcompliance_acp_rof_curated_intro'       => 'Each row is a substring matched case-insensitive against UPC / title / brand / model / MPN. Use for named makers (Rare Breed Triggers, Fostech Echo, Wide Open Trigger) or to force_clear a false auto-match. force_flag → always flag. force_clear → never flag. review → route to review.',
+	'gdcompliance_acp_rof_add'                 => 'Add curated entry',
+	'gdcompliance_acp_rof_col_pattern'         => 'Pattern',
+	'gdcompliance_acp_rof_col_action'          => 'Action',
+	'gdcompliance_acp_rof_col_note'            => 'Note',
+	'gdcompliance_rof_f_pattern'               => 'Pattern (case-insensitive substring, matched against UPC/title/brand/model/MPN)',
+	'gdcompliance_rof_f_action'                => 'Action',
+	'gdcompliance_rof_f_note'                  => 'Note (admin-only) — optional',
 
 	/* v1.6.19 — melting-point handgun ban (HI/IL/MD/MA/MN/NY) */
 	'gdcompliance_acp_mp_title'                => 'Melting-Point Handgun Ban',

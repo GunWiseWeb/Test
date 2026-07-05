@@ -174,6 +174,38 @@
 			"uq_value":  { "type": "unique", "name": "uq_value", "length": [ 100 ], "columns": [ "capacity_value" ] }
 		}
 	},
+	"gd_compliance_rof_rules": {
+		"name": "gd_compliance_rof_rules",
+		"columns": {
+			"id":              { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"state_code":      { "name": "state_code", "type": "CHAR", "length": 2, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"enabled":         { "name": "enabled", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": "1", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"reason":          { "name": "reason", "type": "TEXT", "length": 0, "decimals": null, "allow_null": false, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "customer-visible restriction reason" },
+			"citation":        { "name": "citation", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"effective_date":  { "name": "effective_date", "type": "DATE", "length": null, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"updated_at":      { "name": "updated_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":     { "type": "primary", "name": "PRIMARY",     "length": [ null ], "columns": [ "id" ] },
+			"uq_state":    { "type": "unique",  "name": "uq_state",    "length": [ null ], "columns": [ "state_code" ] },
+			"idx_enabled": { "type": "key",     "name": "idx_enabled", "length": [ null ], "columns": [ "enabled" ] }
+		}
+	},
+	"gd_compliance_rof": {
+		"name": "gd_compliance_rof",
+		"columns": {
+			"id":         { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"pattern":    { "name": "pattern", "type": "VARCHAR", "length": 191, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "title/model/MPN/UPC/brand substring, case-insensitive" },
+			"action":     { "name": "action", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": false, "default": "force_flag", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "force_flag|force_clear|review — wins over auto logic" },
+			"note":       { "name": "note", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"created_at": { "name": "created_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":    { "type": "primary", "name": "PRIMARY",    "length": [ null ], "columns": [ "id" ] },
+			"uq_pattern": { "type": "unique",  "name": "uq_pattern", "length": [ 191 ],  "columns": [ "pattern" ] },
+			"idx_action": { "type": "key",     "name": "idx_action", "length": [ null ], "columns": [ "action" ] }
+		}
+	},
 	"gd_compliance_melting_rules": {
 		"name": "gd_compliance_melting_rules",
 		"columns": {

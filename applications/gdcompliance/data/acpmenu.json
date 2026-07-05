@@ -78,6 +78,12 @@
 			"do": "",
 			"restriction": "compliance_manage"
 		},
+		"rof": {
+			"tab": "gdcompliance",
+			"controller": "rof",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
 		"settings": {
 			"tab": "gdcompliance",
 			"controller": "settings",

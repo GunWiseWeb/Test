@@ -375,6 +375,17 @@ class _Engine
 		}
 		catch ( \Throwable ) {}
 
+		/* v1.6.21 — reset RateOfFire per-request memo + preload the
+		   enabled per-state rules once per compute. */
+		$rofStateRules = [];
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/RateOfFire.php';
+			\IPS\gdcompliance\RateOfFire::clearCache();
+			$rofStateRules = \IPS\gdcompliance\RateOfFire::enabledRules();
+		}
+		catch ( \Throwable ) {}
+
 		/* Initialize per-state counters so the summary always shows them
 		   (even with zero counts), even for states without a loaded roster. */
 		foreach ( [ 'CA', 'MA', 'MD', 'DC' ] as $s )
@@ -658,6 +669,69 @@ class _Engine
 					}
 					catch ( \Throwable ) {}
 					continue;
+				}
+
+				/* --- v1.6.21 Phase 7C: RATE-OF-FIRE enhancer pass ---
+				   Binary triggers, forced-reset triggers (FRTs), bump
+				   stocks, trigger cranks. RESTRICT flag (red banner).
+				   Runs BEFORE the typeMap null-skip so cat58 (Parts &
+				   Accessories) + cat60 (Triggers & Trigger Groups)
+				   accessories are matched. The Franklin Armory
+				   brand+binary/BFS rule is cross-category so complete
+				   Franklin binary rifles in cat8 also flag.
+
+                   MN is NOT seeded (ban struck down 2026-05-26).
+                   Loose keyword matching would flag turkey calls
+                   ("Rare Breed"), knives ("BFS"), front sights
+                   ("FRT"), and Wilson Combat pistols ("CQBFS") — the
+                   classifier requires a brand qualifier or an
+                   unambiguous safe phrase inside cat58/60. Never
+                   auto-flags on a bare token. */
+				if ( !empty( $rofStateRules ) )
+				{
+					try
+					{
+						$rofVerdict = \IPS\gdcompliance\RateOfFire::classify( $p );
+						if ( is_array( $rofVerdict ) && ( $rofVerdict['verdict'] ?? '' ) === 'flag' )
+						{
+							$rofHint = (string) ( $rofVerdict['reason_hint'] ?? '' );
+							$rofSrc  = (string) ( $rofVerdict['source']      ?? 'auto' );
+							foreach ( $rofStateRules as $rofState => $rofRule )
+							{
+								$rofReason = trim( (string) ( $rofRule['reason']   ?? '' ) );
+								$rofCite   = trim( (string) ( $rofRule['citation'] ?? '' ) );
+								if ( $rofReason === '' )
+								{
+									$rofReason = sprintf(
+										'Rate-of-fire enhancement device (binary trigger / forced-reset trigger / bump stock / trigger crank) — prohibited for sale in %s.',
+										$rofState
+									);
+								}
+								if ( $rofHint !== '' && str_starts_with( $rofSrc, 'auto' ) )
+								{
+									$rofReason .= ' [' . $rofHint . ']';
+								}
+								if ( $rofSrc === 'curated' )
+								{
+									$rofReason .= ' [curated]';
+								}
+								$flags[] = [
+									'upc'             => substr( $upc, 0, 50 ),
+									'state_code'      => (string) $rofState,
+									'firearm_type'    => 'rate_of_fire',
+									'parsed_capacity' => null,
+									'rule_id'         => 0,
+									'reason'          => substr( $rofReason, 0, 255 ),
+									'citation'        => substr( $rofCite,   0, 255 ),
+									'computed_at'     => $now,
+								];
+								$result['per_state'][ $rofState ] = ( $result['per_state'][ $rofState ] ?? 0 ) + 1;
+								$result['per_state_type'][ $rofState ]['rate_of_fire'] = ( $result['per_state_type'][ $rofState ]['rate_of_fire'] ?? 0 ) + 1;
+								$result['rate_of_fire'][ $rofState ] = ( $result['rate_of_fire'][ $rofState ] ?? 0 ) + 1;
+							}
+						}
+					}
+					catch ( \Throwable ) { /* per-row, non-fatal */ }
 				}
 
 				$type = $typeMap[ $cat ] ?? null;
