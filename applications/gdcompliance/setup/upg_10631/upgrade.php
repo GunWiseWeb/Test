@@ -1,44 +1,43 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.30
+ * @brief  GD Compliance — upgrade 1.6.31
  *
- * NOTE ON VERSION — the corresponding prompt asked for 1.6.29, but
- * v1.6.29 already shipped (API URL fix). Next available is 1.6.30.
+ * WHAT SHIPS IN 1.6.31 — Compliance API Stage 3 (tier quotas + burst
+ * + usage metering + rate-limit headers + usage on the mykey page):
  *
- * WHAT SHIPS IN 1.6.30 — API Stage 2 (subscription gate + self-service):
+ *   - NEW TABLE gd_compliance_api_usage(key_id, period, count).
+ *     Composite PK (key_id, period). Period="YYYY-MM" for monthly
+ *     buckets, "sec:EPOCH" for burst buckets. Best-effort increments
+ *     via preparedQuery INSERT ... ON DUPLICATE KEY UPDATE.
  *
  *   - NEW SETTINGS:
- *       gdcompliance_api_access_groups  (default '13')
- *       gdcompliance_api_subscription_id (default '6')
- *     Both editable in the ACP. IPS Commerce sets subscribers as
- *     secondary members of the API-access group and removes them on
- *     lapse — the API gate reads live group membership per request,
- *     no Nexus event hook required.
+ *       gdcompliance_api_tiers          (default {"13":10000})
+ *       gdcompliance_api_default_quota  (default 10000)
+ *       gdcompliance_api_burst_per_sec  (default 10)
  *
- *   - API AUTH now includes a SUBSCRIPTION GATE after the existing
- *     key checks: admin bypass, else Member::inGroup(allowed) must
- *     be true, else HTTP 402 subscription_inactive with a
- *     subscribe_url in the payload built from the subscription-id
- *     setting.
+ *   - API AUTHENTICATE now enforces:
+ *       * burst throttle: >N requests/second for this key → 429
+ *         rate_limited with Retry-After: 1
+ *       * monthly quota: current-month count >= tier quota → 429
+ *         quota_exceeded with reset date and subscribe_url
+ *       Admins are always unlimited. Best tier wins across a
+ *       member's groups.
  *
- *   - SELF-SERVICE PAGE at /api/compliance/mykey (browser, theme-
- *     wrapped HTML). Three visitor states: guest → login prompt,
- *     non-subscribed → upsell + subscribe link, subscribed →
- *     view/generate/regenerate their key + integration snippet.
- *     CSRF-protected POSTs.
+ *   - EVERY API RESPONSE (post-auth) carries standard headers:
+ *       X-RateLimit-Limit     (quota or "unlimited")
+ *       X-RateLimit-Remaining (floor 0 or "unlimited")
+ *       X-RateLimit-Reset     (unix ts of next month start)
+ *     429 responses also carry Retry-After.
  *
- *   - New FURL routes (both new and legacy for compatibility):
- *       /api/compliance/mykey  → do=mykey
- *       /compliance-api/mykey  → do=mykey (legacy)
+ *   - MYKEY PAGE (Stage-2 self-service) gains a Usage panel: tier,
+ *     quota, this month, reset, lifetime, plus a colored progress
+ *     bar and upsell hints at 75%/100%.
  *
- * SELF-CONTAINED (rule #79). Only upg dir for this app; every prior
- * migration folded forward defensively (all schema, all settings,
- * extensions, full lang re-seed).
- *
- * No schema changes THIS version — reuses gd_compliance_api_keys.
+ * SELF-CONTAINED (rule #79). Only upg dir; all prior migrations
+ * folded forward defensively.
  */
 
-namespace IPS\gdcompliance\setup\upg_10630;
+namespace IPS\gdcompliance\setup\upg_10631;
 
 use function defined;
 
@@ -53,8 +52,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		/* ------------------------------------------------------------
-		 * 1) SCHEMA carry-forward — gd_compliance_reports (v1.6.24) +
-		 *    gd_compliance_api_keys (v1.6.28). Guarded creates.
+		 * 1) SCHEMA — carry forward + NEW gd_compliance_api_usage.
 		 * ------------------------------------------------------------ */
 		try
 		{
@@ -88,7 +86,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10630 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10631 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
 		try
@@ -118,11 +116,34 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10630 create gd_compliance_api_keys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10631 create gd_compliance_api_keys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		/* NEW in v1.6.31 — usage table. */
+		try
+		{
+			if ( !\IPS\Db::i()->checkForTable( 'gd_compliance_api_usage' ) )
+			{
+				\IPS\Db::i()->createTable( [
+					'name'    => 'gd_compliance_api_usage',
+					'columns' => [
+						[ 'name' => 'key_id', 'type' => 'INT',    'length' => 10, 'unsigned' => TRUE, 'allow_null' => FALSE ],
+						[ 'name' => 'period', 'type' => 'VARCHAR','length' => 20, 'default' => '',    'allow_null' => FALSE ],
+						[ 'name' => 'count',  'type' => 'INT',    'length' => 10, 'unsigned' => TRUE, 'default' => 0, 'allow_null' => FALSE ],
+					],
+					'indexes' => [
+						[ 'type' => 'primary', 'name' => 'PRIMARY', 'columns' => [ 'key_id', 'period' ] ],
+					],
+				] );
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10631 create gd_compliance_api_usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
 		/* ------------------------------------------------------------
-		 * 2) SETTINGS carry-forward + NEW 1.6.30 subscription gate.
+		 * 2) SETTINGS — carry forward + NEW 1.6.31 tier / burst.
 		 * ------------------------------------------------------------ */
 		$defaultDisclaimer =
 			"State Firearm Compliance Lookup — Important Notice. This tool provides general information based on our product catalog and our understanding of current state law. It is not legal advice and is not a guarantee of legality. Firearm laws change frequently, vary by locality, and depend on individual circumstances. A result of 'no restrictions found' means our system did not flag this item for the selected state — it does not affirmatively certify the item is legal for you to purchase or possess. Always verify with your FFL and consult current state and local law before completing any purchase or transfer. Gun Wise LLC assumes no liability for reliance on this tool.";
@@ -135,6 +156,8 @@ class _upgrade
 
 		$defaultApiDisclaimer =
 			"This information is provided for general reference and is not legal advice or a guarantee of legality. Our engine catches the vast majority of restrictions but is never 100% accurate. Always verify with a licensed FFL and current state/local law.";
+
+		$defaultTiers = '{"13":10000}';
 
 		$defaultAllowedGroups = '4';
 		try
@@ -199,7 +222,6 @@ class _upgrade
 			{
 				$changes['gdcompliance_api_verified'] = 0;
 			}
-			/* v1.6.30 NEW */
 			$currentApiGroups = (string) ( \IPS\Settings::i()->gdcompliance_api_access_groups ?? '' );
 			if ( $currentApiGroups === '' )
 			{
@@ -208,6 +230,20 @@ class _upgrade
 			if ( !isset( \IPS\Settings::i()->gdcompliance_api_subscription_id ) )
 			{
 				$changes['gdcompliance_api_subscription_id'] = 6;
+			}
+			/* v1.6.31 NEW */
+			$currentTiers = (string) ( \IPS\Settings::i()->gdcompliance_api_tiers ?? '' );
+			if ( $currentTiers === '' )
+			{
+				$changes['gdcompliance_api_tiers'] = $defaultTiers;
+			}
+			if ( !isset( \IPS\Settings::i()->gdcompliance_api_default_quota ) )
+			{
+				$changes['gdcompliance_api_default_quota'] = 10000;
+			}
+			if ( !isset( \IPS\Settings::i()->gdcompliance_api_burst_per_sec ) )
+			{
+				$changes['gdcompliance_api_burst_per_sec'] = 10;
 			}
 			if ( !empty( $changes ) )
 			{
@@ -227,6 +263,9 @@ class _upgrade
 			'gdcompliance_api_verified'             => [ '0',      '0',      'full' ],
 			'gdcompliance_api_access_groups'        => [ '13',     '13',     'full' ],
 			'gdcompliance_api_subscription_id'      => [ '6',      '6',      'full' ],
+			'gdcompliance_api_tiers'                => [ $defaultTiers, $defaultTiers, 'full' ],
+			'gdcompliance_api_default_quota'        => [ '10000',  '10000',  'full' ],
+			'gdcompliance_api_burst_per_sec'        => [ '10',     '10',     'full' ],
 		];
 		foreach ( $directInserts as $key => [ $val, $def, $report ] )
 		{
@@ -307,7 +346,7 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 4) LANG carry-forward + NEW 1.6.30 mykey / subscription strings.
+		 * 4) LANG — carry forward + NEW 1.6.31 tier/usage strings.
 		 * ------------------------------------------------------------ */
 		$newStrings = [
 			'gdcompliance_acp_settings_lookup_header'   => 'Public State Compliance Lookup (/state-lookup/)',
@@ -442,7 +481,6 @@ class _upgrade
 			'gdcompliance_api_verified'        => 'Data verification: mark data as legally verified',
 			'gdcompliance_api_verified_desc'   => 'Off (default): every API response carries verification_status="pending_legal_review". Flip on after your legal review completes to advertise "verified" data to integrating dealers.',
 
-			/* v1.6.30 NEW */
 			'gdcompliance_api_access_groups'        => 'Member groups granting API access',
 			'gdcompliance_api_access_groups_desc'   => 'Comma-separated group IDs. IPS Commerce should add subscribers to at least one of these groups (secondary group on the API subscription package) and remove them on lapse — the API gate reads live group membership per request, so no webhook is needed. Admins always pass.',
 			'gdcompliance_api_subscription_id'      => 'API subscription package ID',
@@ -462,6 +500,22 @@ class _upgrade
 			'gdcompliance_mykey_how_title'      => 'How to use it',
 			'gdcompliance_mykey_endpoints'      => 'Endpoints',
 			'gdcompliance_mykey_envelope'       => 'Response envelope',
+
+			/* v1.6.31 NEW */
+			'gdcompliance_api_tiers'              => 'Tier quotas (group → monthly requests)',
+			'gdcompliance_api_tiers_desc'         => 'JSON object mapping group_id (string) to monthly request quota (int). Example: {"13":10000,"14":100000}. Set a quota of 0 to grant unlimited requests for that tier. Members in multiple tiers get the highest quota.',
+			'gdcompliance_api_default_quota'      => 'Default monthly quota',
+			'gdcompliance_api_default_quota_desc' => 'Applied when a member is in an API-access group that has no explicit tier mapping. Ignored for admins (always unlimited).',
+			'gdcompliance_api_burst_per_sec'      => 'Burst throttle (requests / second / key)',
+			'gdcompliance_api_burst_per_sec_desc' => 'Server-protection throttle. Requests above this rate return HTTP 429 rate_limited with Retry-After: 1. Independent of the monthly quota.',
+			'gdcompliance_mykey_usage_title'      => 'Usage',
+			'gdcompliance_mykey_usage_tier'       => 'Tier',
+			'gdcompliance_mykey_usage_quota'      => 'Quota',
+			'gdcompliance_mykey_usage_month'      => 'This month',
+			'gdcompliance_mykey_usage_reset'      => 'Reset',
+			'gdcompliance_mykey_usage_lifetime'   => 'Lifetime',
+			'gdcompliance_mykey_usage_upsell'     => 'Approaching your monthly quota. Upgrade your subscription to raise the cap.',
+			'gdcompliance_mykey_usage_over'       => 'Monthly quota reached. Further requests will return 429 until reset.',
 		];
 
 		try
@@ -506,8 +560,7 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 6) CACHE PURGES — critical again since we added a new FURL
-		 *    route (mykey). Same scoped datastore purge as v1.6.29.
+		 * 6) CACHE PURGES.
 		 * ------------------------------------------------------------ */
 		try { unset( \IPS\Data\Store::i()->lang ); }               catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_front ); }      catch ( \Throwable ) {}

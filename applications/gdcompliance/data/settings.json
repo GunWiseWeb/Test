@@ -20,5 +20,8 @@
 	{"key": "gdcompliance_api_disclaimer",         "default": "This information is provided for general reference and is not legal advice or a guarantee of legality. Our engine catches the vast majority of restrictions but is never 100% accurate. Always verify with a licensed FFL and current state/local law.", "report": "none"},
 	{"key": "gdcompliance_api_verified",           "default": "0",  "report": "full"},
 	{"key": "gdcompliance_api_access_groups",      "default": "13", "report": "full"},
-	{"key": "gdcompliance_api_subscription_id",    "default": "6",  "report": "full"}
+	{"key": "gdcompliance_api_subscription_id",    "default": "6",  "report": "full"},
+	{"key": "gdcompliance_api_tiers",              "default": "{\"13\":10000}", "report": "full"},
+	{"key": "gdcompliance_api_default_quota",      "default": "10000", "report": "full"},
+	{"key": "gdcompliance_api_burst_per_sec",      "default": "10", "report": "full"}
 ]

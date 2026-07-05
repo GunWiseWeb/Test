@@ -457,5 +457,19 @@
 <word key="gdcompliance_mykey_how_title" js="0"><![CDATA[How to use it]]></word>
 <word key="gdcompliance_mykey_endpoints" js="0"><![CDATA[Endpoints]]></word>
 <word key="gdcompliance_mykey_envelope" js="0"><![CDATA[Response envelope]]></word>
+<word key="gdcompliance_api_tiers" js="0"><![CDATA[Tier quotas (group → monthly requests)]]></word>
+<word key="gdcompliance_api_tiers_desc" js="0"><![CDATA[JSON object mapping group_id (string) to monthly request quota (int). Example: {"13":10000,"14":100000}. Set a quota of 0 to grant unlimited requests for that tier. Members in multiple tiers get the highest quota.]]></word>
+<word key="gdcompliance_api_default_quota" js="0"><![CDATA[Default monthly quota]]></word>
+<word key="gdcompliance_api_default_quota_desc" js="0"><![CDATA[Applied when a member is in an API-access group that has no explicit tier mapping. Ignored for admins (always unlimited).]]></word>
+<word key="gdcompliance_api_burst_per_sec" js="0"><![CDATA[Burst throttle (requests / second / key)]]></word>
+<word key="gdcompliance_api_burst_per_sec_desc" js="0"><![CDATA[Server-protection throttle. Requests above this rate return HTTP 429 rate_limited with Retry-After: 1. Independent of the monthly quota.]]></word>
+<word key="gdcompliance_mykey_usage_title" js="0"><![CDATA[Usage]]></word>
+<word key="gdcompliance_mykey_usage_tier" js="0"><![CDATA[Tier]]></word>
+<word key="gdcompliance_mykey_usage_quota" js="0"><![CDATA[Quota]]></word>
+<word key="gdcompliance_mykey_usage_month" js="0"><![CDATA[This month]]></word>
+<word key="gdcompliance_mykey_usage_reset" js="0"><![CDATA[Reset]]></word>
+<word key="gdcompliance_mykey_usage_lifetime" js="0"><![CDATA[Lifetime]]></word>
+<word key="gdcompliance_mykey_usage_upsell" js="0"><![CDATA[Approaching your monthly quota. Upgrade your subscription to raise the cap.]]></word>
+<word key="gdcompliance_mykey_usage_over" js="0"><![CDATA[Monthly quota reached. Further requests will return 429 until reset.]]></word>
 </app>
 </language>

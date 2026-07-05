@@ -539,6 +539,22 @@ $lang = array(
 	'gdcompliance_mykey_endpoints'      => 'Endpoints',
 	'gdcompliance_mykey_envelope'       => 'Response envelope',
 
+	/* v1.6.31 — Stage 3: tier quotas + burst + usage metering */
+	'gdcompliance_api_tiers'              => 'Tier quotas (group → monthly requests)',
+	'gdcompliance_api_tiers_desc'         => 'JSON object mapping group_id (string) to monthly request quota (int). Example: {"13":10000,"14":100000}. Set a quota of 0 to grant unlimited requests for that tier. Members in multiple tiers get the highest quota.',
+	'gdcompliance_api_default_quota'      => 'Default monthly quota',
+	'gdcompliance_api_default_quota_desc' => 'Applied when a member is in an API-access group that has no explicit tier mapping. Ignored for admins (always unlimited).',
+	'gdcompliance_api_burst_per_sec'      => 'Burst throttle (requests / second / key)',
+	'gdcompliance_api_burst_per_sec_desc' => 'Server-protection throttle. Requests above this rate return HTTP 429 rate_limited with Retry-After: 1. Independent of the monthly quota.',
+	'gdcompliance_mykey_usage_title'      => 'Usage',
+	'gdcompliance_mykey_usage_tier'       => 'Tier',
+	'gdcompliance_mykey_usage_quota'      => 'Quota',
+	'gdcompliance_mykey_usage_month'      => 'This month',
+	'gdcompliance_mykey_usage_reset'      => 'Reset',
+	'gdcompliance_mykey_usage_lifetime'   => 'Lifetime',
+	'gdcompliance_mykey_usage_upsell'     => 'Approaching your monthly quota. Upgrade your subscription to raise the cap.',
+	'gdcompliance_mykey_usage_over'       => 'Monthly quota reached. Further requests will return 429 until reset.',
+
 	/* Phase 5 — Widget */
 	'block_gdRestrictionNotice'                => 'Product Restriction Notice',
 	'gdcompliance_widget_upc_fallback'         => 'Fallback UPC (only used if no product UPC in URL)',

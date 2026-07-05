@@ -58,6 +58,20 @@ class _api extends \IPS\Dispatcher\Controller
 	/** Batch cap. Enforced hard; over-cap POSTs are rejected. */
 	const BATCH_MAX = 200;
 
+	/**
+	 * v1.6.31 quota state — populated by authenticate() on success so
+	 * respond() can attach standard X-RateLimit-* headers to every
+	 * post-auth response. Shape:
+	 *   [ 'is_unlimited' => bool, 'limit' => int|null, 'used' => int,
+	 *     'remaining' => int|null, 'reset' => int ]
+	 * Null when the request never reached authenticate() successfully
+	 * (401/402 pre-auth) — respond() then emits no rate-limit headers.
+	 */
+	protected ?array $quotaState = null;
+
+	/** Authenticated key row (post-auth). Used for the metering write. */
+	protected ?array $authedKey = null;
+
 	/** Valid state codes (mirrors lookup controller). */
 	const STATE_CODES = [
 		'AL','AK','AZ','AR','CA','CO','CT','DC','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA',
@@ -162,6 +176,14 @@ class _api extends \IPS\Dispatcher\Controller
 		}
 
 		$verdict = $this->buildVerdictPayload( $upc, $stateRaw );
+
+		/* v1.6.31 — count this served request against the monthly
+		   quota + burst bucket. Do it BEFORE respond() so the
+		   X-RateLimit-Remaining header reflects the post-increment
+		   value (matches standard API behavior — the header shows the
+		   remaining budget AFTER this call). */
+		$this->accrue( 1 );
+
 		$this->respond( $verdict, 200 );
 	}
 
@@ -245,6 +267,10 @@ class _api extends \IPS\Dispatcher\Controller
 		{
 			$results[] = $this->buildVerdictPayload( $u, $stateRaw, false );
 		}
+
+		/* v1.6.31 — batch counts each UPC as 1 quota unit (that's the
+		   work). Document this on the mykey page and in the manifest. */
+		$this->accrue( count( $clean ) );
 
 		$this->respond( array_merge( [
 			'state'   => $stateRaw,
@@ -387,38 +413,64 @@ class _api extends \IPS\Dispatcher\Controller
 			return null;
 		}
 
-		/* Best-effort metering — never blocks the successful path. */
+		/* v1.6.31 QUOTA + BURST GATE — enforce tier quota and burst
+		   throttle for this key before returning it as authenticated.
+		   Sets $this->quotaState so respond() can emit rate-limit
+		   headers on the successful response. */
+		$this->authedKey = $row;
+		$keyId  = (int) $row['id'];
+		$quota  = $this->computeQuota( $row );
+		$reset  = $this->monthResetTs();
+		$period = $this->currentPeriod();
+
+		/* Burst throttle first — cheap 1-second bucket. Admins/unlimited
+		   still enforce burst so a rogue admin token can't hammer the
+		   DB, but with a much higher default cap. */
+		$burstLimit = (int) ( \IPS\Settings::i()->gdcompliance_api_burst_per_sec ?? 10 );
+		if ( $burstLimit < 1 ) { $burstLimit = 10; }
+		if ( $quota['is_unlimited'] ) { $burstLimit = max( $burstLimit, 60 ); }
+		$burstBucket = 'sec:' . time();
+		$burstUsed   = $this->readUsage( $keyId, $burstBucket );
+		if ( $burstUsed >= $burstLimit )
+		{
+			$this->quotaState = $this->buildQuotaState( $quota, 0, $reset );
+			$this->respond( [
+				'error'       => 'rate_limited',
+				'message'     => 'Too many requests, slow down.',
+				'retry_after' => 1,
+			], 429, [ 'Retry-After' => '1' ] );
+			return null;
+		}
+
+		/* Monthly quota — skipped for unlimited tiers. */
+		$monthUsed = $this->readUsage( $keyId, $period );
+		if ( !$quota['is_unlimited'] && $monthUsed >= (int) $quota['limit'] )
+		{
+			$this->quotaState = $this->buildQuotaState( $quota, $monthUsed, $reset );
+			$this->respond( [
+				'error'         => 'quota_exceeded',
+				'message'       => 'Monthly API quota reached. Upgrade or wait for reset.',
+				'reset'         => date( 'Y-m-d', $reset ),
+				'subscribe_url' => self::subscribeUrl(),
+			], 429, [ 'Retry-After' => (string) max( 1, $reset - time() ) ] );
+			return null;
+		}
+
+		$this->quotaState = $this->buildQuotaState( $quota, $monthUsed, $reset );
+
+		/* Best-effort lifetime metering — never blocks the successful path. */
 		try
 		{
 			\IPS\Db::i()->update(
 				'gd_compliance_api_keys',
 				[
 					'last_used_at'  => time(),
-					'request_count' => 'request_count + 1',
+					'request_count' => ( (int) ( $row['request_count'] ?? 0 ) ) + 1,
 				],
-				[ 'id=?', (int) $row['id'] ],
-				null, null,
-				[ 'request_count' => 'raw' ] // no-op flag for future-proofing
+				[ 'id=?', $keyId ]
 			);
 		}
-		catch ( \Throwable )
-		{
-			/* Fallback simple increment via read-modify-write. Rare
-			   path — only hit if the raw-set signature above is
-			   rejected by this IPS build. */
-			try
-			{
-				\IPS\Db::i()->update(
-					'gd_compliance_api_keys',
-					[
-						'last_used_at'  => time(),
-						'request_count' => ( (int) ( $row['request_count'] ?? 0 ) ) + 1,
-					],
-					[ 'id=?', (int) $row['id'] ]
-				);
-			}
-			catch ( \Throwable ) {}
-		}
+		catch ( \Throwable ) {}
 
 		return $row;
 	}
@@ -692,8 +744,8 @@ class _api extends \IPS\Dispatcher\Controller
 				. '<code class="gdak-key">' . $h( $keyStr ) . '</code>'
 				. '<dl class="gdak-meta">'
 				. '<dt>Created</dt><dd>' . $h( $caStr ) . '</dd>'
-				. '<dt>Requests</dt><dd>' . number_format( $rc ) . '</dd>'
 				. '<dt>Last used</dt><dd>' . $h( $luStr ) . '</dd>'
+				. '<dt>Lifetime</dt><dd>' . number_format( $rc ) . ' requests</dd>'
 				. '</dl>'
 				. '<form method="post" action="' . $h( $selfUrl ) . '" onsubmit="return confirm(\'Regenerating will invalidate the existing key immediately. Any live integrations using it will break until you paste in the new key. Continue?\');" style="margin-top:12px">'
 				. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
@@ -701,6 +753,56 @@ class _api extends \IPS\Dispatcher\Controller
 				. '<button type="submit" class="gdak-btn gdak-btn--warn">Regenerate key</button>'
 				. '</form>'
 				. '</div>';
+
+			/* v1.6.31 — tier / monthly usage panel. */
+			$quota  = $this->computeQuota( $key );
+			$used   = $this->readUsage( (int) $key['id'], $this->currentPeriod() );
+			$reset  = $this->monthResetTs();
+			$grpId  = $quota['group_id'] ?? null;
+			$grpLbl = $grpId ? ( 'Group #' . (int) $grpId ) : ( $quota['is_unlimited'] ? 'Unlimited' : 'Default' );
+			$resetStr = date( 'F j, Y', $reset );
+
+			if ( $quota['is_unlimited'] )
+			{
+				$html .= '<div class="gdak-card gdak-card--muted">'
+					. '<h2>Usage</h2>'
+					. '<dl class="gdak-meta">'
+					. '<dt>Tier</dt><dd>' . $h( $grpLbl ) . ' (unlimited)</dd>'
+					. '<dt>This month</dt><dd>' . number_format( $used ) . ' requests</dd>'
+					. '<dt>Reset</dt><dd>' . $h( $resetStr ) . '</dd>'
+					. '</dl>'
+					. '</div>';
+			}
+			else
+			{
+				$limit    = (int) $quota['limit'];
+				$pct      = $limit > 0 ? min( 100, (int) round( ( $used / $limit ) * 100 ) ) : 0;
+				$barClass = 'gdak-bar__fill';
+				if ( $pct >= 90 ) { $barClass .= ' gdak-bar__fill--danger'; }
+				elseif ( $pct >= 75 ) { $barClass .= ' gdak-bar__fill--warn'; }
+
+				$upsell = '';
+				if ( $pct >= 75 )
+				{
+					$upsell = '<p class="gdak-hint">Approaching your monthly quota. <a href="' . $h( self::subscribeUrl() ) . '">Upgrade your subscription</a> to raise the cap.</p>';
+				}
+				elseif ( $pct >= 100 )
+				{
+					$upsell = '<p class="gdak-hint gdak-hint--danger">Monthly quota reached. Further requests will return 429 until ' . $h( $resetStr ) . '. <a href="' . $h( self::subscribeUrl() ) . '">Upgrade now</a> to continue immediately.</p>';
+				}
+
+				$html .= '<div class="gdak-card gdak-card--muted">'
+					. '<h2>Usage</h2>'
+					. '<dl class="gdak-meta">'
+					. '<dt>Tier</dt><dd>' . $h( $grpLbl ) . '</dd>'
+					. '<dt>Quota</dt><dd>' . number_format( $limit ) . ' requests / month</dd>'
+					. '<dt>This month</dt><dd>' . number_format( $used ) . ' of ' . number_format( $limit ) . ' (' . $pct . '%)</dd>'
+					. '<dt>Reset</dt><dd>' . $h( $resetStr ) . '</dd>'
+					. '</dl>'
+					. '<div class="gdak-bar"><div class="' . $h( $barClass ) . '" style="width:' . (int) $pct . '%"></div></div>'
+					. $upsell
+					. '</div>';
+			}
 		}
 
 		/* Integration snippet — always visible for active members. */
@@ -716,7 +818,7 @@ class _api extends \IPS\Dispatcher\Controller
 			. '<h3>Endpoints</h3>'
 			. '<ul>'
 			. '<li><code>GET /api/compliance/check?upc=UPC&state=XX</code> — single verdict</li>'
-			. '<li><code>POST /api/compliance/batch</code> body <code>{"state":"XX","upcs":[…]}</code> — up to 200 UPCs</li>'
+			. '<li><code>POST /api/compliance/batch</code> body <code>{"state":"XX","upcs":[…]}</code> — up to 200 UPCs. Counts as one quota unit per UPC.</li>'
 			. '<li><code>GET /api/compliance</code> — usage manifest</li>'
 			. '</ul>'
 			. '<h3>Response envelope</h3>'
@@ -824,7 +926,261 @@ class _api extends \IPS\Dispatcher\Controller
 			. '.gdak-disclaimer{margin:10px 0 0;padding:10px 12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;font-size:.85em;color:#78350f;line-height:1.5;font-style:italic}'
 			. '.gdak-card ul{margin:0 0 12px;padding-left:20px;color:#334155;line-height:1.7}'
 			. '.gdak-card code{background:#f1f5f9;padding:1px 6px;border-radius:4px;font-family:ui-monospace,monospace;font-size:.9em}'
+			/* v1.6.31 usage progress bar */
+			. '.gdak-bar{background:#e2e8f0;border-radius:999px;height:10px;overflow:hidden;margin:6px 0 10px}'
+			. '.gdak-bar__fill{background:#1e40af;height:100%;transition:width .3s ease}'
+			. '.gdak-bar__fill--warn{background:#d97706}'
+			. '.gdak-bar__fill--danger{background:#b91c1c}'
+			. '.gdak-hint{margin:8px 0 0;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:.85em;color:#1e3a8a}'
+			. '.gdak-hint a{color:#1e40af;font-weight:600}'
+			. '.gdak-hint--danger{background:#fee2e2;border-color:#fecaca;color:#7f1d1d}'
+			. '.gdak-hint--danger a{color:#7f1d1d}'
 			. '</style>';
+	}
+
+	/* ==================================================================
+	 * v1.6.31 tier + quota + usage metering
+	 * ================================================================== */
+
+	/** Current-month period key. */
+	protected function currentPeriod(): string
+	{
+		return date( 'Y-m' );
+	}
+
+	/**
+	 * Unix ts of the first second of NEXT month — used as the
+	 * rate-limit reset epoch on every response header.
+	 */
+	protected function monthResetTs(): int
+	{
+		$firstOfNext = strtotime( 'first day of next month 00:00:00' );
+		return (int) ( $firstOfNext ?: ( time() + 86400 * 30 ) );
+	}
+
+	/**
+	 * Parse gdcompliance_api_tiers into a group_id → quota map.
+	 * Format: JSON object with string/int keys → int values, e.g.
+	 *   {"13": 10000, "14": 100000}
+	 * A quota of 0 means "unlimited" for that tier. Malformed JSON
+	 * returns empty map (fall through to default_quota).
+	 */
+	protected static function parseTiers(): array
+	{
+		$raw = (string) ( \IPS\Settings::i()->gdcompliance_api_tiers ?? '' );
+		$out = [];
+		if ( $raw === '' ) { return $out; }
+		try
+		{
+			$decoded = json_decode( $raw, true );
+			if ( is_array( $decoded ) )
+			{
+				foreach ( $decoded as $g => $q )
+				{
+					$gi = (int) $g;
+					if ( $gi > 0 ) { $out[ $gi ] = (int) $q; }
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+		return $out;
+	}
+
+	/**
+	 * Compute the quota for a given key row.
+	 *   [ 'is_unlimited' => bool, 'limit' => int|null, 'group_id' => int|null ]
+	 *
+	 * Rules:
+	 *   - Admin owner → unlimited.
+	 *   - Highest-quota tier among the member's groups WINS (so
+	 *     upgrading to a bigger tier bumps the limit immediately).
+	 *   - Tier quota of 0 means unlimited for that tier.
+	 *   - Group in api_access_groups but not in tiers map → default_quota.
+	 *   - Not in any API group → 0 quota (but Stage-2 gate already
+	 *     rejected them, so this branch is only reachable if the
+	 *     setting is misconfigured).
+	 */
+	protected function computeQuota( array $keyRow ): array
+	{
+		try
+		{
+			$member = \IPS\Member::load( (int) ( $keyRow['member_id'] ?? 0 ) );
+		}
+		catch ( \Throwable ) { $member = null; }
+
+		if ( $member && $member->member_id )
+		{
+			try
+			{
+				if ( method_exists( $member, 'isAdmin' ) && $member->isAdmin() )
+				{
+					return [ 'is_unlimited' => true, 'limit' => null, 'group_id' => null ];
+				}
+			}
+			catch ( \Throwable ) {}
+
+			$memberGroups = [ (int) ( $member->member_group_id ?? 0 ) ];
+			foreach ( explode( ',', (string) ( $member->mgroup_others ?? '' ) ) as $g )
+			{
+				$gi = (int) $g;
+				if ( $gi > 0 ) { $memberGroups[] = $gi; }
+			}
+			$memberGroups = array_values( array_unique( $memberGroups ) );
+
+			$tiers   = self::parseTiers();
+			$allowed = self::apiAccessGroupIds();
+			$best    = null;    /* highest observed quota */
+			$bestGrp = null;
+
+			foreach ( $memberGroups as $gid )
+			{
+				if ( !in_array( $gid, $allowed, true ) ) { continue; }
+				$q = $tiers[ $gid ] ?? null;
+				if ( $q === 0 )
+				{
+					return [ 'is_unlimited' => true, 'limit' => null, 'group_id' => $gid ];
+				}
+				if ( $q === null )
+				{
+					$q = (int) ( \IPS\Settings::i()->gdcompliance_api_default_quota ?? 10000 );
+					if ( $q < 1 ) { $q = 10000; }
+				}
+				if ( $best === null || $q > $best ) { $best = $q; $bestGrp = $gid; }
+			}
+
+			if ( $best !== null )
+			{
+				return [ 'is_unlimited' => false, 'limit' => (int) $best, 'group_id' => $bestGrp ];
+			}
+		}
+
+		/* Fallback: use the default quota. Reachable only if Stage-2
+		   gate is bypassed (admin misconfiguration). */
+		$q = (int) ( \IPS\Settings::i()->gdcompliance_api_default_quota ?? 10000 );
+		if ( $q < 1 ) { $q = 10000; }
+		return [ 'is_unlimited' => false, 'limit' => $q, 'group_id' => null ];
+	}
+
+	/**
+	 * Pack the pieces respond() needs into one array shape.
+	 */
+	protected function buildQuotaState( array $quota, int $used, int $reset ): array
+	{
+		if ( $quota['is_unlimited'] )
+		{
+			return [ 'is_unlimited' => true, 'limit' => null, 'used' => $used, 'remaining' => null, 'reset' => $reset ];
+		}
+		$limit     = (int) $quota['limit'];
+		$remaining = max( 0, $limit - $used );
+		return [ 'is_unlimited' => false, 'limit' => $limit, 'used' => $used, 'remaining' => $remaining, 'reset' => $reset ];
+	}
+
+	/**
+	 * Read the current count for a (key_id, period) row. Zero if the
+	 * row doesn't exist yet. Never throws.
+	 */
+	protected function readUsage( int $keyId, string $period ): int
+	{
+		try
+		{
+			return (int) \IPS\Db::i()->select(
+				'count', 'gd_compliance_api_usage',
+				[ 'key_id=? AND period=?', $keyId, $period ]
+			)->first();
+		}
+		catch ( \Throwable ) { return 0; }
+	}
+
+	/**
+	 * Increment BOTH the monthly bucket and the current-second burst
+	 * bucket by $units. Best-effort — a DB failure never fails the
+	 * user's request (Stage-3 metering is a cross-cutting concern,
+	 * not the API contract).
+	 *
+	 * Also opportunistically expires any burst rows older than 5
+	 * seconds so the table doesn't grow forever. Cheap DELETE.
+	 */
+	protected function incrementUsage( int $keyId, int $units = 1 ): void
+	{
+		if ( $units < 1 ) { return; }
+		$period = $this->currentPeriod();
+		$second = 'sec:' . time();
+
+		foreach ( [ $period => $units, $second => $units ] as $p => $u )
+		{
+			try
+			{
+				\IPS\Db::i()->preparedQuery(
+					'INSERT INTO ' . \IPS\Db::i()->prefix . 'gd_compliance_api_usage
+					   (key_id, period, count) VALUES (?, ?, ?)
+					 ON DUPLICATE KEY UPDATE count = count + VALUES(count)',
+					[ $keyId, $p, $u ]
+				);
+			}
+			catch ( \Throwable ) {}
+		}
+
+		/* Opportunistic cleanup — chance-gated to keep it lightweight.
+		   1 in ~50 requests runs the DELETE; older-than-5-seconds
+		   burst rows are dropped. Uses time()-based bucket instead of
+		   random() to stay deterministic-in-test. */
+		if ( ( time() % 50 ) === 0 )
+		{
+			try
+			{
+				$cutoff = 'sec:' . ( time() - 5 );
+				\IPS\Db::i()->delete(
+					'gd_compliance_api_usage',
+					[ "period LIKE 'sec:%' AND period < ?", $cutoff ]
+				);
+			}
+			catch ( \Throwable ) {}
+		}
+	}
+
+	/**
+	 * Called by check()/batch() to charge $units against the caller's
+	 * quota. Also updates $this->quotaState so the outgoing
+	 * X-RateLimit-Remaining header reflects the post-increment total
+	 * (standard API convention: the header describes what's left
+	 * AFTER this call).
+	 */
+	protected function accrue( int $units ): void
+	{
+		if ( $units < 1 || $this->authedKey === null ) { return; }
+		$this->incrementUsage( (int) $this->authedKey['id'], $units );
+
+		if ( is_array( $this->quotaState ) )
+		{
+			$this->quotaState['used'] = (int) ( $this->quotaState['used'] ?? 0 ) + $units;
+			if ( !empty( $this->quotaState['is_unlimited'] ) ) { return; }
+			$this->quotaState['remaining'] = max( 0,
+				(int) $this->quotaState['limit'] - (int) $this->quotaState['used']
+			);
+		}
+	}
+
+	/**
+	 * Build the standard X-RateLimit-* headers from $this->quotaState.
+	 * Returns an empty array if no quota was tracked (pre-auth error).
+	 */
+	protected function rateLimitHeaders(): array
+	{
+		$s = $this->quotaState;
+		if ( !is_array( $s ) ) { return []; }
+		if ( !empty( $s['is_unlimited'] ) )
+		{
+			return [
+				'X-RateLimit-Limit'     => 'unlimited',
+				'X-RateLimit-Remaining' => 'unlimited',
+				'X-RateLimit-Reset'     => (string) (int) $s['reset'],
+			];
+		}
+		return [
+			'X-RateLimit-Limit'     => (string) (int) ( $s['limit']     ?? 0 ),
+			'X-RateLimit-Remaining' => (string) (int) ( $s['remaining'] ?? 0 ),
+			'X-RateLimit-Reset'     => (string) (int) ( $s['reset']     ?? 0 ),
+		];
 	}
 
 	/**
@@ -833,17 +1189,27 @@ class _api extends \IPS\Dispatcher\Controller
 	 * injected. no-store because verdicts should never be cached by
 	 * proxies (state law changes daily; false-negative caching is a
 	 * liability).
+	 *
+	 * v1.6.31: rate-limit headers ($this->quotaState) merged into
+	 * every post-auth response — success, 429, or otherwise — plus
+	 * any caller-provided $extraHeaders (Retry-After on 429).
 	 */
-	protected function respond( array $payload, int $status = 200 ): void
+	protected function respond( array $payload, int $status = 200, array $extraHeaders = [] ): void
 	{
-		\IPS\Output::i()->sendOutput(
-			(string) json_encode( $payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ),
-			$status,
-			'application/json',
+		$headers = array_merge(
 			[
 				'Cache-Control' => 'no-store, no-cache, must-revalidate',
 				'Pragma'        => 'no-cache',
 			],
+			$this->rateLimitHeaders(),
+			$extraHeaders
+		);
+
+		\IPS\Output::i()->sendOutput(
+			(string) json_encode( $payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ),
+			$status,
+			'application/json',
+			$headers,
 			FALSE,
 			FALSE,
 			FALSE
