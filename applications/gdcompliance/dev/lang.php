@@ -518,6 +518,27 @@ $lang = array(
 	'gdcompliance_api_verified'        => 'Data verification: mark data as legally verified',
 	'gdcompliance_api_verified_desc'   => 'Off (default): every API response carries verification_status="pending_legal_review". Flip on after your legal review completes to advertise "verified" data to integrating dealers.',
 
+	/* v1.6.30 — Compliance API Stage 2 (subscription gate + self-service) */
+	'gdcompliance_api_access_groups'      => 'Member groups granting API access',
+	'gdcompliance_api_access_groups_desc' => 'Comma-separated group IDs. IPS Commerce should add subscribers to at least one of these groups (secondary group on the API subscription package) and remove them on lapse — the API gate reads live group membership per request, so no webhook is needed. Admins always pass.',
+	'gdcompliance_api_subscription_id'      => 'API subscription package ID',
+	'gdcompliance_api_subscription_id_desc' => 'Nexus subscription package ID used to build the subscribe/upsell link in 402 responses and on the self-service key page.',
+	'gdcompliance_mykey_page_title'    => 'Your Compliance API Key',
+	'gdcompliance_mykey_login'         => 'Log in',
+	'gdcompliance_mykey_login_msg'     => 'Please log in to view or generate your API key.',
+	'gdcompliance_mykey_upsell_title'  => 'API access requires a subscription',
+	'gdcompliance_mykey_upsell_msg'    => 'The Compliance API is a subscription-only integration. Once you subscribe, this page will let you generate and manage your API key.',
+	'gdcompliance_mykey_upsell_cta'    => 'View subscription',
+	'gdcompliance_mykey_generate_title' => 'Generate your API key',
+	'gdcompliance_mykey_generate_msg'   => 'You have an active Compliance API subscription. Generate a key below to start making requests.',
+	'gdcompliance_mykey_generate_btn'   => 'Generate API key',
+	'gdcompliance_mykey_your_key'       => 'Your API key',
+	'gdcompliance_mykey_regen_btn'      => 'Regenerate key',
+	'gdcompliance_mykey_regen_confirm'  => 'Regenerating will invalidate the existing key immediately. Any live integrations using it will break until you paste in the new key. Continue?',
+	'gdcompliance_mykey_how_title'      => 'How to use it',
+	'gdcompliance_mykey_endpoints'      => 'Endpoints',
+	'gdcompliance_mykey_envelope'       => 'Response envelope',
+
 	/* Phase 5 — Widget */
 	'block_gdRestrictionNotice'                => 'Product Restriction Notice',
 	'gdcompliance_widget_upc_fallback'         => 'Fallback UPC (only used if no product UPC in URL)',

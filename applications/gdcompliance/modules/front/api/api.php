@@ -110,6 +110,11 @@ class _api extends \IPS\Dispatcher\Controller
 			$this->batch();
 			return;
 		}
+		if ( preg_match( '~/mykey/?$~', $path ) )
+		{
+			$this->mykey();
+			return;
+		}
 
 		$this->respond( [
 			'name'      => 'gunrack-compliance-api',
@@ -320,6 +325,68 @@ class _api extends \IPS\Dispatcher\Controller
 			return null;
 		}
 
+		/* v1.6.30 SUBSCRIPTION GATE — live check that the key's owning
+		   member is currently in an API-access group. IPS Commerce
+		   already manages the group membership by subscription state
+		   (add on purchase, remove on lapse), so we don't need a Nexus
+		   event hook — the membership check is fresh every request.
+		   Admin bypass so Derrick can test without a subscription. */
+		try
+		{
+			$member = \IPS\Member::load( (int) ( $row['member_id'] ?? 0 ) );
+			$isAdmin = false;
+			try { $isAdmin = $member && $member->member_id && method_exists( $member, 'isAdmin' ) && $member->isAdmin(); }
+			catch ( \Throwable ) { $isAdmin = false; }
+
+			if ( !$isAdmin )
+			{
+				$allowedGroups = self::apiAccessGroupIds();
+				$inGroup       = false;
+				if ( $member && $member->member_id && !empty( $allowedGroups ) )
+				{
+					try
+					{
+						if ( method_exists( $member, 'inGroup' ) )
+						{
+							$inGroup = (bool) $member->inGroup( $allowedGroups );
+						}
+					}
+					catch ( \Throwable ) { $inGroup = false; }
+
+					if ( !$inGroup )
+					{
+						/* Fallback: manual primary + secondary walk. */
+						$memberGroups = [ (int) ( $member->member_group_id ?? 0 ) ];
+						foreach ( explode( ',', (string) ( $member->mgroup_others ?? '' ) ) as $g )
+						{
+							$gi = (int) $g;
+							if ( $gi > 0 ) { $memberGroups[] = $gi; }
+						}
+						$inGroup = (bool) array_intersect( $memberGroups, $allowedGroups );
+					}
+				}
+
+				if ( !$inGroup )
+				{
+					$this->respond( [
+						'error'         => 'subscription_inactive',
+						'message'       => 'Your API subscription is not active. Subscribe or renew to restore access.',
+						'subscribe_url' => self::subscribeUrl(),
+					], 402 );
+					return null;
+				}
+			}
+		}
+		catch ( \Throwable )
+		{
+			/* Rare — Member::load blew up. Fail closed for safety. */
+			$this->respond( [
+				'error'   => 'subscription_inactive',
+				'message' => 'Could not verify subscription state.',
+			], 402 );
+			return null;
+		}
+
 		/* Best-effort metering — never blocks the successful path. */
 		try
 		{
@@ -446,6 +513,318 @@ class _api extends \IPS\Dispatcher\Controller
 			'verification_status' => $verified ? 'verified' : 'pending_legal_review',
 			'generated_at'        => time(),
 		];
+	}
+
+	/* ==================================================================
+	 * v1.6.30 helpers — subscription gate + subscribe URL builder
+	 * ================================================================== */
+
+	/**
+	 * The parsed list of member group IDs allowed to use the API.
+	 * Reads gdcompliance_api_access_groups (comma-separated). Empty
+	 * setting → empty list → fail-closed (no member can use the API
+	 * except admins).
+	 */
+	protected static function apiAccessGroupIds(): array
+	{
+		$raw = (string) ( \IPS\Settings::i()->gdcompliance_api_access_groups ?? '' );
+		return array_values( array_filter( array_map( 'intval', explode( ',', $raw ) ) ) );
+	}
+
+	/**
+	 * URL for the Nexus subscription package that backs API access.
+	 * Reads gdcompliance_api_subscription_id. Falls back to the Nexus
+	 * subscriptions index if no id is set. Used in the 402 response
+	 * payload and on the self-service mykey page.
+	 */
+	protected static function subscribeUrl(): string
+	{
+		$id = (int) ( \IPS\Settings::i()->gdcompliance_api_subscription_id ?? 0 );
+		try
+		{
+			if ( $id > 0 )
+			{
+				return (string) \IPS\Http\Url::internal(
+					'app=nexus&module=store&controller=product&id=' . $id, 'front'
+				);
+			}
+			return (string) \IPS\Http\Url::internal(
+				'app=nexus&module=subscriptions&controller=subscriptions', 'front', 'nexus_subscriptions'
+			);
+		}
+		catch ( \Throwable ) { return '/'; }
+	}
+
+	/**
+	 * Return the API-access status of a given member for the mykey
+	 * page. Two-value result: 'active' | 'inactive' — used to switch
+	 * between the key-management UI and the upsell block.
+	 */
+	protected static function memberApiStatus( \IPS\Member $member ): string
+	{
+		if ( !$member->member_id ) { return 'inactive'; }
+		try
+		{
+			if ( method_exists( $member, 'isAdmin' ) && $member->isAdmin() ) { return 'active'; }
+		}
+		catch ( \Throwable ) {}
+
+		$allowed = self::apiAccessGroupIds();
+		if ( empty( $allowed ) ) { return 'inactive'; }
+		try
+		{
+			if ( method_exists( $member, 'inGroup' ) && $member->inGroup( $allowed ) ) { return 'active'; }
+		}
+		catch ( \Throwable ) {}
+
+		$memberGroups = [ (int) ( $member->member_group_id ?? 0 ) ];
+		foreach ( explode( ',', (string) ( $member->mgroup_others ?? '' ) ) as $g )
+		{
+			$gi = (int) $g;
+			if ( $gi > 0 ) { $memberGroups[] = $gi; }
+		}
+		return array_intersect( $memberGroups, $allowed ) ? 'active' : 'inactive';
+	}
+
+	/* ==================================================================
+	 * v1.6.30 mykey — self-service API key page (HTML, browser)
+	 * ==================================================================
+	 *
+	 * Endpoint: /api/compliance/mykey (front, theme-wrapped, HTML).
+	 * NOT gated by API key — it's a browser action by a logged-in
+	 * member managing their OWN key. All state changes CSRF-checked.
+	 *
+	 * Guest         → login prompt with return URL preserved.
+	 * Non-subscribed member → upsell + subscribe link.
+	 * Subscribed member     → key management (view / generate /
+	 *                          regenerate) + integration snippet.
+	 */
+	public function mykey(): void
+	{
+		$member = \IPS\Member::loggedIn();
+		$h      = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+
+		$selfUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=api&controller=api&do=mykey', 'front'
+		);
+
+		\IPS\Output::i()->title      = 'Your Compliance API Key';
+		\IPS\Output::i()->breadcrumb = [];
+		\IPS\Output::i()->sidebar    = [ 'enabled' => false ];
+
+		/* Guest → login prompt. */
+		if ( !$member->member_id )
+		{
+			$loginUrl = (string) \IPS\Http\Url::internal(
+				'app=core&module=system&controller=login&ref=' . base64_encode( $selfUrl )
+			);
+			\IPS\Output::i()->output = $this->mykeyStyles()
+				. '<div class="gdak-wrap">'
+				. '<h1>Your Compliance API Key</h1>'
+				. '<div class="gdak-card gdak-card--info">'
+				. '<p>Please log in to view or generate your API key.</p>'
+				. '<a href="' . $h( $loginUrl ) . '" class="gdak-btn">Log in</a>'
+				. '</div></div>';
+			return;
+		}
+
+		/* POST → generate or regenerate. */
+		if ( isset( \IPS\Request::i()->action ) && ( $_SERVER['REQUEST_METHOD'] ?? '' ) === 'POST' )
+		{
+			$this->mykeyAct();
+			return;
+		}
+
+		/* Not subscribed → upsell. */
+		$status = self::memberApiStatus( $member );
+		if ( $status !== 'active' )
+		{
+			$subUrl = self::subscribeUrl();
+			\IPS\Output::i()->output = $this->mykeyStyles()
+				. '<div class="gdak-wrap">'
+				. '<h1>Your Compliance API Key</h1>'
+				. '<div class="gdak-card gdak-card--warn">'
+				. '<h2>🔒 API access requires a subscription</h2>'
+				. '<p>The Compliance API is a subscription-only integration. Once you subscribe, this page will let you generate and manage your API key.</p>'
+				. '<a href="' . $h( $subUrl ) . '" class="gdak-btn">View subscription</a>'
+				. '</div></div>';
+			return;
+		}
+
+		/* Active member → find or offer to create the key. */
+		$key = null;
+		try
+		{
+			$key = \IPS\Db::i()->select(
+				'*', 'gd_compliance_api_keys',
+				[ 'member_id=? AND status!=?', (int) $member->member_id, 'revoked' ],
+				'id DESC', 1
+			)->first();
+		}
+		catch ( \Throwable ) { $key = null; }
+
+		$csrfKey = (string) \IPS\Session::i()->csrfKey;
+		$html    = $this->mykeyStyles() . '<div class="gdak-wrap"><h1>Your Compliance API Key</h1>';
+
+		if ( !is_array( $key ) )
+		{
+			$html .= '<div class="gdak-card">'
+				. '<h2>Generate your API key</h2>'
+				. '<p>You have an active Compliance API subscription. Generate a key below to start making requests.</p>'
+				. '<form method="post" action="' . $h( $selfUrl ) . '">'
+				. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
+				. '<input type="hidden" name="action" value="generate">'
+				. '<button type="submit" class="gdak-btn">Generate API key</button>'
+				. '</form>'
+				. '</div>';
+		}
+		else
+		{
+			$keyStr = (string) ( $key['api_key']      ?? '' );
+			$rc     = (int)    ( $key['request_count'] ?? 0 );
+			$lu     = (int)    ( $key['last_used_at']  ?? 0 );
+			$luStr  = $lu > 0 ? date( 'Y-m-d H:i', $lu ) . ' UTC' : 'never';
+			$ca     = (int)    ( $key['created_at']   ?? 0 );
+			$caStr  = $ca > 0 ? date( 'Y-m-d', $ca )  : '—';
+
+			$html .= '<div class="gdak-card">'
+				. '<h2>Your API key</h2>'
+				. '<code class="gdak-key">' . $h( $keyStr ) . '</code>'
+				. '<dl class="gdak-meta">'
+				. '<dt>Created</dt><dd>' . $h( $caStr ) . '</dd>'
+				. '<dt>Requests</dt><dd>' . number_format( $rc ) . '</dd>'
+				. '<dt>Last used</dt><dd>' . $h( $luStr ) . '</dd>'
+				. '</dl>'
+				. '<form method="post" action="' . $h( $selfUrl ) . '" onsubmit="return confirm(\'Regenerating will invalidate the existing key immediately. Any live integrations using it will break until you paste in the new key. Continue?\');" style="margin-top:12px">'
+				. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
+				. '<input type="hidden" name="action" value="regenerate">'
+				. '<button type="submit" class="gdak-btn gdak-btn--warn">Regenerate key</button>'
+				. '</form>'
+				. '</div>';
+		}
+
+		/* Integration snippet — always visible for active members. */
+		$disclaimer = trim( (string) ( \IPS\Settings::i()->gdcompliance_api_disclaimer ?? '' ) );
+		$verified   = (int) ( \IPS\Settings::i()->gdcompliance_api_verified ?? 0 ) === 1
+			? 'verified' : 'pending_legal_review';
+
+		$html .= '<div class="gdak-card gdak-card--muted">'
+			. '<h2>How to use it</h2>'
+			. '<p>Send your key in the <code>Authorization</code> header (preferred) or as an <code>api_key</code> query param.</p>'
+			. '<pre class="gdak-pre">curl -H "Authorization: Bearer YOUR_KEY" \\'
+			. '&#10;  "' . $h( (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=check&upc=011356670526&state=IL', 'front' ) ) . '"</pre>'
+			. '<h3>Endpoints</h3>'
+			. '<ul>'
+			. '<li><code>GET /api/compliance/check?upc=UPC&state=XX</code> — single verdict</li>'
+			. '<li><code>POST /api/compliance/batch</code> body <code>{"state":"XX","upcs":[…]}</code> — up to 200 UPCs</li>'
+			. '<li><code>GET /api/compliance</code> — usage manifest</li>'
+			. '</ul>'
+			. '<h3>Response envelope</h3>'
+			. '<p>Every response includes a plain-language <code>disclaimer</code> and a <code>verification_status</code> flag. Current verification status on this install: <strong>' . $h( $verified ) . '</strong>.</p>'
+			. ( $disclaimer !== '' ? '<blockquote class="gdak-disclaimer">' . $h( $disclaimer ) . '</blockquote>' : '' )
+			. '</div>';
+
+		$html .= '</div>';
+		\IPS\Output::i()->output = $html;
+	}
+
+	/**
+	 * Handle the POST from the mykey page (generate | regenerate).
+	 * CSRF-checked; only lets the member touch their OWN row.
+	 */
+	protected function mykeyAct(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$member = \IPS\Member::loggedIn();
+		if ( !$member->member_id )
+		{
+			\IPS\Output::i()->redirect( (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=mykey', 'front' ) );
+			return;
+		}
+		if ( self::memberApiStatus( $member ) !== 'active' )
+		{
+			\IPS\Output::i()->redirect( (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=mykey', 'front' ) );
+			return;
+		}
+
+		$action = (string) ( \IPS\Request::i()->action ?? '' );
+
+		try { $newKey = 'gdc_' . bin2hex( random_bytes( 20 ) ); }
+		catch ( \Throwable ) { $newKey = ''; }
+		if ( $newKey === '' )
+		{
+			\IPS\Output::i()->error( 'Could not generate a secure key.', '2GDMK/1', 500 );
+			return;
+		}
+
+		if ( $action === 'regenerate' )
+		{
+			try
+			{
+				\IPS\Db::i()->update(
+					'gd_compliance_api_keys',
+					[ 'status' => 'revoked' ],
+					[ 'member_id=? AND status!=?', (int) $member->member_id, 'revoked' ]
+				);
+			}
+			catch ( \Throwable ) {}
+		}
+
+		try
+		{
+			\IPS\Db::i()->insert( 'gd_compliance_api_keys', [
+				'api_key'       => $newKey,
+				'member_id'     => (int) $member->member_id,
+				'label'         => 'Self-service (' . substr( (string) $member->name, 0, 60 ) . ')',
+				'status'        => 'active',
+				'created_at'    => time(),
+				'last_used_at'  => null,
+				'request_count' => 0,
+			] );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'mykeyAct insert: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			\IPS\Output::i()->error( 'Could not store the new key.', '2GDMK/2', 500 );
+			return;
+		}
+
+		\IPS\Output::i()->redirect(
+			(string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=mykey', 'front' )
+		);
+	}
+
+	/**
+	 * Inline styles for the mykey page. Kept in one place; reused
+	 * across all three visitor states (guest / non-sub / active).
+	 */
+	protected function mykeyStyles(): string
+	{
+		return '<style>'
+			. '.gdak-wrap{max-width:820px;margin:24px auto;padding:0 16px;font-family:\'Inter\',system-ui,-apple-system,sans-serif;color:#0f172a}'
+			. '.gdak-wrap h1{margin:0 0 18px;font-size:1.6em;color:#0f172a}'
+			. '.gdak-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px 22px;margin-bottom:16px}'
+			. '.gdak-card h2{margin:0 0 10px;font-size:1.15em;color:#0f172a}'
+			. '.gdak-card h3{margin:16px 0 6px;font-size:.95em;color:#334155}'
+			. '.gdak-card p{margin:0 0 12px;color:#475569;line-height:1.5}'
+			. '.gdak-card--info{background:#eff6ff;border-color:#bfdbfe}'
+			. '.gdak-card--warn{background:#fefce8;border-color:#fde68a}'
+			. '.gdak-card--muted{background:#f8fafc}'
+			. '.gdak-btn{display:inline-block;background:#1e40af;color:#fff;padding:9px 18px;border-radius:8px;font-weight:600;text-decoration:none;border:none;cursor:pointer;font-size:.95em}'
+			. '.gdak-btn:hover{background:#1e3a8a;color:#fff;text-decoration:none}'
+			. '.gdak-btn--warn{background:#b91c1c}'
+			. '.gdak-btn--warn:hover{background:#991b1b}'
+			. '.gdak-key{display:block;background:#0f172a;color:#fef3c7;padding:12px 14px;border-radius:8px;font-family:ui-monospace,menlo,monospace;font-size:.95em;word-break:break-all;margin-bottom:14px}'
+			. '.gdak-meta{margin:0;font-size:.9em;color:#475569}'
+			. '.gdak-meta dt{display:inline-block;width:110px;color:#64748b}'
+			. '.gdak-meta dd{display:inline;margin:0}'
+			. '.gdak-meta dd::after{content:"";display:block;height:6px}'
+			. '.gdak-pre{background:#0f172a;color:#e2e8f0;padding:12px 14px;border-radius:8px;font-family:ui-monospace,menlo,monospace;font-size:.85em;overflow-x:auto;white-space:pre;line-height:1.4}'
+			. '.gdak-disclaimer{margin:10px 0 0;padding:10px 12px;background:#fefce8;border:1px solid #fde68a;border-radius:8px;font-size:.85em;color:#78350f;line-height:1.5;font-style:italic}'
+			. '.gdak-card ul{margin:0 0 12px;padding-left:20px;color:#334155;line-height:1.7}'
+			. '.gdak-card code{background:#f1f5f9;padding:1px 6px;border-radius:4px;font-family:ui-monospace,monospace;font-size:.9em}'
+			. '</style>';
 	}
 
 	/**

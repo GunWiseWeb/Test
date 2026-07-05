@@ -438,5 +438,24 @@
 <word key="gdcompliance_api_disclaimer_desc" js="0"><![CDATA[Legal-guidance text embedded in every /compliance-api/ JSON response so it propagates to the dealer's frontend (liability chain).]]></word>
 <word key="gdcompliance_api_verified" js="0"><![CDATA[Data verification: mark data as legally verified]]></word>
 <word key="gdcompliance_api_verified_desc" js="0"><![CDATA[Off (default): every API response carries verification_status="pending_legal_review". Flip on after your legal review completes to advertise "verified" data to integrating dealers.]]></word>
+<word key="gdcompliance_api_access_groups" js="0"><![CDATA[Member groups granting API access]]></word>
+<word key="gdcompliance_api_access_groups_desc" js="0"><![CDATA[Comma-separated group IDs. IPS Commerce should add subscribers to at least one of these groups (secondary group on the API subscription package) and remove them on lapse — the API gate reads live group membership per request, so no webhook is needed. Admins always pass.]]></word>
+<word key="gdcompliance_api_subscription_id" js="0"><![CDATA[API subscription package ID]]></word>
+<word key="gdcompliance_api_subscription_id_desc" js="0"><![CDATA[Nexus subscription package ID used to build the subscribe/upsell link in 402 responses and on the self-service key page.]]></word>
+<word key="gdcompliance_mykey_page_title" js="0"><![CDATA[Your Compliance API Key]]></word>
+<word key="gdcompliance_mykey_login" js="0"><![CDATA[Log in]]></word>
+<word key="gdcompliance_mykey_login_msg" js="0"><![CDATA[Please log in to view or generate your API key.]]></word>
+<word key="gdcompliance_mykey_upsell_title" js="0"><![CDATA[API access requires a subscription]]></word>
+<word key="gdcompliance_mykey_upsell_msg" js="0"><![CDATA[The Compliance API is a subscription-only integration. Once you subscribe, this page will let you generate and manage your API key.]]></word>
+<word key="gdcompliance_mykey_upsell_cta" js="0"><![CDATA[View subscription]]></word>
+<word key="gdcompliance_mykey_generate_title" js="0"><![CDATA[Generate your API key]]></word>
+<word key="gdcompliance_mykey_generate_msg" js="0"><![CDATA[You have an active Compliance API subscription. Generate a key below to start making requests.]]></word>
+<word key="gdcompliance_mykey_generate_btn" js="0"><![CDATA[Generate API key]]></word>
+<word key="gdcompliance_mykey_your_key" js="0"><![CDATA[Your API key]]></word>
+<word key="gdcompliance_mykey_regen_btn" js="0"><![CDATA[Regenerate key]]></word>
+<word key="gdcompliance_mykey_regen_confirm" js="0"><![CDATA[Regenerating will invalidate the existing key immediately. Any live integrations using it will break until you paste in the new key. Continue?]]></word>
+<word key="gdcompliance_mykey_how_title" js="0"><![CDATA[How to use it]]></word>
+<word key="gdcompliance_mykey_endpoints" js="0"><![CDATA[Endpoints]]></word>
+<word key="gdcompliance_mykey_envelope" js="0"><![CDATA[Response envelope]]></word>
 </app>
 </language>

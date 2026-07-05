@@ -1,43 +1,44 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.29
+ * @brief  GD Compliance — upgrade 1.6.30
  *
- * NOTE ON VERSION — the corresponding prompt asked for 1.6.28, but
- * v1.6.28 already shipped (API Stage 1). Next available is 1.6.29.
+ * NOTE ON VERSION — the corresponding prompt asked for 1.6.29, but
+ * v1.6.29 already shipped (API URL fix). Next available is 1.6.30.
  *
- * WHAT SHIPS IN 1.6.29 — API URL/routing fix:
+ * WHAT SHIPS IN 1.6.30 — API Stage 2 (subscription gate + self-service):
  *
- *   - data/furl.json — the v1.6.28 route `compliance-api/{@do}` was
- *     replaced with SIX explicit routes:
- *        api/compliance/check   → do=check
- *        api/compliance/batch   → do=batch
- *        api/compliance         → manifest (default manage())
- *        compliance-api/check   → do=check  (legacy)
- *        compliance-api/batch   → do=batch  (legacy)
- *        compliance-api         → manifest  (legacy)
- *     Explicit routes avoid the {@do} dynamic-segment mapping bug
- *     that made path-form requests fall through to manage().
+ *   - NEW SETTINGS:
+ *       gdcompliance_api_access_groups  (default '13')
+ *       gdcompliance_api_subscription_id (default '6')
+ *     Both editable in the ACP. IPS Commerce sets subscribers as
+ *     secondary members of the API-access group and removes them on
+ *     lapse — the API gate reads live group membership per request,
+ *     no Nexus event hook required.
  *
- *   - modules/front/api/api.php — the default action ALSO inspects
- *     the trailing URI segment and routes to check()/batch()
- *     defensively, so a stale FURL datastore cache from v1.6.28
- *     can't defeat the fix during the upgrade window. The manifest
- *     info blob now shows the new /api/compliance/* URLs.
+ *   - API AUTH now includes a SUBSCRIPTION GATE after the existing
+ *     key checks: admin bypass, else Member::inGroup(allowed) must
+ *     be true, else HTTP 402 subscription_inactive with a
+ *     subscribe_url in the payload built from the subscription-id
+ *     setting.
  *
- *   - THIS upgrade explicitly nukes the FURL datastore in every
- *     way IPS caches it: unset the store keys AND delete the
- *     matching datastore/*.php files on disk. Without that, the
- *     next hit reads a v1.6.28-shaped cache and the new routes
- *     don't take effect until an admin manually rebuilds URLs.
+ *   - SELF-SERVICE PAGE at /api/compliance/mykey (browser, theme-
+ *     wrapped HTML). Three visitor states: guest → login prompt,
+ *     non-subscribed → upsell + subscribe link, subscribed →
+ *     view/generate/regenerate their key + integration snippet.
+ *     CSRF-protected POSTs.
+ *
+ *   - New FURL routes (both new and legacy for compatibility):
+ *       /api/compliance/mykey  → do=mykey
+ *       /compliance-api/mykey  → do=mykey (legacy)
  *
  * SELF-CONTAINED (rule #79). Only upg dir for this app; every prior
- * migration folded forward defensively (all schema, settings,
- * extensions, lang, notifications, ACP perms).
+ * migration folded forward defensively (all schema, all settings,
+ * extensions, full lang re-seed).
  *
- * No schema changes. Only FURL + one controller method.
+ * No schema changes THIS version — reuses gd_compliance_api_keys.
  */
 
-namespace IPS\gdcompliance\setup\upg_10629;
+namespace IPS\gdcompliance\setup\upg_10630;
 
 use function defined;
 
@@ -87,7 +88,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10629 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10630 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
 		try
@@ -117,11 +118,11 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10629 create gd_compliance_api_keys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10630 create gd_compliance_api_keys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
 		/* ------------------------------------------------------------
-		 * 2) SETTINGS carry-forward.
+		 * 2) SETTINGS carry-forward + NEW 1.6.30 subscription gate.
 		 * ------------------------------------------------------------ */
 		$defaultDisclaimer =
 			"State Firearm Compliance Lookup — Important Notice. This tool provides general information based on our product catalog and our understanding of current state law. It is not legal advice and is not a guarantee of legality. Firearm laws change frequently, vary by locality, and depend on individual circumstances. A result of 'no restrictions found' means our system did not flag this item for the selected state — it does not affirmatively certify the item is legal for you to purchase or possess. Always verify with your FFL and consult current state and local law before completing any purchase or transfer. Gun Wise LLC assumes no liability for reliance on this tool.";
@@ -198,6 +199,16 @@ class _upgrade
 			{
 				$changes['gdcompliance_api_verified'] = 0;
 			}
+			/* v1.6.30 NEW */
+			$currentApiGroups = (string) ( \IPS\Settings::i()->gdcompliance_api_access_groups ?? '' );
+			if ( $currentApiGroups === '' )
+			{
+				$changes['gdcompliance_api_access_groups'] = '13';
+			}
+			if ( !isset( \IPS\Settings::i()->gdcompliance_api_subscription_id ) )
+			{
+				$changes['gdcompliance_api_subscription_id'] = 6;
+			}
 			if ( !empty( $changes ) )
 			{
 				\IPS\Settings::i()->changeValues( $changes );
@@ -214,6 +225,8 @@ class _upgrade
 			'gdcompliance_csv_upsell_text'          => [ $defaultUpsellText, $defaultUpsellText, 'none' ],
 			'gdcompliance_api_disclaimer'           => [ $defaultApiDisclaimer, $defaultApiDisclaimer, 'none' ],
 			'gdcompliance_api_verified'             => [ '0',      '0',      'full' ],
+			'gdcompliance_api_access_groups'        => [ '13',     '13',     'full' ],
+			'gdcompliance_api_subscription_id'      => [ '6',      '6',      'full' ],
 		];
 		foreach ( $directInserts as $key => [ $val, $def, $report ] )
 		{
@@ -294,8 +307,7 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 4) LANG carry-forward. Per-row try/catch (rule #44); 6-col
-		 *    schema only (rule #43). No NEW keys in v1.6.29.
+		 * 4) LANG carry-forward + NEW 1.6.30 mykey / subscription strings.
 		 * ------------------------------------------------------------ */
 		$newStrings = [
 			'gdcompliance_acp_settings_lookup_header'   => 'Public State Compliance Lookup (/state-lookup/)',
@@ -429,6 +441,27 @@ class _upgrade
 			'gdcompliance_api_disclaimer_desc' => 'Legal-guidance text embedded in every /api/compliance/ JSON response so it propagates to the dealer\'s frontend (liability chain).',
 			'gdcompliance_api_verified'        => 'Data verification: mark data as legally verified',
 			'gdcompliance_api_verified_desc'   => 'Off (default): every API response carries verification_status="pending_legal_review". Flip on after your legal review completes to advertise "verified" data to integrating dealers.',
+
+			/* v1.6.30 NEW */
+			'gdcompliance_api_access_groups'        => 'Member groups granting API access',
+			'gdcompliance_api_access_groups_desc'   => 'Comma-separated group IDs. IPS Commerce should add subscribers to at least one of these groups (secondary group on the API subscription package) and remove them on lapse — the API gate reads live group membership per request, so no webhook is needed. Admins always pass.',
+			'gdcompliance_api_subscription_id'      => 'API subscription package ID',
+			'gdcompliance_api_subscription_id_desc' => 'Nexus subscription package ID used to build the subscribe/upsell link in 402 responses and on the self-service key page.',
+			'gdcompliance_mykey_page_title'    => 'Your Compliance API Key',
+			'gdcompliance_mykey_login'         => 'Log in',
+			'gdcompliance_mykey_login_msg'     => 'Please log in to view or generate your API key.',
+			'gdcompliance_mykey_upsell_title'  => 'API access requires a subscription',
+			'gdcompliance_mykey_upsell_msg'    => 'The Compliance API is a subscription-only integration. Once you subscribe, this page will let you generate and manage your API key.',
+			'gdcompliance_mykey_upsell_cta'    => 'View subscription',
+			'gdcompliance_mykey_generate_title' => 'Generate your API key',
+			'gdcompliance_mykey_generate_msg'   => 'You have an active Compliance API subscription. Generate a key below to start making requests.',
+			'gdcompliance_mykey_generate_btn'   => 'Generate API key',
+			'gdcompliance_mykey_your_key'       => 'Your API key',
+			'gdcompliance_mykey_regen_btn'      => 'Regenerate key',
+			'gdcompliance_mykey_regen_confirm'  => 'Regenerating will invalidate the existing key immediately. Any live integrations using it will break until you paste in the new key. Continue?',
+			'gdcompliance_mykey_how_title'      => 'How to use it',
+			'gdcompliance_mykey_endpoints'      => 'Endpoints',
+			'gdcompliance_mykey_envelope'       => 'Response envelope',
 		];
 
 		try
@@ -473,12 +506,8 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 6) CACHE PURGES — this is the ship's critical work. Unset
-		 *    every FURL-related store key AND delete matching on-disk
-		 *    datastore/*.php files, since IPS's `unset( Store::i()->x )`
-		 *    invalidates the in-memory cache but leaves the file for
-		 *    the next request to slurp back. Without both, the new
-		 *    routes don't take effect until an admin rebuilds URLs.
+		 * 6) CACHE PURGES — critical again since we added a new FURL
+		 *    route (mykey). Same scoped datastore purge as v1.6.29.
 		 * ------------------------------------------------------------ */
 		try { unset( \IPS\Data\Store::i()->lang ); }               catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_front ); }      catch ( \Throwable ) {}
@@ -494,9 +523,6 @@ class _upgrade
 		try { \IPS\Data\Store::i()->clearAll(); }                  catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); }                  catch ( \Throwable ) {}
 
-		/* On-disk datastore purge — target only the FURL/module files.
-		   The full datastore/ directory is a valuable cache and we
-		   shouldn't nuke it wholesale; scoped delete only. */
 		try
 		{
 			$datastore = \IPS\ROOT_PATH . '/datastore';

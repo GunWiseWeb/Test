@@ -21,6 +21,14 @@
 			"friendly": "api/compliance",
 			"real": "app=gdcompliance&module=api&controller=api"
 		},
+		"gdcompliance_api_mykey": {
+			"friendly": "api/compliance/mykey",
+			"real": "app=gdcompliance&module=api&controller=api&do=mykey"
+		},
+		"gdcompliance_api_mykey_legacy": {
+			"friendly": "compliance-api/mykey",
+			"real": "app=gdcompliance&module=api&controller=api&do=mykey"
+		},
 		"gdcompliance_api_check_legacy": {
 			"friendly": "compliance-api/check",
 			"real": "app=gdcompliance&module=api&controller=api&do=check"
