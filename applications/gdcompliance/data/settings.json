@@ -16,5 +16,7 @@
 	{"key": "gdcompliance_lookup_csv_max",         "default": "50000", "report": "full"},
 	{"key": "gdcompliance_csv_allowed_groups",     "default": "4",     "report": "full"},
 	{"key": "gdcompliance_csv_upsell_url",         "default": "#",     "report": "none"},
-	{"key": "gdcompliance_csv_upsell_text",        "default": "Downloading the full restricted-list CSV is a membership benefit. Upgrade your membership to enable bulk downloads.", "report": "none"}
+	{"key": "gdcompliance_csv_upsell_text",        "default": "Downloading the full restricted-list CSV is a membership benefit. Upgrade your membership to enable bulk downloads.", "report": "none"},
+	{"key": "gdcompliance_api_disclaimer",         "default": "This information is provided for general reference and is not legal advice or a guarantee of legality. Our engine catches the vast majority of restrictions but is never 100% accurate. Always verify with a licensed FFL and current state/local law.", "report": "none"},
+	{"key": "gdcompliance_api_verified",           "default": "0",  "report": "full"}
 ]

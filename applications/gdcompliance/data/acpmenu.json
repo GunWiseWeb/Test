@@ -30,6 +30,12 @@
 			"do": "",
 			"restriction": "compliance_manage"
 		},
+		"apikeys": {
+			"tab": "gdcompliance",
+			"controller": "apikeys",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
 		"overrides": {
 			"tab": "gdcompliance",
 			"controller": "overrides",

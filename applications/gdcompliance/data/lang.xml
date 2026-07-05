@@ -419,5 +419,24 @@
 <word key="gdcompliance_csv_locked_title" js="0"><![CDATA[Download CSV — members only]]></word>
 <word key="gdcompliance_csv_cta_upgrade" js="0"><![CDATA[Upgrade]]></word>
 <word key="gdcompliance_csv_cta_learn" js="0"><![CDATA[Learn more]]></word>
+<word key="menu__gdcompliance_compliance_apikeys" js="0"><![CDATA[API Keys]]></word>
+<word key="gdcompliance_acp_apikeys_title" js="0"><![CDATA[Compliance API Keys]]></word>
+<word key="gdcompliance_acp_apikeys_intro" js="0"><![CDATA[Machine-to-machine keys for /compliance-api/. Each key belongs to a member (dealer) and authenticates JSON requests to /compliance-api/check and /compliance-api/batch. Suspend to temporarily block (returns 402); revoke to permanently block (returns 401).]]></word>
+<word key="gdcompliance_acp_apikeys_create" js="0"><![CDATA[Create key]]></word>
+<word key="gdcompliance_acp_apikeys_create_title" js="0"><![CDATA[Create API key]]></word>
+<word key="gdcompliance_acp_apikeys_col_label" js="0"><![CDATA[Label]]></word>
+<word key="gdcompliance_acp_apikeys_col_member_id" js="0"><![CDATA[Owner]]></word>
+<word key="gdcompliance_acp_apikeys_col_api_key" js="0"><![CDATA[Key]]></word>
+<word key="gdcompliance_acp_apikeys_col_status" js="0"><![CDATA[Status]]></word>
+<word key="gdcompliance_acp_apikeys_col_request_count" js="0"><![CDATA[Requests]]></word>
+<word key="gdcompliance_acp_apikeys_col_created_at" js="0"><![CDATA[Created]]></word>
+<word key="gdcompliance_acp_apikeys_col_last_used_at" js="0"><![CDATA[Last used]]></word>
+<word key="gdcompliance_acp_apikeys_action_suspend" js="0"><![CDATA[Suspend]]></word>
+<word key="gdcompliance_acp_apikeys_action_reactivate" js="0"><![CDATA[Reactivate]]></word>
+<word key="gdcompliance_acp_apikeys_action_revoke" js="0"><![CDATA[Revoke]]></word>
+<word key="gdcompliance_api_disclaimer" js="0"><![CDATA[API response disclaimer]]></word>
+<word key="gdcompliance_api_disclaimer_desc" js="0"><![CDATA[Legal-guidance text embedded in every /compliance-api/ JSON response so it propagates to the dealer's frontend (liability chain).]]></word>
+<word key="gdcompliance_api_verified" js="0"><![CDATA[Data verification: mark data as legally verified]]></word>
+<word key="gdcompliance_api_verified_desc" js="0"><![CDATA[Off (default): every API response carries verification_status="pending_legal_review". Flip on after your legal review completes to advertise "verified" data to integrating dealers.]]></word>
 </app>
 </language>

@@ -496,6 +496,28 @@ $lang = array(
 	'gdcompliance_csv_cta_upgrade'         => 'Upgrade',
 	'gdcompliance_csv_cta_learn'           => 'Learn more',
 
+	/* v1.6.28 — Compliance API (Product A) Stage 1 */
+	'menu__gdcompliance_compliance_apikeys'  => 'API Keys',
+	'gdcompliance_acp_apikeys_title'         => 'Compliance API Keys',
+	'gdcompliance_acp_apikeys_intro'         => 'Machine-to-machine keys for /compliance-api/. Each key belongs to a member (dealer) and authenticates JSON requests to /compliance-api/check and /compliance-api/batch. Suspend to temporarily block (returns 402); revoke to permanently block (returns 401).',
+	'gdcompliance_acp_apikeys_create'        => 'Create key',
+	'gdcompliance_acp_apikeys_create_title'  => 'Create API key',
+	'gdcompliance_acp_apikeys_col_label'         => 'Label',
+	'gdcompliance_acp_apikeys_col_member_id'     => 'Owner',
+	'gdcompliance_acp_apikeys_col_api_key'       => 'Key',
+	'gdcompliance_acp_apikeys_col_status'        => 'Status',
+	'gdcompliance_acp_apikeys_col_request_count' => 'Requests',
+	'gdcompliance_acp_apikeys_col_created_at'    => 'Created',
+	'gdcompliance_acp_apikeys_col_last_used_at'  => 'Last used',
+	'gdcompliance_acp_apikeys_action_suspend'    => 'Suspend',
+	'gdcompliance_acp_apikeys_action_reactivate' => 'Reactivate',
+	'gdcompliance_acp_apikeys_action_revoke'     => 'Revoke',
+
+	'gdcompliance_api_disclaimer'      => 'API response disclaimer',
+	'gdcompliance_api_disclaimer_desc' => 'Legal-guidance text embedded in every /compliance-api/ JSON response so it propagates to the dealer\'s frontend (liability chain).',
+	'gdcompliance_api_verified'        => 'Data verification: mark data as legally verified',
+	'gdcompliance_api_verified_desc'   => 'Off (default): every API response carries verification_status="pending_legal_review". Flip on after your legal review completes to advertise "verified" data to integrating dealers.',
+
 	/* Phase 5 — Widget */
 	'block_gdRestrictionNotice'                => 'Product Restriction Notice',
 	'gdcompliance_widget_upc_fallback'         => 'Fallback UPC (only used if no product UPC in URL)',

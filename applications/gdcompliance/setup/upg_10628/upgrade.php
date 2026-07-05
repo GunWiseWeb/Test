@@ -1,48 +1,33 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.27
+ * @brief  GD Compliance — upgrade 1.6.28
  *
- * NOTE ON VERSION — the corresponding prompt asked for 1.6.26, but
- * v1.6.26 already shipped (category filter Lowers/Magazines/Accessories
- * + row-button wrapping fix + 1446px full-width). Next available
- * number is 1.6.27.
+ * NOTE ON VERSION — the corresponding prompt asked for 1.6.27, but
+ * v1.6.27 already shipped (CSV export gate). Next available is 1.6.28.
  *
- * WHAT SHIPS IN 1.6.27:
+ * WHAT SHIPS IN 1.6.28 — Compliance API (Product A) STAGE 1:
  *
- * 1. CSV EXPORT GATE — the /state-lookup/ restricted-list CSV export
- *    is now gated behind member groups. Everything else (single
- *    lookup, on-screen restricted list, advanced search) stays
- *    PUBLIC. Only the CSV DOWNLOAD is gated.
- *      - Setting gdcompliance_csv_allowed_groups (comma-separated
- *        group IDs). Default seeded with every group that has
- *        g_access_cp=1 (all admin/root groups on this install) so
- *        admins get access out of the box.
- *      - Setting gdcompliance_csv_upsell_url (default '#'). Derrick
- *        sets it in ACP to point at his subscription page.
- *      - Setting gdcompliance_csv_upsell_text (default default
- *        upsell copy). Editable in ACP.
- *      - Enforcement is SERVER-SIDE in the controller's
- *        streamRestrictedCsv() — before any CSV bytes leave. A guest
- *        or non-allowed member hitting ?export=csv directly gets
- *        redirected to the upsell URL, not the file.
- *      - The Restricted List view shows an "upsell block" in place
- *        of the download link for non-allowed visitors — button
- *        shows locked styling + upsell copy + link to upsell URL.
- *
- * 2. WIDTH CONSISTENCY — v1.6.26 introduced per-block 820px caps
- *    that made the page lopsided (form/hero narrow, filter/list
- *    wide). Removed. Only max-width in the file is on .gdcl-wrap
- *    (1446px). Every direct child of .gdcl-wrap spans that width.
+ *   - New table gd_compliance_api_keys (guarded).
+ *   - New front module gd:api → controller /modules/front/api/api.php
+ *     exposed via FURL /compliance-api/{@do}. Machine-to-machine JSON
+ *     API. NOT /api/compliance/ — that would collide with IPS 5's
+ *     built-in REST framework at /api/.
+ *   - New ACP page /modules/admin/compliance/apikeys.php — manual
+ *     key management (create/suspend/revoke/reactivate). Nexus
+ *     auto-issue lands in Stage 2.
+ *   - New settings gdcompliance_api_disclaimer (seeded default) +
+ *     gdcompliance_api_verified (0 = pending_legal_review — do NOT
+ *     flip until legal signs off).
+ *   - New shared helper sources/Verdict.php — single source of truth
+ *     for verdicts used by both the public /state-lookup/ page and
+ *     the new API endpoint.
  *
  * SELF-CONTAINED (rule #79). Only upg dir for this app; every prior
- * migration folded forward defensively (gd_compliance_reports create,
- * every setting from 1.6.22-1.6.26, extension self-heal, full lang
- * re-seed, notification defaults, ACP perm row, cache purge).
- *
- * No schema changes THIS version. Only new settings + lang.
+ * migration folded forward defensively (all schema, settings,
+ * extensions, lang, notifications, ACP perms).
  */
 
-namespace IPS\gdcompliance\setup\upg_10627;
+namespace IPS\gdcompliance\setup\upg_10628;
 
 use function defined;
 
@@ -57,7 +42,8 @@ class _upgrade
 	public function step1(): bool
 	{
 		/* ------------------------------------------------------------
-		 * 1) SCHEMA carry-forward — gd_compliance_reports (v1.6.24).
+		 * 1) SCHEMA — gd_compliance_reports (v1.6.24) carry-forward +
+		 *    NEW gd_compliance_api_keys (v1.6.28).
 		 * ------------------------------------------------------------ */
 		try
 		{
@@ -91,11 +77,42 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10627 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10628 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		try
+		{
+			if ( !\IPS\Db::i()->checkForTable( 'gd_compliance_api_keys' ) )
+			{
+				\IPS\Db::i()->createTable( [
+					'name'    => 'gd_compliance_api_keys',
+					'columns' => [
+						[ 'name' => 'id',            'type' => 'INT',    'length' => 10, 'unsigned' => TRUE, 'auto_increment' => TRUE, 'allow_null' => FALSE ],
+						[ 'name' => 'api_key',       'type' => 'VARCHAR','length' => 80, 'default' => '',    'allow_null' => FALSE ],
+						[ 'name' => 'member_id',     'type' => 'INT',    'length' => 10, 'unsigned' => TRUE, 'default' => 0, 'allow_null' => FALSE ],
+						[ 'name' => 'label',         'type' => 'VARCHAR','length' => 100, 'allow_null' => TRUE ],
+						[ 'name' => 'status',        'type' => 'VARCHAR','length' => 20, 'default' => 'active', 'allow_null' => FALSE ],
+						[ 'name' => 'created_at',    'type' => 'INT',    'length' => 10, 'unsigned' => TRUE, 'allow_null' => TRUE ],
+						[ 'name' => 'last_used_at',  'type' => 'INT',    'length' => 10, 'unsigned' => TRUE, 'allow_null' => TRUE ],
+						[ 'name' => 'request_count', 'type' => 'BIGINT', 'length' => 20, 'unsigned' => TRUE, 'default' => 0, 'allow_null' => FALSE ],
+					],
+					'indexes' => [
+						[ 'type' => 'primary', 'name' => 'PRIMARY',    'columns' => [ 'id' ] ],
+						[ 'type' => 'unique',  'name' => 'uq_api_key', 'columns' => [ 'api_key' ] ],
+						[ 'type' => 'key',     'name' => 'idx_member', 'columns' => [ 'member_id' ] ],
+						[ 'type' => 'key',     'name' => 'idx_status', 'columns' => [ 'status' ] ],
+					],
+				] );
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10628 create gd_compliance_api_keys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
 		/* ------------------------------------------------------------
-		 * 2) SETTINGS — all prior + NEW 1.6.27 CSV gate settings.
+		 * 2) SETTINGS — all prior + NEW 1.6.28 API disclaimer +
+		 *    verification flag.
 		 * ------------------------------------------------------------ */
 		$defaultDisclaimer =
 			"State Firearm Compliance Lookup — Important Notice. This tool provides general information based on our product catalog and our understanding of current state law. It is not legal advice and is not a guarantee of legality. Firearm laws change frequently, vary by locality, and depend on individual circumstances. A result of 'no restrictions found' means our system did not flag this item for the selected state — it does not affirmatively certify the item is legal for you to purchase or possess. Always verify with your FFL and consult current state and local law before completing any purchase or transfer. Gun Wise LLC assumes no liability for reliance on this tool.";
@@ -106,10 +123,10 @@ class _upgrade
 		$defaultUpsellText =
 			"Downloading the full restricted-list CSV is a membership benefit. Upgrade your membership to enable bulk downloads.";
 
-		/* Detect ALL groups with ACP access — these are the safe
-		   defaults for gdcompliance_csv_allowed_groups. Falls back to
-		   '4' (IPS default Administrators) if the query somehow returns
-		   nothing (fresh install with no groups yet). */
+		$defaultApiDisclaimer =
+			"This information is provided for general reference and is not legal advice or a guarantee of legality. Our engine catches the vast majority of restrictions but is never 100% accurate. Always verify with a licensed FFL and current state/local law.";
+
+		/* Detect admin groups for the CSV allowlist default. */
 		$defaultAllowedGroups = '4';
 		try
 		{
@@ -150,7 +167,6 @@ class _upgrade
 			{
 				$changes['gdcompliance_lookup_csv_max'] = 50000;
 			}
-			/* v1.6.27 NEW */
 			$currentAllowed = (string) ( \IPS\Settings::i()->gdcompliance_csv_allowed_groups ?? '' );
 			if ( $currentAllowed === '' )
 			{
@@ -165,6 +181,16 @@ class _upgrade
 			{
 				$changes['gdcompliance_csv_upsell_text'] = $defaultUpsellText;
 			}
+			/* v1.6.28 NEW */
+			$currentApiDisclaimer = (string) ( \IPS\Settings::i()->gdcompliance_api_disclaimer ?? '' );
+			if ( $currentApiDisclaimer === '' )
+			{
+				$changes['gdcompliance_api_disclaimer'] = $defaultApiDisclaimer;
+			}
+			if ( !isset( \IPS\Settings::i()->gdcompliance_api_verified ) )
+			{
+				$changes['gdcompliance_api_verified'] = 0;
+			}
 			if ( !empty( $changes ) )
 			{
 				\IPS\Settings::i()->changeValues( $changes );
@@ -172,7 +198,6 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Direct row inserts if the setting rows don't exist. */
 		$directInserts = [
 			'gdcompliance_report_ratelimit'         => [ '5',      '5',      'full' ],
 			'gdcompliance_lookup_available_note'    => [ $defaultAvailableNote, $defaultAvailableNote, 'none' ],
@@ -180,6 +205,8 @@ class _upgrade
 			'gdcompliance_csv_allowed_groups'       => [ $defaultAllowedGroups, '4', 'full' ],
 			'gdcompliance_csv_upsell_url'           => [ '#',      '#',      'none' ],
 			'gdcompliance_csv_upsell_text'          => [ $defaultUpsellText, $defaultUpsellText, 'none' ],
+			'gdcompliance_api_disclaimer'           => [ $defaultApiDisclaimer, $defaultApiDisclaimer, 'none' ],
+			'gdcompliance_api_verified'             => [ '0',      '0',      'full' ],
 		];
 		foreach ( $directInserts as $key => [ $val, $def, $report ] )
 		{
@@ -260,9 +287,8 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 4) LANG — every prior lookup/reports key + NEW 1.6.27 CSV
-		 *    gate + upsell strings. Per-row try/catch (rule #44).
-		 *    6-column schema only (rule #43).
+		 * 4) LANG — every prior + NEW 1.6.28 API strings. Per-row
+		 *    try/catch (rule #44); 6-column schema only (rule #43).
 		 * ------------------------------------------------------------ */
 		$newStrings = [
 			'gdcompliance_acp_settings_lookup_header'   => 'Public State Compliance Lookup (/state-lookup/)',
@@ -366,7 +392,6 @@ class _upgrade
 			'gdcompliance_lookup_row_report'       => 'Report a problem',
 			'gdcompliance_lookup_row_available_label' => 'Available',
 
-			/* v1.6.27 NEW */
 			'gdcompliance_csv_allowed_groups'      => 'Groups allowed to download the restricted-list CSV',
 			'gdcompliance_csv_allowed_groups_desc' => 'Comma-separated member group IDs. Members in any listed group can download the /state-lookup/ restricted-list CSV; everyone else sees an upsell prompt. Guests always denied. Default seeds the Administrators group.',
 			'gdcompliance_csv_upsell_url'          => 'CSV upsell link',
@@ -377,6 +402,27 @@ class _upgrade
 			'gdcompliance_csv_locked_title'        => 'Download CSV — members only',
 			'gdcompliance_csv_cta_upgrade'         => 'Upgrade',
 			'gdcompliance_csv_cta_learn'           => 'Learn more',
+
+			/* v1.6.28 NEW */
+			'menu__gdcompliance_compliance_apikeys'  => 'API Keys',
+			'gdcompliance_acp_apikeys_title'         => 'Compliance API Keys',
+			'gdcompliance_acp_apikeys_intro'         => 'Machine-to-machine keys for /compliance-api/. Each key belongs to a member (dealer) and authenticates JSON requests to /compliance-api/check and /compliance-api/batch. Suspend to temporarily block (returns 402); revoke to permanently block (returns 401).',
+			'gdcompliance_acp_apikeys_create'        => 'Create key',
+			'gdcompliance_acp_apikeys_create_title'  => 'Create API key',
+			'gdcompliance_acp_apikeys_col_label'         => 'Label',
+			'gdcompliance_acp_apikeys_col_member_id'     => 'Owner',
+			'gdcompliance_acp_apikeys_col_api_key'       => 'Key',
+			'gdcompliance_acp_apikeys_col_status'        => 'Status',
+			'gdcompliance_acp_apikeys_col_request_count' => 'Requests',
+			'gdcompliance_acp_apikeys_col_created_at'    => 'Created',
+			'gdcompliance_acp_apikeys_col_last_used_at'  => 'Last used',
+			'gdcompliance_acp_apikeys_action_suspend'    => 'Suspend',
+			'gdcompliance_acp_apikeys_action_reactivate' => 'Reactivate',
+			'gdcompliance_acp_apikeys_action_revoke'     => 'Revoke',
+			'gdcompliance_api_disclaimer'      => 'API response disclaimer',
+			'gdcompliance_api_disclaimer_desc' => 'Legal-guidance text embedded in every /compliance-api/ JSON response so it propagates to the dealer\'s frontend (liability chain).',
+			'gdcompliance_api_verified'        => 'Data verification: mark data as legally verified',
+			'gdcompliance_api_verified_desc'   => 'Off (default): every API response carries verification_status="pending_legal_review". Flip on after your legal review completes to advertise "verified" data to integrating dealers.',
 		];
 
 		try
@@ -421,7 +467,9 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 6) CACHE PURGES.
+		 * 6) CACHE PURGES — critical for module + FURL routing. Also
+		 *    dumps furl_configuration so the new /compliance-api/
+		 *    routes are picked up immediately.
 		 * ------------------------------------------------------------ */
 		try { unset( \IPS\Data\Store::i()->lang ); }               catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_front ); }      catch ( \Throwable ) {}
