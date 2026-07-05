@@ -143,8 +143,172 @@ class _advisories extends \IPS\Dispatcher\Controller
 			}
 		}
 
+		/* ============================================================
+		 * v1.6.18 — Flagged-products workflow
+		 * ============================================================
+		 * Mirrors the Magazines / Lowers page: clickable STATE filter,
+		 * native join over gd_compliance_flags × gd_catalog, per-row
+		 * "Set override" link, prev/next pager preserving the state
+		 * filter across pages. Lives BELOW the summary + reason-edit
+		 * cards; those are untouched.
+		 */
+		$stateFilter = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
+		if ( strlen( $stateFilter ) !== 2 ) { $stateFilter = ''; }
+
+		/* State list = distinct state_code from gd_compliance_advisory_rules.
+		   Falls back to array_keys(self::STATE_NAMES) if the table is
+		   empty on a partial upgrade. */
+		$advStates = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'DISTINCT state_code', 'gd_compliance_advisory_rules',
+				null, 'state_code ASC' ) as $sc )
+			{
+				$s = strtoupper( (string) ( is_array( $sc ) ? ( $sc['state_code'] ?? '' ) : $sc ) );
+				if ( strlen( $s ) === 2 ) { $advStates[] = $s; }
+			}
+		}
+		catch ( \Throwable ) {}
+		if ( empty( $advStates ) ) { $advStates = array_keys( self::STATE_NAMES ); }
+		$advStates = array_values( array_unique( $advStates ) );
+		sort( $advStates );
+
+		$baseUrl = \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=advisories' );
+
+		/* --- Section A — clickable state filter buttons --- */
+		$stateTabs  = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center"><span style="font-size:12px;color:#64748b;font-weight:600;align-self:center;margin-right:4px">STATE:</span>';
+		$allActive = $stateFilter === '' ? ' ipsButton--primary' : ' ipsButton--soft';
+		$stateTabs .= '<a class="ipsButton ipsButton--verySmall' . $allActive . '" href="' . $h( (string) $baseUrl ) . '">All (' . number_format( $totalAdvisories ) . ')</a>';
+		foreach ( $advStates as $sc )
+		{
+			$active = $stateFilter === $sc ? ' ipsButton--primary' : ' ipsButton--soft';
+			$href   = (string) $baseUrl->setQueryString( 'state', $sc );
+			$cnt    = (int) ( $perState[ $sc ] ?? 0 );
+			$stateTabs .= '<a class="ipsButton ipsButton--verySmall' . $active . '" href="' . $h( $href ) . '">' . $h( $sc ) . ' (' . number_format( $cnt ) . ')</a>';
+		}
+		$stateTabs .= '</div>';
+
+		/* --- Sections B+C+D — flagged-products list, per-row override, pager --- */
+		$page = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
+		$per  = 50;
+		$off  = ( $page - 1 ) * $per;
+
+		$flagWhere = [ "f.firearm_type=?" ];
+		$flagArgs  = [ 'advisory' ];
+		if ( $stateFilter !== '' )
+		{
+			$flagWhere[] = 'f.state_code=?';
+			$flagArgs[]  = $stateFilter;
+		}
+		$flagWhereSql = implode( ' AND ', $flagWhere );
+
+		/* Count over the SAME aliased-table + where — mirrors the fix
+		   from v1.6.16 that made Lowers pagination work (bare table
+		   with f.-alias in where = silent MySQL error). */
+		$flagCount = 0;
+		try
+		{
+			$flagCount = (int) \IPS\Db::i()->select(
+				'COUNT(*)',
+				[ 'gd_compliance_flags', 'f' ],
+				array_merge( [ $flagWhereSql ], $flagArgs )
+			)->first();
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'advisories flagCount: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		$flaggedRowsHtml = '';
+		try
+		{
+			$sel = \IPS\Db::i()->select(
+				'f.upc, f.state_code, f.reason, f.citation, c.title, c.brand, c.caliber',
+				[ 'gd_compliance_flags', 'f' ],
+				array_merge( [ $flagWhereSql ], $flagArgs ),
+				'f.state_code ASC, c.brand ASC, c.title ASC',
+				[ $off, $per ]
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc = f.upc', 'LEFT' );
+
+			foreach ( $sel as $r )
+			{
+				$upc   = (string) ( $r['upc'] ?? '' );
+				$st    = (string) ( $r['state_code'] ?? '' );
+				$brand = (string) ( $r['brand'] ?? '' );
+				$title = (string) ( $r['title'] ?? '' );
+				$cal   = (string) ( $r['caliber'] ?? '' );
+				$rsn   = (string) ( $r['reason'] ?? '' );
+
+				$overrideUrl = (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=overrides&do=form' )
+					->setQueryString( [ 'upc' => $upc, 'state' => $st ] );
+
+				$flaggedRowsHtml .= '<tr>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9"><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;background:#fef3c7;color:#78350f">' . $h( $st ) . '</span></td>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-family:ui-monospace,monospace;font-size:12px">' . $h( $upc ) . '</td>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9"><strong>' . $h( $brand !== '' ? $brand : '—' ) . '</strong></td>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:13px">' . $h( strlen( $title ) > 80 ? substr( $title, 0, 77 ) . '…' : $title ) . '</td>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#475569;font-size:12px">' . $h( $cal !== '' ? $cal : '—' ) . '</td>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;color:#475569;font-size:12px">' . $h( strlen( $rsn ) > 120 ? substr( $rsn, 0, 117 ) . '…' : $rsn ) . '</td>'
+					. '<td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:right"><a href="' . $h( $overrideUrl ) . '" class="ipsButton ipsButton--secondary ipsButton--verySmall">' . $h( $lang->addToStack( 'gdcompliance_acp_adv_override' ) ) . '</a></td>'
+					. '</tr>';
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'advisories flagged list: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		if ( $flaggedRowsHtml === '' )
+		{
+			$flaggedRowsHtml = '<tr><td colspan="7" style="padding:20px;text-align:center;color:#94a3b8">No advisory flags'
+				. ( $stateFilter !== '' ? ' for ' . $h( $stateFilter ) : '' )
+				. '. Run the compute pass to populate.</td></tr>';
+		}
+
+		$flaggedHeader = $stateFilter !== ''
+			? ' in ' . $h( $stateFilter )
+			: '';
+
+		$flaggedTable = '<div class="ipsBox" style="margin-bottom:14px"><div class="ipsBox_body ipsPad">'
+			. '<h3 style="margin:0 0 6px;font-size:14px;color:#334155">' . $h( $lang->addToStack( 'gdcompliance_acp_adv_flagged_title' ) )
+			. ' <span style="color:#64748b;font-weight:400">(' . number_format( $flagCount ) . $flaggedHeader . ')</span></h3>'
+			. '<p style="margin:0 0 10px;color:#64748b;font-size:12px">' . $h( $lang->addToStack( 'gdcompliance_acp_adv_flagged_intro' ) ) . '</p>'
+			. $stateTabs
+			. '<table style="width:100%;border-collapse:collapse">'
+			. '<thead><tr style="background:#f8fafc">'
+			. '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">State</th>'
+			. '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">UPC</th>'
+			. '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">Brand</th>'
+			. '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">Title</th>'
+			. '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">Caliber</th>'
+			. '<th style="text-align:left;padding:8px 10px;border-bottom:2px solid #e2e8f0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#64748b">Reason</th>'
+			. '<th style="padding:8px 10px;border-bottom:2px solid #e2e8f0"></th>'
+			. '</tr></thead>'
+			. '<tbody>' . $flaggedRowsHtml . '</tbody>'
+			. '</table>';
+
+		if ( $flagCount > $per )
+		{
+			$totalPages = (int) ceil( $flagCount / $per );
+			$prevHref   = (string) $baseUrl->setQueryString( array_filter( [
+				'state' => $stateFilter !== '' ? $stateFilter : null,
+				'page'  => $page > 1 ? $page - 1 : null,
+			] ) );
+			$nextHref   = (string) $baseUrl->setQueryString( array_filter( [
+				'state' => $stateFilter !== '' ? $stateFilter : null,
+				'page'  => $page < $totalPages ? $page + 1 : null,
+			] ) );
+			$flaggedTable .= '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;font-size:13px;color:#64748b">'
+				. ( $page > 1 ? '<a class="ipsButton ipsButton--soft ipsButton--verySmall" href="' . $h( $prevHref ) . '">&larr; Prev</a>' : '' )
+				. '<span style="padding:4px 8px">Page ' . $page . ' / ' . $totalPages . '</span>'
+				. ( $page < $totalPages ? '<a class="ipsButton ipsButton--soft ipsButton--verySmall" href="' . $h( $nextHref ) . '">Next &rarr;</a>' : '' )
+				. '</div>';
+		}
+
+		$flaggedTable .= '</div></div>';
+
 		\IPS\Output::i()->title  = $lang->addToStack( 'gdcompliance_acp_adv_title' );
-		\IPS\Output::i()->output = $savedBanner . $summary . $editCards;
+		\IPS\Output::i()->output = $savedBanner . $summary . $editCards . $flaggedTable;
 	}
 
 	protected function save(): void

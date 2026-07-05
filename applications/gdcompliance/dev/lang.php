@@ -24,6 +24,9 @@ $lang = array(
 	/* v1.6.17 — buyer-permit advisories (CO / MN). NOT restrictions. */
 	'gdcompliance_acp_adv_title'              => 'Buyer-Permit Advisories',
 	'gdcompliance_acp_adv_intro'              => 'Advisories are NOT sale restrictions. Each row here means the item CAN ship to that state, but the BUYER must meet a permit / eligibility-card / training step at the FFL. CO covers semi-auto centerfire rifles under SB25-003 (eff. 2026-08-01); MN covers AR/AK-pattern semi-auto rifles under Minn. Stat. §624.712 (in effect since 2023-08-01). Reason text is customer-visible in a yellow advisory block on the product page.',
+	'gdcompliance_acp_adv_flagged_title'      => 'Flagged products',
+	'gdcompliance_acp_adv_flagged_intro'      => 'Every product currently carrying an advisory flag. Click a state to filter and reach per-(UPC, state) override — a force_clear suppresses the advisory notice for that specific product in that state.',
+	'gdcompliance_acp_adv_override'           => 'Set override',
 
 	/* v1.6.10 — Lowers ACP */
 	'gdcompliance_acp_lowers_title'           => 'Lowers & Receivers',

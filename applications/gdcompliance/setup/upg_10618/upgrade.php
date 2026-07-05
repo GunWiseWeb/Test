@@ -1,37 +1,24 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.17
+ * @brief  GD Compliance — upgrade 1.6.18
  *
- * Landing:
- *   1. New table gd_compliance_advisory_rules — per-state buyer-permit
- *      advisory config (state_code + firearm_class, enabled, reason
- *      text, citation, effective_date). Editable via the new ACP
- *      Advisories page.
- *   2. Seed CO + MN rifle rules (both enabled). CO uses the SB25-003
- *      SSF eligibility card language; MN uses the §624.712 SAMSAW
- *      Permit to Purchase language. Reason text is customer-visible
- *      in the yellow advisory block on the product page.
- *   3. New sources/Advisories.php classifier ships in the tarball.
- *   4. Engine::computeFlags Phase 6b emits firearm_type='advisory'
- *      rows for every catalog product matching the state rule
- *      (semi-auto centerfire rifle, non-rimfire, detachable-mag).
+ * ACP-display-only. Adds the flagged-products workflow to the
+ * Advisories page (state filter → paginated flag list → per-row
+ * override), matching Magazines and Lowers. Existing summary +
+ * per-state reason-edit cards preserved unchanged.
  *
- * Advisories are NOT restrictions. Storefront:
- *   - Flag::forUpc returns each advisory row with type=TYPE_ADVISORY.
- *   - gdsearch v1.0.80 splits Flag::forUpc into $restrictionRows (red
- *     banner) and $advisoryRows (new yellow block).
- *   - The red "State Restricted — cannot ship to:" banner NEVER shows
- *     CO or MN under this path.
+ * No engine changes. No schema changes. No recompute required.
  *
- * DEFENSIVE — carries all prior single-upg landings forward
- * (gd_compliance_lowers CREATE from v1.6.10, review_type from v1.6.12,
- * tandemkross seed from v1.6.13) so a skip-upgrade from 1.6.9 → 1.6.17
- * lands the full intermediate state.
- *
- * Recompute after deploy to populate the new advisory flag rows.
+ * DEFENSIVE — carries all prior single-upg landings forward so a
+ * skip-upgrade from 1.6.9 → 1.6.18 lands the full intermediate
+ * state:
+ *   v1.6.10 gd_compliance_lowers CREATE
+ *   v1.6.12 gd_compliance_review.review_type ADD + backfill
+ *   v1.6.13 tandemkross force_clear seed
+ *   v1.6.17 gd_compliance_advisory_rules CREATE + CO/MN seed
  */
 
-namespace IPS\gdcompliance\setup\upg_10617;
+namespace IPS\gdcompliance\setup\upg_10618;
 
 use function defined;
 
@@ -45,12 +32,9 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* ---------- Create gd_compliance_advisory_rules (guarded) ---------- */
+		/* ---------- Defensive gd_compliance_advisory_rules CREATE (v1.6.17) ---------- */
 		$hasAdv = FALSE;
-		try
-		{
-			$hasAdv = (bool) \IPS\Db::i()->checkForTable( 'gd_compliance_advisory_rules' );
-		}
+		try { $hasAdv = (bool) \IPS\Db::i()->checkForTable( 'gd_compliance_advisory_rules' ); }
 		catch ( \Throwable ) { $hasAdv = FALSE; }
 		if ( !$hasAdv )
 		{
@@ -74,55 +58,20 @@ class _upgrade
 						'idx_enabled'     => [ 'type' => 'key',     'name' => 'idx_enabled',     'length' => [ null ],       'columns' => [ 'enabled' ] ],
 					],
 				] );
-			}
-			catch ( \Throwable $e )
-			{
-				try { \IPS\Log::log( 'upg_10617 createTable advisory_rules: ' . $e->getMessage(), 'gdcompliance_upg_10617' ); }
-				catch ( \Throwable ) {}
-				return FALSE;
-			}
-		}
 
-		/* ---------- Seed CO + MN rifle advisories (idempotent per uq_state_class) ---------- */
-		$coReason = "Colorado: The buyer must complete a state-approved firearms safety course and hold a sheriff-issued eligibility card before purchasing this semi-automatic firearm (Colo. SB25-003, effective 2026-08-01). This is a BUYER requirement — the item can ship to your FFL and the purchaser completes the eligibility card process there. This is not a sale prohibition.";
-		$mnReason = "Minnesota: The buyer must hold a valid Permit to Purchase or Permit to Carry to acquire this semi-automatic military-style assault weapon; a 30-day dealer waiting period may apply (Minn. Stat. § 624.712). This is a BUYER requirement handled by the FFL at the time of transfer — not a sale prohibition.";
-
-		$seeds = [
-			[ 'state_code' => 'CO', 'firearm_class' => 'rifle', 'enabled' => 1, 'reason' => $coReason, 'citation' => 'Colo. Rev. Stat. — SB25-003 (Specified Semiautomatic Firearms Act)', 'effective_date' => '2026-08-01' ],
-			[ 'state_code' => 'MN', 'firearm_class' => 'rifle', 'enabled' => 1, 'reason' => $mnReason, 'citation' => 'Minn. Stat. § 624.712',                                             'effective_date' => '2023-08-01' ],
-		];
-		foreach ( $seeds as $seed )
-		{
-			try
-			{
-				$existing = null;
-				try
+				$coReason = "Colorado: The buyer must complete a state-approved firearms safety course and hold a sheriff-issued eligibility card before purchasing this semi-automatic firearm (Colo. SB25-003, effective 2026-08-01). This is a BUYER requirement — the item can ship to your FFL and the purchaser completes the eligibility card process there. This is not a sale prohibition.";
+				$mnReason = "Minnesota: The buyer must hold a valid Permit to Purchase or Permit to Carry to acquire this semi-automatic military-style assault weapon; a 30-day dealer waiting period may apply (Minn. Stat. § 624.712). This is a BUYER requirement handled by the FFL at the time of transfer — not a sale prohibition.";
+				$seeds = [
+					[ 'state_code' => 'CO', 'firearm_class' => 'rifle', 'enabled' => 1, 'reason' => $coReason, 'citation' => 'Colo. Rev. Stat. — SB25-003 (Specified Semiautomatic Firearms Act)', 'effective_date' => '2026-08-01', 'updated_at' => time() ],
+					[ 'state_code' => 'MN', 'firearm_class' => 'rifle', 'enabled' => 1, 'reason' => $mnReason, 'citation' => 'Minn. Stat. § 624.712',                                             'effective_date' => '2023-08-01', 'updated_at' => time() ],
+				];
+				foreach ( $seeds as $seed )
 				{
-					$existing = \IPS\Db::i()->select( 'id', 'gd_compliance_advisory_rules',
-						[ 'state_code=? AND firearm_class=?', $seed['state_code'], $seed['firearm_class'] ] )->first();
-				}
-				catch ( \Throwable ) { $existing = null; }
-
-				if ( $existing )
-				{
-					\IPS\Db::i()->update( 'gd_compliance_advisory_rules', [
-						'enabled'        => (int) $seed['enabled'],
-						'reason'         => (string) $seed['reason'],
-						'citation'       => (string) $seed['citation'],
-						'effective_date' => (string) $seed['effective_date'],
-						'updated_at'     => time(),
-					], [ 'id=?', (int) $existing ] );
-				}
-				else
-				{
-					\IPS\Db::i()->insert( 'gd_compliance_advisory_rules', $seed + [ 'updated_at' => time() ] );
+					try { \IPS\Db::i()->insert( 'gd_compliance_advisory_rules', $seed ); }
+					catch ( \Throwable ) {}
 				}
 			}
-			catch ( \Throwable $e )
-			{
-				try { \IPS\Log::log( 'upg_10617 seed ' . $seed['state_code'] . ': ' . $e->getMessage(), 'gdcompliance_upg_10617' ); }
-				catch ( \Throwable ) {}
-			}
+			catch ( \Throwable ) {}
 		}
 
 		/* ---------- Defensive gd_compliance_lowers CREATE (v1.6.10) ---------- */
@@ -167,7 +116,6 @@ class _upgrade
 					'binary' => FALSE, 'unsigned' => FALSE, 'zerofill' => FALSE, 'values' => [],
 					'comment' => 'roster|awb_firearm|lower|magazine — the review category',
 				] );
-
 				$backfills = [
 					[ 'awb_firearm', "suggested_status LIKE 'awb\\_review\\_%'" ],
 					[ 'awb_firearm', "suggested_status LIKE 'awb\\_tier2\\_%'" ],
@@ -178,12 +126,8 @@ class _upgrade
 				];
 				foreach ( $backfills as [ $type, $whereFrag ] )
 				{
-					try
-					{
-						\IPS\Db::i()->update( 'gd_compliance_review', [ 'review_type' => $type ],
-							[ $whereFrag . ' AND review_type<>?', $type ] );
-					}
-					catch ( \Throwable ) {}
+					try { \IPS\Db::i()->update( 'gd_compliance_review', [ 'review_type' => $type ],
+						[ $whereFrag . ' AND review_type<>?', $type ] ); } catch ( \Throwable ) {}
 				}
 			}
 			catch ( \Throwable ) {}
@@ -205,11 +149,11 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* ---------- Lang seed (menu key + ACP labels) ---------- */
+		/* ---------- Lang seed — v1.6.18 new labels ---------- */
 		$newStrings = [
-			'menu__gdcompliance_compliance_advisories' => 'Advisories',
-			'gdcompliance_acp_adv_title'               => 'Buyer-Permit Advisories',
-			'gdcompliance_acp_adv_intro'               => 'Advisories are NOT sale restrictions. Each row here means the item CAN ship to that state, but the BUYER must meet a permit / eligibility-card / training step at the FFL. CO covers semi-auto centerfire rifles under SB25-003 (eff. 2026-08-01); MN covers AR/AK-pattern semi-auto rifles under Minn. Stat. §624.712 (in effect since 2023-08-01). Reason text is customer-visible in a yellow advisory block on the product page.',
+			'gdcompliance_acp_adv_flagged_title' => 'Flagged products',
+			'gdcompliance_acp_adv_flagged_intro' => 'Every product currently carrying an advisory flag. Click a state to filter and reach per-(UPC, state) override — a force_clear suppresses the advisory notice for that specific product in that state.',
+			'gdcompliance_acp_adv_override'      => 'Set override',
 		];
 		try
 		{
@@ -234,8 +178,6 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Warm the new classifier so any admin request in this PHP
-		   process picks up the class. */
 		try
 		{
 			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Advisories.php';
@@ -249,9 +191,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* ---------- Cache purges — acpmenu (advisory tab added) +
-		   canonical_templates (companion gdsearch v1.0.80 ships new
-		   product.phtml markup) ---------- */
+		/* ---------- Cache purges (ACP template change) ---------- */
 		try { unset( \IPS\Data\Store::i()->acpmenu ); }             catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->settings ); }            catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->applications ); }        catch ( \Throwable ) {}
