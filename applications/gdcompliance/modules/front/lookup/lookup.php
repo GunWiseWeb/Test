@@ -198,20 +198,26 @@ class _lookup extends \IPS\Dispatcher\Controller
 	protected function pageStyles(): string
 	{
 		return '<style>'
-			. '.gdcl-wrap{max-width:960px;margin:24px auto;padding:0 16px;font-family:\'Inter\',system-ui,-apple-system,sans-serif;color:#0f172a}'
-			. '.gdcl-hero{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:24px;margin-bottom:18px;box-shadow:0 2px 10px rgba(15,23,42,.04)}'
+			/* v1.6.26: outer wrap grows to 1446px (full desktop); the
+			   single-column "reading" blocks (hero, disclaimer, single-
+			   lookup form, single-result result, report-wrap) each cap
+			   themselves at 820px so prose stays a comfortable measure
+			   while data tables (filters, lists, actions, pager) get
+			   the full 1446px. Everything shrinks gracefully below. */
+			. '.gdcl-wrap{max-width:1446px;margin:24px auto;padding:0 16px;font-family:\'Inter\',system-ui,-apple-system,sans-serif;color:#0f172a}'
+			. '.gdcl-hero{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:24px;margin:0 auto 18px;max-width:820px;box-shadow:0 2px 10px rgba(15,23,42,.04)}'
 			. '.gdcl-hero h1{margin:0 0 6px;font-size:1.5em;font-weight:700;color:#0f172a}'
 			. '.gdcl-hero p{margin:0;color:#475569;font-size:.95em;line-height:1.5}'
-			. '.gdcl-disclaimer{background:#fefce8;border:1px solid #facc15;color:#713f12;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:.9em;line-height:1.5}'
+			. '.gdcl-disclaimer{background:#fefce8;border:1px solid #facc15;color:#713f12;border-radius:10px;padding:12px 14px;margin:0 auto 16px;max-width:820px;font-size:.9em;line-height:1.5}'
 			. '.gdcl-disclaimer strong{color:#854d0e}'
-			. '.gdcl-form{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:18px}'
+			. '.gdcl-form{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin:0 auto 18px;max-width:820px}'
 			. '.gdcl-form label{display:block;margin:0 0 4px;font-size:.82em;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.04em}'
 			. '.gdcl-form select,.gdcl-form input[type=text]{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:1em;background:#fff;color:#0f172a}'
 			. '.gdcl-form select:focus,.gdcl-form input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}'
 			. '.gdcl-row{margin-bottom:12px}'
 			. '.gdcl-submit{display:inline-block;background:#1e40af;color:#fff;border:none;font-weight:600;padding:11px 22px;border-radius:8px;cursor:pointer;font-size:.95em}'
 			. '.gdcl-submit:hover{background:#1e3a8a}'
-			. '.gdcl-result{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:18px}'
+			. '.gdcl-result{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin:0 auto 18px;max-width:820px}'
 			. '.gdcl-result h2{margin:0 0 6px;font-size:1.15em;font-weight:700}'
 			. '.gdcl-result .title{margin:6px 0 12px;color:#334155;font-size:.9em}'
 			. '.gdcl-badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;margin-right:8px}'
@@ -227,7 +233,7 @@ class _lookup extends \IPS\Dispatcher\Controller
 			. '.gdcl-clear{background:#f0fdf4;border:1px solid #86efac;color:#065f46;padding:14px;border-radius:10px}'
 			. '.gdcl-notfound{background:#f1f5f9;border:1px solid #cbd5e1;color:#334155;padding:14px;border-radius:10px}'
 			. '.gdcl-muted{color:#64748b;font-size:.85em}'
-			. '.gdcl-report-wrap{margin-top:14px}'
+			. '.gdcl-report-wrap{margin:14px auto 0;max-width:820px}'
 			. '.gdcl-report-flash{padding:10px 12px;border-radius:8px;font-size:.9em;margin-bottom:10px;line-height:1.5}'
 			. '.gdcl-report-flash--ok{background:#ecfeff;border:1px solid #a5f3fc;color:#155e75}'
 			. '.gdcl-report-flash--warn{background:#fef3c7;border:1px solid #fde68a;color:#78350f}'
@@ -268,21 +274,32 @@ class _lookup extends \IPS\Dispatcher\Controller
 			. '.gdcl-count{color:#334155;font-size:.95em;margin:0 0 10px}'
 			. '.gdcl-count strong{color:#0f172a}'
 			. '.gdcl-list{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:0;margin-bottom:12px;overflow:hidden}'
-			. '.gdcl-list-row{padding:14px 16px;border-bottom:1px solid #eef2f7;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}'
+			/* v1.6.26 row layout: proper flex row with title col that CAN
+			   shrink (min-width:0 is required — without it, flex items
+			   won't shrink below their content width and the button
+			   would keep wrapping to the next line). justify-content:
+			   space-between pins the report link to the right; flex-
+			   wrap:nowrap keeps it on the SAME line consistently. Long
+			   titles wrap within the .main column via overflow-wrap. */
+			. '.gdcl-list-row{padding:14px 16px;border-bottom:1px solid #eef2f7;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:nowrap}'
 			. '.gdcl-list-row:last-child{border-bottom:none}'
-			. '.gdcl-list-row .main{flex:1 1 auto;min-width:0}'
-			. '.gdcl-list-row .title{margin:0;color:#0f172a;font-weight:600;font-size:1em}'
+			. '.gdcl-list-row .main{flex:1 1 auto;min-width:0;overflow-wrap:break-word;word-break:break-word}'
+			. '.gdcl-list-row .title{margin:0;color:#0f172a;font-weight:600;font-size:1em;overflow-wrap:break-word;word-break:break-word}'
 			. '.gdcl-list-row .meta{margin:2px 0 0;color:#64748b;font-size:.85em}'
-			. '.gdcl-list-row .upc{font-family:ui-monospace,monospace;color:#475569;font-size:.85em;background:#f1f5f9;padding:2px 8px;border-radius:6px}'
-			. '.gdcl-list-row .reason{margin:6px 0 0;color:#7f1d1d;font-size:.9em;line-height:1.4}'
-			. '.gdcl-list-row .cite{margin:2px 0 0;color:#7f1d1d;font-size:.8em;opacity:.85}'
+			. '.gdcl-list-row .upc{display:inline-block;font-family:ui-monospace,monospace;color:#475569;font-size:.85em;background:#f1f5f9;padding:2px 8px;border-radius:6px;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}'
+			. '.gdcl-list-row .reason{margin:6px 0 0;color:#7f1d1d;font-size:.9em;line-height:1.4;overflow-wrap:break-word}'
+			. '.gdcl-list-row .cite{margin:2px 0 0;color:#7f1d1d;font-size:.8em;opacity:.85;overflow-wrap:break-word}'
+			/* Narrow viewports: let the row wrap so the button drops
+			   below cleanly rather than crushing the title. Fires only
+			   when there truly isn't room. */
+			. '@media (max-width:640px){.gdcl-list-row{flex-wrap:wrap}.gdcl-list-row .main{flex-basis:100%}}'
 			. '.gdcl-type-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.03em}'
 			. '.gdcl-type-awb{background:#fee2e2;color:#991b1b}'
 			. '.gdcl-type-cap{background:#fef3c7;color:#78350f}'
 			. '.gdcl-type-mp{background:#fce7f3;color:#831843}'
 			. '.gdcl-type-rof{background:#e0e7ff;color:#3730a3}'
 			. '.gdcl-type-adv{background:#dcfce7;color:#14532d}'
-			. '.gdcl-row-report{color:#1e40af;font-size:.8em;text-decoration:none;font-weight:600;flex-shrink:0;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;align-self:flex-start;background:#fff}'
+			. '.gdcl-row-report{color:#1e40af;font-size:.8em;text-decoration:none;font-weight:600;flex-shrink:0;flex-grow:0;flex-basis:auto;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;align-self:flex-start;background:#fff;white-space:nowrap}'
 			. '.gdcl-row-report:hover{background:#f1f5f9}'
 			. '.gdcl-pager{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}'
 			. '.gdcl-pager-btn{background:#fff;color:#1e40af;padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;font-weight:600;font-size:.9em;text-decoration:none}'
@@ -731,12 +748,31 @@ class _lookup extends \IPS\Dispatcher\Controller
 	 * Stage 3 shared helpers
 	 * ===================================================================== */
 
-	/** Firearm-class categories the picker offers. */
+	/**
+	 * Category picker. First three roll up to a firearm top-type via
+	 * Engine::buildTypeMap (parent_id walk); the last three don't — they
+	 * map to fixed category_ids directly in categoryIdsForType() below.
+	 * Verified live cat IDs: mag=38, accessories=58, triggers=60, lower=154.
+	 */
 	const CATEGORY_CHOICES = [
-		''        => 'Any category',
-		'handgun' => 'Handguns',
-		'rifle'   => 'Rifles',
-		'shotgun' => 'Shotguns',
+		''          => 'Any category',
+		'handgun'   => 'Handguns',
+		'rifle'     => 'Rifles',
+		'shotgun'   => 'Shotguns',
+		'lower'     => 'Lowers',
+		'magazine'  => 'Magazines',
+		'accessory' => 'Accessories',
+	];
+
+	/**
+	 * Fixed category_id mappings for CATEGORY_CHOICES entries that don't
+	 * roll up through Engine::buildTypeMap (which only classifies
+	 * handgun/rifle/shotgun). IDs verified live on the running install.
+	 */
+	const CATEGORY_FIXED_IDS = [
+		'lower'     => [ 154 ],
+		'magazine'  => [ 38 ],
+		'accessory' => [ 58, 60 ],
 	];
 
 	/** Restriction-type picker options for Restricted mode. */
@@ -804,12 +840,26 @@ class _lookup extends \IPS\Dispatcher\Controller
 	}
 
 	/**
-	 * Return the category_id list that rolls up to a chosen firearm
-	 * top-type. Empty list → no category filter.
+	 * Return the category_id list for a chosen category filter.
+	 * Empty list → no category filter (caller treats as "any").
+	 *
+	 * Two paths:
+	 *   - Fixed mappings (Lowers=154, Magazines=38, Accessories=58,60)
+	 *     because those categories are NOT firearm top-types and never
+	 *     appear in Engine::buildTypeMap()'s output.
+	 *   - Firearm top-types (handgun/rifle/shotgun) walked via
+	 *     Engine::buildTypeMap so children like "Bolt Action Rifle" get
+	 *     matched too.
 	 */
 	protected function categoryIdsForType( string $type ): array
 	{
 		if ( $type === '' ) { return []; }
+
+		if ( isset( self::CATEGORY_FIXED_IDS[ $type ] ) )
+		{
+			return self::CATEGORY_FIXED_IDS[ $type ];
+		}
+
 		$out = [];
 		foreach ( $this->getTypeMap() as $catId => $topType )
 		{

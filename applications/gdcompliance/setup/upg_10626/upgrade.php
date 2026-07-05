@@ -1,46 +1,46 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.25
+ * @brief  GD Compliance — upgrade 1.6.26
  *
- * NOTE ON VERSION — the corresponding prompt asked for 1.6.24 as the
- * Stage 3 ship, but v1.6.24 already shipped as the Stage 2 reports
- * feature. Next available number is 1.6.25.
+ * NOTE ON VERSION — the corresponding prompt asked for 1.6.25, but
+ * v1.6.25 already shipped as the state-lookup Stage 3 (advanced
+ * search + statelist + CSV). Next available number is 1.6.26.
  *
- * WHAT SHIPS IN 1.6.25 — State Lookup Stage 3:
+ * WHAT SHIPS IN 1.6.26 — State Lookup polish:
  *
- *   - Advanced Search view (?do=search) on /state-lookup/. Filters:
- *     state (required), mode (Restricted|Available), category
- *     (Any|Handguns|Rifles|Shotguns via Engine::buildTypeMap),
- *     restriction type (Restricted mode only), brand text.
- *     Paginated. Native select()->join() only — no raw preparedQuery.
- *   - Available mode requires at least one of category/brand set —
- *     rejects a bare state-only query so we never enumerate ~catalog.
- *   - Restricted List view (?do=statelist) — full-state list, type
- *     filter, paginated + CSV export (?do=statelist&state=XX&export=csv)
- *     with Content-Disposition attachment, cap gdcompliance_lookup_csv_max
- *     (default 50000).
- *   - Verification note (setting gdcompliance_lookup_available_note,
- *     seeded default) shown at the top of every Available result.
- *   - Row-level "Report a problem" affordance on search + statelist
- *     rows — reuses the Stage-2 flow by linking back to the Single
- *     Lookup URL with state+q pre-filled. Zero new report code.
- *   - Top-of-page tab strip: Single Lookup | Advanced Search |
- *     Restricted List. Preserved across state selection.
+ *   - Category filter gains Lowers, Magazines, Accessories entries.
+ *     categoryIdsForType() maps these to fixed category_ids
+ *     (Lowers=154, Magazines=38, Accessories=58+60) so both
+ *     Restricted and Available modes filter them correctly. The
+ *     firearm classes (Handguns/Rifles/Shotguns) still roll up via
+ *     Engine::buildTypeMap.
+ *   - Row-level "Report a problem" button no longer wraps under long
+ *     product titles. Row is a proper flex container with justify-
+ *     content:space-between + flex-wrap:nowrap; title column carries
+ *     min-width:0 + overflow-wrap:break-word so it shrinks/wraps
+ *     within its column instead of pushing the button below.
+ *   - Full 1446px desktop wrap. Prose blocks (hero, disclaimer,
+ *     single-lookup form, single-result result box, report block)
+ *     cap themselves at 820px so reading measure stays comfortable;
+ *     data blocks (tabs, filters, list, actions, pager) get the
+ *     full width where it actually helps.
  *
- * SELF-CONTAINED (rule #79). This is the ONLY upg dir for this app;
- * every prior migration folded forward:
- *   - v1.6.24 gd_compliance_reports table + report ratelimit setting
- *     + Notifications extension registration + report notification
- *     defaults + full lang re-seed of every 1.6.22/1.6.23 lookup key
- *   - v1.6.23 lookup lang key re-seed
+ * SELF-CONTAINED (rule #79). Only upg dir for this app; every prior
+ * migration folded forward:
+ *   - v1.6.25 lookup_available_note + csv_max settings + Stage 3 lang
+ *   - v1.6.24 gd_compliance_reports table + report ratelimit +
+ *     Notifications extension registration + notification defaults
+ *   - v1.6.23 lookup lang re-seed
  *   - v1.6.22 defensive settings ensure
  *
- * No schema changes THIS version (statelist reads gd_compliance_flags,
- * available reads gd_catalog + LEFT JOIN flags). Only new settings +
- * lang.
+ * NO NEW SCHEMA, NO NEW SETTINGS, NO NEW LANG KEYS in 1.6.26 —
+ * category labels are inline strings in the picker. This upgrade
+ * exists solely to (a) carry prior migrations forward defensively
+ * and (b) bust the template/opcode caches so the CSS-touched
+ * lookup.php reloads cleanly.
  */
 
-namespace IPS\gdcompliance\setup\upg_10625;
+namespace IPS\gdcompliance\setup\upg_10626;
 
 use function defined;
 
@@ -55,9 +55,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		/* ------------------------------------------------------------
-		 * 1) SCHEMA — carry v1.6.24's gd_compliance_reports create
-		 *    forward defensively. checkForTable guard means safe on a
-		 *    box already at 1.6.24.
+		 * 1) SCHEMA carry-forward — gd_compliance_reports (v1.6.24).
 		 * ------------------------------------------------------------ */
 		try
 		{
@@ -91,12 +89,11 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10625 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10626 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
 		/* ------------------------------------------------------------
-		 * 2) SETTINGS — defensive re-seed of 1.6.22 disclaimer + 1.6.24
-		 *    ratelimit + NEW 1.6.25 available_note + csv_max.
+		 * 2) SETTINGS carry-forward.
 		 * ------------------------------------------------------------ */
 		$defaultDisclaimer =
 			"State Firearm Compliance Lookup — Important Notice. This tool provides general information based on our product catalog and our understanding of current state law. It is not legal advice and is not a guarantee of legality. Firearm laws change frequently, vary by locality, and depend on individual circumstances. A result of 'no restrictions found' means our system did not flag this item for the selected state — it does not affirmatively certify the item is legal for you to purchase or possess. Always verify with your FFL and consult current state and local law before completing any purchase or transfer. Gun Wise LLC assumes no liability for reliance on this tool.";
@@ -136,7 +133,6 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* If the setting rows don't exist at all, insert directly. */
 		$directInserts = [
 			'gdcompliance_report_ratelimit'         => [ '5',      '5',      'full' ],
 			'gdcompliance_lookup_available_note'    => [ $defaultAvailableNote, $defaultAvailableNote, 'none' ],
@@ -163,8 +159,7 @@ class _upgrade
 		}
 
 		/* ------------------------------------------------------------
-		 * 3) EXTENSIONS — self-heal Notifications/Report registration
-		 *    in data/extensions.json + cache bust (rule #16).
+		 * 3) EXTENSIONS — self-heal Notifications/Report registration.
 		 * ------------------------------------------------------------ */
 		try
 		{
@@ -204,7 +199,6 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Seed notification defaults (bell + email) — idempotent. */
 		try
 		{
 			foreach ( [ 'gdcompliance_report_resolved', 'gdcompliance_report_dismissed' ] as $nkey )
@@ -223,20 +217,17 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 4) LANG — full re-seed of every gdcompliance_lookup_* +
-		 *    every gdcompliance_acp_reports_* + notification strings +
-		 *    v1.6.25 Stage 3 strings. Per-row try/catch (rule #44).
-		 *    6-column schema only (rule #43).
+		 * 4) LANG carry-forward — every lookup/reports key from
+		 *    v1.6.22 → v1.6.25. Per-row try/catch (rule #44); 6-col
+		 *    schema only (rule #43). No NEW keys in v1.6.26.
 		 * ------------------------------------------------------------ */
 		$newStrings = [
-			/* -- v1.6.22 ACP settings block */
 			'gdcompliance_acp_settings_lookup_header'   => 'Public State Compliance Lookup (/state-lookup/)',
 			'gdcompliance_lookup_enabled'               => 'Publish the /state-lookup/ page',
 			'gdcompliance_lookup_enabled_desc'          => 'When off, visitors to /state-lookup/ see a "temporarily unavailable" notice instead of the lookup form.',
 			'gdcompliance_lookup_disclaimer'            => 'Public disclaimer',
 			'gdcompliance_lookup_disclaimer_desc'       => 'Shown at the top of the /state-lookup/ page. Legal-guidance framing recommended — this is customer-facing.',
 
-			/* -- v1.6.22 public page chrome */
 			'gdcompliance_lookup_page_title'            => 'State Firearm Compliance Lookup',
 			'gdcompliance_lookup_intro'                 => 'Pick your state and enter a UPC or MPN to check whether that item is restricted for sale in your state. Read-only against our current catalog.',
 			'gdcompliance_lookup_disclaimer_label'      => 'Important Notice',
@@ -247,7 +238,6 @@ class _upgrade
 			'gdcompliance_lookup_field_q_ph'            => 'e.g. 022188879834',
 			'gdcompliance_lookup_submit'                => 'Look up',
 
-			/* -- v1.6.23 result strings (native IPS sprintf) */
 			'gdcompliance_lookup_product'               => 'UPC %s:',
 			'gdcompliance_lookup_citation'              => 'Citation: %s',
 			'gdcompliance_lookup_restricted_headline'   => 'Restricted for sale in %s',
@@ -262,7 +252,6 @@ class _upgrade
 			'gdcompliance_lookup_not_found_hint'        => 'Double-check the UPC / MPN. Only items currently in our catalog are covered by this tool.',
 			'gdcompliance_lookup_disabled_msg'          => 'The state-lookup page is temporarily unavailable. Please check back later.',
 
-			/* -- v1.6.24 Stage 2 report block */
 			'gdcompliance_lookup_report_cta'            => 'Report a problem with this result',
 			'gdcompliance_lookup_report_login_cta'      => 'Log in to report a classification issue',
 			'gdcompliance_lookup_report_login_required' => 'Please log in to submit a report.',
@@ -274,7 +263,6 @@ class _upgrade
 			'gdcompliance_lookup_report_ratelimited'    => 'You have submitted several reports recently. Please try again later.',
 			'gdcompliance_lookup_report_error'          => 'We could not accept your report. Please check the form and try again.',
 
-			/* -- v1.6.24 ACP triage */
 			'menu__gdcompliance_compliance_reports'     => 'Compliance Reports',
 			'gdcompliance_acp_reports_title'            => 'Compliance Reports',
 			'gdcompliance_acp_reports_intro'            => 'Member-submitted reports from the public /state-lookup/ page. Resolve a report to create an override that flips the classification on next recompute, or dismiss to close without action. Either action notifies the reporter.',
@@ -302,7 +290,6 @@ class _upgrade
 			'gdcompliance_acp_reports_resolution_note_hint' => 'Optional. Kept short — this is delivered inline with the notification.',
 			'gdcompliance_acp_reports_cancel'          => 'Cancel',
 
-			/* -- v1.6.24 settings + notifications */
 			'gdcompliance_report_ratelimit'      => 'Max reports per member per hour',
 			'gdcompliance_report_ratelimit_desc' => 'Rate limit for submissions to the /state-lookup/ report form. Login is already required; this backstops spam.',
 			'gdcompliance_notif_report'                        => 'Compliance report reviewed',
@@ -312,7 +299,6 @@ class _upgrade
 			'notification__gdcompliance_report_dismissed'      => 'Compliance report dismissed',
 			'notification__gdcompliance_report_dismissed_desc' => 'Notify me when a compliance report I submitted is dismissed.',
 
-			/* -- v1.6.25 NEW: Stage 3 advanced search + statelist + CSV */
 			'gdcompliance_lookup_available_note'   => $defaultAvailableNote,
 			'gdcompliance_lookup_available_note_desc' => 'Verification note shown at the top of the Advanced Search "Available" result view. Customer-facing.',
 			'gdcompliance_lookup_csv_max'          => 'CSV export row cap',
@@ -380,7 +366,9 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 6) CACHE PURGES.
+		 * 6) CACHE PURGES — critical for this ship since the change is
+		 *    display code; opcache must be flushed or the browser
+		 *    keeps seeing the old CSS.
 		 * ------------------------------------------------------------ */
 		try { unset( \IPS\Data\Store::i()->lang ); }               catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_front ); }      catch ( \Throwable ) {}
