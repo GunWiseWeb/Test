@@ -9,6 +9,10 @@
 		"compliance": {
 			"default_controller": "compliance",
 			"protected": false
+		},
+		"lookup": {
+			"default_controller": "lookup",
+			"protected": false
 		}
 	}
 }

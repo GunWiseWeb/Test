@@ -4,6 +4,10 @@
 		"gdcompliance_page": {
 			"friendly": "",
 			"real": "app=gdcompliance&module=compliance&controller=compliance"
+		},
+		"gdcompliance_state_lookup": {
+			"friendly": "state-lookup",
+			"real": "app=gdcompliance&module=lookup&controller=lookup"
 		}
 	}
 }

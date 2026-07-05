@@ -49,6 +49,20 @@ class _settings extends \IPS\Dispatcher\Controller
 			[ 'rows' => 3 ]
 		) );
 
+		/* v1.6.22 — Public State Compliance Lookup (/state-lookup/). */
+		$form->addHeader( 'gdcompliance_acp_settings_lookup_header' );
+		$form->add( new \IPS\Helpers\Form\YesNo(
+			'gdcompliance_lookup_enabled',
+			(int) ( \IPS\Settings::i()->gdcompliance_lookup_enabled ?? 1 ),
+			FALSE
+		) );
+		$form->add( new \IPS\Helpers\Form\TextArea(
+			'gdcompliance_lookup_disclaimer',
+			(string) ( \IPS\Settings::i()->gdcompliance_lookup_disclaimer ?? '' ),
+			FALSE,
+			[ 'rows' => 6 ]
+		) );
+
 		if ( $values = $form->values() )
 		{
 			try
@@ -57,6 +71,8 @@ class _settings extends \IPS\Dispatcher\Controller
 					'gdcompliance_front_enabled'      => (int) (bool) $values['gdcompliance_front_enabled'],
 					'gdcompliance_front_show_reasons' => (int) (bool) $values['gdcompliance_front_show_reasons'],
 					'gdcompliance_front_disclaimer'   => (string) $values['gdcompliance_front_disclaimer'],
+					'gdcompliance_lookup_enabled'     => (int) (bool) $values['gdcompliance_lookup_enabled'],
+					'gdcompliance_lookup_disclaimer'  => (string) $values['gdcompliance_lookup_disclaimer'],
 				] );
 			}
 			catch ( \Throwable ) {}

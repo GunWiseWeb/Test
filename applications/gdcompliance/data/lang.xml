@@ -315,5 +315,31 @@
 <word key="acplog__gdcompliance_settings_saved" js="0"><![CDATA[Saved frontend restriction display settings]]></word>
 <word key="block_gdRestrictionNotice" js="0"><![CDATA[Product Restriction Notice]]></word>
 <word key="gdcompliance_widget_upc_fallback" js="0"><![CDATA[Fallback UPC (only used if no product UPC in URL)]]></word>
+<word key="gdcompliance_acp_settings_lookup_header" js="0"><![CDATA[Public State Compliance Lookup (/state-lookup/)]]></word>
+<word key="gdcompliance_lookup_enabled" js="0"><![CDATA[Publish the /state-lookup/ page]]></word>
+<word key="gdcompliance_lookup_enabled_desc" js="0"><![CDATA[When off, visitors to /state-lookup/ see a "temporarily unavailable" notice instead of the lookup form.]]></word>
+<word key="gdcompliance_lookup_disclaimer" js="0"><![CDATA[Public disclaimer]]></word>
+<word key="gdcompliance_lookup_disclaimer_desc" js="0"><![CDATA[Shown at the top of the /state-lookup/ page. Legal-guidance framing recommended — this is customer-facing.]]></word>
+<word key="gdcompliance_lookup_page_title" js="0"><![CDATA[State Firearm Compliance Lookup]]></word>
+<word key="gdcompliance_lookup_intro" js="0"><![CDATA[Pick your state and enter a UPC or MPN to check whether that item is restricted for sale in your state. Read-only against our current catalog.]]></word>
+<word key="gdcompliance_lookup_disclaimer_label" js="0"><![CDATA[Important Notice]]></word>
+<word key="gdcompliance_lookup_default_disclaimer" js="0"><![CDATA[State Firearm Compliance Lookup — Important Notice. This tool provides general information based on our product catalog and our understanding of current state law. It is not legal advice and is not a guarantee of legality. Firearm laws change frequently, vary by locality, and depend on individual circumstances. A result of 'no restrictions found' means our system did not flag this item for the selected state — it does not affirmatively certify the item is legal for you to purchase or possess. Always verify with your FFL and consult current state and local law before completing any purchase or transfer. Gun Wise LLC assumes no liability for reliance on this tool.]]></word>
+<word key="gdcompliance_lookup_field_state" js="0"><![CDATA[Ship-to state]]></word>
+<word key="gdcompliance_lookup_pick_state" js="0"><![CDATA[Pick a state…]]></word>
+<word key="gdcompliance_lookup_field_q" js="0"><![CDATA[UPC or MPN]]></word>
+<word key="gdcompliance_lookup_field_q_ph" js="0"><![CDATA[e.g. 022188879834]]></word>
+<word key="gdcompliance_lookup_submit" js="0"><![CDATA[Look up]]></word>
+<word key="gdcompliance_lookup_product" js="0"><![CDATA[UPC %s:]]></word>
+<word key="gdcompliance_lookup_citation" js="0"><![CDATA[Citation: %s]]></word>
+<word key="gdcompliance_lookup_restricted_headline" js="0"><![CDATA[Restricted for sale in %s]]></word>
+<word key="gdcompliance_lookup_advisory_label" js="0"><![CDATA[Buyer requirement]]></word>
+<word key="gdcompliance_lookup_advisory_headline" js="0"><![CDATA[Buyer requirement in %s]]></word>
+<word key="gdcompliance_lookup_advisory_intro" js="0"><![CDATA[This item can ship. The buyer must meet a state permit / training requirement at the FFL. Not a sale prohibition.]]></word>
+<word key="gdcompliance_lookup_clear_body" js="0"><![CDATA[No restrictions found for this item in %s.]]></word>
+<word key="gdcompliance_lookup_clear_reminder" js="0"><![CDATA[This is not a legal guarantee. Verify with your FFL and consult current state and local law before completing any purchase.]]></word>
+<word key="gdcompliance_lookup_verify_reminder" js="0"><![CDATA[This reflects our current data. Verify with your receiving FFL before purchase.]]></word>
+<word key="gdcompliance_lookup_not_found" js="0"><![CDATA[We could not find %s in our catalog, so we have no compliance information for it.]]></word>
+<word key="gdcompliance_lookup_not_found_hint" js="0"><![CDATA[Double-check the UPC / MPN. Only items currently in our catalog are covered by this tool.]]></word>
+<word key="gdcompliance_lookup_disabled_msg" js="0"><![CDATA[The state-lookup page is temporarily unavailable. Please check back later.]]></word>
 </app>
 </language>
