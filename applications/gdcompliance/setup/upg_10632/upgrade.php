@@ -1,43 +1,29 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.31
+ * @brief  GD Compliance — upgrade 1.6.32
  *
- * WHAT SHIPS IN 1.6.31 — Compliance API Stage 3 (tier quotas + burst
- * + usage metering + rate-limit headers + usage on the mykey page):
+ * WHAT SHIPS IN 1.6.32 — Settings ACP UI rebuild:
  *
- *   - NEW TABLE gd_compliance_api_usage(key_id, period, count).
- *     Composite PK (key_id, period). Period="YYYY-MM" for monthly
- *     buckets, "sec:EPOCH" for burst buckets. Best-effort increments
- *     via preparedQuery INSERT ... ON DUPLICATE KEY UPDATE.
+ *   - modules/admin/compliance/settings.php now exposes every
+ *     gdcompliance_* setting that ships with the app, grouped by:
+ *       (1) Storefront panel   (2) Public Lookup   (3) CSV Gate
+ *       (4) Compliance API     (5) Rosters
+ *     Group-picker multi-selects for the CSV + API allowlist.
+ *     JSON validation on api_tiers (invalid → form error, existing
+ *     value preserved). WARNING label on the "verified" toggle.
  *
- *   - NEW SETTINGS:
- *       gdcompliance_api_tiers          (default {"13":10000})
- *       gdcompliance_api_default_quota  (default 10000)
- *       gdcompliance_api_burst_per_sec  (default 10)
+ *   - NO setting values changed. Existing DB values load into the
+ *     form; only an explicit ACP save writes back.
  *
- *   - API AUTHENTICATE now enforces:
- *       * burst throttle: >N requests/second for this key → 429
- *         rate_limited with Retry-After: 1
- *       * monthly quota: current-month count >= tier quota → 429
- *         quota_exceeded with reset date and subscribe_url
- *       Admins are always unlimited. Best tier wins across a
- *       member's groups.
- *
- *   - EVERY API RESPONSE (post-auth) carries standard headers:
- *       X-RateLimit-Limit     (quota or "unlimited")
- *       X-RateLimit-Remaining (floor 0 or "unlimited")
- *       X-RateLimit-Reset     (unix ts of next month start)
- *     429 responses also carry Retry-After.
- *
- *   - MYKEY PAGE (Stage-2 self-service) gains a Usage panel: tier,
- *     quota, this month, reset, lifetime, plus a colored progress
- *     bar and upsell hints at 75%/100%.
+ *   - Any missing setting rows still get their canonical default via
+ *     the carry-forward direct-insert loop below (defensive; a fresh
+ *     install already has them via data/settings.json).
  *
  * SELF-CONTAINED (rule #79). Only upg dir; all prior migrations
  * folded forward defensively.
  */
 
-namespace IPS\gdcompliance\setup\upg_10631;
+namespace IPS\gdcompliance\setup\upg_10632;
 
 use function defined;
 
@@ -52,7 +38,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		/* ------------------------------------------------------------
-		 * 1) SCHEMA — carry forward + NEW gd_compliance_api_usage.
+		 * 1) SCHEMA carry-forward.
 		 * ------------------------------------------------------------ */
 		try
 		{
@@ -84,10 +70,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10631 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
-		}
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10632 gdcr: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -114,12 +97,8 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10631 create gd_compliance_api_keys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
-		}
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10632 apikeys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
-		/* NEW in v1.6.31 — usage table. */
 		try
 		{
 			if ( !\IPS\Db::i()->checkForTable( 'gd_compliance_api_usage' ) )
@@ -137,13 +116,12 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10631 create gd_compliance_api_usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
-		}
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10632 usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		/* ------------------------------------------------------------
-		 * 2) SETTINGS — carry forward + NEW 1.6.31 tier / burst.
+		 * 2) SETTINGS — carry-forward defaults ONLY for rows that
+		 *    don't yet exist. Existing values are NEVER overwritten
+		 *    (ticket requirement — Derrick's edits stay).
 		 * ------------------------------------------------------------ */
 		$defaultDisclaimer =
 			"State Firearm Compliance Lookup — Important Notice. This tool provides general information based on our product catalog and our understanding of current state law. It is not legal advice and is not a guarantee of legality. Firearm laws change frequently, vary by locality, and depend on individual circumstances. A result of 'no restrictions found' means our system did not flag this item for the selected state — it does not affirmatively certify the item is legal for you to purchase or possess. Always verify with your FFL and consult current state and local law before completing any purchase or transfer. Gun Wise LLC assumes no liability for reliance on this tool.";
@@ -174,98 +152,22 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		try
-		{
-			$changes = [];
-			$currentDisclaimer = (string) ( \IPS\Settings::i()->gdcompliance_lookup_disclaimer ?? '' );
-			if ( $currentDisclaimer === '' )
-			{
-				$changes['gdcompliance_lookup_disclaimer'] = $defaultDisclaimer;
-			}
-			if ( !isset( \IPS\Settings::i()->gdcompliance_lookup_enabled ) )
-			{
-				$changes['gdcompliance_lookup_enabled'] = 1;
-			}
-			if ( !isset( \IPS\Settings::i()->gdcompliance_report_ratelimit ) )
-			{
-				$changes['gdcompliance_report_ratelimit'] = 5;
-			}
-			$currentAvailableNote = (string) ( \IPS\Settings::i()->gdcompliance_lookup_available_note ?? '' );
-			if ( $currentAvailableNote === '' )
-			{
-				$changes['gdcompliance_lookup_available_note'] = $defaultAvailableNote;
-			}
-			if ( !isset( \IPS\Settings::i()->gdcompliance_lookup_csv_max ) )
-			{
-				$changes['gdcompliance_lookup_csv_max'] = 50000;
-			}
-			$currentAllowed = (string) ( \IPS\Settings::i()->gdcompliance_csv_allowed_groups ?? '' );
-			if ( $currentAllowed === '' )
-			{
-				$changes['gdcompliance_csv_allowed_groups'] = $defaultAllowedGroups;
-			}
-			if ( !isset( \IPS\Settings::i()->gdcompliance_csv_upsell_url ) )
-			{
-				$changes['gdcompliance_csv_upsell_url'] = '#';
-			}
-			$currentUpsellText = (string) ( \IPS\Settings::i()->gdcompliance_csv_upsell_text ?? '' );
-			if ( $currentUpsellText === '' )
-			{
-				$changes['gdcompliance_csv_upsell_text'] = $defaultUpsellText;
-			}
-			$currentApiDisclaimer = (string) ( \IPS\Settings::i()->gdcompliance_api_disclaimer ?? '' );
-			if ( $currentApiDisclaimer === '' )
-			{
-				$changes['gdcompliance_api_disclaimer'] = $defaultApiDisclaimer;
-			}
-			if ( !isset( \IPS\Settings::i()->gdcompliance_api_verified ) )
-			{
-				$changes['gdcompliance_api_verified'] = 0;
-			}
-			$currentApiGroups = (string) ( \IPS\Settings::i()->gdcompliance_api_access_groups ?? '' );
-			if ( $currentApiGroups === '' )
-			{
-				$changes['gdcompliance_api_access_groups'] = '13';
-			}
-			if ( !isset( \IPS\Settings::i()->gdcompliance_api_subscription_id ) )
-			{
-				$changes['gdcompliance_api_subscription_id'] = 6;
-			}
-			/* v1.6.31 NEW */
-			$currentTiers = (string) ( \IPS\Settings::i()->gdcompliance_api_tiers ?? '' );
-			if ( $currentTiers === '' )
-			{
-				$changes['gdcompliance_api_tiers'] = $defaultTiers;
-			}
-			if ( !isset( \IPS\Settings::i()->gdcompliance_api_default_quota ) )
-			{
-				$changes['gdcompliance_api_default_quota'] = 10000;
-			}
-			if ( !isset( \IPS\Settings::i()->gdcompliance_api_burst_per_sec ) )
-			{
-				$changes['gdcompliance_api_burst_per_sec'] = 10;
-			}
-			if ( !empty( $changes ) )
-			{
-				\IPS\Settings::i()->changeValues( $changes );
-			}
-		}
-		catch ( \Throwable ) {}
-
 		$directInserts = [
-			'gdcompliance_report_ratelimit'         => [ '5',      '5',      'full' ],
-			'gdcompliance_lookup_available_note'    => [ $defaultAvailableNote, $defaultAvailableNote, 'none' ],
-			'gdcompliance_lookup_csv_max'           => [ '50000',  '50000',  'full' ],
-			'gdcompliance_csv_allowed_groups'       => [ $defaultAllowedGroups, '4', 'full' ],
-			'gdcompliance_csv_upsell_url'           => [ '#',      '#',      'none' ],
-			'gdcompliance_csv_upsell_text'          => [ $defaultUpsellText, $defaultUpsellText, 'none' ],
-			'gdcompliance_api_disclaimer'           => [ $defaultApiDisclaimer, $defaultApiDisclaimer, 'none' ],
-			'gdcompliance_api_verified'             => [ '0',      '0',      'full' ],
-			'gdcompliance_api_access_groups'        => [ '13',     '13',     'full' ],
-			'gdcompliance_api_subscription_id'      => [ '6',      '6',      'full' ],
-			'gdcompliance_api_tiers'                => [ $defaultTiers, $defaultTiers, 'full' ],
-			'gdcompliance_api_default_quota'        => [ '10000',  '10000',  'full' ],
-			'gdcompliance_api_burst_per_sec'        => [ '10',     '10',     'full' ],
+			'gdcompliance_report_ratelimit'      => [ '5',      '5',      'full' ],
+			'gdcompliance_lookup_available_note' => [ $defaultAvailableNote, $defaultAvailableNote, 'none' ],
+			'gdcompliance_lookup_csv_max'        => [ '50000',  '50000',  'full' ],
+			'gdcompliance_csv_allowed_groups'    => [ $defaultAllowedGroups, '4', 'full' ],
+			'gdcompliance_csv_upsell_url'        => [ '#',      '#',      'none' ],
+			'gdcompliance_csv_upsell_text'       => [ $defaultUpsellText, $defaultUpsellText, 'none' ],
+			'gdcompliance_api_disclaimer'        => [ $defaultApiDisclaimer, $defaultApiDisclaimer, 'none' ],
+			'gdcompliance_api_verified'          => [ '0',      '0',      'full' ],
+			'gdcompliance_api_access_groups'     => [ '13',     '13',     'full' ],
+			'gdcompliance_api_subscription_id'   => [ '6',      '6',      'full' ],
+			'gdcompliance_api_tiers'             => [ $defaultTiers, $defaultTiers, 'full' ],
+			'gdcompliance_api_default_quota'     => [ '10000',  '10000',  'full' ],
+			'gdcompliance_api_burst_per_sec'     => [ '10',     '10',     'full' ],
+			'gdcompliance_lookup_disclaimer'     => [ $defaultDisclaimer, $defaultDisclaimer, 'none' ],
+			'gdcompliance_lookup_enabled'        => [ '1',      '1',      'full' ],
 		];
 		foreach ( $directInserts as $key => [ $val, $def, $report ] )
 		{
@@ -288,7 +190,7 @@ class _upgrade
 		}
 
 		/* ------------------------------------------------------------
-		 * 3) EXTENSIONS carry-forward — Notifications/Report self-heal.
+		 * 3) EXTENSIONS — self-heal Notifications/Report registration.
 		 * ------------------------------------------------------------ */
 		try
 		{
@@ -346,7 +248,10 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 4) LANG — carry forward + NEW 1.6.31 tier/usage strings.
+		 * 4) LANG — re-seed EVERY lookup / reports / api / mykey key
+		 *    plus the NEW 1.6.32 settings-page headers + JSON error
+		 *    strings + field labels. Per-row try/catch (rule #44);
+		 *    6-col schema only (rule #43).
 		 * ------------------------------------------------------------ */
 		$newStrings = [
 			'gdcompliance_acp_settings_lookup_header'   => 'Public State Compliance Lookup (/state-lookup/)',
@@ -451,9 +356,9 @@ class _upgrade
 			'gdcompliance_lookup_row_available_label' => 'Available',
 
 			'gdcompliance_csv_allowed_groups'      => 'Groups allowed to download the restricted-list CSV',
-			'gdcompliance_csv_allowed_groups_desc' => 'Comma-separated member group IDs. Members in any listed group can download the /state-lookup/ restricted-list CSV; everyone else sees an upsell prompt. Guests always denied. Default seeds the Administrators group.',
+			'gdcompliance_csv_allowed_groups_desc' => 'Members in any listed group can download the /state-lookup/ restricted-list CSV; everyone else sees an upsell prompt. Guests always denied.',
 			'gdcompliance_csv_upsell_url'          => 'CSV upsell link',
-			'gdcompliance_csv_upsell_url_desc'     => 'Where the "Upgrade" button on the CSV upsell block links to. Point at your membership / subscription page. Leave as # to render a disabled "Learn more" label instead of a link.',
+			'gdcompliance_csv_upsell_url_desc'     => 'Where the "Upgrade" button on the CSV upsell block links to. Point at your membership / subscription page. Leave as # to render a disabled "Learn more" label.',
 			'gdcompliance_csv_upsell_text'         => 'CSV upsell message',
 			'gdcompliance_csv_upsell_text_desc'    => 'Text shown to non-allowed visitors in place of the CSV download button.',
 			'gdcompliance_csv_upsell_default'      => $defaultUpsellText,
@@ -482,7 +387,7 @@ class _upgrade
 			'gdcompliance_api_verified_desc'   => 'Off (default): every API response carries verification_status="pending_legal_review". Flip on after your legal review completes to advertise "verified" data to integrating dealers.',
 
 			'gdcompliance_api_access_groups'        => 'Member groups granting API access',
-			'gdcompliance_api_access_groups_desc'   => 'Comma-separated group IDs. IPS Commerce should add subscribers to at least one of these groups (secondary group on the API subscription package) and remove them on lapse — the API gate reads live group membership per request, so no webhook is needed. Admins always pass.',
+			'gdcompliance_api_access_groups_desc'   => 'IPS Commerce should add subscribers to at least one of these groups (secondary group on the API subscription package) and remove them on lapse — the API gate reads live group membership per request, so no webhook is needed. Admins always pass.',
 			'gdcompliance_api_subscription_id'      => 'API subscription package ID',
 			'gdcompliance_api_subscription_id_desc' => 'Nexus subscription package ID used to build the subscribe/upsell link in 402 responses and on the self-service key page.',
 			'gdcompliance_mykey_page_title'    => 'Your Compliance API Key',
@@ -501,7 +406,6 @@ class _upgrade
 			'gdcompliance_mykey_endpoints'      => 'Endpoints',
 			'gdcompliance_mykey_envelope'       => 'Response envelope',
 
-			/* v1.6.31 NEW */
 			'gdcompliance_api_tiers'              => 'Tier quotas (group → monthly requests)',
 			'gdcompliance_api_tiers_desc'         => 'JSON object mapping group_id (string) to monthly request quota (int). Example: {"13":10000,"14":100000}. Set a quota of 0 to grant unlimited requests for that tier. Members in multiple tiers get the highest quota.',
 			'gdcompliance_api_default_quota'      => 'Default monthly quota',
@@ -516,6 +420,25 @@ class _upgrade
 			'gdcompliance_mykey_usage_lifetime'   => 'Lifetime',
 			'gdcompliance_mykey_usage_upsell'     => 'Approaching your monthly quota. Upgrade your subscription to raise the cap.',
 			'gdcompliance_mykey_usage_over'       => 'Monthly quota reached. Further requests will return 429 until reset.',
+
+			/* v1.6.32 NEW — settings ACP page */
+			'gdcompliance_acp_settings_title'             => 'GD Compliance — Settings',
+			'gdcompliance_acp_settings_storefront_header' => 'Storefront restriction panel (Phase 5)',
+			'gdcompliance_acp_settings_csv_header'        => 'CSV Export Gate — /state-lookup/ restricted-list download',
+			'gdcompliance_acp_settings_api_header'        => 'Compliance API — /api/compliance/*',
+			'gdcompliance_acp_settings_roster_header'     => 'Roster source URLs (CA / MA / MD)',
+			'gdcompliance_api_tiers_bad_json'             => 'Tier quotas must be valid JSON. Example: {"13":10000}',
+			'gdcompliance_api_tiers_bad_shape'            => 'Each entry must be a positive group id mapped to a non-negative integer quota. Use 0 for unlimited.',
+			'gdcompliance_api_verified_warning'           => 'WARNING: only enable after your legal review completes. Flipping this on advertises "verified" data to integrating dealers.',
+			'gdcompliance_front_enabled'                  => 'Show the storefront restriction panel',
+			'gdcompliance_front_show_reasons'             => 'Show reason text on the restriction panel',
+			'gdcompliance_front_disclaimer'               => 'Storefront panel disclaimer',
+			'gdcompliance_ca_roster_url'                  => 'California roster source URL',
+			'gdcompliance_ma_roster_url'                  => 'Massachusetts roster source URL',
+			'gdcompliance_md_roster_url'                  => 'Maryland approved-list source URL',
+			'gdcompliance_md_disapproved_url'             => 'Maryland disapproved-list source URL',
+			'gdcompliance_dc_derive'                      => 'Derive DC restrictions from CA/MA/MD',
+			'acplog__gdcompliance_settings_saved'         => 'Updated GD Compliance settings',
 		];
 
 		try

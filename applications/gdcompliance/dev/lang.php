@@ -555,6 +555,32 @@ $lang = array(
 	'gdcompliance_mykey_usage_upsell'     => 'Approaching your monthly quota. Upgrade your subscription to raise the cap.',
 	'gdcompliance_mykey_usage_over'       => 'Monthly quota reached. Further requests will return 429 until reset.',
 
+	/* v1.6.32 — Settings ACP page group headers + missing field labels */
+	'gdcompliance_acp_settings_title'        => 'GD Compliance — Settings',
+	'gdcompliance_acp_settings_storefront_header' => 'Storefront restriction panel (Phase 5)',
+	'gdcompliance_acp_settings_csv_header'   => 'CSV Export Gate — /state-lookup/ restricted-list download',
+	'gdcompliance_acp_settings_api_header'   => 'Compliance API — /api/compliance/*',
+	'gdcompliance_acp_settings_roster_header' => 'Roster source URLs (CA / MA / MD)',
+
+	'gdcompliance_lookup_csv_max_short'      => 'CSV export row cap',
+	'gdcompliance_lookup_csv_max_short_desc' => 'Maximum rows the CSV export produces per state (backstop against runaway generation). Default 50000.',
+
+	'gdcompliance_api_tiers_bad_json'        => 'Tier quotas must be valid JSON. Example: {"13":10000}',
+	'gdcompliance_api_tiers_bad_shape'       => 'Each entry must be a positive group id mapped to a non-negative integer quota. Use 0 for unlimited.',
+	'gdcompliance_api_verified_warning'      => 'WARNING: only enable after your legal review completes. Flipping this on advertises "verified" data to integrating dealers.',
+
+	'gdcompliance_front_enabled'             => 'Show the storefront restriction panel',
+	'gdcompliance_front_show_reasons'        => 'Show reason text on the restriction panel',
+	'gdcompliance_front_disclaimer'          => 'Storefront panel disclaimer',
+
+	'gdcompliance_ca_roster_url'             => 'California roster source URL',
+	'gdcompliance_ma_roster_url'             => 'Massachusetts roster source URL',
+	'gdcompliance_md_roster_url'             => 'Maryland approved-list source URL',
+	'gdcompliance_md_disapproved_url'        => 'Maryland disapproved-list source URL',
+	'gdcompliance_dc_derive'                 => 'Derive DC restrictions from CA/MA/MD',
+
+	'acplog__gdcompliance_settings_saved'    => 'Updated GD Compliance settings',
+
 	/* Phase 5 — Widget */
 	'block_gdRestrictionNotice'                => 'Product Restriction Notice',
 	'gdcompliance_widget_upc_fallback'         => 'Fallback UPC (only used if no product UPC in URL)',

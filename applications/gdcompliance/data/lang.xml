@@ -471,5 +471,22 @@
 <word key="gdcompliance_mykey_usage_lifetime" js="0"><![CDATA[Lifetime]]></word>
 <word key="gdcompliance_mykey_usage_upsell" js="0"><![CDATA[Approaching your monthly quota. Upgrade your subscription to raise the cap.]]></word>
 <word key="gdcompliance_mykey_usage_over" js="0"><![CDATA[Monthly quota reached. Further requests will return 429 until reset.]]></word>
+<word key="gdcompliance_acp_settings_title" js="0"><![CDATA[GD Compliance — Settings]]></word>
+<word key="gdcompliance_acp_settings_storefront_header" js="0"><![CDATA[Storefront restriction panel (Phase 5)]]></word>
+<word key="gdcompliance_acp_settings_csv_header" js="0"><![CDATA[CSV Export Gate — /state-lookup/ restricted-list download]]></word>
+<word key="gdcompliance_acp_settings_api_header" js="0"><![CDATA[Compliance API — /api/compliance/*]]></word>
+<word key="gdcompliance_acp_settings_roster_header" js="0"><![CDATA[Roster source URLs (CA / MA / MD)]]></word>
+<word key="gdcompliance_api_tiers_bad_json" js="0"><![CDATA[Tier quotas must be valid JSON. Example: {"13":10000}]]></word>
+<word key="gdcompliance_api_tiers_bad_shape" js="0"><![CDATA[Each entry must be a positive group id mapped to a non-negative integer quota. Use 0 for unlimited.]]></word>
+<word key="gdcompliance_api_verified_warning" js="0"><![CDATA[WARNING: only enable after your legal review completes. Flipping this on advertises "verified" data to integrating dealers.]]></word>
+<word key="gdcompliance_front_enabled" js="0"><![CDATA[Show the storefront restriction panel]]></word>
+<word key="gdcompliance_front_show_reasons" js="0"><![CDATA[Show reason text on the restriction panel]]></word>
+<word key="gdcompliance_front_disclaimer" js="0"><![CDATA[Storefront panel disclaimer]]></word>
+<word key="gdcompliance_ca_roster_url" js="0"><![CDATA[California roster source URL]]></word>
+<word key="gdcompliance_ma_roster_url" js="0"><![CDATA[Massachusetts roster source URL]]></word>
+<word key="gdcompliance_md_roster_url" js="0"><![CDATA[Maryland approved-list source URL]]></word>
+<word key="gdcompliance_md_disapproved_url" js="0"><![CDATA[Maryland disapproved-list source URL]]></word>
+<word key="gdcompliance_dc_derive" js="0"><![CDATA[Derive DC restrictions from CA/MA/MD]]></word>
+<word key="acplog__gdcompliance_settings_saved" js="0"><![CDATA[Updated GD Compliance settings]]></word>
 </app>
 </language>
