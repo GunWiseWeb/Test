@@ -386,5 +386,28 @@
 <word key="notification__gdcompliance_report_resolved_desc" js="0"><![CDATA[Notify me when a compliance report I submitted is resolved.]]></word>
 <word key="notification__gdcompliance_report_dismissed" js="0"><![CDATA[Compliance report dismissed]]></word>
 <word key="notification__gdcompliance_report_dismissed_desc" js="0"><![CDATA[Notify me when a compliance report I submitted is dismissed.]]></word>
+<word key="gdcompliance_lookup_available_note" js="0"><![CDATA[This 'available' list reflects items our compliance engine did not flag for the selected state. While our engine catches the vast majority of restrictions, no automated system is ever 100% accurate — it cannot account for every local ordinance, recent law change, or individual circumstance. Always confirm with your local laws and your FFL before purchasing to make sure an item is legal for you in your area.]]></word>
+<word key="gdcompliance_lookup_available_note_desc" js="0"><![CDATA[Verification note shown at the top of the Advanced Search "Available" result view. Customer-facing.]]></word>
+<word key="gdcompliance_lookup_csv_max" js="0"><![CDATA[CSV export row cap]]></word>
+<word key="gdcompliance_lookup_csv_max_desc" js="0"><![CDATA[Maximum rows the /state-lookup/ restricted-list CSV export will produce, per state. Backstop against runaway generation.]]></word>
+<word key="gdcompliance_lookup_tab_single" js="0"><![CDATA[Single Lookup]]></word>
+<word key="gdcompliance_lookup_tab_search" js="0"><![CDATA[Advanced Search]]></word>
+<word key="gdcompliance_lookup_tab_statelist" js="0"><![CDATA[Restricted List]]></word>
+<word key="gdcompliance_lookup_search_state" js="0"><![CDATA[Ship-to state]]></word>
+<word key="gdcompliance_lookup_search_category" js="0"><![CDATA[Category]]></word>
+<word key="gdcompliance_lookup_search_brand" js="0"><![CDATA[Brand (optional)]]></word>
+<word key="gdcompliance_lookup_search_mode" js="0"><![CDATA[Mode]]></word>
+<word key="gdcompliance_lookup_search_type" js="0"><![CDATA[Restriction type]]></word>
+<word key="gdcompliance_lookup_search_run" js="0"><![CDATA[Search]]></word>
+<word key="gdcompliance_lookup_mode_restricted" js="0"><![CDATA[Restricted]]></word>
+<word key="gdcompliance_lookup_mode_available" js="0"><![CDATA[Available]]></word>
+<word key="gdcompliance_lookup_available_warn" js="0"><![CDATA[Filter required. The "available" list is too large to render without at least one of Category or Brand set. Pick a category or type a brand.]]></word>
+<word key="gdcompliance_lookup_pick_state_msg" js="0"><![CDATA[Pick a state to search.]]></word>
+<word key="gdcompliance_lookup_pick_state_list" js="0"><![CDATA[Pick a state to view its full restricted list.]]></word>
+<word key="gdcompliance_lookup_search_no_match" js="0"><![CDATA[No items match those filters for %s.]]></word>
+<word key="gdcompliance_lookup_statelist_title" js="0"><![CDATA[Restricted List]]></word>
+<word key="gdcompliance_lookup_csv_download" js="0"><![CDATA[Download CSV]]></word>
+<word key="gdcompliance_lookup_row_report" js="0"><![CDATA[Report a problem]]></word>
+<word key="gdcompliance_lookup_row_available_label" js="0"><![CDATA[Available]]></word>
 </app>
 </language>

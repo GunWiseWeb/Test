@@ -1,28 +1,37 @@
 <?php
 /**
- * @brief  GD Compliance — Public State Compliance Lookup (Stage 1 + Stage 2)
+ * @brief  GD Compliance — Public State Compliance Lookup (Stages 1 + 2 + 3)
  *
  * Stage 1 (v1.6.22 → v1.6.23): visitor picks a state + enters UPC/MPN,
  * page shows restricted / advisory / no-restrictions for that state.
  * Read-only over gd_compliance_flags.
  *
- * Stage 2 (v1.6.24): logged-in member can flag a suspected misclass-
- * ification via a "Report a problem" button on the result block. Report
- * is stored in gd_compliance_reports; guest sees a login prompt; the
- * report POST is CSRF-checked with csrfKey in the POST body (never in
- * the URL — IN_DEV forbids that per rule #81).
+ * Stage 2 (v1.6.24): logged-in member flags misclassifications via a
+ * "Report a problem" affordance. Report stored in gd_compliance_reports;
+ * guest sees login prompt. CSRF via POST body csrfKey (rule #81); rate-
+ * limited via setting gdcompliance_report_ratelimit (default 5/hr).
  *
- * Rate limit: max N reports per hour per member (setting
- * gdcompliance_report_ratelimit, default 5). Login-required + this
- * rate limit together cover spam without needing captcha.
+ * Stage 3 (v1.6.25): (a) advanced search view (state required, mode
+ * RESTRICTED/AVAILABLE, category/type/brand filters, paginated) using
+ * IPS-native select()->join() over gd_compliance_flags / gd_catalog.
+ * (b) full-state restricted list with CSV export (upc/title/brand/
+ * type/reason/citation, ≤50k rows). (c) row-level "Report a problem"
+ * links reuse Stage-2 flow by rebuilding the single-lookup URL with
+ * pre-filled state+q — no new report code.
  *
- * FURL: /state-lookup/ (registered in data/furl.json).
+ * FURL: /state-lookup/ (registered in data/furl.json). All three
+ * views live under the same FURL; view selection via ?do=search /
+ * ?do=statelist / (no do → single lookup).
  *
  * NO ACP permission check — the page is publicly viewable. State-
  * changing action (submit report) checks login + CSRF at the POST.
  *
- * Stage plan:
- *   Stage 3 (later): advanced search / full-state banned-list pull.
+ * Design ceilings (Stage 3):
+ *   - RESTRICTED lists are inherently bounded (state has finite flags).
+ *   - AVAILABLE queries ARE NOT — a bare-state "available" cardinal-
+ *     ity is ~catalog size. Enforced: require at least one of
+ *     {category, brand} filter before running an available query.
+ *   - CSV export cap: gdcompliance_lookup_csv_max (default 50000).
  */
 
 namespace IPS\gdcompliance\modules\front\lookup;
@@ -152,8 +161,44 @@ class _lookup extends \IPS\Dispatcher\Controller
 		}
 
 		$html = ''
-			. '<style>'
-			. '.gdcl-wrap{max-width:760px;margin:24px auto;padding:0 16px;font-family:\'Inter\',system-ui,-apple-system,sans-serif;color:#0f172a}'
+			. $this->pageStyles()
+			. '<div class="gdcl-wrap">'
+			. '<div class="gdcl-hero">'
+			. '<h1>' . $h( $title ) . '</h1>'
+			. '<p>' . $h( $lang->addToStack( 'gdcompliance_lookup_intro' ) ) . '</p>'
+			. '</div>'
+			. '<div class="gdcl-disclaimer"><strong>' . $h( $lang->addToStack( 'gdcompliance_lookup_disclaimer_label' ) ) . '</strong><br>'
+			. nl2br( $h( $disclaimer ) )
+			. '</div>'
+			. $this->renderTabs( 'single', $stateSel )
+			. '<form method="get" action="' . $h( $formUrl ) . '" class="gdcl-form">'
+			. '<div class="gdcl-row">'
+			. '<label for="gdcl-state">' . $h( $lang->addToStack( 'gdcompliance_lookup_field_state' ) ) . '</label>'
+			. '<select id="gdcl-state" name="state" required>' . $stateOpts . '</select>'
+			. '</div>'
+			. '<div class="gdcl-row">'
+			. '<label for="gdcl-q">' . $h( $lang->addToStack( 'gdcompliance_lookup_field_q' ) ) . '</label>'
+			. '<input type="text" id="gdcl-q" name="q" value="' . $h( $q ) . '" placeholder="' . $h( $lang->addToStack( 'gdcompliance_lookup_field_q_ph' ) ) . '" maxlength="64" required>'
+			. '</div>'
+			. '<button type="submit" class="gdcl-submit">' . $h( $lang->addToStack( 'gdcompliance_lookup_submit' ) ) . '</button>'
+			. '</form>'
+
+			. $resultHtml
+			. $reportBlockHtml
+			. '</div>';
+
+		\IPS\Output::i()->output = $html;
+	}
+
+	/**
+	 * All styles for the lookup pages (single, search, statelist). Kept
+	 * in one place so refactors don't diverge. Wrapped by the caller's
+	 * <style> — return raw <style>…</style> to keep the callers terse.
+	 */
+	protected function pageStyles(): string
+	{
+		return '<style>'
+			. '.gdcl-wrap{max-width:960px;margin:24px auto;padding:0 16px;font-family:\'Inter\',system-ui,-apple-system,sans-serif;color:#0f172a}'
 			. '.gdcl-hero{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:24px;margin-bottom:18px;box-shadow:0 2px 10px rgba(15,23,42,.04)}'
 			. '.gdcl-hero h1{margin:0 0 6px;font-size:1.5em;font-weight:700;color:#0f172a}'
 			. '.gdcl-hero p{margin:0;color:#475569;font-size:.95em;line-height:1.5}'
@@ -202,35 +247,56 @@ class _lookup extends \IPS\Dispatcher\Controller
 			. '.gdcl-report-submit{display:inline-block;background:#1e40af;color:#fff;border:none;font-weight:600;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:.9em;margin-top:10px}'
 			. '.gdcl-report-submit:hover{background:#1e3a8a}'
 			. '.gdcl-report-hint{margin:8px 0 0;font-size:.8em;color:#64748b;line-height:1.5}'
-			. '</style>'
-
-			. '<div class="gdcl-wrap">'
-			. '<div class="gdcl-hero">'
-			. '<h1>' . $h( $title ) . '</h1>'
-			. '<p>' . $h( $lang->addToStack( 'gdcompliance_lookup_intro' ) ) . '</p>'
-			. '</div>'
-
-			. '<div class="gdcl-disclaimer"><strong>' . $h( $lang->addToStack( 'gdcompliance_lookup_disclaimer_label' ) ) . '</strong><br>'
-			. nl2br( $h( $disclaimer ) )
-			. '</div>'
-
-			. '<form method="get" action="' . $h( $formUrl ) . '" class="gdcl-form">'
-			. '<div class="gdcl-row">'
-			. '<label for="gdcl-state">' . $h( $lang->addToStack( 'gdcompliance_lookup_field_state' ) ) . '</label>'
-			. '<select id="gdcl-state" name="state" required>' . $stateOpts . '</select>'
-			. '</div>'
-			. '<div class="gdcl-row">'
-			. '<label for="gdcl-q">' . $h( $lang->addToStack( 'gdcompliance_lookup_field_q' ) ) . '</label>'
-			. '<input type="text" id="gdcl-q" name="q" value="' . $h( $q ) . '" placeholder="' . $h( $lang->addToStack( 'gdcompliance_lookup_field_q_ph' ) ) . '" maxlength="64" required>'
-			. '</div>'
-			. '<button type="submit" class="gdcl-submit">' . $h( $lang->addToStack( 'gdcompliance_lookup_submit' ) ) . '</button>'
-			. '</form>'
-
-			. $resultHtml
-			. $reportBlockHtml
-			. '</div>';
-
-		\IPS\Output::i()->output = $html;
+			/* --- Stage 3 additions: tabs, filter bar, result rows, pager. --- */
+			. '.gdcl-tabs{display:flex;gap:2px;background:#f1f5f9;border-radius:10px;padding:4px;margin-bottom:16px}'
+			. '.gdcl-tab{flex:1 1 auto;text-align:center;padding:9px 12px;color:#334155;background:transparent;font-weight:600;font-size:.9em;text-decoration:none;border-radius:8px}'
+			. '.gdcl-tab:hover{background:rgba(255,255,255,.7);color:#0f172a}'
+			. '.gdcl-tab--active{background:#fff;color:#1e40af;box-shadow:0 1px 3px rgba(15,23,42,.06)}'
+			. '.gdcl-filters{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px}'
+			. '.gdcl-filters .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}'
+			. '.gdcl-filters .row > div{flex:1 1 180px}'
+			. '.gdcl-filters label{display:block;margin:0 0 4px;font-size:.75em;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em}'
+			. '.gdcl-filters select,.gdcl-filters input[type=text]{width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.95em;background:#fff;color:#0f172a}'
+			. '.gdcl-filters select:focus,.gdcl-filters input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}'
+			. '.gdcl-mode-toggle{display:inline-flex;background:#f1f5f9;border-radius:8px;padding:3px;margin-bottom:0;gap:2px}'
+			. '.gdcl-mode-toggle label{margin:0;font-size:.85em;text-transform:none;letter-spacing:0}'
+			. '.gdcl-mode-toggle input{position:absolute;opacity:0;pointer-events:none}'
+			. '.gdcl-mode-toggle span{display:inline-block;padding:7px 14px;border-radius:6px;font-weight:600;color:#475569;cursor:pointer}'
+			. '.gdcl-mode-toggle input:checked + span{background:#fff;color:#1e40af;box-shadow:0 1px 3px rgba(15,23,42,.06)}'
+			. '.gdcl-note{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;padding:12px 14px;border-radius:10px;margin-bottom:14px;font-size:.9em;line-height:1.5}'
+			. '.gdcl-warn{background:#fef3c7;border:1px solid #fde68a;color:#78350f;padding:12px 14px;border-radius:10px;margin-bottom:14px;font-size:.9em;line-height:1.5}'
+			. '.gdcl-count{color:#334155;font-size:.95em;margin:0 0 10px}'
+			. '.gdcl-count strong{color:#0f172a}'
+			. '.gdcl-list{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:0;margin-bottom:12px;overflow:hidden}'
+			. '.gdcl-list-row{padding:14px 16px;border-bottom:1px solid #eef2f7;display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}'
+			. '.gdcl-list-row:last-child{border-bottom:none}'
+			. '.gdcl-list-row .main{flex:1 1 auto;min-width:0}'
+			. '.gdcl-list-row .title{margin:0;color:#0f172a;font-weight:600;font-size:1em}'
+			. '.gdcl-list-row .meta{margin:2px 0 0;color:#64748b;font-size:.85em}'
+			. '.gdcl-list-row .upc{font-family:ui-monospace,monospace;color:#475569;font-size:.85em;background:#f1f5f9;padding:2px 8px;border-radius:6px}'
+			. '.gdcl-list-row .reason{margin:6px 0 0;color:#7f1d1d;font-size:.9em;line-height:1.4}'
+			. '.gdcl-list-row .cite{margin:2px 0 0;color:#7f1d1d;font-size:.8em;opacity:.85}'
+			. '.gdcl-type-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.7em;font-weight:700;text-transform:uppercase;letter-spacing:.03em}'
+			. '.gdcl-type-awb{background:#fee2e2;color:#991b1b}'
+			. '.gdcl-type-cap{background:#fef3c7;color:#78350f}'
+			. '.gdcl-type-mp{background:#fce7f3;color:#831843}'
+			. '.gdcl-type-rof{background:#e0e7ff;color:#3730a3}'
+			. '.gdcl-type-adv{background:#dcfce7;color:#14532d}'
+			. '.gdcl-row-report{color:#1e40af;font-size:.8em;text-decoration:none;font-weight:600;flex-shrink:0;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;align-self:flex-start;background:#fff}'
+			. '.gdcl-row-report:hover{background:#f1f5f9}'
+			. '.gdcl-pager{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}'
+			. '.gdcl-pager-btn{background:#fff;color:#1e40af;padding:8px 14px;border:1px solid #cbd5e1;border-radius:8px;font-weight:600;font-size:.9em;text-decoration:none}'
+			. '.gdcl-pager-btn:hover{background:#f1f5f9}'
+			. '.gdcl-pager-btn--dim{color:#94a3b8;background:#f8fafc}'
+			. '.gdcl-pager-info{color:#64748b;font-size:.9em}'
+			. '.gdcl-actions{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}'
+			. '.gdcl-actions .btn{background:#1e40af;color:#fff;padding:9px 16px;border-radius:8px;font-weight:600;text-decoration:none;border:none;cursor:pointer;font-size:.9em}'
+			. '.gdcl-actions .btn:hover{background:#1e3a8a}'
+			. '.gdcl-actions .btn--sec{background:#fff;color:#1e40af;border:1px solid #cbd5e1}'
+			. '.gdcl-actions .btn--sec:hover{background:#f1f5f9}'
+			. '.gdcl-empty{background:#f8fafc;border:1px dashed #cbd5e1;color:#64748b;padding:24px;text-align:center;border-radius:10px;margin-bottom:14px}'
+			. '.gdcl-section-head{margin:14px 0 6px;color:#334155;font-size:.9em;font-weight:700;text-transform:uppercase;letter-spacing:.05em}'
+			. '</style>';
 	}
 
 	/**
@@ -661,6 +727,242 @@ class _lookup extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect( $url );
 	}
 
+	/* =====================================================================
+	 * Stage 3 shared helpers
+	 * ===================================================================== */
+
+	/** Firearm-class categories the picker offers. */
+	const CATEGORY_CHOICES = [
+		''        => 'Any category',
+		'handgun' => 'Handguns',
+		'rifle'   => 'Rifles',
+		'shotgun' => 'Shotguns',
+	];
+
+	/** Restriction-type picker options for Restricted mode. */
+	const TYPE_CHOICES = [
+		''             => 'Any restriction',
+		'awb'          => 'Assault-weapons ban',
+		'capacity'     => 'Magazine capacity',
+		'melting'      => 'Melting-point / frame material',
+		'rate_of_fire' => 'Rate-of-fire device',
+		'advisory'     => 'Buyer advisory',
+	];
+
+	/** Page size for advanced search / statelist. */
+	const PER_PAGE = 25;
+
+	/**
+	 * Build the top-of-page tab strip. Same three views on every state-
+	 * lookup page. Preserves the current state selection where possible
+	 * so switching tabs keeps the visitor's context.
+	 */
+	protected function renderTabs( string $active, string $stateSel = '' ): string
+	{
+		$h = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+
+		$stateQs = $stateSel !== '' ? '&state=' . rawurlencode( $stateSel ) : '';
+		$tabs = [
+			'single'   => [ (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=lookup&controller=lookup' . $stateQs, 'front', 'gdcompliance_state_lookup' ),
+				'Single Lookup' ],
+			'search'   => [ (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=lookup&controller=lookup&do=search' . $stateQs, 'front', 'gdcompliance_state_lookup' ),
+				'Advanced Search' ],
+			'statelist' => [ (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=lookup&controller=lookup&do=statelist' . $stateQs, 'front', 'gdcompliance_state_lookup' ),
+				'Restricted List' ],
+		];
+
+		$html = '<div class="gdcl-tabs">';
+		foreach ( $tabs as $key => [ $url, $label ] )
+		{
+			$cls = 'gdcl-tab' . ( $active === $key ? ' gdcl-tab--active' : '' );
+			$html .= '<a href="' . $h( $url ) . '" class="' . $h( $cls ) . '">' . $h( $label ) . '</a>';
+		}
+		$html .= '</div>';
+		return $html;
+	}
+
+	/**
+	 * gd_catalog category_id → firearm_type map ('handgun'|'rifle'|
+	 * 'shotgun'|null), memoized per request. Falls back to empty array
+	 * on Engine unavailability (e.g. minimal install without Engine.php).
+	 */
+	protected function getTypeMap(): array
+	{
+		static $cached = null;
+		if ( $cached !== null ) { return $cached; }
+
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Engine.php';
+			$cached = \IPS\gdcompliance\Engine::buildTypeMap();
+		}
+		catch ( \Throwable )
+		{
+			$cached = [];
+		}
+		return $cached;
+	}
+
+	/**
+	 * Return the category_id list that rolls up to a chosen firearm
+	 * top-type. Empty list → no category filter.
+	 */
+	protected function categoryIdsForType( string $type ): array
+	{
+		if ( $type === '' ) { return []; }
+		$out = [];
+		foreach ( $this->getTypeMap() as $catId => $topType )
+		{
+			if ( $topType === $type ) { $out[] = (int) $catId; }
+		}
+		return $out;
+	}
+
+	/**
+	 * The set of firearm_type values that qualify as a "restriction"
+	 * (not merely an advisory) for the given restriction-type filter.
+	 *
+	 *   ''             → all restrict-type flags (excludes advisory)
+	 *   'awb'          → awb_%, pica_%, awb_lower
+	 *   'capacity'     → handgun/rifle/shotgun/magazine (capacity rows)
+	 *   'melting'      → melting_point
+	 *   'rate_of_fire' → rate_of_fire
+	 *   'advisory'     → advisory
+	 *
+	 * Returns [ whereFragment, argsArray ] to append to caller WHEREs.
+	 */
+	protected function typeFilterClause( string $type, string $flagAlias = 'f' ): array
+	{
+		$col = $flagAlias . '.firearm_type';
+		switch ( $type )
+		{
+			case 'advisory':
+				return [ "$col=?", [ 'advisory' ] ];
+			case 'melting':
+				return [ "$col=?", [ 'melting_point' ] ];
+			case 'rate_of_fire':
+				return [ "$col=?", [ 'rate_of_fire' ] ];
+			case 'capacity':
+				return [ "$col IN (?, ?, ?, ?)", [ 'handgun', 'rifle', 'shotgun', 'magazine' ] ];
+			case 'awb':
+				return [ "( $col LIKE ? OR $col LIKE ? OR $col=? )", [ 'awb\_%', 'pica\_%', 'awb_lower' ] ];
+			case '':
+			default:
+				/* Restrict-only default excludes advisory. */
+				return [ "$col<>?", [ 'advisory' ] ];
+		}
+	}
+
+	/**
+	 * Simple prev/next pager. Returns HTML fragment ready to inline.
+	 * Preserves all $extraParams (state=, cat=, brand=, etc.) in each
+	 * link's query string so filters survive the click.
+	 */
+	protected function pager( int $page, int $totalPages, string $do, array $extraParams ): string
+	{
+		if ( $totalPages < 2 ) { return ''; }
+		$h = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+
+		$baseArgs = array_merge( [
+			'app'        => 'gdcompliance',
+			'module'     => 'lookup',
+			'controller' => 'lookup',
+			'do'         => $do,
+		], $extraParams );
+
+		$urlFor = function( int $n ) use ( $baseArgs ) {
+			$args = $baseArgs;
+			$args['page'] = $n;
+			return (string) \IPS\Http\Url::internal( http_build_query( $args ), 'front', 'gdcompliance_state_lookup' );
+		};
+
+		$html = '<div class="gdcl-pager">';
+		if ( $page > 1 )
+		{
+			$html .= '<a class="gdcl-pager-btn" href="' . $h( $urlFor( $page - 1 ) ) . '">‹ Previous</a>';
+		}
+		else
+		{
+			$html .= '<span class="gdcl-pager-btn gdcl-pager-btn--dim">‹ Previous</span>';
+		}
+		$html .= '<span class="gdcl-pager-info">Page ' . $page . ' of ' . $totalPages . '</span>';
+		if ( $page < $totalPages )
+		{
+			$html .= '<a class="gdcl-pager-btn" href="' . $h( $urlFor( $page + 1 ) ) . '">Next ›</a>';
+		}
+		else
+		{
+			$html .= '<span class="gdcl-pager-btn gdcl-pager-btn--dim">Next ›</span>';
+		}
+		$html .= '</div>';
+		return $html;
+	}
+
+	/**
+	 * Row-level "Report a problem" affordance for advanced-search /
+	 * statelist results. Links back to the Single Lookup URL with
+	 * state+q pre-filled — Stage 2's buildReportBlock() takes over
+	 * from there. No new report code.
+	 */
+	protected function rowReportLink( string $upc, string $stateCode ): string
+	{
+		$h = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+		$url = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=lookup&controller=lookup&state=' . rawurlencode( $stateCode ) . '&q=' . rawurlencode( $upc ),
+			'front', 'gdcompliance_state_lookup'
+		);
+		return '<a href="' . $h( $url ) . '" class="gdcl-row-report">Report a problem</a>';
+	}
+
+	/**
+	 * Build the standard state <select>. Reused across all three views.
+	 */
+	protected function stateSelectHtml( string $selected, string $name = 'state' ): string
+	{
+		$h = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+		$out = '<select name="' . $h( $name ) . '" required><option value="">Pick a state…</option>';
+		$sorted = self::STATE_NAMES;
+		asort( $sorted, SORT_NATURAL | SORT_FLAG_CASE );
+		foreach ( $sorted as $code => $name )
+		{
+			$sel = ( $selected === $code ) ? ' selected' : '';
+			$out .= '<option value="' . $h( $code ) . '"' . $sel . '>' . $h( $name ) . '</option>';
+		}
+		$out .= '</select>';
+		return $out;
+	}
+
+	/**
+	 * Standard page chrome (title, disclaimer, tabs). Returns the opening
+	 * HTML — caller emits its own body and closes with '</div>'.
+	 */
+	protected function pageChrome( string $activeTab, string $stateSel ): string
+	{
+		$lang = \IPS\Member::loggedIn()->language();
+		$h    = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+
+		$title = (string) $lang->addToStack( 'gdcompliance_lookup_page_title' );
+		\IPS\Output::i()->title      = $title;
+		\IPS\Output::i()->breadcrumb = [];
+		\IPS\Output::i()->sidebar    = [ 'enabled' => false ];
+
+		$disclaimer = trim( (string) ( \IPS\Settings::i()->gdcompliance_lookup_disclaimer ?? '' ) );
+		if ( $disclaimer === '' )
+		{
+			$disclaimer = (string) $lang->addToStack( 'gdcompliance_lookup_default_disclaimer' );
+		}
+
+		return ''
+			. $this->pageStyles()
+			. '<div class="gdcl-wrap">'
+			. '<div class="gdcl-hero"><h1>' . $h( $title ) . '</h1>'
+			. '<p>' . $h( (string) $lang->addToStack( 'gdcompliance_lookup_intro' ) ) . '</p></div>'
+			. '<div class="gdcl-disclaimer"><strong>' . $h( (string) $lang->addToStack( 'gdcompliance_lookup_disclaimer_label' ) ) . '</strong><br>'
+			. nl2br( $h( $disclaimer ) )
+			. '</div>'
+			. $this->renderTabs( $activeTab, $stateSel );
+	}
+
 	/**
 	 * Human label per firearm_type. Kept short — the reason line
 	 * carries the detail.
@@ -678,6 +980,633 @@ class _lookup extends \IPS\Dispatcher\Controller
 			in_array( $ftype, [ 'handgun', 'rifle', 'shotgun' ], true ) => 'Magazine capacity',
 			default                               => 'State restriction',
 		};
+	}
+
+	/**
+	 * CSS class fragment for the row-badge per restriction type. Used
+	 * only in the compact search/statelist rows.
+	 */
+	protected static function typeBadgeClass( string $ftype ): string
+	{
+		return match( true ) {
+			strncmp( $ftype, 'awb_', 4 ) === 0  => 'awb',
+			strncmp( $ftype, 'pica_', 5 ) === 0 => 'awb',
+			$ftype === 'melting_point'          => 'mp',
+			$ftype === 'rate_of_fire'           => 'rof',
+			$ftype === 'advisory'               => 'adv',
+			default                             => 'cap',
+		};
+	}
+
+	/* =====================================================================
+	 * Stage 3 — Advanced Search view (?do=search)
+	 *
+	 * Filters: state (required), mode (restricted|available),
+	 * category (handgun|rifle|shotgun|''), type (Restricted-mode only,
+	 * awb|capacity|melting|rate_of_fire|advisory|''), brand (LIKE).
+	 *
+	 * Restricted: SELECT ... FROM gd_compliance_flags f LEFT JOIN
+	 * gd_catalog c ON c.upc=f.upc WHERE f.state_code=? [+ type filter
+	 * on f.firearm_type; category filter on c.category_id IN (...);
+	 * brand LIKE].
+	 *
+	 * Available: SELECT ... FROM gd_catalog c LEFT JOIN
+	 * gd_compliance_flags f ON (f.upc=c.upc AND f.state_code=? AND
+	 * f.firearm_type <> 'advisory') WHERE f.id IS NULL [+ same
+	 * filters — advisory items DO count as available]. Requires
+	 * category OR brand set (guard against a bare-state ~catalog dump).
+	 * ===================================================================== */
+	public function search(): void
+	{
+		$lang = \IPS\Member::loggedIn()->language();
+		$h    = fn( string $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
+
+		if ( (int) ( \IPS\Settings::i()->gdcompliance_lookup_enabled ?? 1 ) !== 1 )
+		{
+			$this->renderDisabled();
+			return;
+		}
+
+		/* Filters — all from GET. */
+		$stateSel = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
+		if ( !isset( self::STATE_NAMES[ $stateSel ] ) ) { $stateSel = ''; }
+
+		$mode = (string) ( \IPS\Request::i()->mode ?? 'restricted' );
+		if ( !in_array( $mode, [ 'restricted', 'available' ], true ) ) { $mode = 'restricted'; }
+
+		$cat = (string) ( \IPS\Request::i()->cat ?? '' );
+		if ( !isset( self::CATEGORY_CHOICES[ $cat ] ) ) { $cat = ''; }
+
+		$type = (string) ( \IPS\Request::i()->type ?? '' );
+		if ( !isset( self::TYPE_CHOICES[ $type ] ) ) { $type = ''; }
+
+		$brandRaw = trim( (string) ( \IPS\Request::i()->brand ?? '' ) );
+		$brand    = substr( $brandRaw, 0, 60 );
+		if ( $brand !== '' && !preg_match( '/^[A-Za-z0-9 &\-\.\+\']+$/', $brand ) )
+		{
+			$brand = '';
+		}
+
+		$page = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
+
+		/* -- Page chrome + tabs -- */
+		$html = $this->pageChrome( 'search', $stateSel );
+
+		/* -- Filter form -- */
+		$formUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=lookup&controller=lookup&do=search',
+			'front', 'gdcompliance_state_lookup'
+		);
+
+		$catOpts = '';
+		foreach ( self::CATEGORY_CHOICES as $k => $v )
+		{
+			$sel = ( $k === $cat ) ? ' selected' : '';
+			$catOpts .= '<option value="' . $h( $k ) . '"' . $sel . '>' . $h( $v ) . '</option>';
+		}
+		$typeOpts = '';
+		foreach ( self::TYPE_CHOICES as $k => $v )
+		{
+			$sel = ( $k === $type ) ? ' selected' : '';
+			$typeOpts .= '<option value="' . $h( $k ) . '"' . $sel . '>' . $h( $v ) . '</option>';
+		}
+
+		$modeRestrictedChecked = ( $mode === 'restricted' ) ? ' checked' : '';
+		$modeAvailableChecked  = ( $mode === 'available'  ) ? ' checked' : '';
+
+		$html .= ''
+			. '<form method="get" action="' . $h( $formUrl ) . '" class="gdcl-filters">'
+			. '<input type="hidden" name="do" value="search">'
+			. '<div class="row">'
+			. '<div><label>Ship-to state</label>' . $this->stateSelectHtml( $stateSel ) . '</div>'
+			. '<div><label>Category</label><select name="cat">' . $catOpts . '</select></div>'
+			. '<div><label>Brand (optional)</label><input type="text" name="brand" value="' . $h( $brand ) . '" maxlength="60" placeholder="e.g. Ruger"></div>'
+			. '</div>'
+			. '<div class="row" style="align-items:flex-end">'
+			. '<div style="flex:0 0 auto"><label>Mode</label>'
+			. '<div class="gdcl-mode-toggle">'
+			. '<label><input type="radio" name="mode" value="restricted"' . $modeRestrictedChecked . '><span>Restricted</span></label>'
+			. '<label><input type="radio" name="mode" value="available"' . $modeAvailableChecked . '><span>Available</span></label>'
+			. '</div></div>'
+			. '<div><label>Restriction type <span style="opacity:.6;font-weight:400">(restricted mode only)</span></label><select name="type">' . $typeOpts . '</select></div>'
+			. '<div style="flex:0 0 auto"><button type="submit" class="gdcl-submit">Search</button></div>'
+			. '</div>'
+			. '</form>';
+
+		/* -- Precondition: state required. Empty state → just render the form. -- */
+		if ( $stateSel === '' )
+		{
+			$html .= '<div class="gdcl-empty">Pick a state to search.</div></div>';
+			\IPS\Output::i()->output = $html;
+			return;
+		}
+
+		$stateName = self::STATE_NAMES[ $stateSel ] ?? $stateSel;
+
+		if ( $mode === 'available' )
+		{
+			$html .= $this->buildAvailableResults( $stateSel, $stateName, $cat, $brand, $page );
+		}
+		else
+		{
+			$html .= $this->buildRestrictedResults( $stateSel, $stateName, $cat, $type, $brand, $page );
+		}
+
+		$html .= '</div>';
+		\IPS\Output::i()->output = $html;
+	}
+
+	/**
+	 * RESTRICTED mode result section for the advanced search.
+	 * Native select()->join() only — no raw preparedQuery.
+	 */
+	protected function buildRestrictedResults( string $stateCode, string $stateName, string $cat, string $type, string $brand, int $page ): string
+	{
+		$h = fn( string $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
+
+		$whereParts = [ 'f.state_code=?' ];
+		$whereArgs  = [ $stateCode ];
+
+		[ $typeFrag, $typeArgs ] = $this->typeFilterClause( $type, 'f' );
+		$whereParts[] = $typeFrag;
+		foreach ( $typeArgs as $a ) { $whereArgs[] = $a; }
+
+		if ( $cat !== '' )
+		{
+			$catIds = $this->categoryIdsForType( $cat );
+			if ( empty( $catIds ) )
+			{
+				/* User picked a category that maps to zero rows in this
+				   install — force an empty result rather than crashing on
+				   IN (). */
+				return '<p class="gdcl-count">No products match the category filter for this install.</p></div>';
+			}
+			$placeholders = implode( ',', array_fill( 0, count( $catIds ), '?' ) );
+			$whereParts[] = 'c.category_id IN (' . $placeholders . ')';
+			foreach ( $catIds as $id ) { $whereArgs[] = (int) $id; }
+		}
+
+		if ( $brand !== '' )
+		{
+			$whereParts[] = '( c.brand LIKE ? OR c.manufacturer LIKE ? )';
+			$whereArgs[]  = '%' . $brand . '%';
+			$whereArgs[]  = '%' . $brand . '%';
+		}
+
+		$whereWithArgs = array_merge( [ implode( ' AND ', $whereParts ) ], $whereArgs );
+
+		$total = 0;
+		try
+		{
+			$total = (int) \IPS\Db::i()->select(
+				'COUNT(*)',
+				[ 'gd_compliance_flags', 'f' ],
+				$whereWithArgs
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc=f.upc', 'LEFT' )->first();
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'search restricted count: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		$per        = self::PER_PAGE;
+		$totalPages = max( 1, (int) ceil( $total / $per ) );
+		if ( $page > $totalPages ) { $page = $totalPages; }
+		$offset = ( $page - 1 ) * $per;
+
+		$rows = [];
+		try
+		{
+			$iter = \IPS\Db::i()->select(
+				'f.upc, f.firearm_type, f.reason, f.citation, c.title, c.brand, c.manufacturer',
+				[ 'gd_compliance_flags', 'f' ],
+				$whereWithArgs,
+				'f.firearm_type ASC, f.upc ASC',
+				[ $offset, $per ]
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc=f.upc', 'LEFT' );
+			foreach ( $iter as $r ) { $rows[] = $r; }
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'search restricted rows: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		$out = '<p class="gdcl-count">Restricted matches in <strong>' . $h( $stateName ) . '</strong>: <strong>' . number_format( $total ) . '</strong></p>';
+
+		if ( empty( $rows ) )
+		{
+			$out .= '<div class="gdcl-empty">No restricted items match those filters in ' . $h( $stateName ) . '.</div>';
+			return $out;
+		}
+
+		$out .= '<div class="gdcl-list">';
+		foreach ( $rows as $r )
+		{
+			$upc     = (string) ( $r['upc']    ?? '' );
+			$ftype   = (string) ( $r['firearm_type'] ?? '' );
+			$reason  = (string) ( $r['reason'] ?? '' );
+			$cite    = (string) ( $r['citation'] ?? '' );
+			$title   = (string) ( $r['title']  ?? '' );
+			$brandC  = (string) ( $r['brand']  ?? ( $r['manufacturer'] ?? '' ) );
+			$titleLine = trim( ( $brandC !== '' ? $brandC . ' — ' : '' ) . $title );
+			if ( $titleLine === '' ) { $titleLine = 'Item (not in catalog metadata)'; }
+
+			$out .= '<div class="gdcl-list-row">'
+				. '<div class="main">'
+				. '<span class="gdcl-type-badge gdcl-type-' . $h( self::typeBadgeClass( $ftype ) ) . '">' . $h( self::flagTypeLabel( $ftype ) ) . '</span> '
+				. '<span class="upc">' . $h( $upc ) . '</span>'
+				. '<p class="title">' . $h( $titleLine ) . '</p>'
+				. ( $reason !== '' ? '<p class="reason">' . $h( $reason ) . '</p>' : '' )
+				. ( $cite   !== '' ? '<p class="cite">Citation: ' . $h( $cite ) . '</p>' : '' )
+				. '</div>'
+				. $this->rowReportLink( $upc, $stateCode )
+				. '</div>';
+		}
+		$out .= '</div>';
+
+		$out .= $this->pager( $page, $totalPages, 'search', [
+			'state' => $stateCode,
+			'mode'  => 'restricted',
+			'cat'   => $cat,
+			'type'  => $type,
+			'brand' => $brand,
+		] );
+
+		return $out;
+	}
+
+	/**
+	 * AVAILABLE mode result section for the advanced search.
+	 *
+	 * REQUIRES at least one of {category, brand} — a bare state-only
+	 * available query is refused (would enumerate ~catalog).
+	 *
+	 * "Available" = product exists in gd_catalog AND has no non-advisory
+	 * flag for the selected state. Advisory items ARE still available
+	 * (they carry a buyer requirement but can ship).
+	 */
+	protected function buildAvailableResults( string $stateCode, string $stateName, string $cat, string $brand, int $page ): string
+	{
+		$h    = fn( string $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
+		$lang = \IPS\Member::loggedIn()->language();
+
+		if ( $cat === '' && $brand === '' )
+		{
+			return '<div class="gdcl-warn"><strong>Filter required.</strong> The "available" list is too large to render without at least one of Category or Brand set. Pick a category (Handguns / Rifles / Shotguns) or type a brand to run this query.</div>';
+		}
+
+		$whereParts = [ 'f.id IS NULL' ];
+		$whereArgs  = [];
+
+		if ( $cat !== '' )
+		{
+			$catIds = $this->categoryIdsForType( $cat );
+			if ( empty( $catIds ) )
+			{
+				return '<p class="gdcl-count">No products match the category filter for this install.</p>';
+			}
+			$placeholders = implode( ',', array_fill( 0, count( $catIds ), '?' ) );
+			$whereParts[] = 'c.category_id IN (' . $placeholders . ')';
+			foreach ( $catIds as $id ) { $whereArgs[] = (int) $id; }
+		}
+		if ( $brand !== '' )
+		{
+			$whereParts[] = '( c.brand LIKE ? OR c.manufacturer LIKE ? )';
+			$whereArgs[]  = '%' . $brand . '%';
+			$whereArgs[]  = '%' . $brand . '%';
+		}
+
+		$whereWithArgs = array_merge( [ implode( ' AND ', $whereParts ) ], $whereArgs );
+
+		/* LEFT JOIN gd_compliance_flags on upc+state+NON-advisory. Advisory
+		   flags do NOT exclude a product from "available" — a buyer
+		   requirement is still an available item, just with a note.
+		   IPS join clauses don't take bound params, so embed the state
+		   literal directly. Safe: $stateCode was already whitelisted
+		   against STATE_NAMES above (never user-controlled beyond the
+		   50 known keys). */
+		$safeState = strtoupper( $stateCode );
+		$joinOn = "f.upc=c.upc AND f.state_code='" . $safeState . "' AND f.firearm_type<>'advisory'";
+
+		$total = 0;
+		try
+		{
+			$total = (int) \IPS\Db::i()->select(
+				'COUNT(*)',
+				[ 'gd_catalog', 'c' ],
+				$whereWithArgs
+			)->join( [ 'gd_compliance_flags', 'f' ], $joinOn, 'LEFT' )->first();
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'search available count: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		$per        = self::PER_PAGE;
+		$totalPages = max( 1, (int) ceil( $total / $per ) );
+		if ( $page > $totalPages ) { $page = $totalPages; }
+		$offset = ( $page - 1 ) * $per;
+
+		$rows = [];
+		try
+		{
+			$iter = \IPS\Db::i()->select(
+				'c.upc, c.title, c.brand, c.manufacturer',
+				[ 'gd_catalog', 'c' ],
+				$whereWithArgs,
+				'c.title ASC',
+				[ $offset, $per ]
+			)->join( [ 'gd_compliance_flags', 'f' ], $joinOn, 'LEFT' );
+			foreach ( $iter as $r ) { $rows[] = $r; }
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'search available rows: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		$note = trim( (string) ( \IPS\Settings::i()->gdcompliance_lookup_available_note ?? '' ) );
+		if ( $note === '' ) { $note = (string) $lang->addToStack( 'gdcompliance_lookup_available_note' ); }
+
+		$out = '<div class="gdcl-note"><strong>Please verify before purchasing.</strong><br>' . nl2br( $h( $note ) ) . '</div>'
+			. '<p class="gdcl-count">Not restricted for <strong>' . $h( $stateName ) . '</strong>: <strong>' . number_format( $total ) . '</strong> matching items</p>';
+
+		if ( empty( $rows ) )
+		{
+			$out .= '<div class="gdcl-empty">No available items match those filters in ' . $h( $stateName ) . '.</div>';
+			return $out;
+		}
+
+		$out .= '<div class="gdcl-list">';
+		foreach ( $rows as $r )
+		{
+			$upc    = (string) ( $r['upc']   ?? '' );
+			$title  = (string) ( $r['title'] ?? '' );
+			$brandC = (string) ( $r['brand'] ?? ( $r['manufacturer'] ?? '' ) );
+			$titleLine = trim( ( $brandC !== '' ? $brandC . ' — ' : '' ) . $title );
+			if ( $titleLine === '' ) { $titleLine = 'Item'; }
+
+			$out .= '<div class="gdcl-list-row">'
+				. '<div class="main">'
+				. '<span class="gdcl-type-badge gdcl-type-adv">Available</span> '
+				. '<span class="upc">' . $h( $upc ) . '</span>'
+				. '<p class="title">' . $h( $titleLine ) . '</p>'
+				. '<p class="meta">Not restricted for ' . $h( $stateName ) . '.</p>'
+				. '</div>'
+				. $this->rowReportLink( $upc, $stateCode )
+				. '</div>';
+		}
+		$out .= '</div>';
+
+		$out .= $this->pager( $page, $totalPages, 'search', [
+			'state' => $stateCode,
+			'mode'  => 'available',
+			'cat'   => $cat,
+			'brand' => $brand,
+		] );
+
+		return $out;
+	}
+
+	/* =====================================================================
+	 * Stage 3 — Full-State Restricted List + CSV export (?do=statelist)
+	 *
+	 *   ?do=statelist&state=XX             → HTML list (paginated), filterable
+	 *                                          by restriction type
+	 *   ?do=statelist&state=XX&export=csv  → text/csv download, capped at
+	 *                                          gdcompliance_lookup_csv_max
+	 *                                          (default 50000) rows
+	 * ===================================================================== */
+	public function statelist(): void
+	{
+		if ( (int) ( \IPS\Settings::i()->gdcompliance_lookup_enabled ?? 1 ) !== 1 )
+		{
+			$this->renderDisabled();
+			return;
+		}
+
+		$stateSel = strtoupper( trim( (string) ( \IPS\Request::i()->state ?? '' ) ) );
+		if ( !isset( self::STATE_NAMES[ $stateSel ] ) ) { $stateSel = ''; }
+
+		/* CSV export short-circuits everything and streams directly. */
+		if ( $stateSel !== '' && (string) ( \IPS\Request::i()->export ?? '' ) === 'csv' )
+		{
+			$this->streamRestrictedCsv( $stateSel );
+			return;
+		}
+
+		$type = (string) ( \IPS\Request::i()->type ?? '' );
+		if ( !isset( self::TYPE_CHOICES[ $type ] ) ) { $type = ''; }
+
+		$page = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
+
+		$h    = fn( string $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
+		$html = $this->pageChrome( 'statelist', $stateSel );
+
+		/* Filter form. */
+		$formUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=lookup&controller=lookup&do=statelist',
+			'front', 'gdcompliance_state_lookup'
+		);
+		$typeOpts = '';
+		foreach ( self::TYPE_CHOICES as $k => $v )
+		{
+			$sel = ( $k === $type ) ? ' selected' : '';
+			$typeOpts .= '<option value="' . $h( $k ) . '"' . $sel . '>' . $h( $v ) . '</option>';
+		}
+
+		$html .= ''
+			. '<form method="get" action="' . $h( $formUrl ) . '" class="gdcl-filters">'
+			. '<input type="hidden" name="do" value="statelist">'
+			. '<div class="row">'
+			. '<div><label>State</label>' . $this->stateSelectHtml( $stateSel ) . '</div>'
+			. '<div><label>Restriction type</label><select name="type">' . $typeOpts . '</select></div>'
+			. '<div style="flex:0 0 auto"><label>&nbsp;</label><button type="submit" class="gdcl-submit">List</button></div>'
+			. '</div>'
+			. '</form>';
+
+		if ( $stateSel === '' )
+		{
+			$html .= '<div class="gdcl-empty">Pick a state to view its full restricted list.</div></div>';
+			\IPS\Output::i()->output = $html;
+			return;
+		}
+
+		$stateName = self::STATE_NAMES[ $stateSel ] ?? $stateSel;
+
+		/* Build the same WHERE as restricted-mode search but without
+		   category/brand filters — this is the full-state view. */
+		$whereParts = [ 'f.state_code=?' ];
+		$whereArgs  = [ $stateSel ];
+		[ $typeFrag, $typeArgs ] = $this->typeFilterClause( $type, 'f' );
+		$whereParts[] = $typeFrag;
+		foreach ( $typeArgs as $a ) { $whereArgs[] = $a; }
+		$whereWithArgs = array_merge( [ implode( ' AND ', $whereParts ) ], $whereArgs );
+
+		$total = 0;
+		try
+		{
+			$total = (int) \IPS\Db::i()->select(
+				'COUNT(*)',
+				[ 'gd_compliance_flags', 'f' ],
+				$whereWithArgs
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc=f.upc', 'LEFT' )->first();
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'statelist count: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		$per        = self::PER_PAGE;
+		$totalPages = max( 1, (int) ceil( $total / $per ) );
+		if ( $page > $totalPages ) { $page = $totalPages; }
+		$offset = ( $page - 1 ) * $per;
+
+		$exportUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=lookup&controller=lookup&do=statelist&state=' . rawurlencode( $stateSel ) . '&export=csv',
+			'front', 'gdcompliance_state_lookup'
+		);
+
+		$html .= '<div class="gdcl-actions">'
+			. '<a href="' . $h( $exportUrl ) . '" class="btn">⬇ Download CSV (restricted-' . $h( $stateSel ) . '.csv)</a>'
+			. '</div>'
+			. '<p class="gdcl-count">Restricted in <strong>' . $h( $stateName ) . '</strong>: <strong>' . number_format( $total ) . '</strong> items</p>';
+
+		$rows = [];
+		try
+		{
+			$iter = \IPS\Db::i()->select(
+				'f.upc, f.firearm_type, f.reason, f.citation, c.title, c.brand, c.manufacturer',
+				[ 'gd_compliance_flags', 'f' ],
+				$whereWithArgs,
+				'f.firearm_type ASC, f.upc ASC',
+				[ $offset, $per ]
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc=f.upc', 'LEFT' );
+			foreach ( $iter as $r ) { $rows[] = $r; }
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'statelist rows: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		if ( empty( $rows ) )
+		{
+			$html .= '<div class="gdcl-empty">No restricted items found in ' . $h( $stateName ) . '.</div></div>';
+			\IPS\Output::i()->output = $html;
+			return;
+		}
+
+		$html .= '<div class="gdcl-list">';
+		foreach ( $rows as $r )
+		{
+			$upc    = (string) ( $r['upc']    ?? '' );
+			$ftype  = (string) ( $r['firearm_type'] ?? '' );
+			$reason = (string) ( $r['reason'] ?? '' );
+			$cite   = (string) ( $r['citation'] ?? '' );
+			$title  = (string) ( $r['title']  ?? '' );
+			$brandC = (string) ( $r['brand']  ?? ( $r['manufacturer'] ?? '' ) );
+			$titleLine = trim( ( $brandC !== '' ? $brandC . ' — ' : '' ) . $title );
+			if ( $titleLine === '' ) { $titleLine = 'Item (not in catalog metadata)'; }
+
+			$html .= '<div class="gdcl-list-row">'
+				. '<div class="main">'
+				. '<span class="gdcl-type-badge gdcl-type-' . $h( self::typeBadgeClass( $ftype ) ) . '">' . $h( self::flagTypeLabel( $ftype ) ) . '</span> '
+				. '<span class="upc">' . $h( $upc ) . '</span>'
+				. '<p class="title">' . $h( $titleLine ) . '</p>'
+				. ( $reason !== '' ? '<p class="reason">' . $h( $reason ) . '</p>' : '' )
+				. ( $cite   !== '' ? '<p class="cite">Citation: ' . $h( $cite ) . '</p>' : '' )
+				. '</div>'
+				. $this->rowReportLink( $upc, $stateSel )
+				. '</div>';
+		}
+		$html .= '</div>';
+
+		$html .= $this->pager( $page, $totalPages, 'statelist', [
+			'state' => $stateSel,
+			'type'  => $type,
+		] );
+
+		$html .= '</div>';
+		\IPS\Output::i()->output = $html;
+	}
+
+	/**
+	 * Stream the state's full restricted list as CSV. Bounded by
+	 * gdcompliance_lookup_csv_max (default 50000). Content-Disposition
+	 * attachment + safe filename. Open access (public compliance info).
+	 *
+	 * CSV columns: upc, title, brand, restriction_type, reason, citation.
+	 * First 4 rows are a header comment carrying the disclaimer (Excel-
+	 * safe: prefixed with '#' in the first cell so it renders as a
+	 * comment column rather than corrupting the data grid).
+	 */
+	protected function streamRestrictedCsv( string $stateCode ): void
+	{
+		$max = (int) ( \IPS\Settings::i()->gdcompliance_lookup_csv_max ?? 50000 );
+		if ( $max < 100 || $max > 200000 ) { $max = 50000; }
+
+		$disclaimer = trim( (string) ( \IPS\Settings::i()->gdcompliance_lookup_disclaimer ?? '' ) );
+		if ( $disclaimer === '' )
+		{
+			$disclaimer = 'This CSV lists items our compliance engine flagged for ' . $stateCode . '. Verify each entry against current state and local law and your FFL before relying on it. Gun Wise LLC assumes no liability for reliance on this list.';
+		}
+		$stateName = self::STATE_NAMES[ $stateCode ] ?? $stateCode;
+
+		$tmp = tempnam( sys_get_temp_dir(), 'gdcompl_csv_' );
+		$fh  = fopen( $tmp, 'w' );
+
+		fputcsv( $fh, [ '# GunRack.deals compliance export — restricted items for ' . $stateName . ' (' . $stateCode . ')' ] );
+		fputcsv( $fh, [ '# Generated: ' . date( 'Y-m-d H:i' ) . ' UTC' ] );
+		fputcsv( $fh, [ '# Disclaimer: ' . $disclaimer ] );
+		fputcsv( $fh, [ 'upc', 'title', 'brand', 'restriction_type', 'reason', 'citation' ] );
+
+		$count = 0;
+		try
+		{
+			$iter = \IPS\Db::i()->select(
+				'f.upc, f.firearm_type, f.reason, f.citation, c.title, c.brand, c.manufacturer',
+				[ 'gd_compliance_flags', 'f' ],
+				[ 'f.state_code=?', $stateCode ],
+				'f.firearm_type ASC, f.upc ASC',
+				[ 0, $max ]
+			)->join( [ 'gd_catalog', 'c' ], 'c.upc=f.upc', 'LEFT' );
+			foreach ( $iter as $r )
+			{
+				$brandC = (string) ( $r['brand'] ?? ( $r['manufacturer'] ?? '' ) );
+				fputcsv( $fh, [
+					(string) ( $r['upc']    ?? '' ),
+					(string) ( $r['title']  ?? '' ),
+					$brandC,
+					self::flagTypeLabel( (string) ( $r['firearm_type'] ?? '' ) ),
+					(string) ( $r['reason'] ?? '' ),
+					(string) ( $r['citation'] ?? '' ),
+				] );
+				$count++;
+				if ( $count >= $max ) { break; }
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'streamRestrictedCsv: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		fclose( $fh );
+		$body = (string) file_get_contents( $tmp );
+		@unlink( $tmp );
+
+		$safeFname = 'restricted-' . preg_replace( '/[^A-Z]/', '', strtoupper( $stateCode ) ) . '.csv';
+		\IPS\Output::i()->sendOutput(
+			$body,
+			200,
+			'text/csv',
+			[
+				'Content-Disposition' => 'attachment; filename="' . $safeFname . '"',
+				'Cache-Control'       => 'no-store, no-cache, must-revalidate',
+				'Pragma'              => 'no-cache',
+			],
+			FALSE,
+			FALSE,
+			FALSE
+		);
 	}
 }
 

@@ -11,5 +11,7 @@
 	{"key": "gdcompliance_front_disclaimer",       "default": "Restrictions are provided as guidance and may not reflect the most current law; verify before purchase.", "report": "none"},
 	{"key": "gdcompliance_lookup_enabled",         "default": "1",  "report": "full"},
 	{"key": "gdcompliance_lookup_disclaimer",      "default": "State Firearm Compliance Lookup — Important Notice. This tool provides general information based on our product catalog and our understanding of current state law. It is not legal advice and is not a guarantee of legality. Firearm laws change frequently, vary by locality, and depend on individual circumstances. A result of 'no restrictions found' means our system did not flag this item for the selected state — it does not affirmatively certify the item is legal for you to purchase or possess. Always verify with your FFL and consult current state and local law before completing any purchase or transfer. Gun Wise LLC assumes no liability for reliance on this tool.", "report": "none"},
-	{"key": "gdcompliance_report_ratelimit",       "default": "5",  "report": "full"}
+	{"key": "gdcompliance_report_ratelimit",       "default": "5",  "report": "full"},
+	{"key": "gdcompliance_lookup_available_note",  "default": "This 'available' list reflects items our compliance engine did not flag for the selected state. While our engine catches the vast majority of restrictions, no automated system is ever 100% accurate — it cannot account for every local ordinance, recent law change, or individual circumstance. Always confirm with your local laws and your FFL before purchasing to make sure an item is legal for you in your area.", "report": "none"},
+	{"key": "gdcompliance_lookup_csv_max",         "default": "50000", "report": "full"}
 ]
