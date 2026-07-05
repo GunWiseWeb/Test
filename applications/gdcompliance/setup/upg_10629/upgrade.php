@@ -1,33 +1,43 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.28
+ * @brief  GD Compliance — upgrade 1.6.29
  *
- * NOTE ON VERSION — the corresponding prompt asked for 1.6.27, but
- * v1.6.27 already shipped (CSV export gate). Next available is 1.6.28.
+ * NOTE ON VERSION — the corresponding prompt asked for 1.6.28, but
+ * v1.6.28 already shipped (API Stage 1). Next available is 1.6.29.
  *
- * WHAT SHIPS IN 1.6.28 — Compliance API (Product A) STAGE 1:
+ * WHAT SHIPS IN 1.6.29 — API URL/routing fix:
  *
- *   - New table gd_compliance_api_keys (guarded).
- *   - New front module gd:api → controller /modules/front/api/api.php
- *     exposed via FURL /compliance-api/{@do}. Machine-to-machine JSON
- *     API. NOT /api/compliance/ — that would collide with IPS 5's
- *     built-in REST framework at /api/.
- *   - New ACP page /modules/admin/compliance/apikeys.php — manual
- *     key management (create/suspend/revoke/reactivate). Nexus
- *     auto-issue lands in Stage 2.
- *   - New settings gdcompliance_api_disclaimer (seeded default) +
- *     gdcompliance_api_verified (0 = pending_legal_review — do NOT
- *     flip until legal signs off).
- *   - New shared helper sources/Verdict.php — single source of truth
- *     for verdicts used by both the public /state-lookup/ page and
- *     the new API endpoint.
+ *   - data/furl.json — the v1.6.28 route `compliance-api/{@do}` was
+ *     replaced with SIX explicit routes:
+ *        api/compliance/check   → do=check
+ *        api/compliance/batch   → do=batch
+ *        api/compliance         → manifest (default manage())
+ *        compliance-api/check   → do=check  (legacy)
+ *        compliance-api/batch   → do=batch  (legacy)
+ *        compliance-api         → manifest  (legacy)
+ *     Explicit routes avoid the {@do} dynamic-segment mapping bug
+ *     that made path-form requests fall through to manage().
+ *
+ *   - modules/front/api/api.php — the default action ALSO inspects
+ *     the trailing URI segment and routes to check()/batch()
+ *     defensively, so a stale FURL datastore cache from v1.6.28
+ *     can't defeat the fix during the upgrade window. The manifest
+ *     info blob now shows the new /api/compliance/* URLs.
+ *
+ *   - THIS upgrade explicitly nukes the FURL datastore in every
+ *     way IPS caches it: unset the store keys AND delete the
+ *     matching datastore/*.php files on disk. Without that, the
+ *     next hit reads a v1.6.28-shaped cache and the new routes
+ *     don't take effect until an admin manually rebuilds URLs.
  *
  * SELF-CONTAINED (rule #79). Only upg dir for this app; every prior
  * migration folded forward defensively (all schema, settings,
  * extensions, lang, notifications, ACP perms).
+ *
+ * No schema changes. Only FURL + one controller method.
  */
 
-namespace IPS\gdcompliance\setup\upg_10628;
+namespace IPS\gdcompliance\setup\upg_10629;
 
 use function defined;
 
@@ -42,8 +52,8 @@ class _upgrade
 	public function step1(): bool
 	{
 		/* ------------------------------------------------------------
-		 * 1) SCHEMA — gd_compliance_reports (v1.6.24) carry-forward +
-		 *    NEW gd_compliance_api_keys (v1.6.28).
+		 * 1) SCHEMA carry-forward — gd_compliance_reports (v1.6.24) +
+		 *    gd_compliance_api_keys (v1.6.28). Guarded creates.
 		 * ------------------------------------------------------------ */
 		try
 		{
@@ -77,7 +87,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10628 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10629 create gd_compliance_reports: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
 		try
@@ -107,12 +117,11 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10628 create gd_compliance_api_keys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10629 create gd_compliance_api_keys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
 
 		/* ------------------------------------------------------------
-		 * 2) SETTINGS — all prior + NEW 1.6.28 API disclaimer +
-		 *    verification flag.
+		 * 2) SETTINGS carry-forward.
 		 * ------------------------------------------------------------ */
 		$defaultDisclaimer =
 			"State Firearm Compliance Lookup — Important Notice. This tool provides general information based on our product catalog and our understanding of current state law. It is not legal advice and is not a guarantee of legality. Firearm laws change frequently, vary by locality, and depend on individual circumstances. A result of 'no restrictions found' means our system did not flag this item for the selected state — it does not affirmatively certify the item is legal for you to purchase or possess. Always verify with your FFL and consult current state and local law before completing any purchase or transfer. Gun Wise LLC assumes no liability for reliance on this tool.";
@@ -126,7 +135,6 @@ class _upgrade
 		$defaultApiDisclaimer =
 			"This information is provided for general reference and is not legal advice or a guarantee of legality. Our engine catches the vast majority of restrictions but is never 100% accurate. Always verify with a licensed FFL and current state/local law.";
 
-		/* Detect admin groups for the CSV allowlist default. */
 		$defaultAllowedGroups = '4';
 		try
 		{
@@ -181,7 +189,6 @@ class _upgrade
 			{
 				$changes['gdcompliance_csv_upsell_text'] = $defaultUpsellText;
 			}
-			/* v1.6.28 NEW */
 			$currentApiDisclaimer = (string) ( \IPS\Settings::i()->gdcompliance_api_disclaimer ?? '' );
 			if ( $currentApiDisclaimer === '' )
 			{
@@ -229,7 +236,7 @@ class _upgrade
 		}
 
 		/* ------------------------------------------------------------
-		 * 3) EXTENSIONS — self-heal Notifications/Report registration.
+		 * 3) EXTENSIONS carry-forward — Notifications/Report self-heal.
 		 * ------------------------------------------------------------ */
 		try
 		{
@@ -287,8 +294,8 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 4) LANG — every prior + NEW 1.6.28 API strings. Per-row
-		 *    try/catch (rule #44); 6-column schema only (rule #43).
+		 * 4) LANG carry-forward. Per-row try/catch (rule #44); 6-col
+		 *    schema only (rule #43). No NEW keys in v1.6.29.
 		 * ------------------------------------------------------------ */
 		$newStrings = [
 			'gdcompliance_acp_settings_lookup_header'   => 'Public State Compliance Lookup (/state-lookup/)',
@@ -403,10 +410,9 @@ class _upgrade
 			'gdcompliance_csv_cta_upgrade'         => 'Upgrade',
 			'gdcompliance_csv_cta_learn'           => 'Learn more',
 
-			/* v1.6.28 NEW */
 			'menu__gdcompliance_compliance_apikeys'  => 'API Keys',
 			'gdcompliance_acp_apikeys_title'         => 'Compliance API Keys',
-			'gdcompliance_acp_apikeys_intro'         => 'Machine-to-machine keys for /compliance-api/. Each key belongs to a member (dealer) and authenticates JSON requests to /compliance-api/check and /compliance-api/batch. Suspend to temporarily block (returns 402); revoke to permanently block (returns 401).',
+			'gdcompliance_acp_apikeys_intro'         => 'Machine-to-machine keys for /api/compliance/. Each key belongs to a member (dealer) and authenticates JSON requests to /api/compliance/check and /api/compliance/batch. Suspend to temporarily block (returns 402); revoke to permanently block (returns 401).',
 			'gdcompliance_acp_apikeys_create'        => 'Create key',
 			'gdcompliance_acp_apikeys_create_title'  => 'Create API key',
 			'gdcompliance_acp_apikeys_col_label'         => 'Label',
@@ -420,7 +426,7 @@ class _upgrade
 			'gdcompliance_acp_apikeys_action_reactivate' => 'Reactivate',
 			'gdcompliance_acp_apikeys_action_revoke'     => 'Revoke',
 			'gdcompliance_api_disclaimer'      => 'API response disclaimer',
-			'gdcompliance_api_disclaimer_desc' => 'Legal-guidance text embedded in every /compliance-api/ JSON response so it propagates to the dealer\'s frontend (liability chain).',
+			'gdcompliance_api_disclaimer_desc' => 'Legal-guidance text embedded in every /api/compliance/ JSON response so it propagates to the dealer\'s frontend (liability chain).',
 			'gdcompliance_api_verified'        => 'Data verification: mark data as legally verified',
 			'gdcompliance_api_verified_desc'   => 'Off (default): every API response carries verification_status="pending_legal_review". Flip on after your legal review completes to advertise "verified" data to integrating dealers.',
 		];
@@ -467,9 +473,12 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * 6) CACHE PURGES — critical for module + FURL routing. Also
-		 *    dumps furl_configuration so the new /compliance-api/
-		 *    routes are picked up immediately.
+		 * 6) CACHE PURGES — this is the ship's critical work. Unset
+		 *    every FURL-related store key AND delete matching on-disk
+		 *    datastore/*.php files, since IPS's `unset( Store::i()->x )`
+		 *    invalidates the in-memory cache but leaves the file for
+		 *    the next request to slurp back. Without both, the new
+		 *    routes don't take effect until an admin rebuilds URLs.
 		 * ------------------------------------------------------------ */
 		try { unset( \IPS\Data\Store::i()->lang ); }               catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_front ); }      catch ( \Throwable ) {}
@@ -484,6 +493,24 @@ class _upgrade
 		try { unset( \IPS\Data\Store::i()->canonical_templates ); } catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); }                  catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); }                  catch ( \Throwable ) {}
+
+		/* On-disk datastore purge — target only the FURL/module files.
+		   The full datastore/ directory is a valuable cache and we
+		   shouldn't nuke it wholesale; scoped delete only. */
+		try
+		{
+			$datastore = \IPS\ROOT_PATH . '/datastore';
+			if ( is_dir( $datastore ) )
+			{
+				foreach ( [ 'furl_configuration.php', 'furl.php', 'modules_front.php', 'modules_admin.php', 'settings.php' ] as $file )
+				{
+					$p = $datastore . '/' . $file;
+					if ( is_file( $p ) && is_writable( $p ) ) { @unlink( $p ); }
+				}
+			}
+		}
+		catch ( \Throwable ) {}
+
 		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
 
 		return TRUE;

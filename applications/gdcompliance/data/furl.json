@@ -9,11 +9,27 @@
 			"friendly": "state-lookup",
 			"real": "app=gdcompliance&module=lookup&controller=lookup"
 		},
-		"gdcompliance_api_action": {
-			"friendly": "compliance-api/{@do}",
-			"real": "app=gdcompliance&module=api&controller=api&do={@do}"
+		"gdcompliance_api_check": {
+			"friendly": "api/compliance/check",
+			"real": "app=gdcompliance&module=api&controller=api&do=check"
 		},
-		"gdcompliance_api_root": {
+		"gdcompliance_api_batch": {
+			"friendly": "api/compliance/batch",
+			"real": "app=gdcompliance&module=api&controller=api&do=batch"
+		},
+		"gdcompliance_api_info": {
+			"friendly": "api/compliance",
+			"real": "app=gdcompliance&module=api&controller=api"
+		},
+		"gdcompliance_api_check_legacy": {
+			"friendly": "compliance-api/check",
+			"real": "app=gdcompliance&module=api&controller=api&do=check"
+		},
+		"gdcompliance_api_batch_legacy": {
+			"friendly": "compliance-api/batch",
+			"real": "app=gdcompliance&module=api&controller=api&do=batch"
+		},
+		"gdcompliance_api_root_legacy": {
 			"friendly": "compliance-api",
 			"real": "app=gdcompliance&module=api&controller=api"
 		}

@@ -75,20 +75,51 @@ class _api extends \IPS\Dispatcher\Controller
 	}
 
 	/**
-	 * Default action (no `do` param). Not a real endpoint — return
-	 * a "usage" JSON so a curious visitor gets something structured.
+	 * Default action (no `do` param, or path form).
+	 *
+	 * DEFENSIVE PATH DISPATCH — v1.6.28 shipped with the FURL route
+	 * `compliance-api/{@do}` and the `{@do}` dynamic segment did NOT
+	 * populate the `do` request param on this IPS build. Path-style
+	 * requests (…/check, …/batch) fell through here to the manifest
+	 * instead of the intended action. v1.6.29 fixes this two ways:
+	 *
+	 *   1) `data/furl.json` now defines EXPLICIT check + batch routes
+	 *      (both new /api/compliance/* and legacy /compliance-api/*),
+	 *      so the FURL layer maps do=check / do=batch by hand — no
+	 *      {@do} indirection.
+	 *   2) This method ALSO inspects the trailing URI segment as a
+	 *      backstop. If a request lands here with the URL ending in
+	 *      /check or /batch, we route explicitly so a stale FURL
+	 *      datastore cache from v1.6.28 can't leak into 1.6.29's
+	 *      startup window.
+	 *
+	 * Otherwise: return the manifest/info blob (the correct fallback
+	 * for /api/compliance and /compliance-api root URLs).
 	 */
 	protected function manage(): void
 	{
+		$uri  = (string) ( $_SERVER['REQUEST_URI'] ?? '' );
+		$path = (string) ( parse_url( $uri, PHP_URL_PATH ) ?: '' );
+		if ( preg_match( '~/check/?$~', $path ) )
+		{
+			$this->check();
+			return;
+		}
+		if ( preg_match( '~/batch/?$~', $path ) )
+		{
+			$this->batch();
+			return;
+		}
+
 		$this->respond( [
 			'name'      => 'gunrack-compliance-api',
 			'version'   => 1,
 			'endpoints' => [
-				'check' => '/compliance-api/check?upc=UPC&state=XX',
-				'batch' => 'POST /compliance-api/batch  body:{"state":"XX","upcs":[...]}',
+				'check' => '/api/compliance/check?upc=UPC&state=XX',
+				'batch' => 'POST /api/compliance/batch  body:{"state":"XX","upcs":[...]}',
 			],
 			'auth'      => 'Authorization: Bearer {api_key}',
-			'docs'      => 'https://gunrack.deals/compliance-api',
+			'docs'      => 'https://gunrack.deals/api/compliance',
 		], 200 );
 	}
 
