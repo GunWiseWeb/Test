@@ -1,36 +1,42 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.22
+ * @brief  GD Compliance — upgrade 1.6.23
  *
- * NOTE ON VERSION — the corresponding prompt asked for 1.6.21, but
- * v1.6.21 already shipped as the rate-of-fire enhancer ban. This is
- * the next available number.
+ * NOTE ON VERSION — the corresponding prompt asked for 1.6.22, but
+ * v1.6.22 already shipped as the state-lookup Stage 1 (which is the
+ * ship this version corrects). Next available number is 1.6.23.
  *
- * Landing — public /state-lookup/ page (Stage 1):
- *   1. Registers a new FRONT module (front/lookup) — gdcompliance's
- *      first front controller-only module (the compliance module has
- *      always existed but had no user-facing widget).
- *   2. Registers the FURL for /state-lookup/ pointing at
- *      app=gdcompliance&module=lookup&controller=lookup.
- *   3. Seeds two settings:
- *        gdcompliance_lookup_enabled       = 1 (public page live)
- *        gdcompliance_lookup_disclaimer    = default legal-notice text
- *   4. Extends the ACP settings page (/settings) with an enable
- *      toggle + editable disclaimer.
+ * ROOT-CAUSE CORRECTION to v1.6.22:
  *
- * The controller reads gd_compliance_flags for one (upc, state) pair
- * and renders "Restricted" (red) or "Buyer requirement" (amber) or
- * "No restrictions found" (green). Advisories (firearm_type=advisory)
- * render as amber; everything else renders as red-restrict.
+ * The state-lookup result page was rendering literal "UPC %s:" and
+ * "in %s" instead of the real UPC / state name because the controller
+ * used PHP sprintf on the result of \IPS\Member::loggedIn()->
+ * language()->addToStack(...):
  *
- * DEFENSIVE — carries all prior single-upg landings forward for
- * skip-upgrades from earlier versions.
+ *   sprintf( (string) $lang->addToStack('key'), $arg )    // BROKEN
  *
- * No engine changes. No schema changes. No recompute required —
- * the page reads live gd_compliance_flags at request time.
+ * addToStack() returns a DEFERRED language placeholder token, not
+ * the resolved string. IPS substitutes the real lang value at output
+ * resolution — by which time PHP sprintf has already run against the
+ * placeholder token and gone. So the %s inside the real lang value
+ * ("UPC %s:") never gets its argument.
+ *
+ * Fix: use IPS's native sprintf param:
+ *
+ *   $lang->addToStack('key', FALSE, [ 'sprintf' => [ $arg ] ])
+ *
+ * All 8 sprintf() call sites in modules/front/lookup/lookup.php are
+ * converted (0 sprintf calls remain in the file).
+ *
+ * Also seeds the full lookup lang-key set — including the new
+ * gdcompliance_lookup_norestrict_headline that the corrected code
+ * uses for the "No restrictions found" green headline — via
+ * core_sys_lang_words replace per-lang.
+ *
+ * No schema changes. No engine changes.
  */
 
-namespace IPS\gdcompliance\setup\upg_10622;
+namespace IPS\gdcompliance\setup\upg_10623;
 
 use function defined;
 
@@ -44,23 +50,35 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* ---------- Seed the two new settings ---------- */
+		/* Defensive re-seed of v1.6.22 settings — the same
+		   changeValues call is idempotent, ensures a broken 1.6.22
+		   install still gets them. */
 		$defaultDisclaimer =
 			"State Firearm Compliance Lookup — Important Notice. This tool provides general information based on our product catalog and our understanding of current state law. It is not legal advice and is not a guarantee of legality. Firearm laws change frequently, vary by locality, and depend on individual circumstances. A result of 'no restrictions found' means our system did not flag this item for the selected state — it does not affirmatively certify the item is legal for you to purchase or possess. Always verify with your FFL and consult current state and local law before completing any purchase or transfer. Gun Wise LLC assumes no liability for reliance on this tool.";
 
 		try
 		{
-			\IPS\Settings::i()->changeValues( [
-				'gdcompliance_lookup_enabled'    => 1,
-				'gdcompliance_lookup_disclaimer' => $defaultDisclaimer,
-			] );
+			$currentDisclaimer = (string) ( \IPS\Settings::i()->gdcompliance_lookup_disclaimer ?? '' );
+			$changes = [];
+			if ( $currentDisclaimer === '' )
+			{
+				$changes['gdcompliance_lookup_disclaimer'] = $defaultDisclaimer;
+			}
+			if ( !isset( \IPS\Settings::i()->gdcompliance_lookup_enabled ) )
+			{
+				$changes['gdcompliance_lookup_enabled'] = 1;
+			}
+			if ( !empty( $changes ) )
+			{
+				\IPS\Settings::i()->changeValues( $changes );
+			}
 		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10622 changeValues: ' . $e->getMessage(), 'gdcompliance_upg_10622' ); } catch ( \Throwable ) {}
-		}
+		catch ( \Throwable ) {}
 
-		/* ---------- Lang seed — v1.6.22 public lookup + ACP labels ---------- */
+		/* ---------- Full lang seed / re-seed — every gdcompliance_lookup_*
+		   key referenced by the corrected controller. Placeholder
+		   count in each value must match the addToStack sprintf arg
+		   count. Per-row try/catch (rule #44). ---------- */
 		$newStrings = [
 			/* ACP settings section */
 			'gdcompliance_acp_settings_lookup_header'   => 'Public State Compliance Lookup (/state-lookup/)',
@@ -69,7 +87,7 @@ class _upgrade
 			'gdcompliance_lookup_disclaimer'            => 'Public disclaimer',
 			'gdcompliance_lookup_disclaimer_desc'       => 'Shown at the top of the /state-lookup/ page. Legal-guidance framing recommended — this is customer-facing.',
 
-			/* Public page copy */
+			/* Public page — page chrome */
 			'gdcompliance_lookup_page_title'            => 'State Firearm Compliance Lookup',
 			'gdcompliance_lookup_intro'                 => 'Pick your state and enter a UPC or MPN to check whether that item is restricted for sale in your state. Read-only against our current catalog.',
 			'gdcompliance_lookup_disclaimer_label'      => 'Important Notice',
@@ -79,12 +97,15 @@ class _upgrade
 			'gdcompliance_lookup_field_q'               => 'UPC or MPN',
 			'gdcompliance_lookup_field_q_ph'            => 'e.g. 022188879834',
 			'gdcompliance_lookup_submit'                => 'Look up',
+
+			/* Result strings — %s placeholders that IPS native sprintf fills */
 			'gdcompliance_lookup_product'               => 'UPC %s:',
 			'gdcompliance_lookup_citation'              => 'Citation: %s',
 			'gdcompliance_lookup_restricted_headline'   => 'Restricted for sale in %s',
 			'gdcompliance_lookup_advisory_label'        => 'Buyer requirement',
 			'gdcompliance_lookup_advisory_headline'     => 'Buyer requirement in %s',
 			'gdcompliance_lookup_advisory_intro'        => 'This item can ship. The buyer must meet a state permit / training requirement at the FFL. Not a sale prohibition.',
+			'gdcompliance_lookup_norestrict_headline'   => 'No restrictions found in %s',
 			'gdcompliance_lookup_clear_body'            => 'No restrictions found for this item in %s.',
 			'gdcompliance_lookup_clear_reminder'        => 'This is not a legal guarantee. Verify with your FFL and consult current state and local law before completing any purchase.',
 			'gdcompliance_lookup_verify_reminder'       => 'This reflects our current data. Verify with your receiving FFL before purchase.',
@@ -115,11 +136,9 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* ---------- Cache purges. Module + FURL registration reads
-		   from data/modules.json + data/furl.json which ship in the
-		   tarball; IPS re-scans them on cache clear. Also clear the
-		   FURL cache datastore so the /state-lookup/ mapping picks
-		   up immediately without a manual FURL rebuild. ---------- */
+		/* ---------- Cache purges — the lang cache MUST be cleared so
+		   the re-seeded rows land immediately. ---------- */
+		try { unset( \IPS\Data\Store::i()->lang ); }               catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_front ); }      catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_admin ); }      catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->furl_configuration ); } catch ( \Throwable ) {}

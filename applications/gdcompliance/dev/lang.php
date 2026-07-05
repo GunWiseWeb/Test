@@ -399,6 +399,7 @@ $lang = array(
 	'gdcompliance_lookup_advisory_label'       => 'Buyer requirement',
 	'gdcompliance_lookup_advisory_headline'    => 'Buyer requirement in %s',
 	'gdcompliance_lookup_advisory_intro'       => 'This item can ship. The buyer must meet a state permit / training requirement at the FFL. Not a sale prohibition.',
+	'gdcompliance_lookup_norestrict_headline'  => 'No restrictions found in %s',
 	'gdcompliance_lookup_clear_body'           => 'No restrictions found for this item in %s.',
 	'gdcompliance_lookup_clear_reminder'       => 'This is not a legal guarantee. Verify with your FFL and consult current state and local law before completing any purchase.',
 	'gdcompliance_lookup_verify_reminder'      => 'This reflects our current data. Verify with your receiving FFL before purchase.',

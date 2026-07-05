@@ -231,9 +231,8 @@ class _lookup extends \IPS\Dispatcher\Controller
 		{
 			return '<div class="gdcl-result">'
 				. '<h2><span class="gdcl-badge info">Not in catalog</span></h2>'
-				. '<p>' . $h( sprintf(
-					(string) $lang->addToStack( 'gdcompliance_lookup_not_found' ),
-					$q
+				. '<p>' . $h( (string) $lang->addToStack(
+					'gdcompliance_lookup_not_found', FALSE, [ 'sprintf' => [ $q ] ]
 				) ) . '</p>'
 				. '<p class="gdcl-muted">' . $h( $lang->addToStack( 'gdcompliance_lookup_not_found_hint' ) ) . '</p>'
 				. '</div>';
@@ -279,18 +278,16 @@ class _lookup extends \IPS\Dispatcher\Controller
 			}
 		}
 
-		$productTitleHtml = '<p class="title"><strong>' . $h( sprintf(
-			(string) $lang->addToStack( 'gdcompliance_lookup_product' ),
-			$productUpc
+		$productTitleHtml = '<p class="title"><strong>' . $h( (string) $lang->addToStack(
+			'gdcompliance_lookup_product', FALSE, [ 'sprintf' => [ $productUpc ] ]
 		) ) . '</strong> ' . $h( $titleLine ) . '</p>';
 
 		/* --- Result: restrict wins the headline; advisories render below. --- */
 		if ( !empty( $restrictFlags ) )
 		{
 			$out = '<div class="gdcl-result">'
-				. '<h2><span class="gdcl-badge restrict">⛔ Restricted</span>' . $h( sprintf(
-					(string) $lang->addToStack( 'gdcompliance_lookup_restricted_headline' ),
-					$stateName
+				. '<h2><span class="gdcl-badge restrict">⛔ Restricted</span>' . $h( (string) $lang->addToStack(
+					'gdcompliance_lookup_restricted_headline', FALSE, [ 'sprintf' => [ $stateName ] ]
 				) ) . '</h2>'
 				. $productTitleHtml;
 
@@ -301,9 +298,8 @@ class _lookup extends \IPS\Dispatcher\Controller
 				$out .= '<div class="gdcl-restrict">'
 					. '<strong>' . $h( self::flagTypeLabel( (string) ( $f['firearm_type'] ?? '' ) ) ) . '</strong>'
 					. ( $reason !== '' ? '<p class="reason">' . $h( $reason ) . '</p>' : '' )
-					. ( $cite   !== '' ? '<p class="cite">' . $h( sprintf(
-						(string) $lang->addToStack( 'gdcompliance_lookup_citation' ),
-						$cite
+					. ( $cite   !== '' ? '<p class="cite">' . $h( (string) $lang->addToStack(
+						'gdcompliance_lookup_citation', FALSE, [ 'sprintf' => [ $cite ] ]
 					) ) . '</p>' : '' )
 					. '</div>';
 			}
@@ -314,9 +310,8 @@ class _lookup extends \IPS\Dispatcher\Controller
 				$out .= '<div class="gdcl-advisory">'
 					. '<strong>' . $h( $lang->addToStack( 'gdcompliance_lookup_advisory_label' ) ) . '</strong>'
 					. ( $reason !== '' ? '<p class="reason">' . $h( $reason ) . '</p>' : '' )
-					. ( $cite   !== '' ? '<p class="cite">' . $h( sprintf(
-						(string) $lang->addToStack( 'gdcompliance_lookup_citation' ),
-						$cite
+					. ( $cite   !== '' ? '<p class="cite">' . $h( (string) $lang->addToStack(
+						'gdcompliance_lookup_citation', FALSE, [ 'sprintf' => [ $cite ] ]
 					) ) . '</p>' : '' )
 					. '</div>';
 			}
@@ -329,9 +324,8 @@ class _lookup extends \IPS\Dispatcher\Controller
 		if ( !empty( $advisoryFlags ) )
 		{
 			$out = '<div class="gdcl-result">'
-				. '<h2><span class="gdcl-badge advisory">ⓘ Advisory</span>' . $h( sprintf(
-					(string) $lang->addToStack( 'gdcompliance_lookup_advisory_headline' ),
-					$stateName
+				. '<h2><span class="gdcl-badge advisory">ⓘ Advisory</span>' . $h( (string) $lang->addToStack(
+					'gdcompliance_lookup_advisory_headline', FALSE, [ 'sprintf' => [ $stateName ] ]
 				) ) . '</h2>'
 				. $productTitleHtml
 				. '<p style="margin:0 0 10px;color:#78350f">' . $h( $lang->addToStack( 'gdcompliance_lookup_advisory_intro' ) ) . '</p>';
@@ -341,9 +335,8 @@ class _lookup extends \IPS\Dispatcher\Controller
 				$cite   = trim( (string) ( $f['citation'] ?? '' ) );
 				$out .= '<div class="gdcl-advisory">'
 					. ( $reason !== '' ? '<p class="reason">' . $h( $reason ) . '</p>' : '' )
-					. ( $cite   !== '' ? '<p class="cite">' . $h( sprintf(
-						(string) $lang->addToStack( 'gdcompliance_lookup_citation' ),
-						$cite
+					. ( $cite   !== '' ? '<p class="cite">' . $h( (string) $lang->addToStack(
+						'gdcompliance_lookup_citation', FALSE, [ 'sprintf' => [ $cite ] ]
 					) ) . '</p>' : '' )
 					. '</div>';
 			}
@@ -354,12 +347,13 @@ class _lookup extends \IPS\Dispatcher\Controller
 
 		/* --- No flags --- */
 		return '<div class="gdcl-result">'
-			. '<h2><span class="gdcl-badge clear">✓ No restrictions found</span></h2>'
+			. '<h2><span class="gdcl-badge clear">✓ ' . $h( (string) $lang->addToStack(
+				'gdcompliance_lookup_norestrict_headline', FALSE, [ 'sprintf' => [ $stateName ] ]
+			) ) . '</span></h2>'
 			. $productTitleHtml
 			. '<div class="gdcl-clear">'
-			. $h( sprintf(
-				(string) $lang->addToStack( 'gdcompliance_lookup_clear_body' ),
-				$stateName
+			. $h( (string) $lang->addToStack(
+				'gdcompliance_lookup_clear_body', FALSE, [ 'sprintf' => [ $stateName ] ]
 			) )
 			. '</div>'
 			. '<p class="gdcl-muted" style="margin-top:10px">' . $h( $lang->addToStack( 'gdcompliance_lookup_clear_reminder' ) ) . '</p>'

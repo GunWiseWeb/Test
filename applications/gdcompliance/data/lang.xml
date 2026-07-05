@@ -335,6 +335,7 @@
 <word key="gdcompliance_lookup_advisory_label" js="0"><![CDATA[Buyer requirement]]></word>
 <word key="gdcompliance_lookup_advisory_headline" js="0"><![CDATA[Buyer requirement in %s]]></word>
 <word key="gdcompliance_lookup_advisory_intro" js="0"><![CDATA[This item can ship. The buyer must meet a state permit / training requirement at the FFL. Not a sale prohibition.]]></word>
+<word key="gdcompliance_lookup_norestrict_headline" js="0"><![CDATA[No restrictions found in %s]]></word>
 <word key="gdcompliance_lookup_clear_body" js="0"><![CDATA[No restrictions found for this item in %s.]]></word>
 <word key="gdcompliance_lookup_clear_reminder" js="0"><![CDATA[This is not a legal guarantee. Verify with your FFL and consult current state and local law before completing any purchase.]]></word>
 <word key="gdcompliance_lookup_verify_reminder" js="0"><![CDATA[This reflects our current data. Verify with your receiving FFL before purchase.]]></word>
