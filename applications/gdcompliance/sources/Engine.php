@@ -364,6 +364,17 @@ class _Engine
 		}
 		catch ( \Throwable ) {}
 
+		/* v1.6.19 — reset MeltingPoint per-request memo + preload the
+		   enabled per-state rules once per compute. */
+		$mpStateRules = [];
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/MeltingPoint.php';
+			\IPS\gdcompliance\MeltingPoint::clearCache();
+			$mpStateRules = \IPS\gdcompliance\MeltingPoint::enabledRules();
+		}
+		catch ( \Throwable ) {}
+
 		/* Initialize per-state counters so the summary always shows them
 		   (even with zero counts), even for states without a loaded roster. */
 		foreach ( [ 'CA', 'MA', 'MD', 'DC' ] as $s )
@@ -820,6 +831,63 @@ class _Engine
 					}
 				}
 				catch ( \Throwable ) { /* per-row, non-fatal */ }
+
+				/* --- v1.6.19 Phase 6c: melting-point HANDGUN ban ---
+				   HI/IL/MD/MA/MN/NY Saturday-Night-Special bans on
+				   zinc-alloy handguns. Category-gated inside
+				   MeltingPoint::classify (cat1/2/3 only — the cat8
+				   Hi-Point 995TS carbine correctly does NOT flag).
+				   Emits gd_compliance_flags rows with
+				   firearm_type='melting_point' for every enabled
+				   melting-point state. Reason + citation come from
+				   the per-state rule row (editable in the ACP). */
+				if ( in_array( $cat, \IPS\gdcompliance\MeltingPoint::HANDGUN_CATEGORIES, true )
+				  && !empty( $mpStateRules ) )
+				{
+					try
+					{
+						$mpVerdict = \IPS\gdcompliance\MeltingPoint::classify( $p );
+						if ( is_array( $mpVerdict ) && ( $mpVerdict['verdict'] ?? '' ) === 'flag' )
+						{
+							$mpSrc  = (string) ( $mpVerdict['source'] ?? 'auto' );
+							$mpHint = (string) ( $mpVerdict['reason_hint'] ?? '' );
+							foreach ( $mpStateRules as $mpState => $mpRule )
+							{
+								$mpReason = trim( (string) ( $mpRule['reason']   ?? '' ) );
+								$mpCite   = trim( (string) ( $mpRule['citation'] ?? '' ) );
+								if ( $mpReason === '' )
+								{
+									$mpReason = sprintf(
+										'Handgun with a zinc-alloy / non-homogeneous frame that fails %s\'s minimum melting-point standard — prohibited for sale. Steel-frame models from this line are exempt.',
+										$mpState
+									);
+								}
+								if ( $mpHint !== '' && $mpSrc === 'auto' )
+								{
+									$mpReason .= ' [' . $mpHint . ']';
+								}
+								if ( $mpSrc === 'curated' )
+								{
+									$mpReason .= ' [curated]';
+								}
+								$flags[] = [
+									'upc'             => substr( $upc, 0, 50 ),
+									'state_code'      => (string) $mpState,
+									'firearm_type'    => 'melting_point',
+									'parsed_capacity' => null,
+									'rule_id'         => 0,
+									'reason'          => substr( $mpReason, 0, 255 ),
+									'citation'        => substr( $mpCite,   0, 255 ),
+									'computed_at'     => $now,
+								];
+								$result['per_state'][ $mpState ] = ( $result['per_state'][ $mpState ] ?? 0 ) + 1;
+								$result['per_state_type'][ $mpState ]['melting_point'] = ( $result['per_state_type'][ $mpState ]['melting_point'] ?? 0 ) + 1;
+								$result['melting_point'][ $mpState ] = ( $result['melting_point'][ $mpState ] ?? 0 ) + 1;
+							}
+						}
+					}
+					catch ( \Throwable ) { /* per-row, non-fatal */ }
+				}
 
 				/* --- Phase 1: capacity-rule pass --- */
 				$capRaw = isset( $p['capacity'] ) ? (string) $p['capacity'] : '';

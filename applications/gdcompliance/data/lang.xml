@@ -16,6 +16,21 @@
 <word key="menu__gdcompliance_compliance_lowers" js="0"><![CDATA[Lowers & Receivers]]></word>
 <word key="menu__gdcompliance_compliance_magazines" js="0"><![CDATA[Magazines]]></word>
 <word key="menu__gdcompliance_compliance_advisories" js="0"><![CDATA[Advisories]]></word>
+<word key="menu__gdcompliance_compliance_meltingpoint" js="0"><![CDATA[Melting-Point]]></word>
+<word key="gdcompliance_acp_mp_title" js="0"><![CDATA[Melting-Point Handgun Ban]]></word>
+<word key="gdcompliance_acp_mp_intro" js="0"><![CDATA[Saturday-Night-Special / "melting-point" bans on cheap zinc-alloy handguns — HI / IL / MD / MA / MN / NY. Threshold 800°F (HI/IL/MD/MA/NY) or 1000°F (MN plus tensile/density). Handgun categories only (cat1/2/3); rifles/carbines and non-handgun accessories excluded. Match on the EXACT brand field, never the title (avoids "Heritage Cases" cases, ProMag "Fits Hi-Point" mags, and Cobra rail accessories).]]></word>
+<word key="gdcompliance_acp_mp_flagged_title" js="0"><![CDATA[Flagged handguns]]></word>
+<word key="gdcompliance_acp_mp_flagged_intro" js="0"><![CDATA[Every handgun currently carrying a melting_point flag. Click a state to filter and reach per-(UPC, state) override — force_clear suppresses the restriction for that product in that state.]]></word>
+<word key="gdcompliance_acp_mp_override" js="0"><![CDATA[Set override]]></word>
+<word key="gdcompliance_acp_mp_curated" js="0"><![CDATA[Curated overrides (win over auto-matching)]]></word>
+<word key="gdcompliance_acp_mp_curated_intro" js="0"><![CDATA[Each row is a substring matched case-insensitive against UPC / title / brand / model / MPN. force_flag → always flag. force_clear → never flag. review → route to review.]]></word>
+<word key="gdcompliance_acp_mp_add" js="0"><![CDATA[Add curated entry]]></word>
+<word key="gdcompliance_acp_mp_col_pattern" js="0"><![CDATA[Pattern]]></word>
+<word key="gdcompliance_acp_mp_col_action" js="0"><![CDATA[Action]]></word>
+<word key="gdcompliance_acp_mp_col_note" js="0"><![CDATA[Note]]></word>
+<word key="gdcompliance_mp_f_pattern" js="0"><![CDATA[Pattern (case-insensitive substring, matched against UPC/title/brand/model/MPN)]]></word>
+<word key="gdcompliance_mp_f_action" js="0"><![CDATA[Action]]></word>
+<word key="gdcompliance_mp_f_note" js="0"><![CDATA[Note (admin-only) — optional]]></word>
 <word key="gdcompliance_acp_adv_title" js="0"><![CDATA[Buyer-Permit Advisories]]></word>
 <word key="gdcompliance_acp_adv_intro" js="0"><![CDATA[Advisories are NOT sale restrictions. Each row here means the item CAN ship to that state, but the BUYER must meet a permit / eligibility-card / training step at the FFL. CO covers semi-auto centerfire rifles under SB25-003 (eff. 2026-08-01); MN covers AR/AK-pattern semi-auto rifles under Minn. Stat. §624.712 (in effect since 2023-08-01). Reason text is customer-visible in a yellow advisory block on the product page.]]></word>
 <word key="gdcompliance_acp_adv_flagged_title" js="0"><![CDATA[Flagged products]]></word>

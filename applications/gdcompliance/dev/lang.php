@@ -19,7 +19,24 @@ $lang = array(
 	'menu__gdcompliance_compliance_lowers'     => 'Lowers & Receivers',
 	'menu__gdcompliance_compliance_magazines'  => 'Magazines',
 	'menu__gdcompliance_compliance_advisories' => 'Advisories',
+	'menu__gdcompliance_compliance_meltingpoint' => 'Melting-Point',
 	'menu__gdcompliance_compliance_settings'   => 'Settings',
+
+	/* v1.6.19 — melting-point handgun ban (HI/IL/MD/MA/MN/NY) */
+	'gdcompliance_acp_mp_title'                => 'Melting-Point Handgun Ban',
+	'gdcompliance_acp_mp_intro'                => 'Saturday-Night-Special / "melting-point" bans on cheap zinc-alloy handguns — HI / IL / MD / MA / MN / NY. Threshold 800°F (HI/IL/MD/MA/NY) or 1000°F (MN plus tensile/density). Handgun categories only (cat1/2/3); rifles/carbines and non-handgun accessories excluded. Match on the EXACT brand field, never the title (avoids "Heritage Cases" cases, ProMag "Fits Hi-Point" mags, and Cobra rail accessories).',
+	'gdcompliance_acp_mp_flagged_title'        => 'Flagged handguns',
+	'gdcompliance_acp_mp_flagged_intro'        => 'Every handgun currently carrying a melting_point flag. Click a state to filter and reach per-(UPC, state) override — force_clear suppresses the restriction for that product in that state.',
+	'gdcompliance_acp_mp_override'             => 'Set override',
+	'gdcompliance_acp_mp_curated'              => 'Curated overrides (win over auto-matching)',
+	'gdcompliance_acp_mp_curated_intro'        => 'Each row is a substring matched case-insensitive against UPC / title / brand / model / MPN. force_flag → always flag. force_clear → never flag. review → route to review.',
+	'gdcompliance_acp_mp_add'                  => 'Add curated entry',
+	'gdcompliance_acp_mp_col_pattern'          => 'Pattern',
+	'gdcompliance_acp_mp_col_action'           => 'Action',
+	'gdcompliance_acp_mp_col_note'             => 'Note',
+	'gdcompliance_mp_f_pattern'                => 'Pattern (case-insensitive substring, matched against UPC/title/brand/model/MPN)',
+	'gdcompliance_mp_f_action'                 => 'Action',
+	'gdcompliance_mp_f_note'                   => 'Note (admin-only) — optional',
 
 	/* v1.6.17 — buyer-permit advisories (CO / MN). NOT restrictions. */
 	'gdcompliance_acp_adv_title'              => 'Buyer-Permit Advisories',
