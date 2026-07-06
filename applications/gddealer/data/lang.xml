@@ -337,6 +337,11 @@
     <word key="gddealer_front_tab_subscription"><![CDATA[Subscription]]></word>
     <word key="gddealer_front_tab_help"><![CDATA[Help & Support]]></word>
     <word key="gddealer_support_nav"><![CDATA[Support Tickets]]></word>
+    <word key="gddealer_api_nav"><![CDATA[API Access]]></word>
+    <word key="gddealer_api_dashboard_title"><![CDATA[API Access]]></word>
+    <word key="gddealer_api_gate_title"><![CDATA[API access is not part of your current plan]]></word>
+    <word key="gddealer_api_gate_msg"><![CDATA[The Compliance API is a subscription-only integration. Subscribe to get an API key, register domains, and embed the compliance widget on your product pages.]]></word>
+    <word key="gddealer_api_gate_cta"><![CDATA[View subscription]]></word>
     <word key="gddealer_front_unmatched_intro"><![CDATA[These UPCs appeared in your feed but could not be matched to products in the GunRack catalog.]]></word>
     <word key="gddealer_front_export_csv"><![CDATA[Export CSV]]></word>
     <word key="gddealer_front_unmatched_empty"><![CDATA[No unmatched UPCs — great work!]]></word>

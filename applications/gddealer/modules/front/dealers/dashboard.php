@@ -3396,6 +3396,71 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=reportedListings' )
 		);
 	}
+
+	/**
+	 * v1.0.324 — API Access dashboard tab.
+	 *
+	 * Gated to members in the gdcompliance API-access groups
+	 * (setting gdcompliance_api_access_groups). Renders the
+	 * dealer shell with an iframe of the working
+	 * /api/compliance/mykey page — so this tab shares NO code
+	 * with any existing tab and structurally cannot break them.
+	 * The nav item is hidden for non-members (see
+	 * DealerShellTrait::sidebarNav()); this method self-gates
+	 * anyway so a direct URL can't reach the iframe.
+	 */
+	protected function api(): void
+	{
+		$lang = \IPS\Member::loggedIn()->language();
+		$h    = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+
+		$inGroup = false;
+		try
+		{
+			$apiGroups = array_filter( array_map( 'intval',
+				explode( ',', (string) ( \IPS\Settings::i()->gdcompliance_api_access_groups ?? '' ) )
+			) );
+			if ( !empty( $apiGroups ) )
+			{
+				$inGroup = (bool) \IPS\Member::loggedIn()->inGroup( $apiGroups );
+			}
+		}
+		catch ( \Throwable ) { $inGroup = false; }
+
+		if ( !$inGroup )
+		{
+			/* Build a subscribe link from the same setting the API page
+			   uses. Falls back to the Nexus subscriptions index if no
+			   package id is configured. */
+			$subUrl = '#';
+			try
+			{
+				$subId = (int) ( \IPS\Settings::i()->gdcompliance_api_subscription_id ?? 0 );
+				$subUrl = $subId > 0
+					? (string) \IPS\Http\Url::internal( 'app=nexus&module=store&controller=product&id=' . $subId, 'front' )
+					: (string) \IPS\Http\Url::internal( 'app=nexus&module=subscriptions&controller=subscriptions', 'front', 'nexus_subscriptions' );
+			}
+			catch ( \Throwable ) {}
+
+			$body = '<div style="max-width:640px;margin:24px auto;padding:24px;background:#fefce8;border:1px solid #fde68a;border-radius:12px;color:#78350f;font-family:Inter,system-ui,sans-serif">'
+				. '<h2 style="margin:0 0 10px;font-size:1.15em">' . $h( (string) $lang->addToStack( 'gddealer_api_gate_title' ) ) . '</h2>'
+				. '<p style="margin:0 0 14px;line-height:1.5">' . $h( (string) $lang->addToStack( 'gddealer_api_gate_msg' ) ) . '</p>'
+				. '<a href="' . $h( $subUrl ) . '" style="display:inline-block;background:#1e40af;color:#fff;padding:9px 18px;border-radius:8px;font-weight:600;text-decoration:none">' . $h( (string) $lang->addToStack( 'gddealer_api_gate_cta' ) ) . '</a>'
+				. '</div>';
+			$this->output( 'api', $body );
+			return;
+		}
+
+		$mykeyUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=api&controller=api&do=mykey', 'front'
+		);
+
+		$body = '<iframe src="' . $h( $mykeyUrl ) . '" '
+			. 'style="width:100%;min-height:1400px;border:0;border-radius:10px;background:#fff;display:block" '
+			. 'title="' . $h( (string) $lang->addToStack( 'gddealer_api_dashboard_title' ) ) . '"></iframe>';
+
+		$this->output( 'api', $body );
+	}
 }
 
 class dashboard extends _dashboard {}

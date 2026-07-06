@@ -322,6 +322,27 @@ HTML;
 
 		$lang = \IPS\Member::loggedIn()->language();
 
+		/* v1.0.324 — gated "API Access" nav item. Only surfaces for members
+		   in the gdcompliance API-access groups (setting from the sibling
+		   app). Graceful when gdcompliance isn't installed / setting is
+		   absent → $hasApi false → item omitted. Additive only: matches the
+		   existing conditional-item pattern used for the "support" item. */
+		$hasApi = false;
+		try
+		{
+			$apiGroups = array_filter( array_map( 'intval',
+				explode( ',', (string) ( \IPS\Settings::i()->gdcompliance_api_access_groups ?? '' ) )
+			) );
+			if ( !empty( $apiGroups ) )
+			{
+				$hasApi = (bool) \IPS\Member::loggedIn()->inGroup( $apiGroups );
+			}
+		}
+		catch ( \Throwable ) { $hasApi = false; }
+
+		$base       = 'app=gddealer&module=dealers&controller=dashboard&do=';
+		$apiTabUrl  = (string) \IPS\Http\Url::internal( $base . 'api' );
+
 		return [
 			'main' => [
 				'label' => 'Main',
@@ -381,6 +402,8 @@ HTML;
 					  'url' => $urls['help'], 'icon' => 'help', 'badge' => null ],
 					$canSupport ? [ 'key' => 'support', 'label' => $lang->addToStack('gddealer_support_nav'),
 					  'url' => $supportUrl, 'icon' => 'support', 'badge' => null ] : null,
+					$hasApi ? [ 'key' => 'api', 'label' => $lang->addToStack('gddealer_api_nav'),
+					  'url' => $apiTabUrl, 'icon' => 'code', 'badge' => null ] : null,
 					[ 'key' => 'orders', 'label' => 'Orders',
 					  'url' => 'https://gunrack.deals/clients/orders/', 'icon' => 'orders', 'badge' => null ],
 					[ 'key' => 'mydetails', 'label' => 'My Details',

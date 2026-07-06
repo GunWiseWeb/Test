@@ -512,6 +512,12 @@ $lang = [
     'gddealer_support_body'                                       => 'Describe your issue',
     'gddealer_support_department'                                 => 'Department',
     'gddealer_support_nav'                                        => 'Support Tickets',
+    /* v1.0.324 — gated API Access tab (iframe of gdcompliance mykey page) */
+    'gddealer_api_nav'                                            => 'API Access',
+    'gddealer_api_dashboard_title'                                => 'API Access',
+    'gddealer_api_gate_title'                                     => 'API access is not part of your current plan',
+    'gddealer_api_gate_msg'                                       => 'The Compliance API is a subscription-only integration. Subscribe to get an API key, register domains, and embed the compliance widget on your product pages.',
+    'gddealer_api_gate_cta'                                       => 'View subscription',
     'gddealer_support_new'                                        => 'Open New Ticket',
     'gddealer_support_priority'                                   => 'Priority',
     'gddealer_support_reply'                                      => 'Post Reply',
