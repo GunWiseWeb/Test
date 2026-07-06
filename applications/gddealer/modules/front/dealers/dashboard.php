@@ -3451,12 +3451,16 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			return;
 		}
 
+		/* v1.0.325 — embed=1 tells gdcompliance's mykey() action to
+		   skip the theme wrapper (header/footer) so the iframe shows
+		   only the key-management UI. Shorter min-height now that
+		   the chrome is gone. */
 		$mykeyUrl = (string) \IPS\Http\Url::internal(
-			'app=gdcompliance&module=api&controller=api&do=mykey', 'front'
+			'app=gdcompliance&module=api&controller=api&do=mykey&embed=1', 'front'
 		);
 
 		$body = '<iframe src="' . $h( $mykeyUrl ) . '" '
-			. 'style="width:100%;min-height:1400px;border:0;border-radius:10px;background:#fff;display:block" '
+			. 'style="width:100%;min-height:1100px;border:0;border-radius:10px;background:#fff;display:block" '
 			. 'title="' . $h( (string) $lang->addToStack( 'gddealer_api_dashboard_title' ) ) . '"></iframe>';
 
 		$this->output( 'api', $body );

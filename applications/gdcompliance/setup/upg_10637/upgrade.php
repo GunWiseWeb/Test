@@ -1,34 +1,33 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.36
+ * @brief  GD Compliance — upgrade 1.6.37
  *
- * WHAT SHIPS IN 1.6.36 — API Stage 5a (gated developer docs):
+ * WHAT SHIPS IN 1.6.37 — mykey ?embed=1 bare-render mode.
  *
- *   NEW ACTION docs() on the API controller at
- *     /api/compliance/docs   (+ legacy /compliance-api/docs)
- *   as a THEME-WRAPPED HTML page (not JSON). Three visitor states:
- *     * Guest              → login prompt with return URL
- *     * Non-subscriber     → subscribe upsell + subscribe_url
- *     * API-group / admin  → full developer reference:
- *         Overview, Authentication (secret vs publishable),
- *         Endpoints (GET /check, POST /batch, GET /product) each
- *         with example curl + real response JSON, Rate limits &
- *         quotas (X-RateLimit-* + 429 shapes), Errors table
- *         (401/402/403/429/status=unknown), Widget embed
- *         (generic snippet + link to platform snippets on mykey),
- *         Verification status.
- *   Scoped .grcd-* CSS. Cross-links between mykey and docs.
+ *   The gddealer dashboard's "API Access" tab iframes the mykey
+ *   page. v1.6.35 shipped mykey through the full theme wrapper so
+ *   the iframe embedded the site header + footer too. 1.6.37 adds
+ *   a bare "embed" mode:
  *
- * Manifest info blob now advertises the docs URL.
+ *     * GET /api/compliance/mykey?embed=1 → sends a standalone
+ *       <html> shell with only the mykey styles + body via
+ *       Output::sendOutput(), skipping the theme wrapper. The
+ *       standalone /api/compliance/mykey URL is unchanged.
+ *     * <base target="_parent"> so any manually-added links inside
+ *       the frame escape it. The mykey form submits (mykeyAct)
+ *       preserve embed=1 through the post-redirect so the dealer
+ *       stays inside the dashboard iframe after generating a key
+ *       or saving domains.
+ *     * X-Frame-Options: SAMEORIGIN set explicitly on the embed
+ *       response so a stricter global policy later can't break the
+ *       dashboard iframe.
  *
- * NO SCHEMA CHANGES this ship. Purely new render code + FURL routes.
- *
- * SELF-CONTAINED (rule #79). Only upg dir; every prior migration
- * folded forward defensively (including Stage 4a key_type /
- * allowed_domains column ALTERs).
+ * PURE CONTROLLER TWEAK. No schema, no lang, no FURL, no settings
+ * change. Every prior migration carried forward defensively (rule
+ * #79).
  */
 
-namespace IPS\gdcompliance\setup\upg_10636;
+namespace IPS\gdcompliance\setup\upg_10637;
 
 use function defined;
 
@@ -75,7 +74,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10636 gdcr: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10637 gdcr: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -102,7 +101,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10636 apikeys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10637 apikeys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		/* v1.6.34 NEW — guarded ALTER: add key_type + allowed_domains
 		   columns to gd_compliance_api_keys so Stage 4a can distinguish
@@ -121,7 +120,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10636 add key_type: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10637 add key_type: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -135,7 +134,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10636 add allowed_domains: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10637 add allowed_domains: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -154,7 +153,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10636 usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10637 usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		/* ------------------------------------------------------------
 		 * 2) SETTINGS — carry-forward defaults ONLY for rows that

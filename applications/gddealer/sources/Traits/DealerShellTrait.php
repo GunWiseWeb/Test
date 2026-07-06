@@ -403,7 +403,7 @@ HTML;
 					$canSupport ? [ 'key' => 'support', 'label' => $lang->addToStack('gddealer_support_nav'),
 					  'url' => $supportUrl, 'icon' => 'support', 'badge' => null ] : null,
 					$hasApi ? [ 'key' => 'api', 'label' => $lang->addToStack('gddealer_api_nav'),
-					  'url' => $apiTabUrl, 'icon' => 'code', 'badge' => null ] : null,
+					  'url' => $apiTabUrl, 'icon' => 'billing', 'badge' => null ] : null,
 					[ 'key' => 'orders', 'label' => 'Orders',
 					  'url' => 'https://gunrack.deals/clients/orders/', 'icon' => 'orders', 'badge' => null ],
 					[ 'key' => 'mydetails', 'label' => 'My Details',

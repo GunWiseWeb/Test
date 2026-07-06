@@ -1287,9 +1287,10 @@ class _api extends \IPS\Dispatcher\Controller
 		$member = \IPS\Member::loggedIn();
 		$h      = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
 
-		$selfUrl = (string) \IPS\Http\Url::internal(
-			'app=gdcompliance&module=api&controller=api&do=mykey', 'front'
-		);
+		/* v1.6.37 — preserve embed=1 through the form action so a
+		   dashboard-iframe POST comes back with embed still on and
+		   mykeyRedirectUrl() keeps the user in the frame. */
+		$selfUrl = $this->mykeyRedirectUrl();
 
 		\IPS\Output::i()->title      = 'Your Compliance API Key';
 		\IPS\Output::i()->breadcrumb = [];
@@ -1494,6 +1495,45 @@ class _api extends \IPS\Dispatcher\Controller
 		}
 
 		$html .= '</div>';
+
+		/* v1.6.37 — bare "embed" mode. When ?embed=1 is on the URL
+		   (used by the gddealer dashboard's iframe of this page), skip
+		   the IPS theme wrapper entirely and stream the mykey styles +
+		   body as a standalone HTML document. The iframe then shows
+		   only the key-management UI — no site header/footer. Same
+		   output otherwise; the standalone /api/compliance/mykey URL
+		   is unchanged. */
+		$embed = (int) ( \IPS\Request::i()->embed ?? 0 ) === 1;
+		if ( $embed )
+		{
+			$bare = '<!DOCTYPE html><html><head><meta charset="utf-8">'
+				. '<meta name="viewport" content="width=device-width, initial-scale=1">'
+				. '<title>' . htmlspecialchars( 'Your Compliance API Keys', ENT_QUOTES, 'UTF-8' ) . '</title>'
+				/* <base target="_parent"> so links / form submits inside
+				   the frame don't stay trapped inside — they escape to
+				   the parent (dealer dashboard) window. mykeyAct itself
+				   already redirects back to mykey?embed=1 on save. */
+				. '<base target="_parent">'
+				. '</head><body style="margin:0;background:transparent">'
+				. $html
+				. '</body></html>';
+
+			\IPS\Output::i()->sendOutput(
+				$bare, 200, 'text/html',
+				[
+					/* Explicit SAMEORIGIN so the same-origin iframe from
+					   gddealer keeps working even if global policy is
+					   set to something stricter later. Does NOT relax
+					   framing to other origins. */
+					'X-Frame-Options' => 'SAMEORIGIN',
+					'Cache-Control'   => 'no-store, no-cache, must-revalidate',
+					'Pragma'          => 'no-cache',
+				],
+				FALSE, FALSE, FALSE
+			);
+			return;
+		}
+
 		\IPS\Output::i()->output = $html;
 	}
 
@@ -1707,6 +1747,22 @@ class _api extends \IPS\Dispatcher\Controller
 	 * Regenerate revokes ONLY existing keys of the same TYPE so a
 	 * dealer with both key types keeps the other one alive.
 	 */
+	/**
+	 * v1.6.37 — return the mykey URL, preserving the embed=1 flag if
+	 * the current request had it. Used by mykeyAct() so a form
+	 * submitted inside the dashboard iframe stays inside the iframe
+	 * after redirect.
+	 */
+	protected function mykeyRedirectUrl(): string
+	{
+		$q = 'app=gdcompliance&module=api&controller=api&do=mykey';
+		if ( (int) ( \IPS\Request::i()->embed ?? 0 ) === 1 )
+		{
+			$q .= '&embed=1';
+		}
+		return (string) \IPS\Http\Url::internal( $q, 'front' );
+	}
+
 	protected function mykeyAct(): void
 	{
 		\IPS\Session::i()->csrfCheck();
@@ -1714,12 +1770,12 @@ class _api extends \IPS\Dispatcher\Controller
 		$member = \IPS\Member::loggedIn();
 		if ( !$member->member_id )
 		{
-			\IPS\Output::i()->redirect( (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=mykey', 'front' ) );
+			\IPS\Output::i()->redirect( $this->mykeyRedirectUrl() );
 			return;
 		}
 		if ( self::memberApiStatus( $member ) !== 'active' )
 		{
-			\IPS\Output::i()->redirect( (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=mykey', 'front' ) );
+			\IPS\Output::i()->redirect( $this->mykeyRedirectUrl() );
 			return;
 		}
 
@@ -1740,9 +1796,7 @@ class _api extends \IPS\Dispatcher\Controller
 				);
 			}
 			catch ( \Throwable ) {}
-			\IPS\Output::i()->redirect(
-				(string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=mykey', 'front' )
-			);
+			\IPS\Output::i()->redirect( $this->mykeyRedirectUrl() );
 			return;
 		}
 
@@ -1819,9 +1873,7 @@ class _api extends \IPS\Dispatcher\Controller
 			return;
 		}
 
-		\IPS\Output::i()->redirect(
-			(string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=mykey', 'front' )
-		);
+		\IPS\Output::i()->redirect( $this->mykeyRedirectUrl() );
 	}
 
 	/**
