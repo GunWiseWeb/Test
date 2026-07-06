@@ -17,10 +17,6 @@
             "friendly": "dashboard/{@do}",
             "real": "app=gddealer&module=dealers&controller=dashboard"
         },
-        "dealers_login": {
-            "friendly": "login",
-            "real": "app=gddealer&module=dealers&controller=join&do=login"
-        },
         "dealers_join": {
             "friendly": "join",
             "real": "app=gddealer&module=dealers&controller=join"
