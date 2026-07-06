@@ -1370,25 +1370,14 @@ class _api extends \IPS\Dispatcher\Controller
 			. '<div class="gdak-wrap"><h1>Your Compliance API Keys</h1>'
 			. '<p style="margin:-6px 0 14px"><a href="' . $h( $docsUrl ) . '" target="_blank" rel="noopener" style="color:#1e40af;font-weight:600;text-decoration:none">Read the API docs →</a></p>';
 
-		/* -- Secret key card. -- */
-		if ( is_array( $secretKey ) )
-		{
-			$html .= $this->renderKeyCard( $secretKey, 'secret', $selfUrl, $csrfKey );
-		}
-		else
-		{
-			$html .= '<div class="gdak-card">'
-				. '<h2>Secret key (server use)</h2>'
-				. '<p>The secret key authenticates server-to-server calls. Send it as <code>Authorization: Bearer …</code>. <strong>Do not embed a secret key in browser JavaScript</strong> — use a publishable key for the widget.</p>'
-				. '<form method="post" action="' . $h( $selfUrl ) . '">'
-				. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
-				. '<input type="hidden" name="action" value="generate_secret">'
-				. '<button type="submit" class="gdak-btn">Generate secret key</button>'
-				. '</form>'
-				. '</div>';
-		}
+		/* v1.6.44 — Publishable card comes FIRST (this is the one most
+		   dealers actually need — for the website widget). Secret key
+		   is rendered SECOND and reframed as the advanced / optional
+		   direct-API-access key. Copy expanded to plain English so
+		   non-developers can tell which one they want. Both key types
+		   remain fully functional — pure ordering + copy change. */
 
-		/* -- Publishable key card. -- */
+		/* -- Publishable key card (the default / most dealers). -- */
 		if ( is_array( $publishableKey ) )
 		{
 			$html .= $this->renderKeyCard( $publishableKey, 'publishable', $selfUrl, $csrfKey );
@@ -1396,8 +1385,8 @@ class _api extends \IPS\Dispatcher\Controller
 		else
 		{
 			$html .= '<div class="gdak-card">'
-				. '<h2>Publishable key (browser widget)</h2>'
-				. '<p>The publishable key is safe to embed in the widget script on your product pages. It is <strong>domain-locked</strong>: a leaked key won\'t work from any origin except the domains you register below.</p>'
+				. '<h2>Publishable key (for the website widget)</h2>'
+				. '<p>This is the key for the website widget. If you just want compliance info to appear on your product pages, <strong>this is the only key you need</strong>. It\'s safe to place in your store\'s code because it\'s <strong>domain-locked</strong> — it only works from the domains you register below.</p>'
 				. '<form method="post" action="' . $h( $selfUrl ) . '">'
 				. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
 				. '<input type="hidden" name="action" value="generate_publishable">'
@@ -1405,6 +1394,24 @@ class _api extends \IPS\Dispatcher\Controller
 				. '<textarea id="gdak-newdomains" name="allowed_domains" rows="3" required class="gdak-textarea" placeholder="acmeguns.com&#10;www.acmeguns.com"></textarea>'
 				. '<p style="margin:4px 0 10px;font-size:.85em;color:#64748b">One per line (or comma-separated). A registered domain covers its subdomains automatically.</p>'
 				. '<button type="submit" class="gdak-btn">Generate publishable key</button>'
+				. '</form>'
+				. '</div>';
+		}
+
+		/* -- Secret key card (advanced / optional). -- */
+		if ( is_array( $secretKey ) )
+		{
+			$html .= $this->renderKeyCard( $secretKey, 'secret', $selfUrl, $csrfKey );
+		}
+		else
+		{
+			$html .= '<div class="gdak-card">'
+				. '<h2>Secret key (advanced — direct API access)</h2>'
+				. '<p><strong>Most stores don\'t need this.</strong> Generate a secret key only if your developer is integrating our API directly into your own systems — for example, checking your whole catalog in a scheduled job, or pulling compliance data into your inventory or POS software. Send it as <code>Authorization: Bearer …</code>. <strong>Keep it private</strong> — never put a secret key in your website\'s public code or in the widget (use the publishable key above for that).</p>'
+				. '<form method="post" action="' . $h( $selfUrl ) . '">'
+				. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
+				. '<input type="hidden" name="action" value="generate_secret">'
+				. '<button type="submit" class="gdak-btn">Generate secret key</button>'
 				. '</form>'
 				. '</div>';
 		}
@@ -1769,10 +1776,12 @@ class _api extends \IPS\Dispatcher\Controller
 		}
 
 		$isPub    = ( $kind === 'publishable' );
-		$title    = $isPub ? 'Publishable key (browser widget)' : 'Secret key (server use)';
+		$title    = $isPub
+			? 'Publishable key (for the website widget)'
+			: 'Secret key (advanced — direct API access)';
 		$typeHint = $isPub
-			? 'Safe to embed in browser JS. Domain-locked to the origins listed below.'
-			: 'For server-to-server calls. Send as Authorization: Bearer …';
+			? 'For the website widget. Safe to embed; domain-locked to the origins below.'
+			: 'Advanced: direct server-to-server API access. Keep private — never put in browser code.';
 		$regenAct = $isPub ? 'regenerate_publishable' : 'regenerate_secret';
 
 		$out = '<div class="gdak-card">'
