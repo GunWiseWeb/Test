@@ -59,6 +59,28 @@ class _api extends \IPS\Dispatcher\Controller
 	const BATCH_MAX = 200;
 
 	/**
+	 * 2-letter state code → full state name. Used by the /product
+	 * endpoint (v1.6.34) to attach human-readable names to each
+	 * restricted/advisory state row.
+	 */
+	const STATE_NAMES = [
+		'AL' => 'Alabama',       'AK' => 'Alaska',       'AZ' => 'Arizona',       'AR' => 'Arkansas',
+		'CA' => 'California',    'CO' => 'Colorado',     'CT' => 'Connecticut',   'DE' => 'Delaware',
+		'DC' => 'District of Columbia',
+		'FL' => 'Florida',       'GA' => 'Georgia',      'HI' => 'Hawaii',        'ID' => 'Idaho',
+		'IL' => 'Illinois',      'IN' => 'Indiana',      'IA' => 'Iowa',          'KS' => 'Kansas',
+		'KY' => 'Kentucky',      'LA' => 'Louisiana',    'ME' => 'Maine',         'MD' => 'Maryland',
+		'MA' => 'Massachusetts', 'MI' => 'Michigan',     'MN' => 'Minnesota',     'MS' => 'Mississippi',
+		'MO' => 'Missouri',      'MT' => 'Montana',      'NE' => 'Nebraska',      'NV' => 'Nevada',
+		'NH' => 'New Hampshire', 'NJ' => 'New Jersey',   'NM' => 'New Mexico',    'NY' => 'New York',
+		'NC' => 'North Carolina','ND' => 'North Dakota', 'OH' => 'Ohio',          'OK' => 'Oklahoma',
+		'OR' => 'Oregon',        'PA' => 'Pennsylvania', 'RI' => 'Rhode Island',  'SC' => 'South Carolina',
+		'SD' => 'South Dakota',  'TN' => 'Tennessee',    'TX' => 'Texas',         'UT' => 'Utah',
+		'VT' => 'Vermont',       'VA' => 'Virginia',     'WA' => 'Washington',    'WV' => 'West Virginia',
+		'WI' => 'Wisconsin',     'WY' => 'Wyoming',
+	];
+
+	/**
 	 * v1.6.31 quota state — populated by authenticate() on success so
 	 * respond() can attach standard X-RateLimit-* headers to every
 	 * post-auth response. Shape:
@@ -72,6 +94,14 @@ class _api extends \IPS\Dispatcher\Controller
 	/** Authenticated key row (post-auth). Used for the metering write. */
 	protected ?array $authedKey = null;
 
+	/**
+	 * v1.6.34 — populated by authenticate() when a publishable key
+	 * matches the request origin. respond() echoes it back as
+	 * Access-Control-Allow-Origin so browsers accept the response
+	 * cross-origin. Empty for secret keys / server-to-server calls.
+	 */
+	protected string $allowedOrigin = '';
+
 	/** Valid state codes (mirrors lookup controller). */
 	const STATE_CODES = [
 		'AL','AK','AZ','AR','CA','CO','CT','DC','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA',
@@ -82,10 +112,45 @@ class _api extends \IPS\Dispatcher\Controller
 	/**
 	 * Publicly viewable — no login / permission check. Auth is the
 	 * API key, enforced in each action.
+	 *
+	 * v1.6.34: intercept CORS preflight OPTIONS requests BEFORE the
+	 * parent dispatcher runs. Browsers send OPTIONS without auth as
+	 * the first hop of a cross-origin call; we echo the Origin as
+	 * Access-Control-Allow-Origin so the browser proceeds with the
+	 * real request. The real request is still auth-gated normally.
 	 */
 	public function execute(): void
 	{
+		if ( ( $_SERVER['REQUEST_METHOD'] ?? '' ) === 'OPTIONS' )
+		{
+			$this->sendCorsPreflight();
+			return;
+		}
 		parent::execute();
+	}
+
+	/**
+	 * Send a bare 204 response with CORS headers echoing the request's
+	 * Origin. Called on any OPTIONS request. No auth, no body — the
+	 * browser only cares about the response headers.
+	 */
+	protected function sendCorsPreflight(): void
+	{
+		$origin  = trim( (string) ( $_SERVER['HTTP_ORIGIN'] ?? '' ) );
+		$headers = [
+			'Access-Control-Allow-Methods' => 'GET, POST, OPTIONS',
+			'Access-Control-Allow-Headers' => 'Authorization, Content-Type',
+			'Access-Control-Max-Age'       => '600',
+			'Cache-Control'                => 'no-store, no-cache, must-revalidate',
+		];
+		if ( $origin !== '' )
+		{
+			$headers['Access-Control-Allow-Origin'] = $origin;
+			$headers['Vary']                        = 'Origin';
+		}
+		\IPS\Output::i()->sendOutput(
+			'', 204, 'text/plain', $headers, FALSE, FALSE, FALSE
+		);
 	}
 
 	/**
@@ -129,15 +194,25 @@ class _api extends \IPS\Dispatcher\Controller
 			$this->mykey();
 			return;
 		}
+		if ( preg_match( '~/product/?$~', $path ) )
+		{
+			$this->product();
+			return;
+		}
 
 		$this->respond( [
 			'name'      => 'gunrack-compliance-api',
 			'version'   => 1,
 			'endpoints' => [
-				'check' => '/api/compliance/check?upc=UPC&state=XX',
-				'batch' => 'POST /api/compliance/batch  body:{"state":"XX","upcs":[...]}',
+				'check'   => '/api/compliance/check?upc=UPC&state=XX',
+				'batch'   => 'POST /api/compliance/batch  body:{"state":"XX","upcs":[...]}',
+				'product' => '/api/compliance/product?upc=UPC — all-states verdict (widget use)',
 			],
 			'auth'      => 'Authorization: Bearer {api_key}',
+			'key_types' => [
+				'secret'      => 'Server-to-server. Full access. Do NOT embed in browser JS.',
+				'publishable' => 'Browser-safe. Domain-locked (Origin header must match registered domains). Read endpoints only.',
+			],
 			'docs'      => 'https://gunrack.deals/api/compliance',
 		], 200 );
 	}
@@ -278,6 +353,132 @@ class _api extends \IPS\Dispatcher\Controller
 		], $this->envelopeMeta() ), 200 );
 	}
 
+	/**
+	 * v1.6.34 — GET|POST /api/compliance/product?upc=UPC
+	 *
+	 * All-states verdict for a UPC. Returns arrays of restricted
+	 * states + advisory states with reasons/citations, plus a
+	 * compact restricted_state_codes list for at-a-glance display.
+	 * This is what the dealer browser widget renders on a product
+	 * page.
+	 *
+	 * Counts as 1 quota unit (same as single check()).
+	 */
+	public function product(): void
+	{
+		$key = $this->authenticate();
+		if ( $key === null ) { return; }
+
+		$upcRaw = trim( (string) ( \IPS\Request::i()->upc ?? '' ) );
+		$upc    = substr( $upcRaw, 0, 64 );
+		if ( $upc === '' || !preg_match( '/^[A-Za-z0-9\-\._\/ ]+$/', $upc ) )
+		{
+			$this->respond( [
+				'error'   => 'invalid_upc',
+				'message' => 'The upc parameter is required and must be alphanumeric.',
+			], 400 );
+			return;
+		}
+
+		$payload = $this->buildProductPayload( $upc );
+
+		$this->accrue( 1 );
+		$this->respond( $payload, 200 );
+	}
+
+	/**
+	 * Build the /product payload from gd_catalog + gd_compliance_flags.
+	 * UPC-only match against gd_catalog (Stage-1 pattern). All flag
+	 * rows returned; caller splits by advisory vs restrict.
+	 */
+	protected function buildProductPayload( string $upc ): array
+	{
+		$product = null;
+		try
+		{
+			$product = \IPS\Db::i()->select(
+				'upc, title, brand, manufacturer',
+				'gd_catalog',
+				[ 'upc=?', $upc ]
+			)->first();
+		}
+		catch ( \Throwable ) { $product = null; }
+
+		if ( !is_array( $product ) )
+		{
+			return array_merge( [
+				'upc'                    => $upc,
+				'status'                 => 'unknown',
+				'product'                => null,
+				'message'                => 'UPC not found in compliance database',
+				'restricted_states'      => [],
+				'advisory_states'        => [],
+				'restricted_state_codes' => [],
+			], $this->envelopeMeta() );
+		}
+
+		$brand = trim( (string) ( $product['brand'] ?? '' ) );
+		if ( $brand === '' ) { $brand = trim( (string) ( $product['manufacturer'] ?? '' ) ); }
+		$title = trim( (string) ( $product['title'] ?? '' ) );
+		$name  = trim( ( $brand !== '' ? $brand . ' — ' : '' ) . $title );
+		if ( $name === '' ) { $name = $title !== '' ? $title : null; }
+
+		$restricted = [];
+		$advisory   = [];
+		$codeSet    = [];
+
+		try
+		{
+			require_once \IPS\ROOT_PATH . '/applications/gdcompliance/sources/Verdict.php';
+			foreach ( \IPS\Db::i()->select(
+				'state_code, firearm_type, reason, citation',
+				'gd_compliance_flags',
+				[ 'upc=?', $upc ],
+				'state_code ASC, firearm_type ASC'
+			) as $r )
+			{
+				$state = strtoupper( (string) ( $r['state_code'] ?? '' ) );
+				if ( $state === '' || !isset( self::STATE_NAMES[ $state ] ) ) { continue; }
+				$ftype  = (string) ( $r['firearm_type'] ?? '' );
+				$reason = (string) ( $r['reason']       ?? '' );
+				$cite   = (string) ( $r['citation']     ?? '' );
+
+				if ( $ftype === 'advisory' )
+				{
+					$advisory[] = [
+						'state'      => $state,
+						'state_name' => self::STATE_NAMES[ $state ],
+						'reason'     => $reason,
+						'citation'   => $cite,
+					];
+				}
+				else
+				{
+					$restricted[] = [
+						'state'      => $state,
+						'state_name' => self::STATE_NAMES[ $state ],
+						'type'       => \IPS\gdcompliance\Verdict::typeSlug( $ftype ),
+						'reason'     => $reason,
+						'citation'   => $cite,
+					];
+					$codeSet[ $state ] = true;
+				}
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'api product: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		return array_merge( [
+			'upc'                    => $upc,
+			'product'                => $name,
+			'restricted_states'      => $restricted,
+			'advisory_states'        => $advisory,
+			'restricted_state_codes' => array_values( array_keys( $codeSet ) ),
+		], $this->envelopeMeta() );
+	}
+
 	/* ==================================================================
 	 * Auth
 	 * ================================================================== */
@@ -349,6 +550,35 @@ class _api extends \IPS\Dispatcher\Controller
 				'message' => 'The provided API key is not active.',
 			], 401 );
 			return null;
+		}
+
+		/* v1.6.34 DOMAIN GATE (publishable keys only). Secret keys are
+		   server-to-server and skip this — they don't carry an Origin.
+		   Publishable keys are safe to embed in browser JS because a
+		   leaked key only works from an origin the dealer registered. */
+		$keyType = (string) ( $row['key_type'] ?? 'secret' );
+		if ( $keyType === 'publishable' )
+		{
+			$origin = $this->requestOrigin();
+			if ( $origin === '' )
+			{
+				$this->respond( [
+					'error'   => 'domain_not_allowed',
+					'message' => 'Publishable keys require an Origin or Referer header. Use a secret key for server-to-server calls.',
+				], 403 );
+				return null;
+			}
+			$allowedRaw = (string) ( $row['allowed_domains'] ?? '' );
+			if ( !$this->originMatchesKey( $origin, $allowedRaw ) )
+			{
+				$this->respond( [
+					'error'   => 'domain_not_allowed',
+					'message' => 'This publishable key is not authorized for this origin.',
+					'origin'  => $origin,
+				], 403 );
+				return null;
+			}
+			$this->allowedOrigin = $origin;
 		}
 
 		/* v1.6.30 SUBSCRIPTION GATE — live check that the key's owning
@@ -703,63 +933,85 @@ class _api extends \IPS\Dispatcher\Controller
 			return;
 		}
 
-		/* Active member → find or offer to create the key. */
-		$key = null;
+		/* v1.6.34 — fetch ALL active/suspended keys for this member.
+		   May have one secret + one publishable. Legacy rows without a
+		   key_type column default to 'secret'. */
+		$secretKey      = null;
+		$publishableKey = null;
 		try
 		{
-			$key = \IPS\Db::i()->select(
+			foreach ( \IPS\Db::i()->select(
 				'*', 'gd_compliance_api_keys',
 				[ 'member_id=? AND status!=?', (int) $member->member_id, 'revoked' ],
-				'id DESC', 1
-			)->first();
+				'id DESC'
+			) as $row )
+			{
+				$type = (string) ( $row['key_type'] ?? 'secret' );
+				if ( $type === 'publishable' && $publishableKey === null )
+				{
+					$publishableKey = $row;
+				}
+				elseif ( $type !== 'publishable' && $secretKey === null )
+				{
+					$secretKey = $row;
+				}
+				if ( $secretKey && $publishableKey ) { break; }
+			}
 		}
-		catch ( \Throwable ) { $key = null; }
+		catch ( \Throwable ) {}
 
 		$csrfKey = (string) \IPS\Session::i()->csrfKey;
-		$html    = $this->mykeyStyles() . '<div class="gdak-wrap"><h1>Your Compliance API Key</h1>';
+		$html    = $this->mykeyStyles() . '<div class="gdak-wrap"><h1>Your Compliance API Keys</h1>';
 
-		if ( !is_array( $key ) )
+		/* -- Secret key card. -- */
+		if ( is_array( $secretKey ) )
 		{
-			$html .= '<div class="gdak-card">'
-				. '<h2>Generate your API key</h2>'
-				. '<p>You have an active Compliance API subscription. Generate a key below to start making requests.</p>'
-				. '<form method="post" action="' . $h( $selfUrl ) . '">'
-				. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
-				. '<input type="hidden" name="action" value="generate">'
-				. '<button type="submit" class="gdak-btn">Generate API key</button>'
-				. '</form>'
-				. '</div>';
+			$html .= $this->renderKeyCard( $secretKey, 'secret', $selfUrl, $csrfKey );
 		}
 		else
 		{
-			$keyStr = (string) ( $key['api_key']      ?? '' );
-			$rc     = (int)    ( $key['request_count'] ?? 0 );
-			$lu     = (int)    ( $key['last_used_at']  ?? 0 );
-			$luStr  = $lu > 0 ? date( 'Y-m-d H:i', $lu ) . ' UTC' : 'never';
-			$ca     = (int)    ( $key['created_at']   ?? 0 );
-			$caStr  = $ca > 0 ? date( 'Y-m-d', $ca )  : '—';
-
 			$html .= '<div class="gdak-card">'
-				. '<h2>Your API key</h2>'
-				. '<code class="gdak-key">' . $h( $keyStr ) . '</code>'
-				. '<dl class="gdak-meta">'
-				. '<dt>Created</dt><dd>' . $h( $caStr ) . '</dd>'
-				. '<dt>Last used</dt><dd>' . $h( $luStr ) . '</dd>'
-				. '<dt>Lifetime</dt><dd>' . number_format( $rc ) . ' requests</dd>'
-				. '</dl>'
-				. '<form method="post" action="' . $h( $selfUrl ) . '" onsubmit="return confirm(\'Regenerating will invalidate the existing key immediately. Any live integrations using it will break until you paste in the new key. Continue?\');" style="margin-top:12px">'
+				. '<h2>Secret key (server use)</h2>'
+				. '<p>The secret key authenticates server-to-server calls. Send it as <code>Authorization: Bearer …</code>. <strong>Do not embed a secret key in browser JavaScript</strong> — use a publishable key for the widget.</p>'
+				. '<form method="post" action="' . $h( $selfUrl ) . '">'
 				. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
-				. '<input type="hidden" name="action" value="regenerate">'
-				. '<button type="submit" class="gdak-btn gdak-btn--warn">Regenerate key</button>'
+				. '<input type="hidden" name="action" value="generate_secret">'
+				. '<button type="submit" class="gdak-btn">Generate secret key</button>'
 				. '</form>'
 				. '</div>';
+		}
 
-			/* v1.6.31 — tier / monthly usage panel. */
-			$quota  = $this->computeQuota( $key );
-			$used   = $this->readUsage( (int) $key['id'], $this->currentPeriod() );
-			$reset  = $this->monthResetTs();
-			$grpId  = $quota['group_id'] ?? null;
-			$grpLbl = $grpId ? ( 'Group #' . (int) $grpId ) : ( $quota['is_unlimited'] ? 'Unlimited' : 'Default' );
+		/* -- Publishable key card. -- */
+		if ( is_array( $publishableKey ) )
+		{
+			$html .= $this->renderKeyCard( $publishableKey, 'publishable', $selfUrl, $csrfKey );
+		}
+		else
+		{
+			$html .= '<div class="gdak-card">'
+				. '<h2>Publishable key (browser widget)</h2>'
+				. '<p>The publishable key is safe to embed in the widget script on your product pages. It is <strong>domain-locked</strong>: a leaked key won\'t work from any origin except the domains you register below.</p>'
+				. '<form method="post" action="' . $h( $selfUrl ) . '">'
+				. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
+				. '<input type="hidden" name="action" value="generate_publishable">'
+				. '<label for="gdak-newdomains" style="display:block;margin:8px 0 4px;font-weight:600">Allowed domains</label>'
+				. '<textarea id="gdak-newdomains" name="allowed_domains" rows="3" required class="gdak-textarea" placeholder="acmeguns.com&#10;www.acmeguns.com"></textarea>'
+				. '<p style="margin:4px 0 10px;font-size:.85em;color:#64748b">One per line (or comma-separated). A registered domain covers its subdomains automatically.</p>'
+				. '<button type="submit" class="gdak-btn">Generate publishable key</button>'
+				. '</form>'
+				. '</div>';
+		}
+
+		/* -- Usage panel. Uses whichever key exists (prefer secret for
+		     legacy consistency; publishable-only members get theirs). */
+		$panelKey = $secretKey ?? $publishableKey;
+		if ( is_array( $panelKey ) )
+		{
+			$quota    = $this->computeQuota( $panelKey );
+			$used     = $this->readUsage( (int) $panelKey['id'], $this->currentPeriod() );
+			$reset    = $this->monthResetTs();
+			$grpId    = $quota['group_id'] ?? null;
+			$grpLbl   = $grpId ? ( 'Group #' . (int) $grpId ) : ( $quota['is_unlimited'] ? 'Unlimited' : 'Default' );
 			$resetStr = date( 'F j, Y', $reset );
 
 			if ( $quota['is_unlimited'] )
@@ -782,13 +1034,13 @@ class _api extends \IPS\Dispatcher\Controller
 				elseif ( $pct >= 75 ) { $barClass .= ' gdak-bar__fill--warn'; }
 
 				$upsell = '';
-				if ( $pct >= 75 )
-				{
-					$upsell = '<p class="gdak-hint">Approaching your monthly quota. <a href="' . $h( self::subscribeUrl() ) . '">Upgrade your subscription</a> to raise the cap.</p>';
-				}
-				elseif ( $pct >= 100 )
+				if ( $pct >= 100 )
 				{
 					$upsell = '<p class="gdak-hint gdak-hint--danger">Monthly quota reached. Further requests will return 429 until ' . $h( $resetStr ) . '. <a href="' . $h( self::subscribeUrl() ) . '">Upgrade now</a> to continue immediately.</p>';
+				}
+				elseif ( $pct >= 75 )
+				{
+					$upsell = '<p class="gdak-hint">Approaching your monthly quota. <a href="' . $h( self::subscribeUrl() ) . '">Upgrade your subscription</a> to raise the cap.</p>';
 				}
 
 				$html .= '<div class="gdak-card gdak-card--muted">'
@@ -831,8 +1083,71 @@ class _api extends \IPS\Dispatcher\Controller
 	}
 
 	/**
-	 * Handle the POST from the mykey page (generate | regenerate).
-	 * CSRF-checked; only lets the member touch their OWN row.
+	 * Render a single key card (secret OR publishable) on the mykey
+	 * page. Publishable cards also include the domain-edit form.
+	 */
+	protected function renderKeyCard( array $key, string $kind, string $selfUrl, string $csrfKey ): string
+	{
+		$h      = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+		$keyStr = (string) ( $key['api_key']      ?? '' );
+		$rc     = (int)    ( $key['request_count'] ?? 0 );
+		$lu     = (int)    ( $key['last_used_at']  ?? 0 );
+		$luStr  = $lu > 0 ? date( 'Y-m-d H:i', $lu ) . ' UTC' : 'never';
+		$ca     = (int)    ( $key['created_at']   ?? 0 );
+		$caStr  = $ca > 0 ? date( 'Y-m-d', $ca )  : '—';
+
+		$isPub    = ( $kind === 'publishable' );
+		$title    = $isPub ? 'Publishable key (browser widget)' : 'Secret key (server use)';
+		$typeHint = $isPub
+			? 'Safe to embed in browser JS. Domain-locked to the origins listed below.'
+			: 'For server-to-server calls. Send as Authorization: Bearer …';
+		$regenAct = $isPub ? 'regenerate_publishable' : 'regenerate_secret';
+
+		$out = '<div class="gdak-card">'
+			. '<h2>' . $h( $title ) . '</h2>'
+			. '<p style="margin:0 0 10px;font-size:.9em;color:#475569">' . $h( $typeHint ) . '</p>'
+			. '<code class="gdak-key">' . $h( $keyStr ) . '</code>'
+			. '<dl class="gdak-meta">'
+			. '<dt>Created</dt><dd>' . $h( $caStr ) . '</dd>'
+			. '<dt>Last used</dt><dd>' . $h( $luStr ) . '</dd>'
+			. '<dt>Lifetime</dt><dd>' . number_format( $rc ) . ' requests</dd>'
+			. '</dl>';
+
+		if ( $isPub )
+		{
+			$domains = (string) ( $key['allowed_domains'] ?? '' );
+			$out .= '<form method="post" action="' . $h( $selfUrl ) . '" style="margin-top:14px">'
+				. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
+				. '<input type="hidden" name="action" value="save_domains">'
+				. '<label for="gdak-domains" style="display:block;margin:0 0 4px;font-weight:600">Allowed domains</label>'
+				. '<textarea id="gdak-domains" name="allowed_domains" rows="3" class="gdak-textarea">' . $h( $domains ) . '</textarea>'
+				. '<p style="margin:4px 0 8px;font-size:.85em;color:#64748b">One per line (or comma-separated). A registered domain covers its subdomains.</p>'
+				. '<button type="submit" class="gdak-btn">Save domains</button>'
+				. '</form>';
+		}
+
+		$out .= '<form method="post" action="' . $h( $selfUrl ) . '" onsubmit="return confirm(\'Regenerating will invalidate the existing key immediately. Any live integrations using it will break until you paste in the new key. Continue?\');" style="margin-top:14px">'
+			. '<input type="hidden" name="csrfKey" value="' . $h( $csrfKey ) . '">'
+			. '<input type="hidden" name="action" value="' . $h( $regenAct ) . '">'
+			. '<button type="submit" class="gdak-btn gdak-btn--warn">Regenerate ' . ( $isPub ? 'publishable' : 'secret' ) . ' key</button>'
+			. '</form>'
+			. '</div>';
+
+		return $out;
+	}
+
+	/**
+	 * Handle the POST from the mykey page. CSRF-checked; only lets
+	 * the member touch their OWN row.
+	 *
+	 * Actions:
+	 *   generate_secret / regenerate_secret          — Stage-1 secret key
+	 *   generate_publishable / regenerate_publishable — v1.6.34 publishable key
+	 *   save_domains                                  — update publishable key's
+	 *                                                    allowed_domains
+	 *
+	 * Regenerate revokes ONLY existing keys of the same TYPE so a
+	 * dealer with both key types keeps the other one alive.
 	 */
 	protected function mykeyAct(): void
 	{
@@ -852,7 +1167,33 @@ class _api extends \IPS\Dispatcher\Controller
 
 		$action = (string) ( \IPS\Request::i()->action ?? '' );
 
-		try { $newKey = 'gdc_' . bin2hex( random_bytes( 20 ) ); }
+		/* ---- v1.6.34 dispatch by action ---- */
+
+		if ( $action === 'save_domains' )
+		{
+			$domainsRaw = trim( substr( (string) ( \IPS\Request::i()->allowed_domains ?? '' ), 0, 4000 ) );
+			$sanitized  = $this->sanitizeDomains( $domainsRaw );
+			try
+			{
+				\IPS\Db::i()->update(
+					'gd_compliance_api_keys',
+					[ 'allowed_domains' => $sanitized ],
+					[ 'member_id=? AND key_type=? AND status=?', (int) $member->member_id, 'publishable', 'active' ]
+				);
+			}
+			catch ( \Throwable ) {}
+			\IPS\Output::i()->redirect(
+				(string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=mykey', 'front' )
+			);
+			return;
+		}
+
+		$genPub = ( $action === 'generate_publishable' || $action === 'regenerate_publishable' );
+		$isRegen = ( $action === 'regenerate_secret' || $action === 'regenerate_publishable' );
+		$keyType = $genPub ? 'publishable' : 'secret';
+
+		$prefix = $genPub ? 'gdc_pub_' : 'gdc_sk_';
+		try { $newKey = $prefix . bin2hex( random_bytes( 20 ) ); }
 		catch ( \Throwable ) { $newKey = ''; }
 		if ( $newKey === '' )
 		{
@@ -860,14 +1201,40 @@ class _api extends \IPS\Dispatcher\Controller
 			return;
 		}
 
-		if ( $action === 'regenerate' )
+		$domains = null;
+		if ( $genPub )
+		{
+			$domainsRaw = trim( substr( (string) ( \IPS\Request::i()->allowed_domains ?? '' ), 0, 4000 ) );
+			$domains    = $this->sanitizeDomains( $domainsRaw );
+			if ( $action === 'generate_publishable' && $domains === '' )
+			{
+				\IPS\Output::i()->error( 'A publishable key requires at least one allowed domain.', '2GDMK/3', 400 );
+				return;
+			}
+			/* Regenerate keeps existing domains if the form didn't send them. */
+			if ( $action === 'regenerate_publishable' && $domains === '' )
+			{
+				try
+				{
+					$existing = \IPS\Db::i()->select(
+						'allowed_domains', 'gd_compliance_api_keys',
+						[ 'member_id=? AND key_type=? AND status=?', (int) $member->member_id, 'publishable', 'active' ],
+						'id DESC', 1
+					)->first();
+					if ( is_string( $existing ) ) { $domains = $existing; }
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+
+		if ( $isRegen )
 		{
 			try
 			{
 				\IPS\Db::i()->update(
 					'gd_compliance_api_keys',
 					[ 'status' => 'revoked' ],
-					[ 'member_id=? AND status!=?', (int) $member->member_id, 'revoked' ]
+					[ 'member_id=? AND key_type=? AND status!=?', (int) $member->member_id, $keyType, 'revoked' ]
 				);
 			}
 			catch ( \Throwable ) {}
@@ -876,13 +1243,15 @@ class _api extends \IPS\Dispatcher\Controller
 		try
 		{
 			\IPS\Db::i()->insert( 'gd_compliance_api_keys', [
-				'api_key'       => $newKey,
-				'member_id'     => (int) $member->member_id,
-				'label'         => 'Self-service (' . substr( (string) $member->name, 0, 60 ) . ')',
-				'status'        => 'active',
-				'created_at'    => time(),
-				'last_used_at'  => null,
-				'request_count' => 0,
+				'api_key'         => $newKey,
+				'member_id'       => (int) $member->member_id,
+				'label'           => 'Self-service ' . $keyType . ' (' . substr( (string) $member->name, 0, 50 ) . ')',
+				'status'          => 'active',
+				'created_at'      => time(),
+				'last_used_at'    => null,
+				'request_count'   => 0,
+				'key_type'        => $keyType,
+				'allowed_domains' => $domains,
 			] );
 		}
 		catch ( \Throwable $e )
@@ -895,6 +1264,34 @@ class _api extends \IPS\Dispatcher\Controller
 		\IPS\Output::i()->redirect(
 			(string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=mykey', 'front' )
 		);
+	}
+
+	/**
+	 * Normalize a whitespace/comma-separated list of domains into a
+	 * canonical "one per line, lowercase, no scheme, no path" form.
+	 * Rejects entries that don't look like a hostname (letters,
+	 * digits, dots, hyphens).
+	 */
+	protected function sanitizeDomains( string $raw ): string
+	{
+		$raw = strtolower( trim( $raw ) );
+		if ( $raw === '' ) { return ''; }
+		$parts = preg_split( '/[\s,]+/', $raw );
+		if ( !is_array( $parts ) ) { return ''; }
+		$out = [];
+		foreach ( $parts as $p )
+		{
+			$p = trim( (string) $p );
+			if ( $p === '' ) { continue; }
+			$p = (string) preg_replace( '#^https?://#', '', $p );
+			$p = rtrim( $p, '/' );
+			if ( $p === '' ) { continue; }
+			if ( preg_match( '/^[a-z0-9][a-z0-9.\-]*[a-z0-9]$/', $p ) || $p === 'localhost' )
+			{
+				$out[] = $p;
+			}
+		}
+		return implode( "\n", array_values( array_unique( $out ) ) );
 	}
 
 	/**
@@ -935,6 +1332,8 @@ class _api extends \IPS\Dispatcher\Controller
 			. '.gdak-hint a{color:#1e40af;font-weight:600}'
 			. '.gdak-hint--danger{background:#fee2e2;border-color:#fecaca;color:#7f1d1d}'
 			. '.gdak-hint--danger a{color:#7f1d1d}'
+			. '.gdak-textarea{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-family:ui-monospace,monospace;font-size:.9em;color:#0f172a;resize:vertical;box-sizing:border-box}'
+			. '.gdak-textarea:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}'
 			. '</style>';
 	}
 
@@ -1160,6 +1559,100 @@ class _api extends \IPS\Dispatcher\Controller
 		}
 	}
 
+	/* ==================================================================
+	 * v1.6.34 — publishable-key domain lock + CORS
+	 * ================================================================== */
+
+	/**
+	 * Extract the request's origin as a full "scheme://host" string.
+	 * Prefer the Origin header (sent by browsers on cross-origin
+	 * requests); fall back to Referer's scheme+host when Origin is
+	 * absent. Empty string when neither is present or the URL can't
+	 * be parsed — that means a non-browser caller and (for a
+	 * publishable key) the auth gate rejects them.
+	 */
+	protected function requestOrigin(): string
+	{
+		$origin = trim( (string) ( $_SERVER['HTTP_ORIGIN'] ?? '' ) );
+		if ( $origin !== '' && preg_match( '~^https?://[^/]+~i', $origin ) )
+		{
+			return $origin;
+		}
+		$referer = trim( (string) ( $_SERVER['HTTP_REFERER'] ?? '' ) );
+		if ( $referer !== '' )
+		{
+			$scheme = parse_url( $referer, PHP_URL_SCHEME );
+			$host   = parse_url( $referer, PHP_URL_HOST );
+			if ( $scheme && $host )
+			{
+				return strtolower( $scheme ) . '://' . strtolower( $host );
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Domain match: is $origin's host allowed by the key's
+	 * comma/newline-separated $allowedRaw list?
+	 *
+	 * Match rules:
+	 *   - Case-insensitive.
+	 *   - Ignore any scheme or trailing slash in the allowed entry.
+	 *   - Exact host match (foo.com == foo.com).
+	 *   - Registered-domain match: an allowed entry of "foo.com"
+	 *     also matches "www.foo.com" and "shop.foo.com" (any
+	 *     subdomain), so a dealer can register their apex domain
+	 *     once and cover subdomains.
+	 *   - Localhost / IP literals only match exactly.
+	 */
+	protected function originMatchesKey( string $origin, string $allowedRaw ): bool
+	{
+		$host = strtolower( (string) ( parse_url( $origin, PHP_URL_HOST ) ?: '' ) );
+		if ( $host === '' ) { return false; }
+
+		$allowedRaw = strtolower( trim( $allowedRaw ) );
+		if ( $allowedRaw === '' ) { return false; }
+		$parts = preg_split( '/[\s,]+/', $allowedRaw );
+		if ( !is_array( $parts ) ) { return false; }
+
+		foreach ( $parts as $entry )
+		{
+			$entry = trim( (string) $entry );
+			if ( $entry === '' ) { continue; }
+			/* Normalize: strip scheme, strip trailing slash. */
+			$entry = (string) preg_replace( '#^https?://#', '', $entry );
+			$entry = rtrim( $entry, '/' );
+			if ( $entry === '' ) { continue; }
+
+			if ( $entry === $host ) { return true; }
+			/* Subdomain match: host ends with ".{entry}". Only for
+			   dotted entries — an entry of "localhost" matches
+			   only "localhost". */
+			if ( strpos( $entry, '.' ) !== false
+			  && strlen( $host ) > strlen( $entry ) + 1
+			  && substr( $host, - ( strlen( $entry ) + 1 ) ) === '.' . $entry )
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Response CORS headers. Only populated when authenticate() set
+	 * $this->allowedOrigin (publishable-key requests). For secret-key
+	 * server-to-server calls, no CORS headers — cross-origin isn't
+	 * a factor there.
+	 */
+	protected function corsHeaders(): array
+	{
+		if ( $this->allowedOrigin === '' ) { return []; }
+		return [
+			'Access-Control-Allow-Origin' => $this->allowedOrigin,
+			'Vary'                        => 'Origin',
+		];
+	}
+
 	/**
 	 * Build the standard X-RateLimit-* headers from $this->quotaState.
 	 * Returns an empty array if no quota was tracked (pre-auth error).
@@ -1202,6 +1695,7 @@ class _api extends \IPS\Dispatcher\Controller
 				'Pragma'        => 'no-cache',
 			],
 			$this->rateLimitHeaders(),
+			$this->corsHeaders(),
 			$extraHeaders
 		);
 

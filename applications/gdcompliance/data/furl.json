@@ -17,6 +17,10 @@
 			"friendly": "api/compliance/batch",
 			"real": "app=gdcompliance&module=api&controller=api&do=batch"
 		},
+		"gdcompliance_api_product": {
+			"friendly": "api/compliance/product",
+			"real": "app=gdcompliance&module=api&controller=api&do=product"
+		},
 		"gdcompliance_api_info": {
 			"friendly": "api/compliance",
 			"real": "app=gdcompliance&module=api&controller=api"
@@ -28,6 +32,10 @@
 		"gdcompliance_api_mykey_legacy": {
 			"friendly": "compliance-api/mykey",
 			"real": "app=gdcompliance&module=api&controller=api&do=mykey"
+		},
+		"gdcompliance_api_product_legacy": {
+			"friendly": "compliance-api/product",
+			"real": "app=gdcompliance&module=api&controller=api&do=product"
 		},
 		"gdcompliance_api_check_legacy": {
 			"friendly": "compliance-api/check",

@@ -89,7 +89,7 @@ class _apikeys extends \IPS\Dispatcher\Controller
 		$baseUrl = \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=apikeys' );
 		$table   = new \IPS\Helpers\Table\Db( 'gd_compliance_api_keys', $baseUrl );
 		$table->langPrefix    = 'gdcompliance_acp_apikeys_col_';
-		$table->include       = [ 'label', 'member_id', 'api_key', 'status', 'request_count', 'created_at', 'last_used_at' ];
+		$table->include       = [ 'label', 'member_id', 'api_key', 'key_type', 'allowed_domains', 'status', 'request_count', 'created_at', 'last_used_at' ];
 		$table->sortBy        = $table->sortBy ?: 'created_at';
 		$table->sortDirection = $table->sortDirection ?: 'desc';
 
@@ -113,6 +113,29 @@ class _apikeys extends \IPS\Dispatcher\Controller
 				if ( $s === '' ) { return '<span style="color:#cbd5e1">—</span>'; }
 				$shown = htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
 				return '<code style="font-family:ui-monospace,monospace;font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' . $shown . '</code>';
+			},
+			'key_type' => function( $v ) {
+				$s = (string) ( $v ?: 'secret' );
+				$style = $s === 'publishable'
+					? 'background:#e0e7ff;color:#3730a3'
+					: 'background:#e5e7eb;color:#374151';
+				return '<span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;' . $style . '">'
+					. htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' ) . '</span>';
+			},
+			'allowed_domains' => function( $v ) {
+				$s = trim( (string) ( $v ?? '' ) );
+				if ( $s === '' ) { return '<span style="color:#cbd5e1">—</span>'; }
+				$domains = preg_split( '/[\s,]+/', $s );
+				$domains = array_filter( array_map( 'trim', (array) $domains ) );
+				$shown   = array_slice( $domains, 0, 3 );
+				$more    = count( $domains ) - count( $shown );
+				$parts   = array_map( function( $d ) {
+					return '<code style="font-size:11px;background:#f1f5f9;padding:1px 5px;border-radius:4px">'
+						. htmlspecialchars( (string) $d, ENT_QUOTES, 'UTF-8' ) . '</code>';
+				}, $shown );
+				$out = implode( ' ', $parts );
+				if ( $more > 0 ) { $out .= ' <span style="color:#64748b;font-size:11px">+' . $more . ' more</span>'; }
+				return $out;
 			},
 			'status' => function( $v ) {
 				$s = (string) $v;

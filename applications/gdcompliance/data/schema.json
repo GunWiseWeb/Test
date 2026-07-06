@@ -267,7 +267,9 @@
 			"status":        { "name": "status", "type": "VARCHAR", "length": 20, "decimals": null, "allow_null": false, "default": "active", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "active|suspended|revoked" },
 			"created_at":    { "name": "created_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
 			"last_used_at":  { "name": "last_used_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
-			"request_count": { "name": "request_count", "type": "BIGINT", "length": 20, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "lifetime request counter (Stage 3 replaces with real metering)" }
+			"request_count": { "name": "request_count", "type": "BIGINT", "length": 20, "decimals": null, "allow_null": false, "default": "0", "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "lifetime request counter (Stage 3 replaces with real metering)" },
+			"key_type":      { "name": "key_type", "type": "VARCHAR", "length": 12, "decimals": null, "allow_null": false, "default": "secret", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "secret|publishable — publishable keys are safe to embed in browser JS and are domain-locked" },
+			"allowed_domains": { "name": "allowed_domains", "type": "TEXT", "length": 0, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "comma/newline-separated allowed origins for publishable keys" }
 		},
 		"indexes": {
 			"PRIMARY":     { "type": "primary", "name": "PRIMARY",     "length": [ null ],     "columns": [ "id" ] },

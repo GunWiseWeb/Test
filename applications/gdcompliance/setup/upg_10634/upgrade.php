@@ -1,28 +1,39 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.33
+ * @brief  GD Compliance — upgrade 1.6.34
  *
- * WHAT SHIPS IN 1.6.33 — Settings group-picker bugfix:
+ * WHAT SHIPS IN 1.6.34 — API Stage 4a (widget foundation):
  *
- *   modules/admin/compliance/settings.php shipped in v1.6.32 with
- *   a groupOptions() helper that queried a NON-EXISTENT
- *   core_groups.g_name column. The query threw silently and left
- *   BOTH group multi-selects (CSV allowed_groups + API access_groups)
- *   with zero options — Derrick's picker was blank. v1.6.33
- *   rewrites the helper to resolve names the IPS-native way:
- *     1. \IPS\Member\Group::groups() — Group objects whose ->name
- *        property resolves the core_group_{id} lang key.
- *     2. Fallback: iterate core_groups.g_id and resolve
- *        core_group_{id} via the current member's language.
- *   Sorted natural-case ASC.
+ *   1. NEW COLUMNS on gd_compliance_api_keys — guarded ALTER via
+ *      checkForColumn():
+ *        key_type        VARCHAR(12) NOT NULL DEFAULT 'secret'
+ *                        ('secret' | 'publishable')
+ *        allowed_domains TEXT NULL — comma/newline-separated hosts
+ *                        the publishable key may be used from
+ *      Existing rows default to 'secret' (no behavior change).
  *
- * PURE PHP FIX. No settings values changed, no schema, no lang keys.
- * Every prior migration carried forward defensively per rule #79.
- * Cache purge included so the corrected settings.php reloads on the
- * next ACP hit.
+ *   2. NEW ENDPOINT /api/compliance/product?upc=UPC — all-states
+ *      verdict (widget uses this to render the full state map on
+ *      a product page). Same auth/quota/rate-limit as check/batch.
+ *      Registered in data/furl.json under both /api/compliance/*
+ *      and legacy /compliance-api/* prefixes.
+ *
+ *   3. PUBLISHABLE KEYS — browser-safe, domain-locked. Auth flow
+ *      in the controller reads Origin (or Referer) and rejects any
+ *      request whose host doesn't match the key's allowed_domains
+ *      (subdomain match: apex covers subdomains).
+ *
+ *   4. CORS — OPTIONS preflight handled at execute() head, echoes
+ *      the Origin. Response respond() attaches
+ *      Access-Control-Allow-Origin (echoing the validated origin)
+ *      and Vary: Origin on publishable-key responses. Secret-key
+ *      responses emit no CORS (server-side; not needed).
+ *
+ * SELF-CONTAINED (rule #79). Only upg dir; every prior migration
+ * folded forward defensively.
  */
 
-namespace IPS\gdcompliance\setup\upg_10633;
+namespace IPS\gdcompliance\setup\upg_10634;
 
 use function defined;
 
@@ -69,7 +80,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10633 gdcr: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10634 gdcr: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -96,7 +107,40 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10633 apikeys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10634 apikeys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+
+		/* v1.6.34 NEW — guarded ALTER: add key_type + allowed_domains
+		   columns to gd_compliance_api_keys so Stage 4a can distinguish
+		   secret vs publishable keys and domain-lock the latter. */
+		try
+		{
+			if ( \IPS\Db::i()->checkForTable( 'gd_compliance_api_keys' )
+			  && !\IPS\Db::i()->checkForColumn( 'gd_compliance_api_keys', 'key_type' ) )
+			{
+				\IPS\Db::i()->addColumn( 'gd_compliance_api_keys', [
+					'name'       => 'key_type',
+					'type'       => 'VARCHAR',
+					'length'     => 12,
+					'default'    => 'secret',
+					'allow_null' => FALSE,
+				] );
+			}
+		}
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10634 add key_type: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+
+		try
+		{
+			if ( \IPS\Db::i()->checkForTable( 'gd_compliance_api_keys' )
+			  && !\IPS\Db::i()->checkForColumn( 'gd_compliance_api_keys', 'allowed_domains' ) )
+			{
+				\IPS\Db::i()->addColumn( 'gd_compliance_api_keys', [
+					'name'       => 'allowed_domains',
+					'type'       => 'TEXT',
+					'allow_null' => TRUE,
+				] );
+			}
+		}
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10634 add allowed_domains: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -115,7 +159,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10633 usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10634 usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		/* ------------------------------------------------------------
 		 * 2) SETTINGS — carry-forward defaults ONLY for rows that
