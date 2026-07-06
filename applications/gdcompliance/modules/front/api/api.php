@@ -1368,7 +1368,7 @@ class _api extends \IPS\Dispatcher\Controller
 		);
 		$html    = $this->mykeyStyles()
 			. '<div class="gdak-wrap"><h1>Your Compliance API Keys</h1>'
-			. '<p style="margin:-6px 0 14px"><a href="' . $h( $docsUrl ) . '" style="color:#1e40af;font-weight:600;text-decoration:none">Read the API docs →</a></p>';
+			. '<p style="margin:-6px 0 14px"><a href="' . $h( $docsUrl ) . '" target="_blank" rel="noopener" style="color:#1e40af;font-weight:600;text-decoration:none">Read the API docs →</a></p>';
 
 		/* -- Secret key card. -- */
 		if ( is_array( $secretKey ) )
