@@ -147,6 +147,73 @@ class _Product extends \IPS\Content\Item
 	{
 		return true;
 	}
+
+	/**
+	 * v1.0.1 — recompute review_count + rating_avg on the shadow row
+	 * from the current set of approved, non-hidden reviews. Called
+	 * after every create / edit / delete so the aggregate the gdsearch
+	 * product-page tab (Stage 3) reads is always fresh.
+	 *
+	 * Idempotent — safe to call redundantly. If the shadow row is
+	 * missing (e.g. every review has been deleted and no row was
+	 * lazily created), the call is a no-op.
+	 */
+	public static function recomputeAggregate( string $upc ): void
+	{
+		$upc = trim( $upc );
+		if ( $upc === '' ) { return; }
+
+		try
+		{
+			$row = \IPS\Db::i()->select(
+				'COUNT(*) AS n, COALESCE(AVG(review_rating),0) AS avg, MAX(review_date) AS last_ts',
+				'gdreviews_reviews',
+				[ 'review_upc=? AND review_approved=1 AND review_hidden=0', $upc ]
+			)->first();
+		}
+		catch ( \Throwable )
+		{
+			return;
+		}
+
+		$count  = (int)   ( $row['n']       ?? 0 );
+		$avg    = (float) ( $row['avg']     ?? 0 );
+		$lastTs = (int)   ( $row['last_ts'] ?? 0 );
+
+		$lastBy   = 0;
+		$lastName = null;
+		if ( $count > 0 )
+		{
+			try
+			{
+				$latest = \IPS\Db::i()->select(
+					'review_author, review_author_name',
+					'gdreviews_reviews',
+					[ 'review_upc=? AND review_approved=1 AND review_hidden=0', $upc ],
+					'review_date DESC',
+					1
+				)->first();
+				$lastBy   = (int)    ( $latest['review_author']      ?? 0 );
+				$lastName = (string) ( $latest['review_author_name'] ?? '' );
+				if ( $lastName === '' ) { $lastName = null; }
+			}
+			catch ( \Throwable ) {}
+		}
+
+		try
+		{
+			\IPS\Db::i()->update( 'gdreviews_products', [
+				'product_review_count'     => $count,
+				'product_rating_real'      => round( $avg, 2 ),
+				'product_rating_hits'      => $count,
+				'product_rating'           => $count > 0 ? (int) round( $avg ) : null,
+				'product_last_review'      => $lastTs,
+				'product_last_review_by'   => $lastBy,
+				'product_last_review_name' => $lastName,
+			], [ 'product_upc=?', $upc ] );
+		}
+		catch ( \Throwable ) {}
+	}
 }
 
 class Product extends _Product {}

@@ -1,5 +1,9 @@
 {
 	"topLevel": "product-reviews",
 	"pages": {
+		"reviews_product": {
+			"friendly": "product/{@upc}",
+			"real": "app=gdreviews&module=reviews&controller=product"
+		}
 	}
 }

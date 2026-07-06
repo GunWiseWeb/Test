@@ -26,5 +26,22 @@
 		<word key="gdreviews_write_review" js="0"><![CDATA[Write a review]]></word>
 		<word key="gdreviews_no_reviews" js="0"><![CDATA[No reviews yet — be the first to write one.]]></word>
 		<word key="gdreviews_review_placeholder" js="0"><![CDATA[Product reviews are not available yet. Stage 2 of the rollout ships the submission form.]]></word>
+
+		<word key="gdreviews_rating" js="0"><![CDATA[Your rating]]></word>
+		<word key="gdreviews_field_title" js="0"><![CDATA[Title (optional)]]></word>
+		<word key="gdreviews_field_title_ph" js="0"><![CDATA[Sum up your experience in a few words]]></word>
+		<word key="gdreviews_field_content" js="0"><![CDATA[Your review]]></word>
+		<word key="gdreviews_submit" js="0"><![CDATA[Submit review]]></word>
+		<word key="gdreviews_save" js="0"><![CDATA[Save changes]]></word>
+		<word key="gdreviews_delete" js="0"><![CDATA[Delete review]]></word>
+		<word key="gdreviews_delete_confirm" js="0"><![CDATA[Delete your review? This cannot be undone.]]></word>
+		<word key="gdreviews_your_review" js="0"><![CDATA[Your review]]></word>
+		<word key="gdreviews_login_to_review" js="0"><![CDATA[Log in to write a review.]]></word>
+		<word key="gdreviews_login" js="0"><![CDATA[Log in]]></word>
+		<word key="gdreviews_form_error" js="0"><![CDATA[Please pick a rating and enter a review.]]></word>
+		<word key="gdreviews_agg_fmt" js="0"><![CDATA[from %s review(s)]]></word>
+		<word key="gdreviews_missing_upc" js="0"><![CDATA[No product specified.]]></word>
+		<word key="gdreviews_product_not_found" js="0"><![CDATA[Product not found.]]></word>
+		<word key="gdreviews_save_failed" js="0"><![CDATA[Could not save your review. Please try again.]]></word>
 	</app>
 </language>
