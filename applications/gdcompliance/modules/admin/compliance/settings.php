@@ -48,22 +48,72 @@ class _settings extends \IPS\Dispatcher\Controller
 	}
 
 	/**
-	 * Build the `g_id => g_name` map for the group multi-selects.
-	 * Uses core_groups directly. Memoized per request.
+	 * Build the id → display-name map for the group multi-selects.
+	 *
+	 * IMPORTANT: core_groups has NO column carrying the display name
+	 * in IPS 5. Group names live in the language system as
+	 * `core_group_{g_id}` keys. v1.6.32 shipped with a broken query
+	 * that selected a nonexistent name column and threw silently,
+	 * leaving the pickers empty. v1.6.33 resolves names the IPS-
+	 * native way:
+	 *
+	 *   1. Prefer \IPS\Member\Group::groups() — returns Group objects
+	 *      whose ->name property resolves the core_group_{id} lang
+	 *      key to a readable name ("Administrators", "API Access",
+	 *      "Dealers - Enterprise", …). This is what IPS uses
+	 *      internally to render group names.
+	 *
+	 *   2. Fallback: iterate core_groups g_id and resolve each
+	 *      "core_group_{id}" via the current member's language.
+	 *      Covers a boot state where Group::groups() isn't ready.
+	 *
+	 * Result sorted alphabetically by name so the picker reads
+	 * naturally. Memoized per request.
 	 */
 	protected function groupOptions(): array
 	{
 		static $cache = null;
 		if ( $cache !== null ) { return $cache; }
 		$out = [];
+
+		/* Path 1: IPS Group API. */
 		try
 		{
-			foreach ( \IPS\Db::i()->select( 'g_id, g_name', 'core_groups', null, 'g_name ASC' ) as $row )
+			foreach ( \IPS\Member\Group::groups( TRUE, FALSE ) as $group )
 			{
-				$out[ (int) $row['g_id'] ] = (string) $row['g_name'];
+				$id   = (int) $group->g_id;
+				$name = trim( (string) $group->name );
+				if ( $id > 0 && $name !== '' )
+				{
+					$out[ $id ] = $name;
+				}
 			}
 		}
 		catch ( \Throwable ) {}
+
+		/* Path 2: fallback via lang keys. Only run if Path 1 produced
+		   nothing — cheap defence against Group::groups() misbehaving
+		   in a bare context. */
+		if ( empty( $out ) )
+		{
+			try
+			{
+				$lang = \IPS\Member::loggedIn()->language();
+				foreach ( \IPS\Db::i()->select( 'g_id', 'core_groups' ) as $gid )
+				{
+					$id  = (int) $gid;
+					if ( $id <= 0 ) { continue; }
+					$key = 'core_group_' . $id;
+					try { $name = (string) $lang->get( $key ); }
+					catch ( \Throwable ) { $name = ''; }
+					if ( $name === '' || $name === $key ) { $name = 'Group #' . $id; }
+					$out[ $id ] = $name;
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
+		asort( $out, SORT_NATURAL | SORT_FLAG_CASE );
 		$cache = $out;
 		return $out;
 	}

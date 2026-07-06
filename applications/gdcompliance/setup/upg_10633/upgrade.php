@@ -1,29 +1,28 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.32
+ * @brief  GD Compliance — upgrade 1.6.33
  *
- * WHAT SHIPS IN 1.6.32 — Settings ACP UI rebuild:
+ * WHAT SHIPS IN 1.6.33 — Settings group-picker bugfix:
  *
- *   - modules/admin/compliance/settings.php now exposes every
- *     gdcompliance_* setting that ships with the app, grouped by:
- *       (1) Storefront panel   (2) Public Lookup   (3) CSV Gate
- *       (4) Compliance API     (5) Rosters
- *     Group-picker multi-selects for the CSV + API allowlist.
- *     JSON validation on api_tiers (invalid → form error, existing
- *     value preserved). WARNING label on the "verified" toggle.
+ *   modules/admin/compliance/settings.php shipped in v1.6.32 with
+ *   a groupOptions() helper that queried a NON-EXISTENT
+ *   core_groups.g_name column. The query threw silently and left
+ *   BOTH group multi-selects (CSV allowed_groups + API access_groups)
+ *   with zero options — Derrick's picker was blank. v1.6.33
+ *   rewrites the helper to resolve names the IPS-native way:
+ *     1. \IPS\Member\Group::groups() — Group objects whose ->name
+ *        property resolves the core_group_{id} lang key.
+ *     2. Fallback: iterate core_groups.g_id and resolve
+ *        core_group_{id} via the current member's language.
+ *   Sorted natural-case ASC.
  *
- *   - NO setting values changed. Existing DB values load into the
- *     form; only an explicit ACP save writes back.
- *
- *   - Any missing setting rows still get their canonical default via
- *     the carry-forward direct-insert loop below (defensive; a fresh
- *     install already has them via data/settings.json).
- *
- * SELF-CONTAINED (rule #79). Only upg dir; all prior migrations
- * folded forward defensively.
+ * PURE PHP FIX. No settings values changed, no schema, no lang keys.
+ * Every prior migration carried forward defensively per rule #79.
+ * Cache purge included so the corrected settings.php reloads on the
+ * next ACP hit.
  */
 
-namespace IPS\gdcompliance\setup\upg_10632;
+namespace IPS\gdcompliance\setup\upg_10633;
 
 use function defined;
 
@@ -70,7 +69,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10632 gdcr: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10633 gdcr: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -97,7 +96,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10632 apikeys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10633 apikeys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -116,7 +115,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10632 usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10633 usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		/* ------------------------------------------------------------
 		 * 2) SETTINGS — carry-forward defaults ONLY for rows that
