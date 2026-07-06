@@ -102,7 +102,12 @@ class _apikeys extends \IPS\Dispatcher\Controller
 		$baseUrl = \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=apikeys' );
 		$table   = new \IPS\Helpers\Table\Db( 'gd_compliance_api_keys', $baseUrl );
 		$table->langPrefix    = 'gdcompliance_acp_apikeys_col_';
-		$table->include       = [ 'label', 'member_id', 'api_key', 'key_type', 'allowed_domains', 'status', 'request_count', 'created_at', 'last_used_at' ];
+		/* v1.6.46 — trim to essential columns so the row-action
+		   buttons (revoke / block / unblock) are reachable on the
+		   right. Dropped `allowed_domains` (long) and `created_at`
+		   (redundant with last_used_at at a glance). Full domain
+		   list + created timestamp still available on detail. */
+		$table->include       = [ 'label', 'member_id', 'api_key', 'key_type', 'status', 'request_count', 'last_used_at' ];
 		$table->sortBy        = $table->sortBy ?: 'created_at';
 		$table->sortDirection = $table->sortDirection ?: 'desc';
 
@@ -127,8 +132,14 @@ class _apikeys extends \IPS\Dispatcher\Controller
 			'api_key' => function( $v ) {
 				$s = (string) $v;
 				if ( $s === '' ) { return '<span style="color:#cbd5e1">—</span>'; }
-				$shown = htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
-				return '<code style="font-family:ui-monospace,monospace;font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' . $shown . '</code>';
+				/* v1.6.46 — truncate to a 16-char prefix so the row
+				   doesn't overflow and push the action buttons off
+				   the right edge. Full key is shown once at
+				   creation (the green code block) and stored in
+				   full in the DB — only the LIST view is trimmed. */
+				$short = strlen( $s ) > 16 ? substr( $s, 0, 16 ) . '…' : $s;
+				$shown = htmlspecialchars( $short, ENT_QUOTES, 'UTF-8' );
+				return '<code title="' . htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' ) . '" style="font-family:ui-monospace,monospace;font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' . $shown . '</code>';
 			},
 			'key_type' => function( $v ) {
 				$s = (string) ( $v ?: 'secret' );
