@@ -2,7 +2,7 @@
 /**
  * @brief  GD Reviews — Product Content Item (Stage 1 of 4).
  *
- * A thin IPS Content Item that represents "a reviewable product,"
+ * A thin IPS Content Item that represents a product open for reviews,
  * keyed by catalog UPC and backed by the gdreviews_products shadow
  * table (which we own). The product's display data (title, image,
  * category) is read live from gd_catalog by UPC on demand — never
@@ -36,7 +36,13 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 
 class _Product extends \IPS\Content\Item
 {
-	use \IPS\Content\Reviewable;
+	/* v1.0.2 — reviewability is wired via the $reviewClass static
+	   property below (the pattern IPS's Downloads app uses on
+	   \IPS\downloads\File). IPS 5.0.18 has no such trait; the
+	   v1.0.1 `use` line for that phantom trait fatalled every
+	   page hit with "Trait ... not found." Ratings, helpful-votes,
+	   and moderation are wired through the review class named
+	   here — not through a trait. */
 
 	public static ?string $databaseTable   = 'gdreviews_products';
 	public static string  $databaseColumnId = 'product_id';
