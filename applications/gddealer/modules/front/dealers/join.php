@@ -78,6 +78,64 @@ class _join extends \IPS\Dispatcher\Controller
 	}
 
 	/**
+	 * v1.0.326 — Dealer login entry point.
+	 *
+	 * A single URL that a dealer-facing "Dealer Login" link can point
+	 * at. Behavior:
+	 *   1. Logged OUT  → send the visitor through IPS core login, with
+	 *      a `ref` back to this endpoint so the dealer-status redirect
+	 *      runs after they authenticate.
+	 *   2. Logged IN + registered dealer (has a Dealer record) → dashboard.
+	 *   3. Logged IN + in a dealer group but NOT registered → registration form.
+	 *   4. Logged IN + not a dealer → external buy-membership page.
+	 *
+	 * Steps 2–4 mirror `manage()` above so the outcome after login is
+	 * indistinguishable from visiting the join landing page while
+	 * already authenticated. `Dealer::isDealerMember()` is the
+	 * canonical primary+secondary group check.
+	 */
+	protected function login(): void
+	{
+		$member = \IPS\Member::loggedIn();
+
+		/* 1) Not logged in — hand off to IPS login, come back afterward. */
+		if ( !$member->member_id )
+		{
+			$self = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=join&do=login', 'front' );
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=core&module=system&controller=login', 'front', 'login' )
+					->setQueryString( 'ref', base64_encode( $self ) )
+			);
+			return;
+		}
+
+		/* 2) Registered dealer — straight to dashboard. */
+		try
+		{
+			Dealer::load( (int) $member->member_id );
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard' )
+			);
+			return;
+		}
+		catch ( \OutOfRangeException ) { /* not registered yet */ }
+
+		/* 3) Dealer group member but no Dealer record → registration form. */
+		if ( Dealer::isDealerMember( $member ) )
+		{
+			\IPS\Output::i()->redirect(
+				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=join&do=register' )
+			);
+			return;
+		}
+
+		/* 4) Not a dealer — external buy-membership page (mirrors manage()). */
+		\IPS\Output::i()->redirect(
+			\IPS\Http\Url::external( 'https://gunrack.deals/dealer-memberships/' )
+		);
+	}
+
+	/**
 	 * Resolve a tier's CTA URL. If an IPS Commerce product ID is configured,
 	 * send the dealer straight into the nexus checkout flow. Otherwise fall
 	 * back to the join landing page itself.
