@@ -513,6 +513,13 @@ $lang = array(
 	'gdcompliance_acp_apikeys_action_reactivate' => 'Reactivate',
 	'gdcompliance_acp_apikeys_action_revoke'     => 'Revoke',
 
+	/* v1.6.45 — member-level API block (hard cut, overrides group + per-key) */
+	'gdcompliance_acp_apikeys_action_block'   => 'Block API access',
+	'gdcompliance_acp_apikeys_action_unblock' => 'Unblock API access',
+	'gdcompliance_acp_apikeys_block_title'    => 'Block API access',
+	'acplog__gdcompliance_apikey_block'       => 'Blocked compliance API access for member %s: %s',
+	'acplog__gdcompliance_apikey_unblock'     => 'Unblocked compliance API access for member %s',
+
 	'gdcompliance_api_disclaimer'      => 'API response disclaimer',
 	'gdcompliance_api_disclaimer_desc' => 'Legal-guidance text embedded in every /compliance-api/ JSON response so it propagates to the dealer\'s frontend (liability chain).',
 	'gdcompliance_api_verified'        => 'Data verification: mark data as legally verified',

@@ -557,6 +557,24 @@ class _api extends \IPS\Dispatcher\Controller
 			return null;
 		}
 
+		/* v1.6.45 MEMBER-BLOCK GATE — the un-bypassable cutoff.
+		   A row in gd_compliance_api_blocked for this key's owner
+		   overrides EVERYTHING: valid key + in group + active
+		   subscription + valid Origin → still 403 access_suspended.
+		   This is what admins use to actually cut off a still-paying
+		   dealer (abuse / key-sharing / ToS). Applies to both secret
+		   and publishable keys, on every endpoint. Not bypassable by
+		   regenerating a key on the mykey page because that generate
+		   flow is also block-gated (see mykeyAct). */
+		if ( self::isMemberBlocked( (int) ( $row['member_id'] ?? 0 ) ) )
+		{
+			$this->respond( [
+				'error'   => 'access_suspended',
+				'message' => 'API access for this account has been suspended. Contact support.',
+			], 403 );
+			return null;
+		}
+
 		/* v1.6.34 DOMAIN GATE (publishable keys only). Secret keys are
 		   server-to-server and skip this — they don't carry an Origin.
 		   Publishable keys are safe to embed in browser JS because a
@@ -805,6 +823,48 @@ class _api extends \IPS\Dispatcher\Controller
 	/* ==================================================================
 	 * v1.6.30 helpers — subscription gate + subscribe URL builder
 	 * ================================================================== */
+
+	/**
+	 * v1.6.45 — is this member on the admin-controlled API block list?
+	 *
+	 * Precedence (highest first) — documented for future maintainers:
+	 *   MEMBER BLOCK (this row)  →  overrides everything, 403
+	 *                                 access_suspended. Un-bypassable
+	 *                                 because it's the member row not
+	 *                                 the key row — regenerating a key
+	 *                                 doesn't help.
+	 *   Subscription group gate  →  Stage 2. Live per-request check;
+	 *                                 IPS removes lapsed subscribers
+	 *                                 from the group → 402
+	 *                                 subscription_inactive.
+	 *   Per-key status           →  Stage 1. Narrow per-key mechanism
+	 *                                 (individual key suspend/revoke)
+	 *                                 for surgical rotation without
+	 *                                 cutting off the member.
+	 *
+	 * Returns the row (with reason) when blocked so the caller can
+	 * surface a friendly message; null when not blocked. Best-effort
+	 * — a DB failure fail-CLOSED would break the entire API for a
+	 * transient blip; we fail-OPEN here (return null) since a real
+	 * block will re-check on the next request.
+	 */
+	protected static function memberBlockRow( int $memberId ): ?array
+	{
+		if ( $memberId <= 0 ) { return null; }
+		try
+		{
+			$row = \IPS\Db::i()->select(
+				'*', 'gd_compliance_api_blocked', [ 'member_id=?', $memberId ]
+			)->first();
+			return is_array( $row ) ? $row : null;
+		}
+		catch ( \Throwable ) { return null; }
+	}
+
+	protected static function isMemberBlocked( int $memberId ): bool
+	{
+		return self::memberBlockRow( $memberId ) !== null;
+	}
 
 	/**
 	 * The parsed list of member group IDs allowed to use the API.
@@ -1335,6 +1395,29 @@ class _api extends \IPS\Dispatcher\Controller
 			return;
 		}
 
+		/* v1.6.45 MEMBER BLOCK short-circuit. If an admin flagged this
+		   member in gd_compliance_api_blocked, they cannot see or
+		   touch key management — no generate, no regenerate, no
+		   domain edit. mykeyAct() is also block-gated (defense in
+		   depth) so even a forged POST can't mint a key. Render a
+		   clear notice with the reason (if the admin left one). */
+		$blockRow = self::memberBlockRow( (int) $member->member_id );
+		if ( is_array( $blockRow ) )
+		{
+			$reason = trim( (string) ( $blockRow['reason'] ?? '' ) );
+			\IPS\Output::i()->output = $this->mykeyStyles()
+				. '<div class="gdak-wrap">'
+				. '<h1>Your Compliance API Keys</h1>'
+				. '<div class="gdak-card gdak-card--warn">'
+				. '<h2>🔒 Access suspended</h2>'
+				. '<p>Your API access has been suspended by an administrator. Please contact support to restore access.</p>'
+				. ( $reason !== ''
+					? '<p style="margin-top:8px"><strong>Reason:</strong> ' . $h( $reason ) . '</p>'
+					: '' )
+				. '</div></div>';
+			return;
+		}
+
 		/* v1.6.34 — fetch ALL active/suspended keys for this member.
 		   May have one secret + one publishable. Legacy rows without a
 		   key_type column default to 'secret'. */
@@ -1857,6 +1940,16 @@ class _api extends \IPS\Dispatcher\Controller
 			return;
 		}
 		if ( self::memberApiStatus( $member ) !== 'active' )
+		{
+			\IPS\Output::i()->redirect( $this->mykeyRedirectUrl() );
+			return;
+		}
+
+		/* v1.6.45 defense-in-depth: even if someone forges the POST,
+		   an admin-blocked member cannot mint or rotate a key. This
+		   check MUST run before any INSERT/UPDATE below — hiding the
+		   UI (see mykey() above) is not sufficient by itself. */
+		if ( self::isMemberBlocked( (int) $member->member_id ) )
 		{
 			\IPS\Output::i()->redirect( $this->mykeyRedirectUrl() );
 			return;

@@ -278,6 +278,18 @@
 			"idx_status":  { "type": "key",     "name": "idx_status",  "length": [ null ],     "columns": [ "status" ] }
 		}
 	},
+	"gd_compliance_api_blocked": {
+		"name": "gd_compliance_api_blocked",
+		"columns": {
+			"member_id":  { "name": "member_id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "PK / unique — the blocked member. Row-exists = blocked." },
+			"reason":     { "name": "reason", "type": "TEXT", "length": 0, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "admin-entered reason for the block" },
+			"blocked_at": { "name": "blocked_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+			"blocked_by": { "name": "blocked_by", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "admin member_id who applied the block" }
+		},
+		"indexes": {
+			"PRIMARY": { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "member_id" ] }
+		}
+	},
 	"gd_compliance_api_usage": {
 		"name": "gd_compliance_api_usage",
 		"columns": {

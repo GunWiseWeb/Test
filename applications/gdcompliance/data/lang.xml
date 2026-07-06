@@ -434,6 +434,11 @@
 <word key="gdcompliance_acp_apikeys_action_suspend" js="0"><![CDATA[Suspend]]></word>
 <word key="gdcompliance_acp_apikeys_action_reactivate" js="0"><![CDATA[Reactivate]]></word>
 <word key="gdcompliance_acp_apikeys_action_revoke" js="0"><![CDATA[Revoke]]></word>
+<word key="gdcompliance_acp_apikeys_action_block" js="0"><![CDATA[Block API access]]></word>
+<word key="gdcompliance_acp_apikeys_action_unblock" js="0"><![CDATA[Unblock API access]]></word>
+<word key="gdcompliance_acp_apikeys_block_title" js="0"><![CDATA[Block API access]]></word>
+<word key="acplog__gdcompliance_apikey_block" js="0"><![CDATA[Blocked compliance API access for member %s: %s]]></word>
+<word key="acplog__gdcompliance_apikey_unblock" js="0"><![CDATA[Unblocked compliance API access for member %s]]></word>
 <word key="gdcompliance_api_disclaimer" js="0"><![CDATA[API response disclaimer]]></word>
 <word key="gdcompliance_api_disclaimer_desc" js="0"><![CDATA[Legal-guidance text embedded in every /compliance-api/ JSON response so it propagates to the dealer's frontend (liability chain).]]></word>
 <word key="gdcompliance_api_verified" js="0"><![CDATA[Data verification: mark data as legally verified]]></word>

@@ -86,6 +86,19 @@ class _apikeys extends \IPS\Dispatcher\Controller
 				. '</div>' . $intro;
 		}
 
+		/* v1.6.45 — preload the set of API-blocked member_ids so the
+		   row parsers can flag them in the list without N per-row
+		   queries. */
+		$blockedIds = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'member_id', 'gd_compliance_api_blocked' ) as $mid )
+			{
+				$blockedIds[ (int) $mid ] = true;
+			}
+		}
+		catch ( \Throwable ) {}
+
 		$baseUrl = \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=apikeys' );
 		$table   = new \IPS\Helpers\Table\Db( 'gd_compliance_api_keys', $baseUrl );
 		$table->langPrefix    = 'gdcompliance_acp_apikeys_col_';
@@ -97,16 +110,19 @@ class _apikeys extends \IPS\Dispatcher\Controller
 			'label' => function( $v ) {
 				return $v ? htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) : '<em style="color:#94a3b8">(unlabeled)</em>';
 			},
-			'member_id' => function( $v ) {
+			'member_id' => function( $v ) use ( $blockedIds ) {
 				if ( !$v ) { return '<span style="color:#cbd5e1">—</span>'; }
+				$blockedBadge = isset( $blockedIds[ (int) $v ] )
+					? ' <span title="This member has been blocked from the compliance API by an administrator." style="display:inline-block;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;background:#7f1d1d;color:#fee2e2;vertical-align:middle;margin-left:4px">BLOCKED</span>'
+					: '';
 				try
 				{
 					$m   = \IPS\Member::load( (int) $v );
 					$url = (string) $m->url();
 					$name = htmlspecialchars( (string) $m->name, ENT_QUOTES, 'UTF-8' );
-					return '<a href="' . htmlspecialchars( $url, ENT_QUOTES, 'UTF-8' ) . '">' . $name . '</a>';
+					return '<a href="' . htmlspecialchars( $url, ENT_QUOTES, 'UTF-8' ) . '">' . $name . '</a>' . $blockedBadge;
 				}
-				catch ( \Throwable ) { return '#' . (int) $v; }
+				catch ( \Throwable ) { return '#' . (int) $v . $blockedBadge; }
 			},
 			'api_key' => function( $v ) {
 				$s = (string) $v;
@@ -153,9 +169,10 @@ class _apikeys extends \IPS\Dispatcher\Controller
 			'last_used_at' => function( $v ) { return $v ? htmlspecialchars( date( 'Y-m-d H:i', (int) $v ), ENT_QUOTES, 'UTF-8' ) : '<span style="color:#cbd5e1">never</span>'; },
 		];
 
-		$table->rowButtons = function( $row ) {
+		$table->rowButtons = function( $row ) use ( $blockedIds ) {
 			$base = 'app=gdcompliance&module=compliance&controller=apikeys';
 			$status = (string) ( $row['status'] ?? 'active' );
+			$mid    = (int)    ( $row['member_id'] ?? 0 );
 			$btns = [];
 			if ( $status === 'active' )
 			{
@@ -180,6 +197,30 @@ class _apikeys extends \IPS\Dispatcher\Controller
 					'title' => 'gdcompliance_acp_apikeys_action_revoke',
 					'link'  => \IPS\Http\Url::internal( $base . '&do=revokeAct&id=' . (int) $row['id'] )->csrf(),
 				];
+			}
+
+			/* v1.6.45 — member-level API block. Block goes to a form
+			   (GET, no CSRF on the URL per rule #62/#81). Unblock is
+			   a direct redirecting action, so CSRF on the URL is fine
+			   (rule #62 exempts redirect actions). */
+			if ( $mid > 0 )
+			{
+				if ( isset( $blockedIds[ $mid ] ) )
+				{
+					$btns['unblock'] = [
+						'icon'  => 'unlock',
+						'title' => 'gdcompliance_acp_apikeys_action_unblock',
+						'link'  => \IPS\Http\Url::internal( $base . '&do=unblockAct&member_id=' . $mid )->csrf(),
+					];
+				}
+				else
+				{
+					$btns['block'] = [
+						'icon'  => 'ban',
+						'title' => 'gdcompliance_acp_apikeys_action_block',
+						'link'  => \IPS\Http\Url::internal( $base . '&do=blockForm&member_id=' . $mid ),
+					];
+				}
 			}
 			return $btns;
 		};
@@ -331,6 +372,150 @@ class _apikeys extends \IPS\Dispatcher\Controller
 		{
 			try { \IPS\Log::log( 'apikeys setStatus: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
 		}
+		\IPS\Output::i()->redirect(
+			(string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=apikeys' )
+		);
+	}
+
+	/**
+	 * GET: render the block-reason form. A member-level block hard-cuts
+	 * API access even for still-paying, in-group dealers whose per-key
+	 * status is ACTIVE — used for abuse / key-sharing / ToS violations
+	 * where the paid subscription cannot be leveraged as a bypass.
+	 *
+	 * NOTE (rule #62/#81): this URL renders HTML (a 2xx GET) so it must
+	 * NOT carry ->csrf() in the URL. CSRF is embedded in the form as a
+	 * hidden field and validated in blockAct() on POST.
+	 */
+	protected function blockForm(): void
+	{
+		$memberId = (int) ( \IPS\Request::i()->member_id ?? 0 );
+		if ( $memberId <= 0 )
+		{
+			\IPS\Output::i()->error( 'Missing member_id', '2GDAK/8', 400 );
+			return;
+		}
+
+		$lang = \IPS\Member::loggedIn()->language();
+		$esc  = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+
+		$who = '#' . $memberId;
+		try
+		{
+			$m = \IPS\Member::load( $memberId );
+			if ( $m && $m->member_id ) { $who = (string) $m->name . ' (#' . $memberId . ')'; }
+		}
+		catch ( \Throwable ) {}
+
+		$actionUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=compliance&controller=apikeys&do=blockAct'
+		);
+		$csrfKey = (string) \IPS\Session::i()->csrfKey;
+
+		$html = '<div class="ipsBox" style="max-width:640px;margin:12px auto"><div class="ipsBox_body ipsPad">'
+			. '<h2 class="ipsType_sectionHead" style="margin:0 0 12px">' . $esc( (string) $lang->addToStack( 'gdcompliance_acp_apikeys_block_title' ) ) . '</h2>'
+			. '<p style="margin:0 0 12px;color:#475569">Blocking a member hard-cuts their compliance-API access. '
+			. 'The block overrides everything — subscription group membership AND per-key status. '
+			. 'Use for abuse / key-sharing / ToS violations where a still-paying dealer should not have access.</p>'
+			. '<p style="margin:0 0 12px"><strong>Member:</strong> ' . $esc( $who ) . '</p>'
+			. '<form method="post" action="' . $esc( $actionUrl ) . '">'
+			. '<input type="hidden" name="csrfKey"   value="' . $esc( $csrfKey ) . '">'
+			. '<input type="hidden" name="member_id" value="' . (int) $memberId . '">'
+			. '<div style="margin-bottom:12px">'
+			. '<label for="gdak-reason" style="display:block;font-weight:600;margin-bottom:4px">Reason (required)</label>'
+			. '<textarea id="gdak-reason" name="reason" rows="4" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:6px" placeholder="e.g. Key shared across multiple unrelated storefronts; contacted dealer 2026-06-15."></textarea>'
+			. '<p style="margin:4px 0 0;font-size:12px;color:#64748b">Visible to the dealer on their mykey page.</p>'
+			. '</div>'
+			. '<button type="submit" class="ipsButton ipsButton--primary" style="background:#7f1d1d;border-color:#7f1d1d">' . $esc( (string) $lang->addToStack( 'gdcompliance_acp_apikeys_action_block' ) ) . '</button> '
+			. '<a href="' . $esc( (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=apikeys' ) ) . '" class="ipsButton ipsButton--link">Cancel</a>'
+			. '</form></div></div>';
+
+		\IPS\Output::i()->title  = $lang->addToStack( 'gdcompliance_acp_apikeys_block_title' );
+		\IPS\Output::i()->output = $html;
+	}
+
+	/**
+	 * POST: insert / update the block row and redirect back to the list.
+	 * Idempotent (uses replace()) — re-blocking simply refreshes the
+	 * reason and blocked_at/by. Logs to core_admin_logs for audit.
+	 */
+	protected function blockAct(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$memberId = (int) ( \IPS\Request::i()->member_id ?? 0 );
+		$reason   = trim( (string) ( \IPS\Request::i()->reason ?? '' ) );
+
+		if ( $memberId <= 0 || $reason === '' )
+		{
+			\IPS\Output::i()->error( 'member_id and reason are required.', '2GDAK/9', 400 );
+			return;
+		}
+
+		try
+		{
+			\IPS\Db::i()->replace( 'gd_compliance_api_blocked', [
+				'member_id'  => $memberId,
+				'reason'     => $reason,
+				'blocked_at' => time(),
+				'blocked_by' => (int) \IPS\Member::loggedIn()->member_id,
+			] );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'apikeys blockAct: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+			\IPS\Output::i()->error( 'Could not apply the block.', '2GDAK/A', 500 );
+			return;
+		}
+
+		try
+		{
+			\IPS\Session::i()->log( 'acplog__gdcompliance_apikey_block', [
+				'member_id' => $memberId,
+				'reason'    => $reason,
+			] );
+		}
+		catch ( \Throwable ) {}
+
+		\IPS\Output::i()->redirect(
+			(string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=apikeys' )
+		);
+	}
+
+	/**
+	 * POST/GET redirect: delete the block row (member is un-blocked).
+	 * URL carries ->csrf() and this immediately redirects, which is
+	 * the allowed pattern per rule #62. Idempotent — deleting a
+	 * non-existent row is a no-op.
+	 */
+	protected function unblockAct(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$memberId = (int) ( \IPS\Request::i()->member_id ?? 0 );
+		if ( $memberId <= 0 )
+		{
+			\IPS\Output::i()->error( 'Missing member_id', '2GDAK/B', 400 );
+			return;
+		}
+
+		try
+		{
+			\IPS\Db::i()->delete( 'gd_compliance_api_blocked', [ 'member_id=?', $memberId ] );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'apikeys unblockAct: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
+
+		try
+		{
+			\IPS\Session::i()->log( 'acplog__gdcompliance_apikey_unblock', [
+				'member_id' => $memberId,
+			] );
+		}
+		catch ( \Throwable ) {}
+
 		\IPS\Output::i()->redirect(
 			(string) \IPS\Http\Url::internal( 'app=gdcompliance&module=compliance&controller=apikeys' )
 		);
