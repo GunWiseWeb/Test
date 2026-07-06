@@ -199,6 +199,11 @@ class _api extends \IPS\Dispatcher\Controller
 			$this->product();
 			return;
 		}
+		if ( preg_match( '~/docs/?$~', $path ) )
+		{
+			$this->docs();
+			return;
+		}
 
 		$this->respond( [
 			'name'      => 'gunrack-compliance-api',
@@ -213,7 +218,7 @@ class _api extends \IPS\Dispatcher\Controller
 				'secret'      => 'Server-to-server. Full access. Do NOT embed in browser JS.',
 				'publishable' => 'Browser-safe. Domain-locked (Origin header must match registered domains). Read endpoints only.',
 			],
-			'docs'      => 'https://gunrack.deals/api/compliance',
+			'docs'      => 'https://gunrack.deals/api/compliance/docs',
 		], 200 );
 	}
 
@@ -881,6 +886,402 @@ class _api extends \IPS\Dispatcher\Controller
 	 * Subscribed member     → key management (view / generate /
 	 *                          regenerate) + integration snippet.
 	 */
+
+	/* ==================================================================
+	 * v1.6.36 — API documentation page (HTML, gated)
+	 * ==================================================================
+	 *
+	 * /api/compliance/docs. Guests bounce to login; logged-in members
+	 * outside the API-access groups see the subscribe upsell; admins
+	 * and API subscribers get the full developer reference. Content
+	 * matches the shipped API as of Stage 4 (check + batch + product +
+	 * mykey; secret + publishable keys; tier quotas / burst; CORS).
+	 */
+	public function docs(): void
+	{
+		$member = \IPS\Member::loggedIn();
+		$h      = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+
+		$selfUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=api&controller=api&do=docs', 'front'
+		);
+		$mykeyUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=api&controller=api&do=mykey', 'front'
+		);
+
+		\IPS\Output::i()->title      = 'Compliance API — Documentation';
+		\IPS\Output::i()->breadcrumb = [];
+		\IPS\Output::i()->sidebar    = [ 'enabled' => false ];
+
+		/* Guest → login prompt. */
+		if ( !$member->member_id )
+		{
+			$loginUrl = (string) \IPS\Http\Url::internal(
+				'app=core&module=system&controller=login&ref=' . base64_encode( $selfUrl )
+			);
+			\IPS\Output::i()->output = $this->docsStyles()
+				. '<div class="grcd-wrap"><h1>Compliance API — Documentation</h1>'
+				. '<div class="grcd-card grcd-card--info">'
+				. '<p>Please log in to view the API documentation.</p>'
+				. '<a href="' . $h( $loginUrl ) . '" class="grcd-btn">Log in</a>'
+				. '</div></div>';
+			return;
+		}
+
+		/* Non-subscribed → upsell. Admin bypass is inside memberApiStatus. */
+		if ( self::memberApiStatus( $member ) !== 'active' )
+		{
+			$subUrl = self::subscribeUrl();
+			\IPS\Output::i()->output = $this->docsStyles()
+				. '<div class="grcd-wrap"><h1>Compliance API — Documentation</h1>'
+				. '<div class="grcd-card grcd-card--warn">'
+				. '<h2>🔒 Documentation is available to API subscribers</h2>'
+				. '<p>The Compliance API is a paid product. Once your subscription is active, this page and your API keys become available.</p>'
+				. '<a href="' . $h( $subUrl ) . '" class="grcd-btn">View subscription</a>'
+				. '</div></div>';
+			return;
+		}
+
+		/* Full docs. */
+		\IPS\Output::i()->output = $this->docsStyles() . $this->docsBody( $mykeyUrl );
+	}
+
+	/**
+	 * The full docs body. Kept in one method so the entire page reads
+	 * top-to-bottom in source. Uses the actual settings for the
+	 * disclaimer + verification status so what dealers read matches
+	 * their live responses.
+	 */
+	protected function docsBody( string $mykeyUrl ): string
+	{
+		$h = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+
+		$disclaimer = trim( (string) ( \IPS\Settings::i()->gdcompliance_api_disclaimer ?? '' ) );
+		$verified   = (int) ( \IPS\Settings::i()->gdcompliance_api_verified ?? 0 ) === 1
+			? 'verified' : 'pending_legal_review';
+		$widgetUrl  = 'https://gunrack.deals/applications/gdcompliance/interface/widget/gunrack-compliance.js';
+
+		$exampleCheckJson  = json_encode( [
+			'upc'          => '011356670526',
+			'state'        => 'IL',
+			'status'       => 'restricted',
+			'product'      => 'Savage Arms — Stance XR 9mm',
+			'restrictions' => [
+				[
+					'type'         => 'awb',
+					'firearm_type' => 'awb_pistol',
+					'reason'       => 'Illinois PICA — enumerated assault-weapons list.',
+					'citation'     => '720 ILCS 5/24-1.9',
+				],
+			],
+			'advisories'          => [],
+			'disclaimer'          => 'This information is provided for general reference and is not legal advice...',
+			'verification_status' => 'pending_legal_review',
+			'generated_at'        => 1720000000,
+		], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+
+		$exampleBatchJson = json_encode( [
+			'state'   => 'IL',
+			'results' => [
+				[
+					'upc'          => '011356670526',
+					'state'        => 'IL',
+					'status'       => 'restricted',
+					'product'      => 'Savage Arms — Stance XR 9mm',
+					'restrictions' => [ [ 'type' => 'awb', 'reason' => '…', 'citation' => '720 ILCS 5/24-1.9' ] ],
+					'advisories'   => [],
+				],
+				[
+					'upc'          => '022188879834',
+					'state'        => 'IL',
+					'status'       => 'available',
+					'product'      => 'Ruger — 10/22 Carbine',
+					'restrictions' => [],
+					'advisories'   => [],
+				],
+			],
+			'disclaimer'          => '...',
+			'verification_status' => 'pending_legal_review',
+			'generated_at'        => 1720000000,
+		], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+
+		$exampleProductJson = json_encode( [
+			'upc'                    => '011356670526',
+			'product'                => 'Savage Arms — Stance XR 9mm',
+			'restricted_states'      => [
+				[ 'state' => 'CA', 'state_name' => 'California',    'type' => 'capacity', 'reason' => '…', 'citation' => 'PC §16740' ],
+				[ 'state' => 'NY', 'state_name' => 'New York',      'type' => 'awb',      'reason' => '…', 'citation' => 'NY Penal §265.00(22)' ],
+			],
+			'advisory_states'        => [],
+			'restricted_state_codes' => [ 'CA','CT','HI','MA','MD','NJ','NY','RI','WA' ],
+			'disclaimer'             => '...',
+			'verification_status'    => 'pending_legal_review',
+			'generated_at'           => 1720000000,
+		], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+
+		$errorTable = [
+			[ '401', 'invalid_api_key',       'Missing, unknown, or malformed API key. Verify the Authorization: Bearer value.' ],
+			[ '401', 'revoked',               'The key was revoked. Generate a new one on the /api/compliance/mykey page.' ],
+			[ '402', 'subscription_inactive', 'The key\'s owning member is not currently in an API-access group. Renew the subscription. Response includes subscribe_url.' ],
+			[ '403', 'domain_not_allowed',    'Publishable-key request from an origin not in the key\'s allowed_domains. Add the origin (or its apex) on the mykey page.' ],
+			[ '429', 'rate_limited',          'Burst throttle: too many requests per second for this key. Response includes Retry-After.' ],
+			[ '429', 'quota_exceeded',        'Monthly tier quota reached. Response includes reset (YYYY-MM-01) and subscribe_url.' ],
+			[ '400', 'invalid_upc / invalid_state / invalid_upcs / batch_too_large', 'Client-side input validation failed. See message for details.' ],
+			[ '200', 'status="unknown"',      'The UPC exists but is not in our compliance database. Not an error — the response envelope is well-formed with restrictions=[] and advisories=[].' ],
+		];
+		$errorRows = '';
+		foreach ( $errorTable as [ $code, $error, $desc ] )
+		{
+			$errorRows .= '<tr>'
+				. '<td><code>' . $h( $code ) . '</code></td>'
+				. '<td><code>' . $h( $error ) . '</code></td>'
+				. '<td>' . $h( $desc ) . '</td>'
+				. '</tr>';
+		}
+
+		$toc = ''
+			. '<ul class="grcd-toc">'
+			. '<li><a href="#overview">Overview</a></li>'
+			. '<li><a href="#auth">Authentication</a></li>'
+			. '<li><a href="#endpoints">Endpoints</a>'
+			. '  <ul>'
+			. '    <li><a href="#e-check">GET /check</a></li>'
+			. '    <li><a href="#e-batch">POST /batch</a></li>'
+			. '    <li><a href="#e-product">GET /product</a></li>'
+			. '  </ul>'
+			. '</li>'
+			. '<li><a href="#rate">Rate limits &amp; quotas</a></li>'
+			. '<li><a href="#errors">Errors</a></li>'
+			. '<li><a href="#widget">The widget (embed)</a></li>'
+			. '<li><a href="#verify">Verification status</a></li>'
+			. '</ul>';
+
+		$out = '<div class="grcd-wrap"><h1>Compliance API — Documentation</h1>'
+			. '<div class="grcd-toolbar"><a class="grcd-btn grcd-btn--ghost" href="' . $h( $mykeyUrl ) . '">Manage your keys</a></div>'
+			. '<div class="grcd-layout">'
+			. '<aside class="grcd-side">' . $toc . '</aside>'
+			. '<main class="grcd-main">';
+
+		/* --- Overview --- */
+		$out .= '<section id="overview" class="grcd-card">'
+			. '<h2>Overview</h2>'
+			. '<p>The Compliance API answers one question programmatically: <em>is this firearm-related SKU legal to sell into a given US state?</em> It returns per-state verdicts (restricted / available / advisory / unknown) with reasons + citations, sourced from Gun Rack\'s compliance engine.</p>'
+			. '<dl class="grcd-kv">'
+			. '<dt>Base URL</dt><dd><code>https://gunrack.deals/api/compliance</code></dd>'
+			. '<dt>Formats</dt><dd>JSON only. Every response sets <code>Content-Type: application/json</code> and <code>Cache-Control: no-store</code>.</dd>'
+			. '<dt>Verification status on this install</dt><dd><strong>' . $h( $verified ) . '</strong>' . ( $verified === 'pending_legal_review' ? ' — treat responses as reference until Gun Rack completes legal review.' : '' ) . '</dd>'
+			. '</dl>'
+			. ( $disclaimer !== '' ? '<blockquote class="grcd-note">' . $h( $disclaimer ) . '</blockquote>' : '' )
+			. '</section>';
+
+		/* --- Authentication --- */
+		$out .= '<section id="auth" class="grcd-card">'
+			. '<h2>Authentication</h2>'
+			. '<p>Two key types are issued per subscribing member:</p>'
+			. '<div class="grcd-two">'
+			. '<div><h3>Secret key <span class="grcd-pill grcd-pill--secret">gdc_sk_…</span></h3>'
+			. '<ul>'
+			. '<li>Server-to-server only. <strong>Never</strong> embed in browser JavaScript.</li>'
+			. '<li>Not domain-locked.</li>'
+			. '<li>Send as <code>Authorization: Bearer &lt;key&gt;</code>.</li>'
+			. '</ul></div>'
+			. '<div><h3>Publishable key <span class="grcd-pill grcd-pill--public">gdc_pub_…</span></h3>'
+			. '<ul>'
+			. '<li>Safe to embed in browser JS (used by the widget).</li>'
+			. '<li>Domain-locked. Register the origins on the <a href="' . $h( $mykeyUrl ) . '">mykey</a> page — apex domains cover subdomains.</li>'
+			. '<li>Requests without a matching <code>Origin</code> (or <code>Referer</code>) return <code>403 domain_not_allowed</code>.</li>'
+			. '</ul></div>'
+			. '</div>'
+			. '<h3>Sending the key</h3>'
+			. '<pre class="grcd-pre">Authorization: Bearer gdc_sk_XXXXXXXX...</pre>'
+			. '<p>For clients that can\'t set headers, an <code>api_key=</code> query param is accepted as a fallback — this is what the widget uses so it can call cross-origin without preflight complications.</p>'
+			. '<p>Generate / regenerate keys and register domains on <a href="' . $h( $mykeyUrl ) . '">/api/compliance/mykey</a>.</p>'
+			. '</section>';
+
+		/* --- Endpoints --- */
+		$out .= '<section id="endpoints" class="grcd-card">'
+			. '<h2>Endpoints</h2>'
+
+			/* check */
+			. '<div id="e-check" class="grcd-endpoint">'
+			. '<h3><span class="grcd-method grcd-method--get">GET</span> <code>/api/compliance/check</code></h3>'
+			. '<p>Single-state verdict for one UPC. Counts as <strong>1</strong> quota unit.</p>'
+			. '<h4>Query parameters</h4>'
+			. '<table class="grcd-table">'
+			. '<thead><tr><th>Name</th><th>Required</th><th>Description</th></tr></thead>'
+			. '<tbody>'
+			. '<tr><td><code>upc</code></td><td>yes</td><td>UPC as it appears in your catalog. Alphanumeric plus <code>-._/</code>, max 64.</td></tr>'
+			. '<tr><td><code>state</code></td><td>yes</td><td>Two-letter US state code (uppercased server-side). 50 states + DC.</td></tr>'
+			. '</tbody></table>'
+			. '<h4>Example request</h4>'
+			. '<pre class="grcd-pre">curl -H "Authorization: Bearer gdc_sk_..." \\'
+			. '&#10;  "https://gunrack.deals/api/compliance/check?upc=011356670526&amp;state=IL"</pre>'
+			. '<h4>Example response</h4>'
+			. '<pre class="grcd-pre">' . $h( $exampleCheckJson ) . '</pre>'
+			. '</div>'
+
+			/* batch */
+			. '<div id="e-batch" class="grcd-endpoint">'
+			. '<h3><span class="grcd-method grcd-method--post">POST</span> <code>/api/compliance/batch</code></h3>'
+			. '<p>Verdicts for many UPCs against one state. Each UPC counts as <strong>1</strong> quota unit; hard cap of 200 UPCs per request. Send <code>Content-Type: application/json</code>.</p>'
+			. '<h4>Body</h4>'
+			. '<pre class="grcd-pre">{ "state": "IL", "upcs": ["011356670526", "022188879834", ...] }</pre>'
+			. '<h4>Example request</h4>'
+			. '<pre class="grcd-pre">curl -H "Authorization: Bearer gdc_sk_..." \\'
+			. '&#10;  -H "Content-Type: application/json" \\'
+			. '&#10;  -X POST "https://gunrack.deals/api/compliance/batch" \\'
+			. '&#10;  --data \'{"state":"IL","upcs":["011356670526","022188879834"]}\'</pre>'
+			. '<h4>Example response</h4>'
+			. '<pre class="grcd-pre">' . $h( $exampleBatchJson ) . '</pre>'
+			. '</div>'
+
+			/* product */
+			. '<div id="e-product" class="grcd-endpoint">'
+			. '<h3><span class="grcd-method grcd-method--get">GET</span> <code>/api/compliance/product</code></h3>'
+			. '<p>All-states view for one UPC. This is what powers the browser widget. Counts as <strong>1</strong> quota unit.</p>'
+			. '<h4>Query parameters</h4>'
+			. '<table class="grcd-table">'
+			. '<thead><tr><th>Name</th><th>Required</th><th>Description</th></tr></thead>'
+			. '<tbody>'
+			. '<tr><td><code>upc</code></td><td>yes</td><td>UPC as above.</td></tr>'
+			. '</tbody></table>'
+			. '<h4>Example request (server side, secret key)</h4>'
+			. '<pre class="grcd-pre">curl -H "Authorization: Bearer gdc_sk_..." \\'
+			. '&#10;  "https://gunrack.deals/api/compliance/product?upc=011356670526"</pre>'
+			. '<h4>Example request (browser widget, publishable key)</h4>'
+			. '<p>The widget calls this URL directly from the browser using the <code>api_key</code> param + the browser\'s <code>Origin</code> header. Both are validated server-side.</p>'
+			. '<pre class="grcd-pre">fetch("https://gunrack.deals/api/compliance/product?upc=011356670526&amp;api_key=gdc_pub_...", { method: "GET" })'
+			. '&#10;  .then(r =&gt; r.json())'
+			. '&#10;  .then(d =&gt; console.log(d.restricted_state_codes));</pre>'
+			. '<h4>Example response</h4>'
+			. '<pre class="grcd-pre">' . $h( $exampleProductJson ) . '</pre>'
+			. '</div>'
+			. '</section>';
+
+		/* --- Rate limits & quotas --- */
+		$out .= '<section id="rate" class="grcd-card">'
+			. '<h2>Rate limits &amp; quotas</h2>'
+			. '<p>Every request against your key is metered on two axes:</p>'
+			. '<ul>'
+			. '<li><strong>Monthly quota</strong> — set by your subscription tier (member group). Resets at the start of the next month, UTC. Batch endpoints count each UPC as one unit.</li>'
+			. '<li><strong>Burst throttle</strong> — per-second per-key server-protection cap.</li>'
+			. '</ul>'
+			. '<h3>Rate-limit headers</h3>'
+			. '<p>Every response (post-auth) carries the standard trio:</p>'
+			. '<pre class="grcd-pre">X-RateLimit-Limit:     10000'
+			. '&#10;X-RateLimit-Remaining: 9982'
+			. '&#10;X-RateLimit-Reset:     1725148800   # unix ts of next month\'s start</pre>'
+			. '<p>Unlimited tiers report <code>unlimited</code> instead of a number. 429 responses also include <code>Retry-After</code> (in seconds).</p>'
+			. '<h3>Exceeded responses</h3>'
+			. '<pre class="grcd-pre">HTTP/1.1 429 Too Many Requests'
+			. '&#10;{ "error": "rate_limited",  "message": "Too many requests, slow down.", "retry_after": 1 }'
+			. '&#10;'
+			. '&#10;HTTP/1.1 429 Too Many Requests'
+			. '&#10;{ "error": "quota_exceeded", "message": "...", "reset": "2026-02-01",'
+			. '&#10;  "subscribe_url": "https://gunrack.deals/store/product/6/" }</pre>'
+			. '</section>';
+
+		/* --- Errors --- */
+		$out .= '<section id="errors" class="grcd-card">'
+			. '<h2>Errors</h2>'
+			. '<p>The <code>error</code> key in the response body is machine-readable; <code>message</code> is a short human explanation.</p>'
+			. '<table class="grcd-table">'
+			. '<thead><tr><th>HTTP</th><th>error</th><th>Meaning &amp; recovery</th></tr></thead>'
+			. '<tbody>' . $errorRows . '</tbody>'
+			. '</table>'
+			. '</section>';
+
+		/* --- The widget --- */
+		$out .= '<section id="widget" class="grcd-card">'
+			. '<h2>The widget (embed)</h2>'
+			. '<p>The Gun Rack Compliance widget is a self-contained vanilla-JS script that renders the all-states restriction view on your product pages. It calls <code>/api/compliance/product</code> with your <strong>publishable</strong> key + the shopper\'s browser Origin.</p>'
+			. '<h3>Generic embed</h3>'
+			. '<pre class="grcd-pre">&lt;div id="gunrack-compliance"'
+			. '&#10;     data-upc="PRODUCT_UPC"'
+			. '&#10;     data-key="gdc_pub_XXXX"&gt;&lt;/div&gt;'
+			. '&#10;&lt;script src="' . $h( $widgetUrl ) . '" async&gt;&lt;/script&gt;</pre>'
+			. '<p>Copy-paste snippets for BigCommerce / Shopify / WooCommerce (with your key pre-filled) live on the <a href="' . $h( $mykeyUrl ) . '">mykey</a> page.</p>'
+			. '<h3>Behavior</h3>'
+			. '<ul>'
+			. '<li>Fails <strong>quietly</strong> — a network/auth error renders nothing rather than breaking your page.</li>'
+			. '<li>Scoped CSS (all classes prefixed <code>.grc-</code>) so it won\'t collide with your theme.</li>'
+			. '<li>Multi-mount safe — you can drop several containers on the same page (variants, related products).</li>'
+			. '<li>Optional "check your state" dropdown that persists the shopper\'s pick in <code>localStorage</code>.</li>'
+			. '</ul>'
+			. '</section>';
+
+		/* --- Verification --- */
+		$out .= '<section id="verify" class="grcd-card">'
+			. '<h2>Verification status</h2>'
+			. '<p>Every response envelope carries <code>verification_status</code>:</p>'
+			. '<ul>'
+			. '<li><code>pending_legal_review</code> — reference data only. The compliance engine\'s output has NOT been signed off by Gun Rack\'s legal review. Treat it as advisory information for internal use; don\'t auto-block sales solely on this until Gun Rack flips the switch.</li>'
+			. '<li><code>verified</code> — Gun Rack\'s legal team has completed review. Safe to drive customer-facing behavior (with the standard disclaimer still shown).</li>'
+			. '</ul>'
+			. '<p>This install currently reports <strong>' . $h( $verified ) . '</strong>.</p>'
+			. '</section>';
+
+		$out .= '</main></div></div>';
+		return $out;
+	}
+
+	/**
+	 * Docs page styles. Scoped .grcd-* so the theme wrapper's rules
+	 * don't override ours and we don't touch anything else.
+	 */
+	protected function docsStyles(): string
+	{
+		return '<style>'
+			. '.grcd-wrap{max-width:1200px;margin:24px auto;padding:0 16px;font-family:\'Inter\',system-ui,-apple-system,sans-serif;color:#0f172a;font-size:14.5px;line-height:1.6}'
+			. '.grcd-wrap h1{margin:0 0 12px;font-size:1.8em;color:#0f172a}'
+			. '.grcd-toolbar{margin:0 0 16px}'
+			. '.grcd-btn{display:inline-block;background:#1e40af;color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;text-decoration:none;border:none;font-size:.9em}'
+			. '.grcd-btn:hover{background:#1e3a8a;color:#fff;text-decoration:none}'
+			. '.grcd-btn--ghost{background:#fff;color:#1e40af;border:1px solid #cbd5e1}'
+			. '.grcd-btn--ghost:hover{background:#f1f5f9;color:#1e40af}'
+			. '.grcd-layout{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:flex-start}'
+			. '@media (max-width:900px){.grcd-layout{grid-template-columns:1fr}.grcd-side{position:static}}'
+			. '.grcd-side{position:sticky;top:16px}'
+			. '.grcd-toc{list-style:none;padding:0;margin:0;font-size:.9em}'
+			. '.grcd-toc a{color:#334155;text-decoration:none;display:block;padding:4px 6px;border-radius:6px}'
+			. '.grcd-toc a:hover{background:#f1f5f9;color:#0f172a}'
+			. '.grcd-toc ul{list-style:none;padding:4px 0 0 14px;margin:0}'
+			. '.grcd-main{min-width:0}'
+			. '.grcd-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px 22px;margin-bottom:16px}'
+			. '.grcd-card--info{background:#eff6ff;border-color:#bfdbfe}'
+			. '.grcd-card--warn{background:#fefce8;border-color:#fde68a}'
+			. '.grcd-card h2{margin:0 0 12px;font-size:1.25em;color:#0f172a;border-bottom:1px solid #e2e8f0;padding-bottom:6px}'
+			. '.grcd-card h3{margin:16px 0 6px;font-size:1.02em;color:#0f172a}'
+			. '.grcd-card h4{margin:12px 0 4px;font-size:.9em;color:#334155;text-transform:uppercase;letter-spacing:.04em}'
+			. '.grcd-card p{margin:0 0 10px;color:#334155}'
+			. '.grcd-card ul{margin:0 0 12px;padding-left:20px;color:#334155}'
+			. '.grcd-card li{margin:2px 0}'
+			. '.grcd-card code{background:#f1f5f9;padding:1px 6px;border-radius:4px;font-family:ui-monospace,menlo,monospace;font-size:.88em}'
+			. '.grcd-pre{background:#0f172a;color:#e2e8f0;padding:12px 14px;border-radius:8px;font-family:ui-monospace,menlo,monospace;font-size:.82em;overflow-x:auto;white-space:pre;line-height:1.4;margin:0 0 10px}'
+			. '.grcd-note{margin:10px 0;padding:10px 12px;background:#fefce8;border:1px solid #fde68a;color:#78350f;border-radius:8px;font-size:.85em;font-style:italic;line-height:1.5}'
+			. '.grcd-kv{margin:0;font-size:.95em}'
+			. '.grcd-kv dt{display:inline-block;min-width:220px;color:#64748b;padding:2px 0}'
+			. '.grcd-kv dd{display:inline;margin:0;padding:2px 0}'
+			. '.grcd-kv dd::after{content:"";display:block;height:4px}'
+			. '.grcd-two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}'
+			. '@media (max-width:700px){.grcd-two{grid-template-columns:1fr}}'
+			. '.grcd-two > div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px}'
+			. '.grcd-two h3{margin-top:0}'
+			. '.grcd-pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.04em;font-family:ui-monospace,monospace;text-transform:none;vertical-align:middle}'
+			. '.grcd-pill--secret{background:#e5e7eb;color:#374151}'
+			. '.grcd-pill--public{background:#e0e7ff;color:#3730a3}'
+			. '.grcd-method{display:inline-block;padding:2px 10px;border-radius:6px;font-size:.72em;font-weight:800;letter-spacing:.05em;vertical-align:middle;margin-right:6px}'
+			. '.grcd-method--get{background:#dbeafe;color:#1e3a8a}'
+			. '.grcd-method--post{background:#fef3c7;color:#78350f}'
+			. '.grcd-endpoint{border-top:1px solid #e2e8f0;padding-top:12px;margin-top:12px}'
+			. '.grcd-endpoint:first-of-type{border-top:none;padding-top:0;margin-top:0}'
+			. '.grcd-table{width:100%;border-collapse:collapse;margin:0 0 12px;font-size:.9em}'
+			. '.grcd-table th,.grcd-table td{text-align:left;padding:8px 10px;border-bottom:1px solid #e2e8f0;vertical-align:top}'
+			. '.grcd-table th{color:#475569;font-size:.75em;text-transform:uppercase;letter-spacing:.05em;background:#f8fafc}'
+			. '.grcd-table code{background:#f1f5f9;font-size:.85em}'
+			. '</style>';
+	}
+
 	public function mykey(): void
 	{
 		$member = \IPS\Member::loggedIn();
@@ -961,7 +1362,12 @@ class _api extends \IPS\Dispatcher\Controller
 		catch ( \Throwable ) {}
 
 		$csrfKey = (string) \IPS\Session::i()->csrfKey;
-		$html    = $this->mykeyStyles() . '<div class="gdak-wrap"><h1>Your Compliance API Keys</h1>';
+		$docsUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcompliance&module=api&controller=api&do=docs', 'front'
+		);
+		$html    = $this->mykeyStyles()
+			. '<div class="gdak-wrap"><h1>Your Compliance API Keys</h1>'
+			. '<p style="margin:-6px 0 14px"><a href="' . $h( $docsUrl ) . '" style="color:#1e40af;font-weight:600;text-decoration:none">Read the API docs →</a></p>';
 
 		/* -- Secret key card. -- */
 		if ( is_array( $secretKey ) )

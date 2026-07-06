@@ -1,35 +1,34 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.35
+ * @brief  GD Compliance — upgrade 1.6.36
  *
- * WHAT SHIPS IN 1.6.35 — API Stage 4b (browser widget + install snippets):
+ * WHAT SHIPS IN 1.6.36 — API Stage 5a (gated developer docs):
  *
- *   1. NEW STATIC ASSET
- *        applications/gdcompliance/interface/widget/gunrack-compliance.js
- *      Vanilla-JS, self-contained, scoped-CSS (.grc-*) widget that
- *      dealers drop onto product pages. Calls /api/compliance/product
- *      with a PUBLISHABLE key + Origin, renders the all-states
- *      restriction list, optional "check your state" filter (with
- *      localStorage persistence), disclaimer + attribution. Fails
- *      QUIETLY on any error so a broken auth never breaks the
- *      dealer's product page.
+ *   NEW ACTION docs() on the API controller at
+ *     /api/compliance/docs   (+ legacy /compliance-api/docs)
+ *   as a THEME-WRAPPED HTML page (not JSON). Three visitor states:
+ *     * Guest              → login prompt with return URL
+ *     * Non-subscriber     → subscribe upsell + subscribe_url
+ *     * API-group / admin  → full developer reference:
+ *         Overview, Authentication (secret vs publishable),
+ *         Endpoints (GET /check, POST /batch, GET /product) each
+ *         with example curl + real response JSON, Rate limits &
+ *         quotas (X-RateLimit-* + 429 shapes), Errors table
+ *         (401/402/403/429/status=unknown), Widget embed
+ *         (generic snippet + link to platform snippets on mykey),
+ *         Verification status.
+ *   Scoped .grcd-* CSS. Cross-links between mykey and docs.
  *
- *   2. NEW MYKEY SECTION — the self-service page now renders copy-
- *      paste install snippets for Generic HTML / BigCommerce /
- *      Shopify / WooCommerce, with the dealer's own PUBLISHABLE key
- *      pre-filled. Copy-to-clipboard button per pane. A warning
- *      surfaces when no allowed_domains are registered yet
- *      (the widget would 403 without them).
+ * Manifest info blob now advertises the docs URL.
  *
- * NO SCHEMA CHANGES this ship — the /product endpoint + publishable
- * key columns landed in v1.6.34.
+ * NO SCHEMA CHANGES this ship. Purely new render code + FURL routes.
  *
  * SELF-CONTAINED (rule #79). Only upg dir; every prior migration
- * folded forward defensively (including the Stage 4a
- * key_type / allowed_domains column ALTERs).
+ * folded forward defensively (including Stage 4a key_type /
+ * allowed_domains column ALTERs).
  */
 
-namespace IPS\gdcompliance\setup\upg_10635;
+namespace IPS\gdcompliance\setup\upg_10636;
 
 use function defined;
 
@@ -76,7 +75,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10635 gdcr: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10636 gdcr: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -103,7 +102,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10635 apikeys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10636 apikeys: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		/* v1.6.34 NEW — guarded ALTER: add key_type + allowed_domains
 		   columns to gd_compliance_api_keys so Stage 4a can distinguish
@@ -122,7 +121,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10635 add key_type: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10636 add key_type: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -136,7 +135,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10635 add allowed_domains: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10636 add allowed_domains: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		try
 		{
@@ -155,7 +154,7 @@ class _upgrade
 				] );
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10635 usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10636 usage: ' . $e->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {} }
 
 		/* ------------------------------------------------------------
 		 * 2) SETTINGS — carry-forward defaults ONLY for rows that
