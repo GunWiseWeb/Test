@@ -1924,7 +1924,7 @@ class _api extends \IPS\Dispatcher\Controller
 			. '.gdak-btn:hover{background:#1e3a8a;color:#fff;text-decoration:none}'
 			. '.gdak-btn--warn{background:#b91c1c}'
 			. '.gdak-btn--warn:hover{background:#991b1b}'
-			. '.gdak-key{display:block;background:#0f172a;color:#fef3c7;padding:12px 14px;border-radius:8px;font-family:ui-monospace,menlo,monospace;font-size:.95em;word-break:break-all;margin-bottom:14px}'
+			. '.gdak-key{display:block;background:#0f172a;color:#f8fafc;padding:12px 14px;border-radius:8px;font-family:ui-monospace,menlo,monospace;font-size:.95em;word-break:break-all;margin-bottom:14px}'
 			. '.gdak-meta{margin:0;font-size:.9em;color:#475569}'
 			. '.gdak-meta dt{display:inline-block;width:110px;color:#64748b}'
 			. '.gdak-meta dd{display:inline;margin:0}'
