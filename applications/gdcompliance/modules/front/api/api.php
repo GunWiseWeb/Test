@@ -1692,10 +1692,27 @@ class _api extends \IPS\Dispatcher\Controller
 		$h      = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
 		$keyStr = (string) ( $key['api_key']      ?? '' );
 		$rc     = (int)    ( $key['request_count'] ?? 0 );
-		$lu     = (int)    ( $key['last_used_at']  ?? 0 );
-		$luStr  = $lu > 0 ? date( 'Y-m-d H:i', $lu ) . ' UTC' : 'never';
-		$ca     = (int)    ( $key['created_at']   ?? 0 );
-		$caStr  = $ca > 0 ? date( 'Y-m-d', $ca )  : '—';
+		/* v1.6.41 — IPS DateTime renders in the viewing member's
+		   timezone (raw PHP date() uses the server timezone = UTC,
+		   so Central-time dealers saw tomorrow's date after ~6pm
+		   local). Timestamps stay stored as UTC unix time; only
+		   the display localizes. Wrapped in try so a rare
+		   DateTime construction failure falls back to a dash
+		   rather than blowing up the page. */
+		$lu    = (int) ( $key['last_used_at'] ?? 0 );
+		$luStr = 'never';
+		if ( $lu > 0 )
+		{
+			try { $luStr = (string) \IPS\DateTime::ts( $lu ); }
+			catch ( \Throwable ) { $luStr = '—'; }
+		}
+		$ca    = (int) ( $key['created_at']   ?? 0 );
+		$caStr = '—';
+		if ( $ca > 0 )
+		{
+			try { $caStr = (string) \IPS\DateTime::ts( $ca )->localeDate(); }
+			catch ( \Throwable ) { $caStr = '—'; }
+		}
 
 		$isPub    = ( $kind === 'publishable' );
 		$title    = $isPub ? 'Publishable key (browser widget)' : 'Secret key (server use)';
