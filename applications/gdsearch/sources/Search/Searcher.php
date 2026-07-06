@@ -475,6 +475,7 @@ class Searcher
             'price'    => 'l.dealer_price ASC',
             'shipping' => "(l.shipping_info IS NULL OR l.shipping_info = '') ASC, (l.shipping_info = 'Free shipping') DESC, l.dealer_price ASC",
             'rating'   => 'l.dealer_price ASC',
+            'total'    => 'l.dealer_price ASC',
             default    => "(d.subscription_tier = 'max') DESC, l.dealer_price ASC",
         };
 
@@ -541,6 +542,20 @@ class Searcher
                 unset( $lrow2 );
             }
 
+            /* v1.0.81 — parse the free-text shipping_info once per
+               listing so the template can always show a total when
+               it's computable, and so 'total' sort has something to
+               compare. Unparseable shipping ("Call for quote",
+               "Varies", blank) → shipping_cost=null → total_cost=null
+               → these sink to the bottom in total sort. */
+            foreach ( $listings as &$lrow3 ) {
+                $ship = $this->parseShipping( (string) ( $lrow3['shipping_info'] ?? '' ) );
+                $lrow3['shipping_cost']   = $ship;
+                $lrow3['shipping_parsed'] = ( $ship !== null );
+                $lrow3['total_cost']      = ( $ship === null ) ? null : ( (float) $lrow3['price'] + $ship );
+            }
+            unset( $lrow3 );
+
             if ( $sort === 'rating' ) {
                 usort( $listings, function( $a, $b ) {
                     $ar = $a['avg_rating']; $br = $b['avg_rating'];
@@ -550,9 +565,56 @@ class Searcher
                     return $a['price'] <=> $b['price'];
                 } );
             }
+            elseif ( $sort === 'total' ) {
+                usort( $listings, function( $a, $b ) {
+                    $at = $a['total_cost']; $bt = $b['total_cost'];
+                    /* Unparseable rows (null total) sink to the bottom.
+                       Among null-only rows, break ties on item price so
+                       shoppers still get a sensible secondary ordering. */
+                    if ( $at === null && $bt === null ) { return (float) $a['price'] <=> (float) $b['price']; }
+                    if ( $at === null ) { return 1; }
+                    if ( $bt === null ) { return -1; }
+                    if ( $at != $bt )   { return $at <=> $bt; }
+                    return (float) $a['price'] <=> (float) $b['price'];
+                } );
+            }
         } catch ( \Throwable $e ) {
             try { \IPS\Log::log( $e, 'gdsearch_listings' ); } catch ( \Throwable ) {}
         }
         return $listings;
+    }
+
+    /**
+     * v1.0.81 — parse the free-text shipping_info column into a
+     * dollar amount. Returns null when unparseable so callers can
+     * treat the row as "total unknown" and sink it to the bottom
+     * of a total-cost sort.
+     *
+     *   "Free shipping" / "Free"       → 0.00
+     *   "$0" / "$0.00" / "0"           → 0.00
+     *   "$9.99" / "9.99" / "Flat $12"  → first dollar amount
+     *   "Call for quote" / "Varies"    → null (unparseable)
+     *   ""                             → null (blank / unknown)
+     *
+     * Regex-based rather than trying to enumerate every possible
+     * phrase: catch "free" (word boundary) first, then look for
+     * the first `$?N(.NN)?` occurrence anywhere in the string.
+     * Kept in PHP because the DB column is a varchar of arbitrary
+     * dealer-supplied prose — SQL parsing is unreliable.
+     */
+    private function parseShipping( string $raw ): ?float
+    {
+        $s = strtolower( trim( $raw ) );
+        if ( $s === '' ) { return null; }
+
+        if ( preg_match( '/\bfree\b/', $s ) )               { return 0.0; }
+        if ( preg_match( '/^\$?0(\.0{1,2})?$/', $s ) )       { return 0.0; }
+
+        if ( preg_match( '/\$?\s*([0-9]+(?:\.[0-9]{1,2})?)/', $s, $m ) )
+        {
+            return (float) $m[1];
+        }
+
+        return null;
     }
 }

@@ -305,7 +305,7 @@ class _results extends \IPS\Dispatcher\Controller
         }
 
         $offersSort = (string) ( \IPS\Request::i()->offers_sort ?? 'standard' );
-        if ( !\in_array( $offersSort, [ 'standard', 'price', 'rating', 'shipping' ], true ) ) {
+        if ( !\in_array( $offersSort, [ 'standard', 'price', 'rating', 'shipping', 'total' ], true ) ) {
             $offersSort = 'standard';
         }
 
@@ -472,6 +472,7 @@ class _results extends \IPS\Dispatcher\Controller
         $sortOptions = [
             'standard' => 'Standard',
             'price'    => 'Cheapest price',
+            'total'    => 'Cheapest total (item + shipping)',
             'rating'   => 'Best rated',
             'shipping' => 'Cheapest shipping',
         ];

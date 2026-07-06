@@ -342,6 +342,9 @@
 					</td>
 					<td style="padding:14px 16px;text-align:right">
 						<div style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.1em;color:{{if $listing['is_lowest']}}#16a34a{{else}}#0f172a{{endif}}">${expression="number_format((float)$listing['price'],2)"}</div>
+						{{if isset($listing['total_cost']) && $listing['total_cost'] !== null}}
+						<div style="font-family:'JetBrains Mono',monospace;font-size:0.75em;color:#64748b;margin-top:2px">Total ${expression="number_format((float)$listing['total_cost'],2)"} <span style="color:#94a3b8">w/ ship</span></div>
+						{{endif}}
 					</td>
 					<td style="padding:14px 16px;text-align:center;font-size:0.85em">
 						{{if isset($listing['shipping_info']) && $listing['shipping_info'] !== ''}}
