@@ -1509,11 +1509,14 @@ class _api extends \IPS\Dispatcher\Controller
 			$bare = '<!DOCTYPE html><html><head><meta charset="utf-8">'
 				. '<meta name="viewport" content="width=device-width, initial-scale=1">'
 				. '<title>' . htmlspecialchars( 'Your Compliance API Keys', ENT_QUOTES, 'UTF-8' ) . '</title>'
-				/* <base target="_parent"> so links / form submits inside
-				   the frame don't stay trapped inside — they escape to
-				   the parent (dealer dashboard) window. mykeyAct itself
-				   already redirects back to mykey?embed=1 on save. */
-				. '<base target="_parent">'
+				/* v1.6.39 — no <base> element here. Default behavior
+				   keeps forms + links inside the iframe, which is what
+				   we want. The prior v1.6.37 shell retargeted the
+				   whole browser to the parent window when a dealer
+				   generated a key, kicking them out of the dashboard.
+				   Post-save flow is unchanged: mykeyAct →
+				   mykeyRedirectUrl preserves embed=1, so the iframe
+				   reloads in place. */
 				. '</head><body style="margin:0;background:transparent">'
 				. $html
 				. '</body></html>';
