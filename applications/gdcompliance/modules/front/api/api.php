@@ -1622,11 +1622,62 @@ class _api extends \IPS\Dispatcher\Controller
 			. '    );' . "\n"
 			. '} );';
 
+		$noteGeneric =
+			'<p><strong>Any hand-coded product page.</strong> Paste the two lines above wherever you want the notice to appear on the product page.</p>'
+			. '<ol class="gdak-steps">'
+			. '<li>Put the <code>&lt;div id="gunrack-compliance"&gt;</code> where the notice should render on the page.</li>'
+			. '<li>Put the <code>&lt;script src="…gunrack-compliance.js"&gt;</code> anywhere on the same page — right before <code>&lt;/body&gt;</code> is best.</li>'
+			. '<li>Replace <code>PRODUCT_UPC</code> with the actual UPC — either the literal number for that product, or your platform\'s template variable that outputs the UPC.</li>'
+			. '</ol>';
+
+		$noteBigcommerce =
+			'<p><strong>Easiest — Script Manager (no theme editing).</strong> Loads the widget on every product page in a couple of clicks.</p>'
+			. '<ol class="gdak-steps">'
+			. '<li>Log in to your BigCommerce admin.</li>'
+			. '<li>Go to <em>Storefront → Script Manager</em> and click <em>Create a Script</em>.</li>'
+			. '<li>Name: <em>Gun Rack Compliance</em>. Location: <em>Footer</em>. Select pages: <em>Specific Pages → Product pages</em> (or All pages). Script category: <em>Essential</em>. Script type: <em>Script</em>.</li>'
+			. '<li>Paste ONLY the <code>&lt;script src="…gunrack-compliance.js" async&gt;&lt;/script&gt;</code> line from the snippet above into the script body, then Save.</li>'
+			. '<li>Then add the <code>&lt;div id="gunrack-compliance" …&gt;</code> where you want the notice on the product page — either by editing the product template (next section) OR by pasting the div into the product Description using the HTML/source view.</li>'
+			. '</ol>'
+			. '<p><strong>Precise placement — theme template.</strong></p>'
+			. '<ol class="gdak-steps">'
+			. '<li>Go to <em>Storefront → Themes → your active theme → Advanced → Edit Theme Files</em>.</li>'
+			. '<li>Open <code>templates/pages/product.html</code> (or the product-details template your theme uses).</li>'
+			. '<li>Paste the FULL snippet (div + script) where you want the notice — for example, just below the price or the add-to-cart region.</li>'
+			. '<li>Save.</li>'
+			. '</ol>'
+			. '<p><em>Note:</em> if <code>{{product.upc}}</code> renders blank, your catalog may store the identifier as SKU — swap <code>{{product.upc}}</code> for <code>{{product.sku}}</code>.</p>';
+
+		$noteShopify =
+			'<p><strong>Theme editor.</strong> Shopify stores the UPC in each variant\'s <em>Barcode</em> field, which the snippet reads via <code>variant.barcode</code>.</p>'
+			. '<ol class="gdak-steps">'
+			. '<li>Go to <em>Online Store → Themes</em>, click the ⋯ menu on your active theme, then <em>Edit code</em>.</li>'
+			. '<li>Under <em>Sections</em> (or <em>Templates</em>), open your product template — commonly <code>sections/main-product.liquid</code>, <code>sections/product-template.liquid</code>, or <code>templates/product.liquid</code> (varies by theme).</li>'
+			. '<li>Paste the snippet where you want the notice — a natural spot is right after the product form (near the buy buttons) or below the description.</li>'
+			. '<li>Save. Then double-check that your products have their Barcode field filled in (<em>Products → variant → Barcode</em>).</li>'
+			. '</ol>'
+			. '<p><em>Note:</em> if your catalog uses SKU as the UPC, replace <code>variant.barcode</code> with <code>variant.sku</code>.</p>';
+
+		$noteWoo =
+			'<p><strong>Easiest — the Code Snippets plugin (no file editing).</strong> Free, widely used, no risk to your theme.</p>'
+			. '<ol class="gdak-steps">'
+			. '<li>In WordPress admin, go to <em>Plugins → Add New</em>, search for <em>Code Snippets</em>, install and activate it.</li>'
+			. '<li>Go to <em>Snippets → Add New</em>, name it <em>Gun Rack Compliance</em>.</li>'
+			. '<li>Paste the PHP block from above into the code area.</li>'
+			. '<li>Choose <em>Run snippet everywhere</em> and click <em>Save Changes and Activate</em>.</li>'
+			. '</ol>'
+			. '<p><strong>Or — child-theme <code>functions.php</code> / mu-plugin.</strong></p>'
+			. '<ol class="gdak-steps">'
+			. '<li>Paste the PHP block at the END of your child theme\'s <code>functions.php</code> (never the parent theme — that gets overwritten by updates).</li>'
+			. '<li>The hook prints the container inside the product summary and enqueues the script only on product pages.</li>'
+			. '</ol>'
+			. '<p><em>Note:</em> the example reads the UPC from <code>_global_unique_id</code> post-meta. If your store uses a different meta key (a GTIN plugin field or a custom field), change that string in the PHP to match.</p>';
+
 		$tabs = [
-			'generic'     => [ 'Generic HTML',   $generic,     'Paste on the product page template. Replace <code>PRODUCT_UPC</code> with your platform\'s UPC variable.' ],
-			'bigcommerce' => [ 'BigCommerce',    $bigcommerce, 'Add to your product page template (Stencil). Verify <code>{{product.upc}}</code> exists in your theme; if not, use <code>{{product.sku}}</code>.' ],
-			'shopify'     => [ 'Shopify',        $shopify,     'Add to <code>product-template.liquid</code> (or the section your theme uses). The UPC is in <code>variant.barcode</code>.' ],
-			'woocommerce' => [ 'WooCommerce',    $woo,         'Add to <code>functions.php</code> or a mu-plugin. The Woo hook prints the container inside the product summary and enqueues the script only on product pages.' ],
+			'generic'     => [ 'Generic HTML',   $generic,     $noteGeneric     ],
+			'bigcommerce' => [ 'BigCommerce',    $bigcommerce, $noteBigcommerce ],
+			'shopify'     => [ 'Shopify',        $shopify,     $noteShopify     ],
+			'woocommerce' => [ 'WooCommerce',    $woo,         $noteWoo         ],
 		];
 
 		$navHtml  = '<div class="gdak-tabs">';
@@ -1676,6 +1727,9 @@ class _api extends \IPS\Dispatcher\Controller
 		return '<div class="gdak-card gdak-card--muted">'
 			. '<h2>Install the widget on your product pages</h2>'
 			. '<p>The snippets below have your <strong>publishable</strong> key pre-filled. The widget calls the <code>/api/compliance/product</code> endpoint from the browser and renders the all-states restriction list on your product page.</p>'
+			. '<div class="gdak-reassure">'
+			. '<strong>Pasting this code cannot break your store.</strong> The widget is read-only — it looks up a product\'s UPC and displays compliance info. It never changes your cart, prices, checkout, or any product data. If it\'s placed somewhere the UPC can\'t be read, it simply shows nothing. Worst case: it doesn\'t appear.'
+			. '</div>'
 			. $noDomainsWarn
 			. $navHtml
 			. $paneHtml
@@ -1972,6 +2026,15 @@ class _api extends \IPS\Dispatcher\Controller
 			. '.gdak-pane{display:none;margin-top:4px}'
 			. '.gdak-pane--active{display:block}'
 			. '.gdak-snippet-note{margin:0 0 10px;font-size:.85em;color:#475569;line-height:1.5}'
+			. '.gdak-snippet-note p{margin:8px 0 4px}'
+			. '.gdak-snippet-note p:first-child{margin-top:0}'
+			. '.gdak-snippet-note strong{color:#0f172a}'
+			. '.gdak-snippet-note em{font-style:normal;background:#f1f5f9;padding:1px 5px;border-radius:4px;color:#0f172a}'
+			. '.gdak-steps{margin:4px 0 10px 20px;padding:0;color:#475569;font-size:.85em}'
+			. '.gdak-steps li{margin:3px 0;line-height:1.5}'
+			. '.gdak-steps code{background:#f1f5f9;padding:1px 5px;border-radius:4px;font-family:ui-monospace,menlo,monospace;font-size:.9em}'
+			. '.gdak-reassure{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 12px;border-radius:8px;font-size:.85em;line-height:1.5;margin:0 0 14px}'
+			. '.gdak-reassure strong{color:#064e3b}'
 			. '.gdak-snippet{max-height:340px;overflow:auto}'
 			. '.gdak-snippet code{background:transparent;color:inherit;font-family:inherit;padding:0}'
 			. '.gdak-btn--sm{padding:6px 14px;font-size:.8em;margin-top:6px}'
