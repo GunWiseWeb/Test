@@ -1,0 +1,8 @@
+{
+	"front": {
+		"reviews": {
+			"default_controller": "product",
+			"protected": false
+		}
+	}
+}

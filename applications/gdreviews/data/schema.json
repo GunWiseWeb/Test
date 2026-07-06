@@ -1,0 +1,55 @@
+{
+	"gdreviews_products": {
+		"name": "gdreviews_products",
+		"columns": {
+			"product_id":                { "name": "product_id",                "type": "INT",     "length": 10,  "decimals": null, "allow_null": false, "default": null,  "auto_increment": true,  "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "PK — Content Item id used by the Review class." },
+			"product_upc":               { "name": "product_upc",               "type": "VARCHAR", "length": 50,  "decimals": null, "allow_null": false, "default": "",    "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Catalog UPC — natural key; unique. Product data is read live from gd_catalog by UPC (read-only)." },
+			"product_title":             { "name": "product_title",             "type": "VARCHAR", "length": 500, "decimals": null, "allow_null": true,  "default": null,  "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Cached title snapshot for the review thread — refreshed on new-review write." },
+			"product_review_count":      { "name": "product_review_count",      "type": "INT",     "length": 10,  "decimals": null, "allow_null": false, "default": "0",   "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"product_rating_real":       { "name": "product_rating_real",       "type": "DECIMAL", "length": 4,   "decimals": 2,    "allow_null": false, "default": "0.00","auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Average of review_rating across approved reviews." },
+			"product_rating_hits":       { "name": "product_rating_hits",       "type": "INT",     "length": 10,  "decimals": null, "allow_null": false, "default": "0",   "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "Count of ratings included in product_rating_real." },
+			"product_rating":            { "name": "product_rating",            "type": "INT",     "length": 10,  "decimals": null, "allow_null": true,  "default": null,  "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Integer aggregate for sort/display." },
+			"product_date":              { "name": "product_date",              "type": "INT",     "length": 10,  "decimals": null, "allow_null": false, "default": "0",   "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "First-review timestamp (row create time)." },
+			"product_last_review":       { "name": "product_last_review",       "type": "INT",     "length": 10,  "decimals": null, "allow_null": false, "default": "0",   "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "Timestamp of most recent approved review." },
+			"product_last_review_by":    { "name": "product_last_review_by",    "type": "INT",     "length": 10,  "decimals": null, "allow_null": false, "default": "0",   "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "member_id of most recent reviewer." },
+			"product_last_review_name":  { "name": "product_last_review_name",  "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true,  "default": null,  "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":    { "type": "primary", "name": "PRIMARY",    "length": [ null ], "columns": [ "product_id" ] },
+			"idx_upc":    { "type": "unique",  "name": "idx_upc",    "length": [ null ], "columns": [ "product_upc" ] },
+			"idx_rating": { "type": "key",     "name": "idx_rating", "length": [ null ], "columns": [ "product_rating" ] }
+		}
+	},
+	"gdreviews_reviews": {
+		"name": "gdreviews_reviews",
+		"columns": {
+			"review_id":            { "name": "review_id",            "type": "INT",        "length": 10,  "decimals": null, "allow_null": false, "default": null, "auto_increment": true,  "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"review_item":          { "name": "review_item",          "type": "INT",        "length": 10,  "decimals": null, "allow_null": false, "default": "0",  "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "FK → gdreviews_products.product_id (the Content Item this review belongs to)." },
+			"review_upc":           { "name": "review_upc",           "type": "VARCHAR",    "length": 50,  "decimals": null, "allow_null": false, "default": "",   "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Catalog UPC — denormalized copy for grep-friendly and single-UPC lookups without a join." },
+			"review_author":        { "name": "review_author",        "type": "INT",        "length": 10,  "decimals": null, "allow_null": false, "default": "0",  "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "member_id" },
+			"review_author_name":   { "name": "review_author_name",   "type": "VARCHAR",    "length": 255, "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Denormalized name at review time." },
+			"review_rating":        { "name": "review_rating",        "type": "TINYINT",    "length": 3,   "decimals": null, "allow_null": false, "default": "0",  "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "1-5" },
+			"review_title":         { "name": "review_title",         "type": "VARCHAR",    "length": 255, "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"review_content":       { "name": "review_content",       "type": "MEDIUMTEXT", "length": 0,   "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"review_date":          { "name": "review_date",          "type": "INT",        "length": 10,  "decimals": null, "allow_null": false, "default": "0",  "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"review_approved":      { "name": "review_approved",      "type": "TINYINT",    "length": 3,   "decimals": null, "allow_null": false, "default": "1",  "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "1=approved, 0=pending, -1=rejected" },
+			"review_hidden":        { "name": "review_hidden",        "type": "TINYINT",    "length": 3,   "decimals": null, "allow_null": false, "default": "0",  "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "0=visible, 1=hidden, -1=deleted" },
+			"review_votes_data":    { "name": "review_votes_data",    "type": "MEDIUMTEXT", "length": 0,   "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "JSON: which members voted helpful/unhelpful — same shape IPS uses on downloads_reviews.review_votes_data." },
+			"review_votes_helpful": { "name": "review_votes_helpful", "type": "INT",        "length": 10,  "decimals": null, "allow_null": false, "default": "0",  "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"review_votes_total":   { "name": "review_votes_total",   "type": "INT",        "length": 10,  "decimals": null, "allow_null": false, "default": "0",  "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"review_edit_time":     { "name": "review_edit_time",     "type": "INT",        "length": 10,  "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"review_edit_name":     { "name": "review_edit_name",     "type": "VARCHAR",    "length": 255, "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"review_edit_reason":   { "name": "review_edit_reason",   "type": "VARCHAR",    "length": 255, "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"review_edit_show":     { "name": "review_edit_show",     "type": "TINYINT",    "length": 3,   "decimals": null, "allow_null": false, "default": "0",  "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "Whether the edit is publicly visible." },
+			"review_ip_address":    { "name": "review_ip_address",    "type": "VARCHAR",    "length": 46,  "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"review_mapped_from":   { "name": "review_mapped_from",   "type": "INT",        "length": 10,  "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "Original review_id if this row was moved via moderation." }
+		},
+		"indexes": {
+			"PRIMARY":      { "type": "primary", "name": "PRIMARY",      "length": [ null ], "columns": [ "review_id" ] },
+			"idx_item":     { "type": "key",     "name": "idx_item",     "length": [ null ], "columns": [ "review_item" ] },
+			"idx_upc":      { "type": "key",     "name": "idx_upc",      "length": [ null ], "columns": [ "review_upc" ] },
+			"idx_author":   { "type": "key",     "name": "idx_author",   "length": [ null ], "columns": [ "review_author" ] },
+			"idx_approved": { "type": "key",     "name": "idx_approved", "length": [ null ], "columns": [ "review_approved" ] }
+		}
+	}
+}

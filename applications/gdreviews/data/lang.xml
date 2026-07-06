@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language>
+	<app key="gdreviews" version="1.0.0">
+		<word key="__app_gdreviews" js="0"><![CDATA[Gun Rack Product Reviews]]></word>
+		<word key="menutab__gdreviews" js="0"><![CDATA[Product Reviews]]></word>
+		<word key="menutab__gdreviews_icon" js="0"><![CDATA[star]]></word>
+
+		<word key="module__front_reviews" js="0"><![CDATA[Product Reviews]]></word>
+
+		<word key="gdreviews_product" js="0"><![CDATA[Product]]></word>
+		<word key="gdreviews_products" js="0"><![CDATA[Products]]></word>
+		<word key="gdreviews_products_pl_lc" js="0"><![CDATA[products]]></word>
+		<word key="__indefart_gdreviews_product" js="0"><![CDATA[a product]]></word>
+		<word key="__defart_gdreviews_product" js="0"><![CDATA[the product]]></word>
+		<word key="__indefart_gdreviews_products" js="0"><![CDATA[some products]]></word>
+		<word key="__defart_gdreviews_products" js="0"><![CDATA[the products]]></word>
+
+		<word key="gdreviews_review" js="0"><![CDATA[Review]]></word>
+		<word key="gdreviews_reviews" js="0"><![CDATA[Reviews]]></word>
+		<word key="__indefart_gdreviews_review" js="0"><![CDATA[a review]]></word>
+		<word key="__defart_gdreviews_review" js="0"><![CDATA[the review]]></word>
+
+		<word key="gdreviews_content_gdreviews_product" js="0"><![CDATA[Product]]></word>
+		<word key="gdreviews_content_gdreviews_review" js="0"><![CDATA[Review]]></word>
+
+		<word key="gdreviews_write_review" js="0"><![CDATA[Write a review]]></word>
+		<word key="gdreviews_no_reviews" js="0"><![CDATA[No reviews yet — be the first to write one.]]></word>
+		<word key="gdreviews_review_placeholder" js="0"><![CDATA[Product reviews are not available yet. Stage 2 of the rollout ships the submission form.]]></word>
+	</app>
+</language>
