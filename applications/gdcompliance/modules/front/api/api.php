@@ -1063,13 +1063,14 @@ class _api extends \IPS\Dispatcher\Controller
 			? 'verified' : 'pending_legal_review';
 
 		$html .= '<div class="gdak-card gdak-card--muted">'
-			. '<h2>How to use it</h2>'
-			. '<p>Send your key in the <code>Authorization</code> header (preferred) or as an <code>api_key</code> query param.</p>'
-			. '<pre class="gdak-pre">curl -H "Authorization: Bearer YOUR_KEY" \\'
+			. '<h2>How to use it (server-to-server)</h2>'
+			. '<p>Send your <strong>secret</strong> key in the <code>Authorization</code> header (preferred) or as an <code>api_key</code> query param.</p>'
+			. '<pre class="gdak-pre">curl -H "Authorization: Bearer YOUR_SECRET_KEY" \\'
 			. '&#10;  "' . $h( (string) \IPS\Http\Url::internal( 'app=gdcompliance&module=api&controller=api&do=check&upc=011356670526&state=IL', 'front' ) ) . '"</pre>'
 			. '<h3>Endpoints</h3>'
 			. '<ul>'
 			. '<li><code>GET /api/compliance/check?upc=UPC&state=XX</code> — single verdict</li>'
+			. '<li><code>GET /api/compliance/product?upc=UPC</code> — all-states verdict (widget uses this)</li>'
 			. '<li><code>POST /api/compliance/batch</code> body <code>{"state":"XX","upcs":[…]}</code> — up to 200 UPCs. Counts as one quota unit per UPC.</li>'
 			. '<li><code>GET /api/compliance</code> — usage manifest</li>'
 			. '</ul>'
@@ -1078,8 +1079,159 @@ class _api extends \IPS\Dispatcher\Controller
 			. ( $disclaimer !== '' ? '<blockquote class="gdak-disclaimer">' . $h( $disclaimer ) . '</blockquote>' : '' )
 			. '</div>';
 
+		/* v1.6.35 — dealer install snippets for the browser widget.
+		   Rendered only when a publishable key exists (otherwise the
+		   snippets would advertise a placeholder key). */
+		if ( is_array( $publishableKey ?? null ) )
+		{
+			$html .= $this->renderInstallSnippets( (string) $publishableKey['api_key'], (string) ( $publishableKey['allowed_domains'] ?? '' ) );
+		}
+
 		$html .= '</div>';
 		\IPS\Output::i()->output = $html;
+	}
+
+	/**
+	 * v1.6.35 — copy-paste install snippets for the browser widget,
+	 * with the dealer's PUBLISHABLE key pre-filled. One tab per
+	 * platform: Generic HTML, BigCommerce, Shopify, WooCommerce.
+	 * All snippets reference the widget JS at its interface/ URL.
+	 */
+	protected function renderInstallSnippets( string $pubKey, string $registeredDomains ): string
+	{
+		$h  = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+
+		$widgetUrl = (string) \IPS\Http\Url::internal(
+			'applications/gdcompliance/interface/widget/gunrack-compliance.js', 'none'
+		);
+		if ( $widgetUrl === '' || strpos( $widgetUrl, 'applications/gdcompliance' ) === false )
+		{
+			/* Fallback: absolute build via base_url. */
+			$widgetUrl = rtrim( (string) \IPS\Settings::i()->base_url, '/' )
+				. '/applications/gdcompliance/interface/widget/gunrack-compliance.js';
+		}
+
+		$domainsHint = trim( $registeredDomains );
+		$noDomainsWarn = '';
+		if ( $domainsHint === '' )
+		{
+			$noDomainsWarn = '<p class="gdak-hint gdak-hint--danger">⚠ You have not registered any allowed domains for this publishable key. Add your dealer domain in the "Allowed domains" field above or the widget will return 403.</p>';
+		}
+
+		$generic  =
+			'<div id="gunrack-compliance"' . "\n"
+			. '     data-upc="PRODUCT_UPC"' . "\n"
+			. '     data-key="' . $pubKey . '"></div>' . "\n"
+			. '<script src="' . $widgetUrl . '" async></script>';
+
+		$bigcommerce =
+			'<div id="gunrack-compliance"' . "\n"
+			. '     data-upc="{{product.upc}}"' . "\n"
+			. '     data-key="' . $pubKey . '"></div>' . "\n"
+			. '<script src="' . $widgetUrl . '" async></script>' . "\n"
+			. "\n"
+			. '<!--' . "\n"
+			. '  If product.upc is empty for your catalog, fall back to' . "\n"
+			. '  {{product.sku}} — Stencil templates differ by theme.' . "\n"
+			. '-->';
+
+		$shopify =
+			'<div id="gunrack-compliance"' . "\n"
+			. '     data-upc="{{ product.selected_or_first_available_variant.barcode }}"' . "\n"
+			. '     data-key="' . $pubKey . '"></div>' . "\n"
+			. '<script src="' . $widgetUrl . '" async></script>' . "\n"
+			. "\n"
+			. '{% comment %}' . "\n"
+			. '  Shopify stores the UPC in variant.barcode. If your' . "\n"
+			. '  catalog uses SKU as the UPC instead, use product.selected_or_first_available_variant.sku' . "\n"
+			. '{% endcomment %}';
+
+		$woo =
+			'// functions.php or a mu-plugin.' . "\n"
+			. 'add_action( \'woocommerce_single_product_summary\', function () {' . "\n"
+			. '    global $product;' . "\n"
+			. '    if ( ! $product ) return;' . "\n"
+			. '    // WooCommerce stores UPC/EAN as _global_unique_id or a custom meta.' . "\n"
+			. '    $upc = get_post_meta( $product->get_id(), \'_global_unique_id\', true );' . "\n"
+			. '    if ( ! $upc ) $upc = $product->get_sku();' . "\n"
+			. '    if ( ! $upc ) return;' . "\n"
+			. '    printf(' . "\n"
+			. '        \'<div id="gunrack-compliance" data-upc="%s" data-key="%s"></div>\',' . "\n"
+			. '        esc_attr( $upc ),' . "\n"
+			. '        \'' . $pubKey . '\'' . "\n"
+			. '    );' . "\n"
+			. '}, 25 );' . "\n"
+			. "\n"
+			. 'add_action( \'wp_enqueue_scripts\', function () {' . "\n"
+			. '    if ( ! function_exists( \'is_product\' ) || ! is_product() ) return;' . "\n"
+			. '    wp_enqueue_script(' . "\n"
+			. '        \'gunrack-compliance\',' . "\n"
+			. '        \'' . $widgetUrl . '\',' . "\n"
+			. '        [],' . "\n"
+			. '        null,' . "\n"
+			. '        true' . "\n"
+			. '    );' . "\n"
+			. '} );';
+
+		$tabs = [
+			'generic'     => [ 'Generic HTML',   $generic,     'Paste on the product page template. Replace <code>PRODUCT_UPC</code> with your platform\'s UPC variable.' ],
+			'bigcommerce' => [ 'BigCommerce',    $bigcommerce, 'Add to your product page template (Stencil). Verify <code>{{product.upc}}</code> exists in your theme; if not, use <code>{{product.sku}}</code>.' ],
+			'shopify'     => [ 'Shopify',        $shopify,     'Add to <code>product-template.liquid</code> (or the section your theme uses). The UPC is in <code>variant.barcode</code>.' ],
+			'woocommerce' => [ 'WooCommerce',    $woo,         'Add to <code>functions.php</code> or a mu-plugin. The Woo hook prints the container inside the product summary and enqueues the script only on product pages.' ],
+		];
+
+		$navHtml  = '<div class="gdak-tabs">';
+		$paneHtml = '';
+		$first    = true;
+		foreach ( $tabs as $key => [ $label, $body, $note ] )
+		{
+			$active     = $first ? ' gdak-tab--active' : '';
+			$paneActive = $first ? ' gdak-pane--active' : '';
+			$navHtml   .= '<button type="button" class="gdak-tab' . $active . '" data-target="gdak-pane-' . $h( $key ) . '">' . $h( $label ) . '</button>';
+			$paneHtml  .= '<div class="gdak-pane' . $paneActive . '" id="gdak-pane-' . $h( $key ) . '">'
+				. '<p class="gdak-snippet-note">' . $note . '</p>'
+				. '<pre class="gdak-pre gdak-snippet"><code>' . $h( $body ) . '</code></pre>'
+				. '<button type="button" class="gdak-btn gdak-btn--sm gdak-copy-btn" data-copy-target="gdak-pane-' . $h( $key ) . '">Copy</button>'
+				. '</div>';
+			$first = false;
+		}
+		$navHtml .= '</div>';
+
+		$js = '<script>(function(){'
+			. 'var doc=document;'
+			. 'doc.addEventListener("click",function(ev){'
+			. 'var t=ev.target;'
+			. 'if(t.classList && t.classList.contains("gdak-tab")){'
+			. ' var tgt=t.getAttribute("data-target");'
+			. ' var tabs=t.parentNode.querySelectorAll(".gdak-tab");'
+			. ' for(var i=0;i<tabs.length;i++)tabs[i].classList.remove("gdak-tab--active");'
+			. ' t.classList.add("gdak-tab--active");'
+			. ' var panes=doc.querySelectorAll(".gdak-pane");'
+			. ' for(var j=0;j<panes.length;j++){panes[j].classList.remove("gdak-pane--active");}'
+			. ' var pane=doc.getElementById(tgt);'
+			. ' if(pane)pane.classList.add("gdak-pane--active");'
+			. '}'
+			. 'if(t.classList && t.classList.contains("gdak-copy-btn")){'
+			. ' var pt=t.getAttribute("data-copy-target");'
+			. ' var pane=doc.getElementById(pt);'
+			. ' if(!pane)return;'
+			. ' var code=pane.querySelector(".gdak-snippet code");'
+			. ' if(!code)return;'
+			. ' var text=code.innerText||code.textContent||"";'
+			. ' try{navigator.clipboard.writeText(text);t.textContent="Copied ✓";setTimeout(function(){t.textContent="Copy";},1500);}'
+			. ' catch(e){var ta=doc.createElement("textarea");ta.value=text;doc.body.appendChild(ta);ta.select();try{doc.execCommand("copy");t.textContent="Copied ✓";setTimeout(function(){t.textContent="Copy";},1500);}catch(er){}doc.body.removeChild(ta);}'
+			. '}'
+			. '});'
+			. '}());</script>';
+
+		return '<div class="gdak-card gdak-card--muted">'
+			. '<h2>Install the widget on your product pages</h2>'
+			. '<p>The snippets below have your <strong>publishable</strong> key pre-filled. The widget calls the <code>/api/compliance/product</code> endpoint from the browser and renders the all-states restriction list on your product page.</p>'
+			. $noDomainsWarn
+			. $navHtml
+			. $paneHtml
+			. $js
+			. '</div>';
 	}
 
 	/**
@@ -1334,6 +1486,19 @@ class _api extends \IPS\Dispatcher\Controller
 			. '.gdak-hint--danger a{color:#7f1d1d}'
 			. '.gdak-textarea{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px;font-family:ui-monospace,monospace;font-size:.9em;color:#0f172a;resize:vertical;box-sizing:border-box}'
 			. '.gdak-textarea:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}'
+			/* v1.6.35 install-snippet tabs */
+			. '.gdak-tabs{display:flex;gap:2px;background:#f1f5f9;border-radius:8px;padding:4px;margin:12px 0}'
+			. '.gdak-tab{background:transparent;border:none;padding:8px 14px;font-weight:600;font-size:.85em;color:#334155;border-radius:6px;cursor:pointer;flex:1 1 auto}'
+			. '.gdak-tab:hover{background:rgba(255,255,255,.6)}'
+			. '.gdak-tab--active{background:#fff;color:#1e40af;box-shadow:0 1px 3px rgba(15,23,42,.06)}'
+			. '.gdak-pane{display:none;margin-top:4px}'
+			. '.gdak-pane--active{display:block}'
+			. '.gdak-snippet-note{margin:0 0 10px;font-size:.85em;color:#475569;line-height:1.5}'
+			. '.gdak-snippet{max-height:340px;overflow:auto}'
+			. '.gdak-snippet code{background:transparent;color:inherit;font-family:inherit;padding:0}'
+			. '.gdak-btn--sm{padding:6px 14px;font-size:.8em;margin-top:6px}'
+			. '.gdak-copy-btn{background:#1e40af;color:#fff}'
+			. '.gdak-copy-btn:hover{background:#1e3a8a}'
 			. '</style>';
 	}
 
