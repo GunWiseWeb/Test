@@ -45,7 +45,14 @@ class _Product extends \IPS\Content\Item
 	   here — not through a trait. */
 
 	public static ?string $databaseTable   = 'gdreviews_products';
-	public static string  $databaseColumnId = 'product_id';
+	/* v1.0.6 — IPS ActiveRecord builds the PK column name as
+	   ($databasePrefix . $databaseColumnId), so with prefix
+	   "product_" the columnId must be the UNPREFIXED "id" —
+	   product_ + id = product_id. v1.0.5 shipped columnId as
+	   "product_id" which double-prefixed to product_product_id
+	   (non-existent), throwing "Undefined array key
+	   product_product_id" on every load. */
+	public static string  $databaseColumnId = 'id';
 	public static string  $databasePrefix   = 'product_';
 
 	public static string $application = 'gdreviews';

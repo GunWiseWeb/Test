@@ -26,7 +26,10 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 class _Review extends \IPS\Content\Review
 {
 	public static ?string $databaseTable   = 'gdreviews_reviews';
-	public static string  $databaseColumnId = 'review_id';
+	/* v1.0.6 — same double-prefix bug as Product.php. IPS builds
+	   the PK column as prefix+id; with "review_" the columnId
+	   must be the UNPREFIXED "id" so it resolves to review_id. */
+	public static string  $databaseColumnId = 'id';
 	public static string  $databasePrefix   = 'review_';
 
 	public static string $application = 'gdreviews';
