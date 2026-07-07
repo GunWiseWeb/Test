@@ -141,7 +141,16 @@ class _Product extends \IPS\Content\Item
 		return $url;
 	}
 
-	public static function canCreate( \IPS\Member $member, ?\IPS\Node\Model $container = null, bool $showError = false, ?array $source = null ): bool
+	/**
+	 * v1.0.3 — permission methods aligned to IPS 5.0.18's exact
+	 * contract on \IPS\Content\Item: only canCreate() is static;
+	 * canView/canEdit/canDelete/canEditTitle/canViewReports are
+	 * INSTANCE methods. v1.0.2's static canView() fatalled at
+	 * class-compile with "Cannot make non static method canView()
+	 * static." Signatures below match core / \IPS\downloads\File.
+	 */
+
+	public static function canCreate( \IPS\Member $member, ?\IPS\Node\Model $container = null, bool $showError = false ): bool
 	{
 		/* Products are lazily created by the review-submission flow;
 		   an end user does not "create a product." Stage 2 wires the
@@ -149,7 +158,7 @@ class _Product extends \IPS\Content\Item
 		return false;
 	}
 
-	public static function canView( ?\IPS\Member $member = null ): bool
+	public function canView( ?\IPS\Member $member = null ): bool
 	{
 		return true;
 	}

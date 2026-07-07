@@ -1,20 +1,23 @@
 <?php
 /**
- * @brief  GD Reviews — upgrade 1.0.2 (HOTFIX).
+ * @brief  GD Reviews — upgrade 1.0.3 (HOTFIX).
  *
- * v1.0.1 declared a `use \IPS\Content\<phantom trait>;` line inside
- * the Product Content Item class body. IPS 5.0.18 has no such
- * trait — every page hit fatalled with "Trait ... not found." The
- * v1.0.2 tarball removes the offending line; product reviewability
- * is wired via the $reviewClass static property (the pattern IPS's
- * Downloads app uses on \IPS\downloads\File).
+ * v1.0.2 declared canView() as `public static function` on the
+ * Product Content Item. IPS 5.0.18's \IPS\Content\Item::canView()
+ * is a NON-STATIC instance method, so class autoload fatalled at
+ * compile with "Cannot make non static method canView() static."
+ * The v1.0.3 tarball drops the `static` keyword on canView() and
+ * aligns canCreate() to core's exact 3-parameter signature.
  *
- * Pure controller / model cache invalidation — no schema changes,
- * no lang changes, no route changes. Just force IPS to re-resolve
- * the Product class file so the fatal is gone.
+ * Contract mirrored from \IPS\downloads\File:
+ *   STATIC   — canCreate( Member, ?Node\Model, bool )
+ *   INSTANCE — canView / canEdit / canDelete / canEditTitle
+ *
+ * Pure signature fix — no schema, no lang, no route change. Just
+ * force IPS to re-resolve the Product class so the fatal is gone.
  */
 
-namespace IPS\gdreviews\setup\upg_10002;
+namespace IPS\gdreviews\setup\upg_10003;
 
 use function defined;
 
