@@ -21,6 +21,30 @@ class _builder extends \IPS\Dispatcher\Controller
 {
 	public static bool $csrfProtected = TRUE;
 
+	/**
+	 * v1.0.62 — USPS state codes → names. Used by the compliance
+	 * panel to (a) build the state selector, (b) turn state_code
+	 * from gd_compliance_flags into a human-readable label.
+	 * Kept as an inline constant so no extra DB / file read is
+	 * needed at page-load time.
+	 */
+	private const COMPLIANCE_STATES = [
+		'AL' => 'Alabama',        'AK' => 'Alaska',        'AZ' => 'Arizona',    'AR' => 'Arkansas',
+		'CA' => 'California',     'CO' => 'Colorado',      'CT' => 'Connecticut','DE' => 'Delaware',
+		'DC' => 'District of Columbia',
+		'FL' => 'Florida',        'GA' => 'Georgia',       'HI' => 'Hawaii',     'ID' => 'Idaho',
+		'IL' => 'Illinois',       'IN' => 'Indiana',       'IA' => 'Iowa',       'KS' => 'Kansas',
+		'KY' => 'Kentucky',       'LA' => 'Louisiana',     'ME' => 'Maine',      'MD' => 'Maryland',
+		'MA' => 'Massachusetts',  'MI' => 'Michigan',      'MN' => 'Minnesota',  'MS' => 'Mississippi',
+		'MO' => 'Missouri',       'MT' => 'Montana',       'NE' => 'Nebraska',   'NV' => 'Nevada',
+		'NH' => 'New Hampshire',  'NJ' => 'New Jersey',    'NM' => 'New Mexico', 'NY' => 'New York',
+		'NC' => 'North Carolina', 'ND' => 'North Dakota',  'OH' => 'Ohio',       'OK' => 'Oklahoma',
+		'OR' => 'Oregon',         'PA' => 'Pennsylvania',  'RI' => 'Rhode Island',
+		'SC' => 'South Carolina', 'SD' => 'South Dakota',  'TN' => 'Tennessee',  'TX' => 'Texas',
+		'UT' => 'Utah',           'VT' => 'Vermont',       'VA' => 'Virginia',   'WA' => 'Washington',
+		'WV' => 'West Virginia',  'WI' => 'Wisconsin',     'WY' => 'Wyoming',
+	];
+
 	public function execute(): void
 	{
 		if ( !Member::loggedIn()->member_id )
@@ -29,6 +53,168 @@ class _builder extends \IPS\Dispatcher\Controller
 			return;
 		}
 		parent::execute();
+	}
+
+	/**
+	 * v1.0.62 — read the buyer's chosen state from cookie. Empty
+	 * (no cookie / invalid code) means "no state selected yet."
+	 */
+	private function currentComplianceState(): string
+	{
+		$raw = strtoupper( preg_replace( '/[^A-Z]/', '', (string) ( $_COOKIE['gdlo_state'] ?? '' ) ) );
+		return isset( self::COMPLIANCE_STATES[ $raw ] ) ? $raw : '';
+	}
+
+	/**
+	 * v1.0.62 — for a given batch of UPCs, pull every matching
+	 * gd_compliance_flags row keyed by UPC. Wrapped in try/catch
+	 * so a missing gdcompliance install (or a locked flags table)
+	 * cannot break the loadout builder. gd_compliance_flags is
+	 * READ-ONLY here — never written.
+	 */
+	private function fetchComplianceFlags( array $upcs ): array
+	{
+		$out = [];
+		$upcs = array_values( array_unique( array_filter( array_map( 'strval', $upcs ) ) ) );
+		if ( empty( $upcs ) ) { return $out; }
+
+		foreach ( $upcs as $upc )
+		{
+			try
+			{
+				foreach ( Db::i()->select(
+					'state_code, firearm_type, reason, citation',
+					'gd_compliance_flags',
+					[ 'upc=?', $upc ]
+				) as $f )
+				{
+					$out[ $upc ][] = $f;
+				}
+			}
+			catch ( \Throwable ) { /* gdcompliance optional — silent fallback */ }
+		}
+		return $out;
+	}
+
+	/**
+	 * v1.0.62 — decorate a loadout-item array with compliance
+	 * fields for the current buyer's state:
+	 *   compliance_restricted_here       bool   restricted (non-advisory) in $state
+	 *   compliance_advisory_here         bool   advisory (buyer permit) in $state
+	 *   compliance_reason_here           string reason text for $state
+	 *   compliance_all_states            array  every state where flagged
+	 *   compliance_restricted_state_codes array distinct restricted state codes
+	 */
+	private function decorateItem( array $item, array $flags, string $state ): array
+	{
+		$all      = [];
+		$codes    = [];
+		$here_r   = false;
+		$here_a   = false;
+		$here_msg = '';
+
+		foreach ( $flags as $f )
+		{
+			$ftype      = (string) ( $f['firearm_type'] ?? '' );
+			$isAdvisory = ( $ftype === 'advisory' );
+			$sc         = strtoupper( (string) ( $f['state_code'] ?? '' ) );
+
+			$all[] = [
+				'state'      => $sc,
+				'state_name' => self::COMPLIANCE_STATES[ $sc ] ?? $sc,
+				'type'       => $isAdvisory ? 'advisory' : 'restricted',
+				'reason'     => (string) ( $f['reason'] ?? '' ),
+				'citation'   => (string) ( $f['citation'] ?? '' ),
+			];
+
+			if ( !$isAdvisory ) { $codes[ $sc ] = true; }
+
+			if ( $state !== '' && $sc === $state )
+			{
+				if ( $isAdvisory )
+				{
+					$here_a = true;
+					if ( $here_msg === '' ) { $here_msg = (string) ( $f['reason'] ?? '' ); }
+				}
+				else
+				{
+					$here_r   = true;
+					$here_msg = (string) ( $f['reason'] ?? '' );
+				}
+			}
+		}
+
+		$item['compliance_restricted_here']        = $here_r;
+		$item['compliance_advisory_here']          = $here_a;
+		$item['compliance_reason_here']            = $here_msg;
+		$item['compliance_all_states']             = $all;
+		$item['compliance_restricted_state_codes'] = array_keys( $codes );
+		return $item;
+	}
+
+	/**
+	 * v1.0.62 — set/clear the compliance-state cookie and bounce
+	 * back to the builder with the loadout_id preserved. CSRF
+	 * checked so a stray link can't retarget someone else's
+	 * cookie via a same-origin request. Never writes to
+	 * gd_compliance_flags or gd_catalog.
+	 */
+	protected function setComplianceState(): void
+	{
+		Session::i()->csrfCheck();
+
+		$state = strtoupper( preg_replace( '/[^A-Z]/', '', (string) ( Request::i()->state ?? '' ) ) );
+		if ( strlen( $state ) === 2 && isset( self::COMPLIANCE_STATES[ $state ] ) )
+		{
+			setcookie( 'gdlo_state', $state, [
+				'expires'  => time() + 86400 * 365,
+				'path'     => '/',
+				'httponly' => TRUE,
+				'samesite' => 'Lax',
+			] );
+		}
+		else
+		{
+			setcookie( 'gdlo_state', '', [
+				'expires' => time() - 3600,
+				'path'    => '/',
+			] );
+		}
+
+		$url = Url::internal( 'app=gdloadout&module=loadouts&controller=builder', 'front' );
+		$editId = (int) ( Request::i()->loadout_id ?? 0 );
+		if ( $editId > 0 ) { $url = $url->setQueryString( 'loadout_id', $editId ); }
+		Output::i()->redirect( (string) $url );
+	}
+
+	/**
+	 * v1.0.62 — build-level compliance summary in one pass over
+	 * the decorated items. Returns { total, restricted, advisory,
+	 * restricted_upcs }.
+	 */
+	private function summarizeCompliance( array $items ): array
+	{
+		$total = 0; $restricted = 0; $advisory = 0; $restrictedUpcs = [];
+		foreach ( $items as $it )
+		{
+			if ( empty( $it['upc'] ) ) { continue; }
+			$total++;
+			if ( !empty( $it['compliance_restricted_here'] ) )
+			{
+				$restricted++;
+				$restrictedUpcs[] = (string) $it['upc'];
+			}
+			elseif ( !empty( $it['compliance_advisory_here'] ) )
+			{
+				$advisory++;
+			}
+		}
+		return [
+			'total'            => $total,
+			'restricted'       => $restricted,
+			'advisory'         => $advisory,
+			'restricted_upcs'  => $restrictedUpcs,
+		];
 	}
 
 	protected function isVip( Member $member ): bool
@@ -146,6 +332,26 @@ class _builder extends \IPS\Dispatcher\Controller
 			}
 		}
 
+		/* v1.0.62 — enrich items with compliance flags for the
+		   selected state. Every step is guarded: a missing
+		   gdcompliance install, an empty flags table, or a corrupt
+		   row must never break the builder. gd_compliance_flags
+		   and gd_catalog remain READ-ONLY throughout. */
+		$currentState = $this->currentComplianceState();
+		$upcList = [];
+		foreach ( $items as $it )
+		{
+			if ( !empty( $it['upc'] ) ) { $upcList[] = (string) $it['upc']; }
+		}
+		$flagsByUpc = $this->fetchComplianceFlags( $upcList );
+		foreach ( $items as &$it )
+		{
+			$upc = (string) ( $it['upc'] ?? '' );
+			$it  = $this->decorateItem( $it, $flagsByUpc[ $upc ] ?? [], $currentState );
+		}
+		unset( $it );
+		$complianceSummary = $this->summarizeCompliance( $items );
+
 		$limits  = \IPS\gdloadout\Loadout\Limits::forMember( $member );
 		$isVip   = $this->isVip( $member );
 
@@ -173,12 +379,235 @@ class _builder extends \IPS\Dispatcher\Controller
 			'submitSuggestionUrl' => $submitSuggestionUrl,
 			'lang_suggest_submitted_title' => Member::loggedIn()->language()->addToStack( 'gdloadout_suggest_submitted_title' ),
 			'lang_suggest_submitted_desc'  => Member::loggedIn()->language()->addToStack( 'gdloadout_suggest_submitted_desc' ),
+			/* v1.0.62 — expose compliance data to the JS builder
+			   so a future client-side integration can render
+			   badges as users add/remove items. Stage-1 render
+			   is server-side (panelHtml below). */
+			'complianceState'   => $currentState,
+			'complianceSummary' => $complianceSummary,
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
 		Output::i()->jsFiles  = array_merge( Output::i()->jsFiles, Output::i()->js( 'builder.js', 'gdloadout', 'interface' ) );
 		Output::i()->title    = Member::loggedIn()->language()->addToStack( 'gdloadout_builder_title' );
-		Output::i()->output   = Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->builder( $initData );
+
+		/* v1.0.62 — render the compliance panel ABOVE the JS
+		   builder. Panel is a snapshot of the currently-loaded
+		   items; the JS builder itself is left untouched, so
+		   save / delete / search still work exactly as they did. */
+		$compliancePanel = $this->renderCompliancePanel( $items, $complianceSummary, $currentState, $editId );
+
+		Output::i()->output   = $compliancePanel
+			. Theme::i()->getTemplate( 'loadouts', 'gdloadout', 'front' )->builder( $initData );
+	}
+
+	/**
+	 * v1.0.62 — server-side compliance panel. Renders a state
+	 * selector, a build-level summary, and per-item badges for
+	 * the items currently loaded on the loadout. Scoped CSS with
+	 * `.gdlc-` prefix so it can't clash with the JS builder's
+	 * own DOM.
+	 */
+	private function renderCompliancePanel( array $items, array $summary, string $state, int $editId ): string
+	{
+		$esc  = fn( string $s ): string => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+		$lang = Member::loggedIn()->language();
+		$L    = fn( string $k ): string => $esc( (string) $lang->addToStack( $k ) );
+
+		$stateName = $state !== '' ? ( self::COMPLIANCE_STATES[ $state ] ?? $state ) : '';
+
+		$setUrl = Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=setComplianceState', 'front' );
+		if ( $editId > 0 ) { $setUrl = $setUrl->setQueryString( 'loadout_id', $editId ); }
+		$csrfKey = (string) Session::i()->csrfKey;
+
+		$html = '<style>
+.gdlc-panel{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px 20px;margin:0 auto 16px;max-width:1200px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#0f172a}
+.gdlc-panel h2{margin:0 0 10px;font-size:1.05em;font-weight:700}
+.gdlc-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.gdlc-select{padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font:inherit;background:#fff;min-width:220px}
+.gdlc-btn{padding:6px 12px;border-radius:6px;border:none;font-weight:600;cursor:pointer;background:#0f172a;color:#fff;font-family:inherit;font-size:.95em}
+.gdlc-btn--muted{background:#f1f5f9;color:#0f172a}
+.gdlc-sum{padding:10px 14px;border-radius:8px;font-size:.95em;margin-top:4px}
+.gdlc-sum--danger{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.gdlc-sum--warn{background:#fef3c7;color:#78350f;border:1px solid #fde68a}
+.gdlc-sum--ok{background:#f0fdf4;color:#14532d;border:1px solid #bbf7d0}
+.gdlc-sum--info{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}
+.gdlc-items{margin-top:14px;display:grid;gap:8px}
+.gdlc-item{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff}
+.gdlc-item--restricted{border-color:#fecaca;background:#fef7f7}
+.gdlc-item--advisory{border-color:#fde68a;background:#fffdf5}
+.gdlc-item-title{font-weight:600;font-size:.95em}
+.gdlc-item-upc{color:#94a3b8;font-size:.8em;font-family:ui-monospace,monospace}
+.gdlc-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.gdlc-badge--restricted{background:#7f1d1d;color:#fee2e2}
+.gdlc-badge--advisory{background:#78350f;color:#fef3c7}
+.gdlc-badge--clear{background:#dcfce7;color:#14532d}
+.gdlc-reason{margin-top:6px;color:#334155;font-size:.9em}
+.gdlc-expand{margin-top:6px}
+.gdlc-expand summary{cursor:pointer;color:#475569;font-size:.85em;list-style:none}
+.gdlc-expand summary::-webkit-details-marker{display:none}
+.gdlc-expand summary::before{content:"▸ ";color:#94a3b8}
+.gdlc-expand[open] summary::before{content:"▾ "}
+.gdlc-all{margin-top:6px;padding:8px 10px;background:#f8fafc;border-radius:6px;font-size:.85em}
+.gdlc-all-row{padding:4px 0;border-top:1px dashed #e2e8f0}
+.gdlc-all-row:first-child{border-top:none}
+.gdlc-state-pill{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.03em;margin-right:6px;background:#e2e8f0;color:#334155}
+</style>';
+
+		$html .= '<div class="gdlc-panel">';
+		$html .= '<h2>' . $L( 'gdloadout_compliance_title' ) . '</h2>';
+
+		/* State selector */
+		$html .= '<form class="gdlc-row" method="post" action="' . $esc( (string) $setUrl ) . '">';
+		$html .= '<input type="hidden" name="csrfKey" value="' . $esc( $csrfKey ) . '">';
+		$html .= '<label for="gdlc-state" style="font-weight:600">' . $L( 'gdloadout_compliance_state_label' ) . '</label>';
+		$html .= '<select class="gdlc-select" id="gdlc-state" name="state">';
+		$html .= '<option value="">' . $L( 'gdloadout_compliance_select_state' ) . '</option>';
+		foreach ( self::COMPLIANCE_STATES as $code => $name )
+		{
+			$sel = ( $code === $state ) ? ' selected' : '';
+			$html .= '<option value="' . $esc( $code ) . '"' . $sel . '>' . $esc( $name ) . '</option>';
+		}
+		$html .= '</select>';
+		$html .= '<button type="submit" class="gdlc-btn">' . $L( 'gdloadout_compliance_apply' ) . '</button>';
+		$html .= '</form>';
+
+		/* Summary */
+		if ( $summary['total'] === 0 )
+		{
+			$html .= '<div class="gdlc-sum gdlc-sum--info">' . $L( 'gdloadout_compliance_empty' ) . '</div>';
+		}
+		elseif ( $state === '' )
+		{
+			$html .= '<div class="gdlc-sum gdlc-sum--info">' . $L( 'gdloadout_compliance_pick_state' ) . '</div>';
+		}
+		elseif ( $summary['restricted'] > 0 )
+		{
+			$msg = str_replace(
+				[ '{x}', '{total}', '{state}' ],
+				[ (string) $summary['restricted'], (string) $summary['total'], $esc( $stateName ) ],
+				(string) $lang->addToStack( 'gdloadout_compliance_summary_restricted' )
+			);
+			$html .= '<div class="gdlc-sum gdlc-sum--danger">' . $msg . '</div>';
+		}
+		elseif ( $summary['advisory'] > 0 )
+		{
+			$msg = str_replace(
+				[ '{y}', '{state}' ],
+				[ (string) $summary['advisory'], $esc( $stateName ) ],
+				(string) $lang->addToStack( 'gdloadout_compliance_summary_advisory' )
+			);
+			$html .= '<div class="gdlc-sum gdlc-sum--warn">' . $msg . '</div>';
+		}
+		else
+		{
+			$msg = str_replace(
+				'{state}', $esc( $stateName ),
+				(string) $lang->addToStack( 'gdloadout_compliance_summary_clear' )
+			);
+			$html .= '<div class="gdlc-sum gdlc-sum--ok">' . $msg . '</div>';
+		}
+
+		/* Per-item cards. Only render if items exist. */
+		if ( $summary['total'] > 0 )
+		{
+			$html .= '<div class="gdlc-items">';
+			foreach ( $items as $it )
+			{
+				if ( empty( $it['upc'] ) ) { continue; }
+				$html .= $this->renderComplianceItem( $it, $state, $stateName, $esc, $L, $lang );
+			}
+			$html .= '</div>';
+		}
+
+		$html .= '</div>';
+		return $html;
+	}
+
+	private function renderComplianceItem( array $it, string $state, string $stateName, callable $esc, callable $L, $lang ): string
+	{
+		$upc     = (string) ( $it['upc'] ?? '' );
+		$title   = (string) ( $it['title'] ?? '' );
+		if ( $title === '' ) { $title = 'UPC ' . $upc; }
+		$rHere   = !empty( $it['compliance_restricted_here'] );
+		$aHere   = !empty( $it['compliance_advisory_here'] );
+		$reason  = (string) ( $it['compliance_reason_here'] ?? '' );
+		$all     = (array) ( $it['compliance_all_states'] ?? [] );
+		$rCodes  = (array) ( $it['compliance_restricted_state_codes'] ?? [] );
+		$rCount  = count( $rCodes );
+
+		$cardClass = 'gdlc-item';
+		if ( $rHere )      { $cardClass .= ' gdlc-item--restricted'; }
+		elseif ( $aHere )  { $cardClass .= ' gdlc-item--advisory'; }
+
+		$html  = '<div class="' . $cardClass . '"><div style="flex:1">';
+		$html .= '<div class="gdlc-item-title">' . $esc( $title ) . '</div>';
+		$html .= '<div class="gdlc-item-upc">UPC ' . $esc( $upc ) . '</div>';
+
+		if ( $state === '' )
+		{
+			if ( $rCount > 0 )
+			{
+				$html .= '<div style="margin-top:6px;color:#475569;font-size:.9em">'
+					. sprintf( (string) $lang->addToStack( 'gdloadout_compliance_item_pick_state' ), $rCount )
+					. '</div>';
+			}
+			else
+			{
+				$html .= '<div style="margin-top:6px"><span class="gdlc-badge gdlc-badge--clear">' . $L( 'gdloadout_compliance_badge_clear' ) . '</span></div>';
+			}
+		}
+		elseif ( $rHere )
+		{
+			$html .= '<div style="margin-top:6px"><span class="gdlc-badge gdlc-badge--restricted">⛔ ' . $L( 'gdloadout_compliance_badge_restricted' ) . ' — ' . $esc( $stateName ) . '</span></div>';
+			if ( $reason !== '' )
+			{
+				$html .= '<div class="gdlc-reason">' . $esc( $reason ) . '</div>';
+			}
+		}
+		elseif ( $aHere )
+		{
+			$html .= '<div style="margin-top:6px"><span class="gdlc-badge gdlc-badge--advisory">ⓘ ' . $L( 'gdloadout_compliance_badge_advisory' ) . ' — ' . $esc( $stateName ) . '</span></div>';
+			if ( $reason !== '' )
+			{
+				$html .= '<div class="gdlc-reason">' . $esc( $reason ) . '</div>';
+			}
+		}
+		else
+		{
+			$html .= '<div style="margin-top:6px"><span class="gdlc-badge gdlc-badge--clear">✓ ' . $L( 'gdloadout_compliance_badge_clear_here' ) . '</span></div>';
+			if ( $rCount > 0 )
+			{
+				$html .= '<div style="margin-top:6px;color:#64748b;font-size:.85em">'
+					. sprintf( (string) $lang->addToStack( 'gdloadout_compliance_item_other_states' ), $rCount )
+					. '</div>';
+			}
+		}
+
+		if ( !empty( $all ) )
+		{
+			$html .= '<details class="gdlc-expand"><summary>' . $L( 'gdloadout_compliance_expand_all' ) . '</summary>';
+			$html .= '<div class="gdlc-all">';
+			foreach ( $all as $flag )
+			{
+				$sc = (string) ( $flag['state'] ?? '' );
+				$nm = (string) ( $flag['state_name'] ?? $sc );
+				$rz = (string) ( $flag['reason'] ?? '' );
+				$ct = (string) ( $flag['citation'] ?? '' );
+				$ty = (string) ( $flag['type'] ?? '' );
+				$html .= '<div class="gdlc-all-row">'
+					. '<span class="gdlc-state-pill">' . $esc( $sc ) . '</span>'
+					. '<strong>' . $esc( $nm ) . '</strong>'
+					. ' — <em>' . ( $ty === 'advisory' ? $L( 'gdloadout_compliance_all_advisory' ) : $L( 'gdloadout_compliance_all_restricted' ) ) . '</em>';
+				if ( $rz !== '' ) { $html .= '<div style="margin-top:2px">' . $esc( $rz ) . '</div>'; }
+				if ( $ct !== '' ) { $html .= '<div style="color:#64748b;font-size:.85em">' . $esc( $ct ) . '</div>'; }
+				$html .= '</div>';
+			}
+			$html .= '</div></details>';
+		}
+
+		$html .= '</div></div>';
+		return $html;
 	}
 
 	protected function save(): void

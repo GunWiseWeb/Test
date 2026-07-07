@@ -208,5 +208,24 @@
 <word key="gdloadout_beta_notice_url_forums" js="0"><![CDATA["Join the discussion" link URL]]></word>
 <word key="notifications__gdloadout_Loadouts" js="0"><![CDATA[Community Loadouts]]></word>
 <word key="notifications__gdloadout_Loadouts_desc" js="0"><![CDATA[These notifications are sent about loadouts you follow or created — updates, upvotes, follows, and suggestions.]]></word>
+
+<word key="gdloadout_compliance_title" js="0"><![CDATA[State Compliance Check]]></word>
+<word key="gdloadout_compliance_state_label" js="0"><![CDATA[Your state:]]></word>
+<word key="gdloadout_compliance_select_state" js="0"><![CDATA[— Select a state —]]></word>
+<word key="gdloadout_compliance_apply" js="0"><![CDATA[Check this build]]></word>
+<word key="gdloadout_compliance_empty" js="0"><![CDATA[Add items to your loadout to see per-state compliance.]]></word>
+<word key="gdloadout_compliance_pick_state" js="0"><![CDATA[Select your state to check this build for restrictions.]]></word>
+<word key="gdloadout_compliance_summary_restricted" js="0"><![CDATA[⛔ {x} of {total} items in this loadout are restricted in {state}.]]></word>
+<word key="gdloadout_compliance_summary_advisory" js="0"><![CDATA[ⓘ {y} items have buyer requirements in {state}.]]></word>
+<word key="gdloadout_compliance_summary_clear" js="0"><![CDATA[✓ No items in this build are restricted in {state}.]]></word>
+<word key="gdloadout_compliance_badge_restricted" js="0"><![CDATA[Restricted]]></word>
+<word key="gdloadout_compliance_badge_advisory" js="0"><![CDATA[Buyer requirement]]></word>
+<word key="gdloadout_compliance_badge_clear" js="0"><![CDATA[No known restrictions]]></word>
+<word key="gdloadout_compliance_badge_clear_here" js="0"><![CDATA[Clear here]]></word>
+<word key="gdloadout_compliance_item_pick_state" js="0"><![CDATA[Restricted in %d state(s). Select your state above to check.]]></word>
+<word key="gdloadout_compliance_item_other_states" js="0"><![CDATA[Restricted in %d other state(s) — expand for details.]]></word>
+<word key="gdloadout_compliance_expand_all" js="0"><![CDATA[All flagged states]]></word>
+<word key="gdloadout_compliance_all_restricted" js="0"><![CDATA[restricted]]></word>
+<word key="gdloadout_compliance_all_advisory" js="0"><![CDATA[buyer requirement]]></word>
 </app>
 </language>
