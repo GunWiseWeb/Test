@@ -163,8 +163,11 @@ class _builder extends \IPS\Dispatcher\Controller
 	{
 		Session::i()->csrfCheck();
 
-		$state = strtoupper( preg_replace( '/[^A-Z]/', '', (string) ( Request::i()->state ?? '' ) ) );
-		if ( strlen( $state ) === 2 && isset( self::COMPLIANCE_STATES[ $state ] ) )
+		$raw   = (string) ( Request::i()->state ?? '' );
+		$state = strtoupper( preg_replace( '/[^A-Z]/', '', $raw ) );
+		$valid = ( strlen( $state ) === 2 && isset( self::COMPLIANCE_STATES[ $state ] ) );
+
+		if ( $valid )
 		{
 			setcookie( 'gdlo_state', $state, [
 				'expires'  => time() + 86400 * 365,
@@ -179,12 +182,71 @@ class _builder extends \IPS\Dispatcher\Controller
 				'expires' => time() - 3600,
 				'path'    => '/',
 			] );
+			$state = '';
+		}
+
+		/* v1.0.65 — AJAX callers get a small JSON payload back and
+		   stay on the builder. Non-AJAX callers still get the
+		   redirect (back-compat with any bookmarked / no-JS
+		   submission path). */
+		if ( Request::i()->isAjax() )
+		{
+			Output::i()->json( [
+				'ok'    => TRUE,
+				'state' => $state,
+				'name'  => $valid ? ( self::COMPLIANCE_STATES[ $state ] ?? $state ) : '',
+			] );
+			return;
 		}
 
 		$url = Url::internal( 'app=gdloadout&module=loadouts&controller=builder', 'front' );
 		$editId = (int) ( Request::i()->loadout_id ?? 0 );
 		if ( $editId > 0 ) { $url = $url->setQueryString( 'loadout_id', $editId ); }
 		Output::i()->redirect( (string) $url );
+	}
+
+	/**
+	 * v1.0.65 — batch compliance re-check for a set of UPCs against
+	 * a chosen state. Called by builder.js when the state selector
+	 * changes so filled slots can update their badges in place
+	 * without a page reload. AJAX-only, CSRF-checked. gd_compliance_
+	 * flags is SELECT-only; guarded per-UPC so a missing gdcompliance
+	 * install cannot fail the batch. Response shape:
+	 *   { ok, state, results: { <upc>: {state, restricted_here, ...} } }
+	 */
+	protected function complianceCheck(): void
+	{
+		Session::i()->csrfCheck();
+
+		$raw   = (string) ( Request::i()->state ?? '' );
+		$state = strtoupper( preg_replace( '/[^A-Z]/', '', $raw ) );
+		if ( !isset( self::COMPLIANCE_STATES[ $state ] ) ) { $state = ''; }
+
+		$upcsIn = Request::i()->upcs ?? [];
+		if ( !is_array( $upcsIn ) )
+		{
+			$upcsIn = preg_split( '/\s*,\s*/', (string) $upcsIn );
+		}
+		$upcs = [];
+		foreach ( (array) $upcsIn as $u )
+		{
+			$u = preg_replace( '/[^0-9A-Za-z\-]/', '', (string) $u );
+			if ( $u !== '' ) { $upcs[] = $u; }
+		}
+		$upcs = array_values( array_unique( $upcs ) );
+
+		$results = [];
+		foreach ( $upcs as $upc )
+		{
+			$results[ $upc ] = $this->complianceForResult( $upc, $state );
+		}
+
+		Output::i()->json( [
+			'ok'      => TRUE,
+			'state'   => $state,
+			'name'    => $state !== '' ? ( self::COMPLIANCE_STATES[ $state ] ?? $state ) : '',
+			'results' => $results,
+		] );
 	}
 
 	/**
@@ -365,6 +427,13 @@ class _builder extends \IPS\Dispatcher\Controller
 		$deleteUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=delete', 'front', 'gdloadout_builder' );
 		$searchUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=search', 'front', 'gdloadout_builder' );
 		$submitSuggestionUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=hub&do=submitSuggestion', 'front' );
+		/* v1.0.65 — AJAX state selector URLs. setStateUrl writes the
+		   cookie + returns JSON; complianceCheckUrl re-computes
+		   compliance for a batch of UPCs against a new state so
+		   filled slot badges refresh in place without a page
+		   navigation. */
+		$setStateUrl        = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=setComplianceState', 'front' );
+		$complianceCheckUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=complianceCheck', 'front' );
 		$csrfKey   = Session::i()->csrfKey;
 
 		$initData = json_encode( [
@@ -389,8 +458,11 @@ class _builder extends \IPS\Dispatcher\Controller
 			   so a future client-side integration can render
 			   badges as users add/remove items. Stage-1 render
 			   is server-side (panelHtml below). */
-			'complianceState'   => $currentState,
-			'complianceSummary' => $complianceSummary,
+			'complianceState'      => $currentState,
+			'complianceSummary'    => $complianceSummary,
+			/* v1.0.65 — AJAX state selector endpoints. */
+			'setStateUrl'          => $setStateUrl,
+			'complianceCheckUrl'   => $complianceCheckUrl,
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
@@ -463,11 +535,14 @@ class _builder extends \IPS\Dispatcher\Controller
 		$html .= '<div class="gdlc-panel">';
 		$html .= '<h2>' . $L( 'gdloadout_compliance_title' ) . '</h2>';
 
-		/* State selector */
-		$html .= '<form class="gdlc-row" method="post" action="' . $esc( (string) $setUrl ) . '">';
-		$html .= '<input type="hidden" name="csrfKey" value="' . $esc( $csrfKey ) . '">';
+		/* v1.0.65 — state selector is AJAX-driven; no <form> submit
+		   so nothing navigates. builder.js listens on the select's
+		   `change` event (and Apply as an explicit re-check),
+		   POSTs to setComplianceState via fetch, then updates
+		   compliance in place via complianceCheck. */
+		$html .= '<div class="gdlc-row">';
 		$html .= '<label for="gdlc-state" style="font-weight:600">' . $L( 'gdloadout_compliance_state_label' ) . '</label>';
-		$html .= '<select class="gdlc-select" id="gdlc-state" name="state">';
+		$html .= '<select class="gdlc-select" id="gdlc-state">';
 		$html .= '<option value="">' . $L( 'gdloadout_compliance_select_state' ) . '</option>';
 		foreach ( self::COMPLIANCE_STATES as $code => $name )
 		{
@@ -475,8 +550,9 @@ class _builder extends \IPS\Dispatcher\Controller
 			$html .= '<option value="' . $esc( $code ) . '"' . $sel . '>' . $esc( $name ) . '</option>';
 		}
 		$html .= '</select>';
-		$html .= '<button type="submit" class="gdlc-btn">' . $L( 'gdloadout_compliance_apply' ) . '</button>';
-		$html .= '</form>';
+		$html .= '<button type="button" class="gdlc-btn" id="gdlc-apply">' . $L( 'gdloadout_compliance_apply' ) . '</button>';
+		$html .= '<span id="gdlc-status" style="font-size:.85em;color:#64748b"></span>';
+		$html .= '</div>';
 
 		/* Summary */
 		if ( $summary['total'] === 0 )

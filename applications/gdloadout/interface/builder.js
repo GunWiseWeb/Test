@@ -16,6 +16,12 @@
 	var loadoutId = (init.loadout && init.loadout.id) ? parseInt(init.loadout.id, 10) : 0;
 	var suggestMode = !!init.suggestMode;
 	var submitSuggestionUrl = init.submitSuggestionUrl || '';
+	/* v1.0.65 — AJAX state selector: URLs to write the cookie
+	   and to re-check compliance for a batch of UPCs, plus the
+	   current state for JS-side use. */
+	var setStateUrl        = init.setStateUrl || '';
+	var complianceCheckUrl = init.complianceCheckUrl || '';
+	var currentComplianceState = init.complianceState || '';
 	var originalSlots = {};
 
 	var completeFirearmCore = init.completeFirearmCore || {};
@@ -1456,6 +1462,119 @@
 				alert('Failed — please try again.');
 			});
 		});
+	}
+
+	/* v1.0.65 — AJAX state selector. Change or Apply → POST the
+	   new state to setComplianceState (cookie writer, returns
+	   JSON in AJAX mode), then batch-recheck compliance for
+	   every filled slot's UPC via complianceCheck, patch
+	   slots[].compliance in place, and re-render slot cards +
+	   summary. No navigation. */
+	(function wireComplianceStateSelector() {
+		var sel     = document.getElementById('gdlc-state');
+		var applyBt = document.getElementById('gdlc-apply');
+		var status  = document.getElementById('gdlc-status');
+		if (!sel || !setStateUrl) return;
+
+		function fire() {
+			var newState = (sel.value || '').toUpperCase();
+			if (status) status.textContent = 'Updating…';
+			if (applyBt) applyBt.disabled = true;
+
+			var body = 'state=' + encodeURIComponent(newState)
+				+ '&csrfKey=' + encodeURIComponent(csrfKey);
+
+			fetch(setStateUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				body: body
+			})
+			.then(function(r){ return r.json(); })
+			.then(function(){
+				currentComplianceState = newState;
+				return recheckFilledSlots(newState);
+			})
+			.then(function(){
+				if (status) status.textContent = '';
+				if (applyBt) applyBt.disabled = false;
+			})
+			.catch(function(){
+				if (status) status.textContent = 'Failed — try again';
+				if (applyBt) applyBt.disabled = false;
+			});
+		}
+
+		sel.addEventListener('change', fire);
+		if (applyBt) applyBt.addEventListener('click', fire);
+	})();
+
+	function recheckFilledSlots(newState) {
+		var filled = getFilledSlots();
+		var upcs = [];
+		var byUpc = {};
+		for (var i = 0; i < filled.length; i++) {
+			var u = filled[i].slot && filled[i].slot.upc;
+			if (u) { upcs.push(u); if (!byUpc[u]) byUpc[u] = []; byUpc[u].push(filled[i].key); }
+		}
+		if (!complianceCheckUrl || upcs.length === 0) {
+			applyComplianceUpdate({}, newState);
+			return Promise.resolve();
+		}
+
+		var body = 'state=' + encodeURIComponent(newState)
+			+ '&csrfKey=' + encodeURIComponent(csrfKey);
+		upcs.forEach(function(u){ body += '&upcs%5B%5D=' + encodeURIComponent(u); });
+
+		return fetch(complianceCheckUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+				'X-Requested-With': 'XMLHttpRequest'
+			},
+			body: body
+		})
+		.then(function(r){ return r.json(); })
+		.then(function(data){
+			applyComplianceUpdate((data && data.results) || {}, newState);
+		})
+		.catch(function(){
+			/* On a failure, still re-render with the empty results
+			   so at least the state label / summary updates and
+			   filled badges clear rather than showing stale info. */
+			applyComplianceUpdate({}, newState);
+		});
+	}
+
+	function applyComplianceUpdate(resultsByUpc, newState) {
+		Object.keys(slots).forEach(function(k) {
+			var s = slots[k];
+			if (!s || !s.upc) return;
+			var fresh = resultsByUpc[s.upc];
+			if (fresh) {
+				s.compliance = fresh;
+			} else if (s.compliance) {
+				/* No fresh result → clear per-state flags but keep
+				   the state code so the empty-state banner renders
+				   correctly for the newly-selected state. */
+				s.compliance = {
+					state: newState,
+					restricted_here: false,
+					advisory_here: false,
+					reason_here: '',
+					restricted_count: s.compliance.restricted_count || 0,
+					restricted_codes: s.compliance.restricted_codes || []
+				};
+			}
+		});
+
+		if (currentStep === 2) renderCoreGrid();
+		if (currentStep === 3) { renderAccGrid(); renderExtraGrid(); }
+		updateAllSummaries();
 	}
 
 	updateModeLock();
