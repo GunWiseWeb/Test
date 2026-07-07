@@ -1,1 +1,6 @@
-{}
+{
+	"manage": {
+		"settings": { "reviews_manage": "reviews_manage" },
+		"reviews":  { "reviews_manage": "reviews_manage" }
+	}
+}

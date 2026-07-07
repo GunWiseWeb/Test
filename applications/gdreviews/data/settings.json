@@ -1,6 +1,11 @@
 [
-	{"key": "gdreviews_reviews_per_page", "default": "10", "report": "full"},
-	{"key": "gdreviews_min_rating",       "default": "1",  "report": "full"},
-	{"key": "gdreviews_max_rating",       "default": "5",  "report": "full"},
-	{"key": "gdreviews_auto_approve",     "default": "1",  "report": "full"}
+	{"key": "gdreviews_reviews_per_page",  "default": "10",         "report": "full"},
+	{"key": "gdreviews_min_rating",        "default": "1",          "report": "full"},
+	{"key": "gdreviews_max_rating",        "default": "5",          "report": "full"},
+	{"key": "gdreviews_auto_approve",      "default": "1",          "report": "full"},
+	{"key": "gdreviews_reviewer_groups",   "default": "",           "report": "full"},
+	{"key": "gdreviews_approval_mode",     "default": "immediate",  "report": "full"},
+	{"key": "gdreviews_require_text",      "default": "1",          "report": "full"},
+	{"key": "gdreviews_min_length",        "default": "10",         "report": "full"},
+	{"key": "gdreviews_guest_view",        "default": "1",          "report": "full"}
 ]

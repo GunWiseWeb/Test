@@ -43,5 +43,40 @@
 		<word key="gdreviews_missing_upc" js="0"><![CDATA[No product specified.]]></word>
 		<word key="gdreviews_product_not_found" js="0"><![CDATA[Product not found.]]></word>
 		<word key="gdreviews_save_failed" js="0"><![CDATA[Could not save your review. Please try again.]]></word>
+
+		<word key="module__admin_manage" js="0"><![CDATA[Reviews]]></word>
+		<word key="menu__gdreviews_manage_settings" js="0"><![CDATA[Settings]]></word>
+		<word key="menu__gdreviews_manage_reviews" js="0"><![CDATA[Reviews]]></word>
+		<word key="r__reviews_manage" js="0"><![CDATA[Manage product reviews]]></word>
+
+		<word key="gdreviews_reviewer_groups" js="0"><![CDATA[Reviewer groups]]></word>
+		<word key="gdreviews_reviewer_groups_desc" js="0"><![CDATA[Which member groups may submit reviews. Leave empty to allow any logged-in member.]]></word>
+		<word key="gdreviews_approval_mode" js="0"><![CDATA[Approval mode]]></word>
+		<word key="gdreviews_approval_mode_desc" js="0"><![CDATA[Whether new reviews appear immediately or wait for admin approval.]]></word>
+		<word key="gdreviews_approval_immediate" js="0"><![CDATA[Show immediately]]></word>
+		<word key="gdreviews_approval_moderate" js="0"><![CDATA[Require approval]]></word>
+		<word key="gdreviews_require_text" js="0"><![CDATA[Require a text body]]></word>
+		<word key="gdreviews_require_text_desc" js="0"><![CDATA[Reject rating-only submissions.]]></word>
+		<word key="gdreviews_min_length" js="0"><![CDATA[Minimum review length]]></word>
+		<word key="gdreviews_min_length_desc" js="0"><![CDATA[Minimum characters in the review body. 0 disables the check.]]></word>
+		<word key="gdreviews_guest_view" js="0"><![CDATA[Guests can view reviews]]></word>
+		<word key="gdreviews_guest_view_desc" js="0"><![CDATA[When off, only logged-in members see the review list.]]></word>
+
+		<word key="gdreviews_acp_reviews_title" js="0"><![CDATA[Product Reviews — Management]]></word>
+		<word key="gdreviews_acp_reviews_col_review_upc" js="0"><![CDATA[Product]]></word>
+		<word key="gdreviews_acp_reviews_col_review_author_name" js="0"><![CDATA[Author]]></word>
+		<word key="gdreviews_acp_reviews_col_review_rating" js="0"><![CDATA[Rating]]></word>
+		<word key="gdreviews_acp_reviews_col_review_content" js="0"><![CDATA[Content]]></word>
+		<word key="gdreviews_acp_reviews_col_review_date" js="0"><![CDATA[Date]]></word>
+		<word key="gdreviews_acp_reviews_col_review_approved" js="0"><![CDATA[Status]]></word>
+		<word key="gdreviews_acp_action_approve" js="0"><![CDATA[Approve]]></word>
+		<word key="gdreviews_acp_action_hide" js="0"><![CDATA[Hide]]></word>
+		<word key="gdreviews_acp_action_unhide" js="0"><![CDATA[Unhide]]></word>
+		<word key="gdreviews_acp_action_delete" js="0"><![CDATA[Delete]]></word>
+
+		<word key="gdreviews_form_error_min" js="0"><![CDATA[Please pick a rating and enter at least %d characters.]]></word>
+		<word key="gdreviews_group_restricted" js="0"><![CDATA[Reviewing is limited to certain member groups. Your account is not currently eligible to submit a review.]]></word>
+		<word key="gdreviews_flash_pending" js="0"><![CDATA[Thanks — your review was submitted and is pending admin approval. It will appear here once approved.]]></word>
+		<word key="gdreviews_list_login_required" js="0"><![CDATA[Log in to view reviews for this product.]]></word>
 	</app>
 </language>

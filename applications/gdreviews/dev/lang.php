@@ -43,4 +43,45 @@ $lang = [
 	'gdreviews_missing_upc'        => 'No product specified.',
 	'gdreviews_product_not_found'  => 'Product not found.',
 	'gdreviews_save_failed'        => 'Could not save your review. Please try again.',
+
+	/* v1.0.4 — ACP menu + permissions */
+	'menutab__gdreviews'                    => 'Product Reviews',
+	'menutab__gdreviews_icon'               => 'star',
+	'module__admin_manage'                  => 'Reviews',
+	'menu__gdreviews_manage_settings'       => 'Settings',
+	'menu__gdreviews_manage_reviews'        => 'Reviews',
+	'r__reviews_manage'                     => 'Manage product reviews',
+
+	/* v1.0.4 — ACP settings form */
+	'gdreviews_reviewer_groups'             => 'Reviewer groups',
+	'gdreviews_reviewer_groups_desc'        => 'Which member groups may submit reviews. Leave empty to allow any logged-in member.',
+	'gdreviews_approval_mode'               => 'Approval mode',
+	'gdreviews_approval_mode_desc'          => 'Whether new reviews appear immediately or wait for admin approval.',
+	'gdreviews_approval_immediate'          => 'Show immediately',
+	'gdreviews_approval_moderate'           => 'Require approval',
+	'gdreviews_require_text'                => 'Require a text body',
+	'gdreviews_require_text_desc'           => 'Reject rating-only submissions.',
+	'gdreviews_min_length'                  => 'Minimum review length',
+	'gdreviews_min_length_desc'             => 'Minimum characters in the review body. 0 disables the check.',
+	'gdreviews_guest_view'                  => 'Guests can view reviews',
+	'gdreviews_guest_view_desc'             => 'When off, only logged-in members see the review list.',
+
+	/* v1.0.4 — ACP reviews list */
+	'gdreviews_acp_reviews_title'           => 'Product Reviews — Management',
+	'gdreviews_acp_reviews_col_review_upc'         => 'Product',
+	'gdreviews_acp_reviews_col_review_author_name' => 'Author',
+	'gdreviews_acp_reviews_col_review_rating'      => 'Rating',
+	'gdreviews_acp_reviews_col_review_content'     => 'Content',
+	'gdreviews_acp_reviews_col_review_date'        => 'Date',
+	'gdreviews_acp_reviews_col_review_approved'    => 'Status',
+	'gdreviews_acp_action_approve'          => 'Approve',
+	'gdreviews_acp_action_hide'             => 'Hide',
+	'gdreviews_acp_action_unhide'           => 'Unhide',
+	'gdreviews_acp_action_delete'           => 'Delete',
+
+	/* v1.0.4 — front notices for settings enforcement */
+	'gdreviews_form_error_min'              => 'Please pick a rating and enter at least %d characters.',
+	'gdreviews_group_restricted'            => 'Reviewing is limited to certain member groups. Your account is not currently eligible to submit a review.',
+	'gdreviews_flash_pending'               => 'Thanks — your review was submitted and is pending admin approval. It will appear here once approved.',
+	'gdreviews_list_login_required'         => 'Log in to view reviews for this product.',
 ];

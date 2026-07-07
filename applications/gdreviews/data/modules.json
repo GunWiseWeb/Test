@@ -1,4 +1,10 @@
 {
+	"admin": {
+		"manage": {
+			"default_controller": "settings",
+			"protected": false
+		}
+	},
 	"front": {
 		"reviews": {
 			"default_controller": "product",

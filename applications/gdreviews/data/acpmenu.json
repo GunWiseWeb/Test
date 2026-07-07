@@ -1,1 +1,16 @@
-{}
+{
+	"manage": {
+		"settings": {
+			"tab": "gdreviews",
+			"controller": "settings",
+			"do": "",
+			"restriction": "reviews_manage"
+		},
+		"reviews": {
+			"tab": "gdreviews",
+			"controller": "reviews",
+			"do": "",
+			"restriction": "reviews_manage"
+		}
+	}
+}

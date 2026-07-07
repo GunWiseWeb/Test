@@ -63,12 +63,13 @@ class _product extends \IPS\Dispatcher\Controller
 		ReviewProduct::loadByUpc( $upc, TRUE );
 
 		$member    = \IPS\Member::loggedIn();
+		$gate      = $this->settingsGate( $member );
 		$mine      = $member->member_id ? $this->loadMemberReview( $upc, (int) $member->member_id ) : null;
-		$reviews   = $this->loadReviews( $upc );
+		$reviews   = $gate['showList'] ? $this->loadReviews( $upc ) : [];
 		$aggregate = $this->loadAggregate( $upc );
 
 		\IPS\Output::i()->title  = htmlspecialchars( (string) $product['title'], ENT_QUOTES, 'UTF-8' ) . ' — ' . (string) $member->language()->addToStack( 'gdreviews_reviews' );
-		\IPS\Output::i()->output = $this->pageStyles() . $this->pageHtml( $upc, $product, $reviews, $aggregate, $member, $mine );
+		\IPS\Output::i()->output = $this->pageStyles() . $this->pageHtml( $upc, $product, $reviews, $aggregate, $member, $mine, $gate );
 	}
 
 	/**
@@ -98,6 +99,16 @@ class _product extends \IPS\Dispatcher\Controller
 			return;
 		}
 
+		/* Reviewer-group gate — if the admin has restricted reviewing
+		   to specific groups and this member isn't in one of them,
+		   bounce back with the notice. */
+		$gate = $this->settingsGate( $member );
+		if ( !$gate['canSubmit'] )
+		{
+			\IPS\Output::i()->redirect( $this->pageUrl( $upc ) );
+			return;
+		}
+
 		/* One per member per UPC — if they already have one, route
 		   to edit rather than duplicate. */
 		if ( $this->loadMemberReview( $upc, (int) $member->member_id ) !== null )
@@ -107,7 +118,7 @@ class _product extends \IPS\Dispatcher\Controller
 		}
 
 		[ $rating, $title, $content ] = $this->readForm();
-		if ( $rating < 1 || $content === '' )
+		if ( !$this->contentValid( $rating, $content ) )
 		{
 			\IPS\Output::i()->redirect( $this->pageUrl( $upc, 'error' ) );
 			return;
@@ -117,6 +128,8 @@ class _product extends \IPS\Dispatcher\Controller
 		   so review_item points at a real product_id. */
 		$shadow = ReviewProduct::loadByUpc( $upc, TRUE );
 		$itemId = $shadow ? (int) $shadow->id : 0;
+
+		$approved = $gate['approvalMode'] === 'moderate' ? 0 : 1;
 
 		try
 		{
@@ -129,7 +142,7 @@ class _product extends \IPS\Dispatcher\Controller
 				'review_title'        => $title,
 				'review_content'      => $content,
 				'review_date'         => time(),
-				'review_approved'     => 1,
+				'review_approved'     => $approved,
 				'review_hidden'       => 0,
 				'review_votes_data'   => null,
 				'review_votes_helpful'=> 0,
@@ -146,7 +159,7 @@ class _product extends \IPS\Dispatcher\Controller
 
 		ReviewProduct::recomputeAggregate( $upc );
 
-		\IPS\Output::i()->redirect( $this->pageUrl( $upc ) );
+		\IPS\Output::i()->redirect( $this->pageUrl( $upc, $approved === 0 ? 'pending' : null ) );
 	}
 
 	/**
@@ -172,7 +185,7 @@ class _product extends \IPS\Dispatcher\Controller
 		}
 
 		[ $rating, $title, $content ] = $this->readForm();
-		if ( $rating < 1 || $content === '' )
+		if ( !$this->contentValid( $rating, $content ) )
 		{
 			\IPS\Output::i()->redirect( $this->pageUrl( $upc, 'error' ) );
 			return;
@@ -372,10 +385,11 @@ class _product extends \IPS\Dispatcher\Controller
 .gdrv-rowStars{color:#f59e0b;font-size:1.05em;letter-spacing:1px}
 .gdrv-empty{color:#64748b;font-style:italic}
 .gdrv-flash-error{padding:10px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:6px;margin-bottom:14px}
+.gdrv-flash-pending{padding:10px 14px;background:#fef3c7;color:#78350f;border:1px solid #fde68a;border-radius:6px;margin-bottom:14px}
 </style>';
 	}
 
-	private function pageHtml( string $upc, array $product, array $reviews, array $aggregate, \IPS\Member $member, ?array $mine ): string
+	private function pageHtml( string $upc, array $product, array $reviews, array $aggregate, \IPS\Member $member, ?array $mine, array $gate ): string
 	{
 		$esc  = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
 		$lang = $member->language();
@@ -385,9 +399,20 @@ class _product extends \IPS\Dispatcher\Controller
 
 		$out = '<div class="gdrv-wrap">';
 
-		if ( (string) ( \IPS\Request::i()->flash ?? '' ) === 'error' )
+		$flash = (string) ( \IPS\Request::i()->flash ?? '' );
+		if ( $flash === 'error' )
 		{
-			$out .= '<div class="gdrv-flash-error">' . $L( 'gdreviews_form_error' ) . '</div>';
+			$msgKey = $gate['minLen'] > 0 ? 'gdreviews_form_error_min' : 'gdreviews_form_error';
+			$msg    = (string) $lang->addToStack( $msgKey );
+			if ( $gate['minLen'] > 0 )
+			{
+				$msg = str_replace( '%d', (string) $gate['minLen'], $msg );
+			}
+			$out .= '<div class="gdrv-flash-error">' . $esc( $msg ) . '</div>';
+		}
+		elseif ( $flash === 'pending' )
+		{
+			$out .= '<div class="gdrv-flash-pending">' . $L( 'gdreviews_flash_pending' ) . '</div>';
 		}
 
 		/* Product header */
@@ -412,7 +437,8 @@ class _product extends \IPS\Dispatcher\Controller
 		$out .= '<div class="gdrv-meta">UPC: ' . $esc( $upc ) . '</div>';
 		$out .= '</div></div>';
 
-		/* Submission / mine */
+		/* Submission / mine — gate on guest, group membership, and
+		   whether the member has an existing review. */
 		$out .= '<div class="gdrv-card">';
 		if ( !$member->member_id )
 		{
@@ -425,27 +451,39 @@ class _product extends \IPS\Dispatcher\Controller
 		{
 			$out .= $this->renderMineForm( $upc, $mine, $L, $esc );
 		}
+		elseif ( !$gate['canSubmit'] )
+		{
+			$out .= '<h2>' . $L( 'gdreviews_write_review' ) . '</h2>';
+			$out .= '<p class="gdrv-empty">' . $L( 'gdreviews_group_restricted' ) . '</p>';
+		}
 		else
 		{
 			$out .= $this->renderCreateForm( $upc, $L, $esc );
 		}
 		$out .= '</div>';
 
-		/* Reviews list */
-		$out .= '<div class="gdrv-card">';
-		$out .= '<h2>' . $L( 'gdreviews_reviews' ) . ' (' . $aggregate['count'] . ')</h2>';
-		if ( empty( $reviews ) )
+		/* Reviews list — hidden entirely if guest and guest_view=off. */
+		if ( $gate['showList'] )
 		{
-			$out .= '<div class="gdrv-empty">' . $L( 'gdreviews_no_reviews' ) . '</div>';
-		}
-		else
-		{
-			foreach ( $reviews as $r )
+			$out .= '<div class="gdrv-card">';
+			$out .= '<h2>' . $L( 'gdreviews_reviews' ) . ' (' . $aggregate['count'] . ')</h2>';
+			if ( empty( $reviews ) )
 			{
-				$out .= $this->renderReviewRow( $r, $esc );
+				$out .= '<div class="gdrv-empty">' . $L( 'gdreviews_no_reviews' ) . '</div>';
 			}
+			else
+			{
+				foreach ( $reviews as $r )
+				{
+					$out .= $this->renderReviewRow( $r, $esc );
+				}
+			}
+			$out .= '</div>';
 		}
-		$out .= '</div>';
+		elseif ( !$member->member_id )
+		{
+			$out .= '<div class="gdrv-card"><div class="gdrv-empty">' . $L( 'gdreviews_list_login_required' ) . '</div></div>';
+		}
 
 		$out .= '</div>';
 		return $out;
@@ -545,6 +583,75 @@ class _product extends \IPS\Dispatcher\Controller
 		$html .= '</div>';
 		$html .= '</div></div>';
 		return $html;
+	}
+
+	/* ============================================================
+	 * v1.0.4 — settings gate.
+	 *
+	 * settingsGate() returns everything the view + submission need
+	 * to know about the current viewer / configured review policy:
+	 *   canSubmit    — this viewer is a member AND in an allowed
+	 *                   reviewer group (empty group list = any
+	 *                   logged-in member).
+	 *   showList     — reviews are visible to this viewer (guests
+	 *                   are blocked when gdreviews_guest_view=0).
+	 *   approvalMode — 'immediate' | 'moderate'.
+	 *   requireText  — bool.
+	 *   minLen       — int.
+	 *
+	 * contentValid() applies the require-text + min-length settings
+	 * uniformly to submit and edit paths.
+	 * ============================================================ */
+
+	private function settingsGate( \IPS\Member $member ): array
+	{
+		$rawGroups = (string) \IPS\Settings::i()->gdreviews_reviewer_groups;
+		$reviewerGroups = array_filter( array_map( 'intval', explode( ',', $rawGroups ) ) );
+
+		$mode        = (string) ( \IPS\Settings::i()->gdreviews_approval_mode ?: 'immediate' );
+		if ( !in_array( $mode, [ 'immediate', 'moderate' ], TRUE ) ) { $mode = 'immediate'; }
+		$requireText = (bool) \IPS\Settings::i()->gdreviews_require_text;
+		$minLen      = max( 0, (int) \IPS\Settings::i()->gdreviews_min_length );
+		$guestView   = (bool) \IPS\Settings::i()->gdreviews_guest_view;
+
+		$isMember  = (bool) $member->member_id;
+		$showList  = $isMember || $guestView;
+		$canSubmit = $isMember;
+
+		if ( $canSubmit && !empty( $reviewerGroups ) )
+		{
+			$memberGroups = $member->mgroup_others
+				? array_filter( array_map( 'intval', explode( ',', (string) $member->mgroup_others ) ) )
+				: [];
+			$memberGroups[] = (int) $member->member_group_id;
+			if ( empty( array_intersect( $reviewerGroups, $memberGroups ) ) )
+			{
+				$canSubmit = false;
+			}
+		}
+
+		return [
+			'canSubmit'    => $canSubmit,
+			'showList'     => $showList,
+			'approvalMode' => $mode,
+			'requireText'  => $requireText,
+			'minLen'       => $minLen,
+			'guestView'    => $guestView,
+		];
+	}
+
+	private function contentValid( int $rating, string $content ): bool
+	{
+		if ( $rating < 1 ) { return false; }
+
+		$requireText = (bool) \IPS\Settings::i()->gdreviews_require_text;
+		$minLen      = max( 0, (int) \IPS\Settings::i()->gdreviews_min_length );
+
+		$trimmed = trim( $content );
+		if ( $requireText && $trimmed === '' ) { return false; }
+		if ( $minLen > 0 && mb_strlen( $trimmed ) < $minLen ) { return false; }
+
+		return true;
 	}
 }
 
