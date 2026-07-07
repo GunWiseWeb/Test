@@ -867,8 +867,76 @@ class _builder extends \IPS\Dispatcher\Controller
 		Output::i()->json( [ 'ok' => true ] );
 	}
 
+	/**
+	 * v1.0.63 — compact compliance decorator for search-result JSON.
+	 * One SELECT per UPC (batched by the caller wouldn't help — each
+	 * result row is already looked up individually via other queries
+	 * in search()), guarded so gdcompliance being missing or the
+	 * flags table being locked cannot ever fail a search. Returns a
+	 * `compliance` sub-array that builder.js reads to render the
+	 * real-time badge:
+	 *   state            — buyer's currently-selected state code
+	 *   restricted_here  — bool, non-advisory flag matching state
+	 *   advisory_here    — bool, advisory flag matching state
+	 *   reason_here      — reason text for the state (restrictions win)
+	 *   restricted_count — count of DISTINCT restricted states
+	 *   restricted_codes — those distinct state codes
+	 */
+	private function complianceForResult( string $upc, string $state ): array
+	{
+		$out = [
+			'state'            => $state,
+			'restricted_here'  => false,
+			'advisory_here'    => false,
+			'reason_here'      => '',
+			'restricted_count' => 0,
+			'restricted_codes' => [],
+		];
+		if ( $upc === '' ) { return $out; }
+
+		$codes = [];
+		try
+		{
+			foreach ( Db::i()->select(
+				'state_code, firearm_type, reason',
+				'gd_compliance_flags',
+				[ 'upc=?', $upc ]
+			) as $f )
+			{
+				$sc         = strtoupper( (string) ( $f['state_code'] ?? '' ) );
+				$isAdvisory = ( ( $f['firearm_type'] ?? '' ) === 'advisory' );
+
+				if ( !$isAdvisory && $sc !== '' ) { $codes[ $sc ] = true; }
+
+				if ( $state !== '' && $sc === $state )
+				{
+					if ( $isAdvisory )
+					{
+						$out['advisory_here'] = true;
+					}
+					else
+					{
+						$out['restricted_here'] = true;
+						$out['reason_here']     = (string) ( $f['reason'] ?? '' );
+					}
+				}
+			}
+		}
+		catch ( \Throwable ) { /* gdcompliance optional — silent */ }
+
+		$out['restricted_codes'] = array_keys( $codes );
+		$out['restricted_count'] = count( $out['restricted_codes'] );
+		return $out;
+	}
+
 	protected function search(): void
 	{
+		/* v1.0.63 — buyer's persisted state (cookie set by
+		   setComplianceState). Empty when they haven't picked one
+		   yet — search() still runs; each result carries an empty
+		   `compliance.state` and builder.js can prompt to pick. */
+		$complianceState = $this->currentComplianceState();
+
 		$query = trim( (string) ( Request::i()->q ?? '' ) );
 		$page  = max( 1, (int) ( Request::i()->page ?? 1 ) );
 
@@ -943,6 +1011,7 @@ class _builder extends \IPS\Dispatcher\Controller
 							'best_price' => $price, 'dealer_count' => $dealers, 'in_stock' => $dealers > 0,
 							'category' => $row['category'] ?? '', 'caliber' => $row['caliber'] ?? '',
 							'image_url' => (string) ( $row['image_url'] ?? '' ),
+							'compliance' => $this->complianceForResult( (string) $u, $complianceState ),
 						];
 					}
 					catch ( \Throwable ) {}
@@ -1052,6 +1121,7 @@ class _builder extends \IPS\Dispatcher\Controller
 					'category'    => $r['category'] ?? '',
 					'caliber'     => $r['caliber'] ?? '',
 					'image_url'   => $img,
+					'compliance'  => $this->complianceForResult( (string) ( $r['upc'] ?? '' ), $complianceState ),
 				];
 			}
 			Output::i()->json( [ 'total' => $result['total'] ?? 0, 'results' => $out, 'aggregations' => $cleanAggs ] );

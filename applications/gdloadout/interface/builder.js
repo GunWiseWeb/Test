@@ -910,11 +910,19 @@
 					var priceHtml = (r.best_price && parseFloat(r.best_price) > 0)
 						? '<div class="gdlo-pick-card-price">$' + parseFloat(r.best_price).toFixed(2) + '</div>'
 						: '<div class="gdlo-pick-card-noprice">No price yet</div>';
+					var complianceHtml = renderResultCompliance(r.compliance);
+					if (complianceHtml && card.classList) {
+						var c = r.compliance || {};
+						if (c.restricted_here) { card.classList.add('gdlo-pick-card--restricted'); }
+						else if (c.advisory_here) { card.classList.add('gdlo-pick-card--advisory'); }
+					}
 					card.innerHTML = imgHtml
 						+ '<div class="gdlo-pick-card-body">'
 						+ '<div class="gdlo-pick-card-title">' + escapeHtml(r.title || r.upc) + '</div>'
 						+ '<div class="gdlo-pick-card-brand">' + escapeHtml(r.brand || '') + '</div>'
-						+ priceHtml + '</div>';
+						+ priceHtml
+						+ complianceHtml
+						+ '</div>';
 					card.addEventListener('click', function () { assignProduct(r); });
 					resultsEl.appendChild(card);
 				});
@@ -1060,6 +1068,73 @@
 
 	function escapeAttr(str) {
 		return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	}
+
+	/* ===== v1.0.63 — real-time compliance badge on search results.
+	 *
+	 * search() attaches r.compliance = {
+	 *   state, restricted_here, advisory_here, reason_here,
+	 *   restricted_count, restricted_codes
+	 * } to every result. renderResultCompliance() turns that into
+	 * a small badge on the result card BEFORE the buyer clicks add
+	 * — so restrictions are visible while browsing, not only after
+	 * saving the loadout.
+	 *
+	 * Scoped `.gdlo-pick-cbadge-*` classes; the parent `.gdlo-pick-
+	 * card--restricted / --advisory` classes tint the card so
+	 * restricted rows are obvious at a glance in a grid. Style
+	 * block is injected once on first call. */
+	var GDLO_STATE_NAMES = {
+		AL:'Alabama', AK:'Alaska', AZ:'Arizona', AR:'Arkansas', CA:'California',
+		CO:'Colorado', CT:'Connecticut', DE:'Delaware', DC:'District of Columbia',
+		FL:'Florida', GA:'Georgia', HI:'Hawaii', ID:'Idaho', IL:'Illinois',
+		IN:'Indiana', IA:'Iowa', KS:'Kansas', KY:'Kentucky', LA:'Louisiana',
+		ME:'Maine', MD:'Maryland', MA:'Massachusetts', MI:'Michigan', MN:'Minnesota',
+		MS:'Mississippi', MO:'Missouri', MT:'Montana', NE:'Nebraska', NV:'Nevada',
+		NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico', NY:'New York',
+		NC:'North Carolina', ND:'North Dakota', OH:'Ohio', OK:'Oklahoma',
+		OR:'Oregon', PA:'Pennsylvania', RI:'Rhode Island', SC:'South Carolina',
+		SD:'South Dakota', TN:'Tennessee', TX:'Texas', UT:'Utah', VT:'Vermont',
+		VA:'Virginia', WA:'Washington', WV:'West Virginia', WI:'Wisconsin', WY:'Wyoming'
+	};
+	var gdloCbadgeStylesInjected = false;
+	function ensureCbadgeStyles() {
+		if (gdloCbadgeStylesInjected) return;
+		gdloCbadgeStylesInjected = true;
+		var s = document.createElement('style');
+		s.textContent =
+			'.gdlo-pick-card--restricted{border:1px solid #fecaca;background:#fef7f7}' +
+			'.gdlo-pick-card--advisory{border:1px solid #fde68a;background:#fffdf5}' +
+			'.gdlo-pick-cbadge{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;line-height:1.4}' +
+			'.gdlo-pick-cbadge--restricted{background:#7f1d1d;color:#fee2e2}' +
+			'.gdlo-pick-cbadge--advisory{background:#78350f;color:#fef3c7}' +
+			'.gdlo-pick-cbadge--elsewhere{background:#e2e8f0;color:#475569}' +
+			'.gdlo-pick-cbadge--hint{background:#f1f5f9;color:#64748b;text-transform:none;font-weight:500;letter-spacing:0}';
+		document.head.appendChild(s);
+	}
+	function renderResultCompliance(c) {
+		if (!c) return '';
+		ensureCbadgeStyles();
+		var stateCode = c.state || '';
+		var stateName = stateCode ? (GDLO_STATE_NAMES[stateCode] || stateCode) : '';
+		if (c.restricted_here) {
+			var t = 'Restricted' + (stateName ? ' in ' + stateName : '');
+			var title = c.reason_here ? ' title="' + escapeAttr(c.reason_here) + '"' : '';
+			return '<span class="gdlo-pick-cbadge gdlo-pick-cbadge--restricted"' + title + '>&#9940; ' + escapeHtml(t) + '</span>';
+		}
+		if (c.advisory_here) {
+			var a = 'Buyer requirement' + (stateName ? ' in ' + stateName : '');
+			var atitle = c.reason_here ? ' title="' + escapeAttr(c.reason_here) + '"' : '';
+			return '<span class="gdlo-pick-cbadge gdlo-pick-cbadge--advisory"' + atitle + '>&#9432; ' + escapeHtml(a) + '</span>';
+		}
+		var count = parseInt(c.restricted_count || 0, 10) || 0;
+		if (count > 0 && !stateCode) {
+			return '<span class="gdlo-pick-cbadge gdlo-pick-cbadge--hint">Set your state to check restrictions (' + count + ' state' + (count === 1 ? '' : 's') + ')</span>';
+		}
+		if (count > 0) {
+			return '<span class="gdlo-pick-cbadge gdlo-pick-cbadge--elsewhere">Restricted in ' + count + ' state' + (count === 1 ? '' : 's') + '</span>';
+		}
+		return '';
 	}
 
 	/* ===== Init ===== */
