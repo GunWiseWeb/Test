@@ -229,7 +229,7 @@
 
 	function ensureSlot(key) {
 		if (!slots[key]) {
-			slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '' };
+			slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '', compliance: null };
 		}
 	}
 
@@ -251,6 +251,8 @@
 
 		if (slot && slot.upc) {
 			card.classList.add('gdlo-card--filled');
+			var tint = slotTintClass(slot.compliance);
+			if (tint) card.classList.add(tint);
 			var imgHtml = slot.image
 				? '<img class="gdlo-card-img" src="' + escapeAttr(slot.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
 				: '<div class="gdlo-card-img-ph"><i class="' + escapeAttr(slotDef.icon || 'fa-solid fa-cube') + '"></i></div>';
@@ -259,6 +261,7 @@
 				+ '<div class="gdlo-card-label">' + escapeHtml(slotDef.label) + '</div>'
 				+ '<div class="gdlo-card-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
 				+ (slot.price ? '<div class="gdlo-card-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
+				+ renderComplianceBadge(slot.compliance)
 				+ '</div>'
 				+ '<button type="button" class="gdlo-card-remove" data-slot-key="' + escapeAttr(key) + '">&times;</button>';
 		} else {
@@ -283,7 +286,7 @@
 		if (rmBtn) {
 			rmBtn.addEventListener('click', function (e) {
 				e.stopPropagation();
-				slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '' };
+				slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '', compliance: null };
 				delete itemNotes[key];
 				if (currentStep === 2) renderCoreGrid();
 				if (currentStep === 3) { renderAccGrid(); renderExtraGrid(); }
@@ -306,6 +309,8 @@
 
 		if (slot.upc) {
 			card.classList.add('gdlo-card--filled');
+			var extraTint = slotTintClass(slot.compliance);
+			if (extraTint) card.classList.add(extraTint);
 			var imgHtml = slot.image
 				? '<img class="gdlo-card-img" src="' + escapeAttr(slot.image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
 				: '<div class="gdlo-card-img-ph"><i class="fa-solid fa-cube"></i></div>';
@@ -314,6 +319,7 @@
 				+ '<div class="gdlo-card-label">' + escapeHtml(label) + '</div>'
 				+ '<div class="gdlo-card-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
 				+ (slot.price ? '<div class="gdlo-card-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
+				+ renderComplianceBadge(slot.compliance)
 				+ '</div>'
 				+ '<button type="button" class="gdlo-card-remove" data-slot-key="' + escapeAttr(key) + '">&times;</button>';
 		} else {
@@ -402,7 +408,7 @@
 			if (!label) label = 'Extra';
 			extraCounter++;
 			var key = 'extra_' + extraCounter;
-			slots[key] = { type: 'extra', upc: '', title: '', price: null, custom_label: label, image: '' };
+			slots[key] = { type: 'extra', upc: '', title: '', price: null, custom_label: label, image: '', compliance: null };
 			if (extraNameInput) extraNameInput.value = '';
 			renderExtraGrid();
 			updateAllSummaries();
@@ -489,6 +495,49 @@
 
 		updateProgress(2);
 		updateProgress(3);
+
+		/* v1.0.64 — compact compliance banner written into the
+		   server-rendered #gdlc-summary placeholder. Computed
+		   client-side from the slots' compliance sub-objects so
+		   it reflects add/remove instantly, without a server
+		   round trip. */
+		updateComplianceBanner(filled);
+	}
+
+	function updateComplianceBanner(filled) {
+		var host = document.getElementById('gdlc-summary');
+		if (!host) return;
+		ensureCbadgeStyles();
+
+		var stateCode = '';
+		var restricted = 0;
+		var advisory   = 0;
+		for (var i = 0; i < filled.length; i++) {
+			var c = filled[i].slot ? filled[i].slot.compliance : null;
+			if (!c) continue;
+			if (c.state && !stateCode) { stateCode = c.state; }
+			if (c.restricted_here)     { restricted++; }
+			else if (c.advisory_here)  { advisory++; }
+		}
+		var stateName = stateCode ? (GDLO_STATE_NAMES[stateCode] || stateCode) : '';
+
+		if (!stateCode) {
+			host.innerHTML = '<div class="gdlo-banner gdlo-banner--info">Set your state above to check this build for restrictions.</div>';
+			return;
+		}
+		if (restricted > 0) {
+			host.innerHTML = '<div class="gdlo-banner gdlo-banner--danger">&#9940; ' + restricted + ' item' + (restricted === 1 ? '' : 's') + ' in this build ' + (restricted === 1 ? 'is' : 'are') + ' restricted in ' + escapeHtml(stateName) + '.</div>';
+			return;
+		}
+		if (advisory > 0) {
+			host.innerHTML = '<div class="gdlo-banner gdlo-banner--warn">&#9432; ' + advisory + ' item' + (advisory === 1 ? '' : 's') + ' ha' + (advisory === 1 ? 's' : 've') + ' buyer requirements in ' + escapeHtml(stateName) + '.</div>';
+			return;
+		}
+		if (filled.length === 0) {
+			host.innerHTML = '<div class="gdlo-banner gdlo-banner--info">Add items to check compliance for ' + escapeHtml(stateName) + '.</div>';
+			return;
+		}
+		host.innerHTML = '<div class="gdlo-banner gdlo-banner--ok">&#10003; No items restricted in ' + escapeHtml(stateName) + '.</div>';
 	}
 
 	/* ===== Review (Step 4) ===== */
@@ -973,6 +1022,10 @@
 		slots[activeSlotKey].title = product.title || product.upc || '';
 		slots[activeSlotKey].price = product.best_price || null;
 		slots[activeSlotKey].image = product.image_url || '';
+		/* v1.0.64 — carry the search-result's compliance data into
+		   the slot so the filled slot card can show the same
+		   restriction badge without a second server round trip. */
+		slots[activeSlotKey].compliance = product.compliance || null;
 
 		closePicker();
 		if (currentStep === 2) renderCoreGrid();
@@ -1103,16 +1156,31 @@
 		gdloCbadgeStylesInjected = true;
 		var s = document.createElement('style');
 		s.textContent =
+			/* pick-card (search result) tint */
 			'.gdlo-pick-card--restricted{border:1px solid #fecaca;background:#fef7f7}' +
 			'.gdlo-pick-card--advisory{border:1px solid #fde68a;background:#fffdf5}' +
-			'.gdlo-pick-cbadge{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;line-height:1.4}' +
-			'.gdlo-pick-cbadge--restricted{background:#7f1d1d;color:#fee2e2}' +
-			'.gdlo-pick-cbadge--advisory{background:#78350f;color:#fef3c7}' +
-			'.gdlo-pick-cbadge--elsewhere{background:#e2e8f0;color:#475569}' +
-			'.gdlo-pick-cbadge--hint{background:#f1f5f9;color:#64748b;text-transform:none;font-weight:500;letter-spacing:0}';
+			/* v1.0.64 — filled slot-card tint (same colors as pick cards) */
+			'.gdlo-card--restricted{box-shadow:0 0 0 2px #fecaca inset;background:#fef7f7}' +
+			'.gdlo-card--advisory{box-shadow:0 0 0 2px #fde68a inset;background:#fffdf5}' +
+			/* Shared badge — used on both pick cards and slot cards */
+			'.gdlo-cbadge{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;line-height:1.4}' +
+			'.gdlo-cbadge--restricted{background:#7f1d1d;color:#fee2e2}' +
+			'.gdlo-cbadge--advisory{background:#78350f;color:#fef3c7}' +
+			'.gdlo-cbadge--elsewhere{background:#e2e8f0;color:#475569}' +
+			'.gdlo-cbadge--hint{background:#f1f5f9;color:#64748b;text-transform:none;font-weight:500;letter-spacing:0}' +
+			/* Compact build-summary banner (targets the server-rendered #gdlc-summary placeholder) */
+			'#gdlc-summary .gdlo-banner{padding:8px 12px;border-radius:8px;font-size:.92em;font-weight:500}' +
+			'#gdlc-summary .gdlo-banner--danger{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}' +
+			'#gdlc-summary .gdlo-banner--warn{background:#fef3c7;color:#78350f;border:1px solid #fde68a}' +
+			'#gdlc-summary .gdlo-banner--ok{background:#f0fdf4;color:#14532d;border:1px solid #bbf7d0}' +
+			'#gdlc-summary .gdlo-banner--info{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}';
 		document.head.appendChild(s);
 	}
-	function renderResultCompliance(c) {
+
+	/* v1.0.64 — one badge renderer used by both search results and
+	 * filled slot cards. Reads the shared compliance sub-object
+	 * shape produced by search()/manage() enrichment. */
+	function renderComplianceBadge(c) {
 		if (!c) return '';
 		ensureCbadgeStyles();
 		var stateCode = c.state || '';
@@ -1120,20 +1188,34 @@
 		if (c.restricted_here) {
 			var t = 'Restricted' + (stateName ? ' in ' + stateName : '');
 			var title = c.reason_here ? ' title="' + escapeAttr(c.reason_here) + '"' : '';
-			return '<span class="gdlo-pick-cbadge gdlo-pick-cbadge--restricted"' + title + '>&#9940; ' + escapeHtml(t) + '</span>';
+			return '<span class="gdlo-cbadge gdlo-cbadge--restricted"' + title + '>&#9940; ' + escapeHtml(t) + '</span>';
 		}
 		if (c.advisory_here) {
 			var a = 'Buyer requirement' + (stateName ? ' in ' + stateName : '');
 			var atitle = c.reason_here ? ' title="' + escapeAttr(c.reason_here) + '"' : '';
-			return '<span class="gdlo-pick-cbadge gdlo-pick-cbadge--advisory"' + atitle + '>&#9432; ' + escapeHtml(a) + '</span>';
+			return '<span class="gdlo-cbadge gdlo-cbadge--advisory"' + atitle + '>&#9432; ' + escapeHtml(a) + '</span>';
 		}
 		var count = parseInt(c.restricted_count || 0, 10) || 0;
 		if (count > 0 && !stateCode) {
-			return '<span class="gdlo-pick-cbadge gdlo-pick-cbadge--hint">Set your state to check restrictions (' + count + ' state' + (count === 1 ? '' : 's') + ')</span>';
+			return '<span class="gdlo-cbadge gdlo-cbadge--hint">Set your state to check restrictions (' + count + ' state' + (count === 1 ? '' : 's') + ')</span>';
 		}
 		if (count > 0) {
-			return '<span class="gdlo-pick-cbadge gdlo-pick-cbadge--elsewhere">Restricted in ' + count + ' state' + (count === 1 ? '' : 's') + '</span>';
+			return '<span class="gdlo-cbadge gdlo-cbadge--elsewhere">Restricted in ' + count + ' state' + (count === 1 ? '' : 's') + '</span>';
 		}
+		return '';
+	}
+
+	/* Back-compat alias: existing renderResultCompliance() call
+	   sites on search-result cards keep working. */
+	function renderResultCompliance(c) { return renderComplianceBadge(c); }
+
+	/* v1.0.64 — CSS class for the parent slot card to tint when
+	   restricted / advisory in the buyer's state. Empty when
+	   clear or when no state is set. */
+	function slotTintClass(c) {
+		if (!c) return '';
+		if (c.restricted_here) return 'gdlo-card--restricted';
+		if (c.advisory_here)   return 'gdlo-card--advisory';
 		return '';
 	}
 
@@ -1153,7 +1235,8 @@
 				slots[ek] = {
 					type: 'extra', upc: it.upc || '', title: it.title || it.custom_label || 'Extra',
 					price: (it.price_snapshot !== undefined && it.price_snapshot !== null) ? it.price_snapshot : null,
-					custom_label: it.custom_label || 'Extra', image: it.image_url || ''
+					custom_label: it.custom_label || 'Extra', image: it.image_url || '',
+					compliance: it.compliance || null
 				};
 				if (it.notes) itemNotes[ek] = it.notes;
 			} else {
@@ -1162,6 +1245,7 @@
 				slots[key].title = it.title || it.custom_label || key;
 				slots[key].price = (it.price_snapshot !== undefined && it.price_snapshot !== null) ? it.price_snapshot : null;
 				slots[key].image = it.image_url || '';
+				slots[key].compliance = it.compliance || null;
 				if (it.notes) itemNotes[key] = it.notes;
 			}
 		}

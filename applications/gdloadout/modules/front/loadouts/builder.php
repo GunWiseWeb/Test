@@ -348,6 +348,12 @@ class _builder extends \IPS\Dispatcher\Controller
 		{
 			$upc = (string) ( $it['upc'] ?? '' );
 			$it  = $this->decorateItem( $it, $flagsByUpc[ $upc ] ?? [], $currentState );
+			/* v1.0.64 — also attach a `compliance` sub-object with
+			   the same shape search() returns on each result, so
+			   builder.js can copy it directly into slots[key] and
+			   render filled-slot badges without a second server
+			   round-trip. */
+			$it['compliance'] = $this->complianceForResult( $upc, $currentState );
 		}
 		unset( $it );
 		$complianceSummary = $this->summarizeCompliance( $items );
@@ -508,17 +514,12 @@ class _builder extends \IPS\Dispatcher\Controller
 			$html .= '<div class="gdlc-sum gdlc-sum--ok">' . $msg . '</div>';
 		}
 
-		/* Per-item cards. Only render if items exist. */
-		if ( $summary['total'] > 0 )
-		{
-			$html .= '<div class="gdlc-items">';
-			foreach ( $items as $it )
-			{
-				if ( empty( $it['upc'] ) ) { continue; }
-				$html .= $this->renderComplianceItem( $it, $state, $stateName, $esc, $L, $lang );
-			}
-			$html .= '</div>';
-		}
+		/* v1.0.64 — per-item cards removed; badges now live on the
+		   filled slot cards in the JS builder. Empty div left as
+		   an anchor for the client-side compact summary (updated
+		   by builder.js's updateAllSummaries()); the server-side
+		   summary above stays as an initial-render fallback. */
+		$html .= '<div id="gdlc-summary" style="margin-top:10px"></div>';
 
 		$html .= '</div>';
 		return $html;
