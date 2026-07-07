@@ -1006,6 +1006,41 @@ class _builder extends \IPS\Dispatcher\Controller
 		return $out;
 	}
 
+	/**
+	 * v1.0.66 — resolve a gd_categories row NAME to its numeric id.
+	 * Called from search() when a slot's SLOT_CATEGORIES mapping
+	 * uses `'field' => 'category'` (magazine / holster / optic
+	 * accessory slots). Cached per request so repeated searches
+	 * against the same slot are point-lookups, not DB round trips.
+	 * READ-ONLY: SELECT only, never writes to gd_categories.
+	 *
+	 * gdsearch's Searcher applies category_id via
+	 *   term:category_id  OR  term:top_category_id
+	 * so passing the PARENT id here (e.g. Magazines id 38) also
+	 * catches every child row via its top_category_id — no need
+	 * to enumerate child ids at this layer.
+	 */
+	private static array $catIdCache = [];
+
+	private function resolveCategoryId( string $name ): int
+	{
+		$name = trim( $name );
+		if ( $name === '' ) { return 0; }
+		if ( array_key_exists( $name, self::$catIdCache ) )
+		{
+			return self::$catIdCache[ $name ];
+		}
+		try
+		{
+			$id = (int) \IPS\Db::i()->select( 'id', 'gd_categories', [ 'name=?', $name ] )->first();
+		}
+		catch ( \Throwable )
+		{
+			$id = 0;
+		}
+		return self::$catIdCache[ $name ] = $id;
+	}
+
 	protected function search(): void
 	{
 		/* v1.0.63 — buyer's persisted state (cookie set by
@@ -1107,7 +1142,41 @@ class _builder extends \IPS\Dispatcher\Controller
 			if ( $cats )
 			{
 				$catField = ( Request::i()->catfield ?? '' ) === 'subcategory' ? 'subcategory' : 'category';
-				$filters[ $catField ] = \count( $cats ) === 1 ? $cats[0] : $cats;
+				if ( $catField === 'subcategory' )
+				{
+					/* Subcategory-based slots (Barrels, Triggers, etc.)
+					   filter via the existing subcategory.keyword facet
+					   in gdsearch's Searcher — that column exists and
+					   this path works. */
+					$filters['subcategory'] = \count( $cats ) === 1 ? $cats[0] : $cats;
+				}
+				else
+				{
+					/* v1.0.66 — category-based slots (Magazines,
+					   Holsters & Carry, Optics) previously set
+					   filters['category'] with a category NAME. The
+					   Searcher only reads filters['category_id'] (an
+					   int), so the name-based filter was silently
+					   ignored → unfiltered results (mag slot
+					   returning holsters etc.). Fix: resolve NAME →
+					   id via gd_categories (READ-ONLY SELECT), pass
+					   as filters['category_id']. The Searcher's
+					   term-on-category_id OR term-on-top_category_id
+					   query then naturally catches every child of
+					   that parent (Handgun / Rifle / Shotgun /
+					   Drum / Extended Magazines all carry
+					   top_category_id = Magazines' id). If the name
+					   fails to resolve we return empty rather than
+					   fall through to unfiltered — better UX than
+					   flooding the picker with the whole catalog. */
+					$catId = $this->resolveCategoryId( (string) $cats[0] );
+					if ( $catId <= 0 )
+					{
+						Output::i()->json( [ 'total' => 0, 'results' => [] ] );
+						return;
+					}
+					$filters['category_id'] = $catId;
+				}
 			}
 
 			foreach ( [
