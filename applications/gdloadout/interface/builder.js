@@ -22,6 +22,9 @@
 	var setStateUrl        = init.setStateUrl || '';
 	var complianceCheckUrl = init.complianceCheckUrl || '';
 	var currentComplianceState = init.complianceState || '';
+	/* v1.0.67 — dealer picker endpoints */
+	var dealersUrl       = init.dealersUrl || '';
+	var setItemDealerUrl = init.setItemDealerUrl || '';
 	var originalSlots = {};
 
 	var completeFirearmCore = init.completeFirearmCore || {};
@@ -235,7 +238,7 @@
 
 	function ensureSlot(key) {
 		if (!slots[key]) {
-			slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '', compliance: null };
+			slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '', compliance: null, dealer_count: 0, preferred_dealer_id: null, preferred_dealer: null, item_id: 0 };
 		}
 	}
 
@@ -266,10 +269,11 @@
 				+ '<div class="gdlo-card-body">'
 				+ '<div class="gdlo-card-label">' + escapeHtml(slotDef.label) + '</div>'
 				+ '<div class="gdlo-card-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
-				+ (slot.price ? '<div class="gdlo-card-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
+				+ renderDealerLine(slot, key)
 				+ renderComplianceBadge(slot.compliance)
 				+ '</div>'
 				+ '<button type="button" class="gdlo-card-remove" data-slot-key="' + escapeAttr(key) + '">&times;</button>';
+			wireDealerPicker(card, key);
 		} else {
 			card.innerHTML = '<div class="gdlo-card-empty">'
 				+ '<i class="' + escapeAttr(slotDef.icon || 'fa-solid fa-plus') + ' gdlo-card-empty-icon"></i>'
@@ -292,7 +296,7 @@
 		if (rmBtn) {
 			rmBtn.addEventListener('click', function (e) {
 				e.stopPropagation();
-				slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '', compliance: null };
+				slots[key] = { type: key, upc: '', title: '', price: null, custom_label: null, image: '', compliance: null, dealer_count: 0, preferred_dealer_id: null, preferred_dealer: null, item_id: 0 };
 				delete itemNotes[key];
 				if (currentStep === 2) renderCoreGrid();
 				if (currentStep === 3) { renderAccGrid(); renderExtraGrid(); }
@@ -324,10 +328,11 @@
 				+ '<div class="gdlo-card-body">'
 				+ '<div class="gdlo-card-label">' + escapeHtml(label) + '</div>'
 				+ '<div class="gdlo-card-title">' + escapeHtml(slot.title || slot.upc) + '</div>'
-				+ (slot.price ? '<div class="gdlo-card-price">$' + parseFloat(slot.price).toFixed(2) + '</div>' : '')
+				+ renderDealerLine(slot, key)
 				+ renderComplianceBadge(slot.compliance)
 				+ '</div>'
 				+ '<button type="button" class="gdlo-card-remove" data-slot-key="' + escapeAttr(key) + '">&times;</button>';
+			wireDealerPicker(card, key);
 		} else {
 			card.innerHTML = '<div class="gdlo-card-empty">'
 				+ '<i class="fa-solid fa-plus gdlo-card-empty-icon"></i>'
@@ -414,7 +419,7 @@
 			if (!label) label = 'Extra';
 			extraCounter++;
 			var key = 'extra_' + extraCounter;
-			slots[key] = { type: 'extra', upc: '', title: '', price: null, custom_label: label, image: '', compliance: null };
+			slots[key] = { type: 'extra', upc: '', title: '', price: null, custom_label: label, image: '', compliance: null, dealer_count: 0, preferred_dealer_id: null, preferred_dealer: null, item_id: 0 };
 			if (extraNameInput) extraNameInput.value = '';
 			renderExtraGrid();
 			updateAllSummaries();
@@ -1032,6 +1037,13 @@
 		   the slot so the filled slot card can show the same
 		   restriction badge without a second server round trip. */
 		slots[activeSlotKey].compliance = product.compliance || null;
+		/* v1.0.67 — search results carry dealer_count directly, so
+		   the picker can show "N dealers" before the user expands
+		   without a second server round trip. Picking a fresh
+		   result resets any prior preferred_dealer choice. */
+		slots[activeSlotKey].dealer_count = product.dealer_count !== undefined ? parseInt(product.dealer_count, 10) : 0;
+		slots[activeSlotKey].preferred_dealer_id = null;
+		slots[activeSlotKey].preferred_dealer = null;
 
 		closePicker();
 		if (currentStep === 2) renderCoreGrid();
@@ -1054,7 +1066,12 @@
 						upc: s.upc,
 						slot_type: s.type || key,
 						custom_label: s.custom_label || null,
-						price: s.price || null
+						price: s.price || null,
+						/* v1.0.67 — persist the user's dealer choice.
+						   NULL / 0 → save() writes NULL → cheapest
+						   offer is the render-time default. */
+						preferred_dealer_id: (s.preferred_dealer_id && parseInt(s.preferred_dealer_id, 10) > 0)
+							? parseInt(s.preferred_dealer_id, 10) : null
 					};
 					if (isVip && itemNotes[key]) entry.notes = itemNotes[key];
 					slotArr.push(entry);
@@ -1225,6 +1242,214 @@
 		return '';
 	}
 
+	/* ===== v1.0.67 — per-item dealer picker =====
+	 *
+	 * Each filled slot card renders a compact "N dealers — from
+	 * $X" line under the price; clicking the toggle reveals a
+	 * <details> panel that fetches the full dealer list lazily
+	 * and lets the buyer pick a specific offer. Clicking Select
+	 * updates slots[key].preferred_dealer_id + preferred_dealer,
+	 * re-renders the card, and — if the loadout is already saved
+	 * (slot.item_id > 0) — POSTs to setItemDealer for immediate
+	 * persistence. Otherwise the choice rides on the next save().
+	 *
+	 * All fetches are guarded; a network failure keeps the
+	 * default cheapest and shows a small inline retry note. */
+	var gdloDealerStylesInjected = false;
+	function ensureDealerStyles() {
+		if (gdloDealerStylesInjected) return;
+		gdloDealerStylesInjected = true;
+		var s = document.createElement('style');
+		s.textContent =
+			'.gdld-line{margin-top:4px;font-size:.85em;color:#475569;line-height:1.35}' +
+			'.gdld-line strong{color:#0f172a}' +
+			'.gdld-line--preferred{color:#166534}' +
+			'.gdld-toggle{display:inline-block;margin-top:4px;font-size:.85em;color:#0f172a;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:2px 8px;cursor:pointer}' +
+			'.gdld-toggle:hover{background:#e2e8f0}' +
+			'.gdld-panel{margin-top:6px;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:.85em}' +
+			'.gdld-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed #e2e8f0}' +
+			'.gdld-row:first-child{border-top:none}' +
+			'.gdld-row--preferred{background:#dcfce7;padding-left:6px;padding-right:6px;border-radius:6px;border-top:none}' +
+			'.gdld-name{font-weight:600;color:#0f172a}' +
+			'.gdld-meta{color:#64748b;font-size:.9em}' +
+			'.gdld-actions{display:flex;gap:6px;flex-shrink:0}' +
+			'.gdld-btn{padding:3px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:.85em;cursor:pointer;color:#0f172a;text-decoration:none;display:inline-block}' +
+			'.gdld-btn:hover{background:#f1f5f9}' +
+			'.gdld-btn--primary{background:#0f172a;color:#fff;border-color:#0f172a}' +
+			'.gdld-btn--primary:hover{background:#1e293b}' +
+			'.gdld-empty{color:#94a3b8;font-style:italic;padding:6px 0}' +
+			'.gdld-loading{color:#64748b;padding:6px 0}';
+		document.head.appendChild(s);
+	}
+
+	function renderDealerLine(slot, key) {
+		ensureDealerStyles();
+		var priceStr, dealerLine;
+		var pref = slot.preferred_dealer || null;
+
+		if (pref) {
+			var pp = (pref.price !== null && pref.price !== undefined) ? parseFloat(pref.price) : null;
+			priceStr = pp !== null ? '$' + pp.toFixed(2) : '';
+			dealerLine = '<div class="gdld-line gdld-line--preferred">via <strong>' + escapeHtml(pref.dealer_name || 'dealer') + '</strong>'
+				+ (priceStr ? ' — <strong>' + priceStr + '</strong>' : '') + '</div>';
+		} else if (slot.price) {
+			priceStr = '$' + parseFloat(slot.price).toFixed(2);
+			var count = parseInt(slot.dealer_count || 0, 10) || 0;
+			dealerLine = '<div class="gdlo-card-price">' + priceStr + '</div>';
+			if (count > 1) {
+				dealerLine += '<div class="gdld-line">' + count + ' dealers — from <strong>' + priceStr + '</strong></div>';
+			} else if (count === 1) {
+				dealerLine += '<div class="gdld-line">1 dealer</div>';
+			}
+		} else {
+			dealerLine = '<div class="gdld-line">No dealers currently carry this</div>';
+		}
+
+		var toggle = '<button type="button" class="gdld-toggle" data-gdld-key="' + escapeAttr(key) + '">Choose dealer &#9662;</button>';
+		var panel  = '<div class="gdld-panel" data-gdld-panel="' + escapeAttr(key) + '" hidden></div>';
+		return dealerLine + toggle + panel;
+	}
+
+	function wireDealerPicker(card, key) {
+		var toggle = card.querySelector('button.gdld-toggle');
+		var panel  = card.querySelector('div.gdld-panel');
+		if (!toggle || !panel) return;
+		toggle.addEventListener('click', function(ev) {
+			ev.stopPropagation();
+			if (panel.hasAttribute('hidden')) {
+				panel.removeAttribute('hidden');
+				loadDealerPanel(panel, key);
+			} else {
+				panel.setAttribute('hidden', '');
+			}
+		});
+	}
+
+	var gdloDealerCache = {};
+	function loadDealerPanel(panel, key) {
+		var slot = slots[key];
+		if (!slot || !slot.upc) { panel.innerHTML = '<div class="gdld-empty">No product in this slot.</div>'; return; }
+		if (!dealersUrl) { panel.innerHTML = '<div class="gdld-empty">Dealer picker unavailable.</div>'; return; }
+
+		if (gdloDealerCache[slot.upc]) {
+			renderDealerList(panel, key, gdloDealerCache[slot.upc]);
+			return;
+		}
+
+		panel.innerHTML = '<div class="gdld-loading">Loading dealers…</div>';
+		var sep = dealersUrl.indexOf('?') === -1 ? '?' : '&';
+		fetch(dealersUrl + sep + 'upc=' + encodeURIComponent(slot.upc), {
+			credentials: 'same-origin',
+			headers: { 'X-Requested-With': 'XMLHttpRequest' }
+		})
+		.then(function(r){ return r.json(); })
+		.then(function(data){
+			var list = (data && data.dealers) || [];
+			gdloDealerCache[slot.upc] = list;
+			renderDealerList(panel, key, list);
+		})
+		.catch(function(){
+			panel.innerHTML = '<div class="gdld-empty">Couldn\'t load dealers — please try again.</div>';
+		});
+	}
+
+	function renderDealerList(panel, key, list) {
+		var slot = slots[key];
+		if (!slot) return;
+		if (!list.length) {
+			panel.innerHTML = '<div class="gdld-empty">No dealers currently carry this UPC.</div>';
+			return;
+		}
+		var currentId = slot.preferred_dealer_id ? parseInt(slot.preferred_dealer_id, 10) : 0;
+		var html = '';
+		list.forEach(function(d) {
+			var isPreferred = currentId > 0 && parseInt(d.dealer_id, 10) === currentId;
+			var isCheapestDefault = currentId === 0 && d === list[0];
+			var badgeClass = (isPreferred || isCheapestDefault) ? ' gdld-row--preferred' : '';
+			var pp = (d.price !== null && d.price !== undefined) ? parseFloat(d.price) : null;
+			var priceStr = pp !== null ? '$' + pp.toFixed(2) : '—';
+			var stock = d.in_stock ? '<span style="color:#166534">In stock' + (d.stock_qty ? ' (' + d.stock_qty + ')' : '') + '</span>' : '<span style="color:#991b1b">Out of stock</span>';
+			var ship = escapeHtml(d.shipping_info || '');
+			var cond = escapeHtml(d.condition || 'new');
+			var actions = '';
+			if (d.url) {
+				actions += '<a class="gdld-btn" href="' + escapeAttr(d.url) + '" target="_blank" rel="noopener noreferrer">View</a>';
+			}
+			actions += '<button type="button" class="gdld-btn gdld-btn--primary" data-gdld-select="' + escapeAttr(d.dealer_id) + '" data-gdld-key="' + escapeAttr(key) + '">' + (isPreferred ? 'Selected' : 'Select') + '</button>';
+			html += '<div class="gdld-row' + badgeClass + '">'
+				+ '<div>'
+				+ '<div class="gdld-name">' + escapeHtml(d.dealer_name || ('dealer ' + d.dealer_id)) + '</div>'
+				+ '<div class="gdld-meta"><strong>' + priceStr + '</strong> · ' + (ship || '—') + ' · ' + stock + ' · ' + cond + '</div>'
+				+ '</div>'
+				+ '<div class="gdld-actions">' + actions + '</div>'
+				+ '</div>';
+		});
+		if (currentId > 0) {
+			html += '<div style="margin-top:8px;text-align:right">'
+				+ '<button type="button" class="gdld-btn" data-gdld-select="0" data-gdld-key="' + escapeAttr(key) + '">Reset to cheapest</button>'
+				+ '</div>';
+		}
+		panel.innerHTML = html;
+
+		var buttons = panel.querySelectorAll('button[data-gdld-select]');
+		buttons.forEach(function(b) {
+			b.addEventListener('click', function(ev) {
+				ev.stopPropagation();
+				var did = parseInt(b.getAttribute('data-gdld-select'), 10) || 0;
+				var kk  = b.getAttribute('data-gdld-key');
+				selectDealer(kk, did);
+			});
+		});
+	}
+
+	function selectDealer(key, dealerId) {
+		var slot = slots[key];
+		if (!slot) return;
+		if (dealerId > 0) {
+			var list = gdloDealerCache[slot.upc] || [];
+			var chosen = null;
+			for (var i = 0; i < list.length; i++) {
+				if (parseInt(list[i].dealer_id, 10) === dealerId) { chosen = list[i]; break; }
+			}
+			slot.preferred_dealer_id = dealerId;
+			slot.preferred_dealer = chosen ? {
+				dealer_id: chosen.dealer_id,
+				dealer_name: chosen.dealer_name,
+				price: chosen.price,
+				shipping_info: chosen.shipping_info,
+				in_stock: chosen.in_stock,
+				stock_qty: chosen.stock_qty,
+				condition: chosen.condition,
+				listing_url: chosen.url || ''
+			} : null;
+			if (chosen && chosen.price !== null && chosen.price !== undefined) {
+				slot.price = parseFloat(chosen.price);
+			}
+		} else {
+			slot.preferred_dealer_id = null;
+			slot.preferred_dealer = null;
+		}
+
+		if (slot.item_id > 0 && setItemDealerUrl) {
+			var body = 'csrfKey=' + encodeURIComponent(csrfKey)
+				+ '&item_id=' + encodeURIComponent(slot.item_id)
+				+ '&dealer_id=' + encodeURIComponent(dealerId);
+			fetch(setItemDealerUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+					'X-Requested-With': 'XMLHttpRequest'
+				},
+				body: body
+			}).catch(function(){ /* Silent — save() will reconcile. */ });
+		}
+
+		if (currentStep === 2) renderCoreGrid();
+		if (currentStep === 3) { renderAccGrid(); renderExtraGrid(); }
+		updateAllSummaries();
+	}
+
 	/* ===== Init ===== */
 	function initFromExisting() {
 		var coreDefs = getCoreSlotDefs();
@@ -1242,7 +1467,11 @@
 					type: 'extra', upc: it.upc || '', title: it.title || it.custom_label || 'Extra',
 					price: (it.price_snapshot !== undefined && it.price_snapshot !== null) ? it.price_snapshot : null,
 					custom_label: it.custom_label || 'Extra', image: it.image_url || '',
-					compliance: it.compliance || null
+					compliance: it.compliance || null,
+					dealer_count: (it.dealer_count !== undefined) ? parseInt(it.dealer_count, 10) : 0,
+					preferred_dealer_id: it.preferred_dealer_id ? parseInt(it.preferred_dealer_id, 10) : null,
+					preferred_dealer: it.preferred_dealer || null,
+					item_id: it.id ? parseInt(it.id, 10) : 0
 				};
 				if (it.notes) itemNotes[ek] = it.notes;
 			} else {
@@ -1252,6 +1481,10 @@
 				slots[key].price = (it.price_snapshot !== undefined && it.price_snapshot !== null) ? it.price_snapshot : null;
 				slots[key].image = it.image_url || '';
 				slots[key].compliance = it.compliance || null;
+				slots[key].dealer_count = (it.dealer_count !== undefined) ? parseInt(it.dealer_count, 10) : 0;
+				slots[key].preferred_dealer_id = it.preferred_dealer_id ? parseInt(it.preferred_dealer_id, 10) : null;
+				slots[key].preferred_dealer = it.preferred_dealer || null;
+				slots[key].item_id = it.id ? parseInt(it.id, 10) : 0;
 				if (it.notes) itemNotes[key] = it.notes;
 			}
 		}

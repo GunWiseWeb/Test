@@ -305,6 +305,193 @@ class _builder extends \IPS\Dispatcher\Controller
 		return false;
 	}
 
+	/**
+	 * v1.0.67 — dealer count + resolved preferred-dealer row for
+	 * a loadout item. READ-ONLY across gd_dealer_listings and
+	 * gd_dealer_feed_config. Every access is guarded; on any
+	 * error the item is returned unchanged rather than failing
+	 * the whole builder load.
+	 */
+	private function enrichItemWithDealer( array $item ): array
+	{
+		$upc = (string) ( $item['upc'] ?? '' );
+		if ( $upc === '' )
+		{
+			$item['dealer_count']       = 0;
+			$item['preferred_dealer_id'] = (int) ( $item['preferred_dealer_id'] ?? 0 ) ?: null;
+			$item['preferred_dealer']    = null;
+			return $item;
+		}
+
+		try
+		{
+			$item['dealer_count'] = (int) Db::i()->select(
+				'COUNT(DISTINCT dealer_id)', 'gd_dealer_listings',
+				[ 'upc=? AND listing_status=?', $upc, 'active' ]
+			)->first();
+		}
+		catch ( \Throwable ) { $item['dealer_count'] = 0; }
+
+		$preferredId = isset( $item['preferred_dealer_id'] ) && $item['preferred_dealer_id'] !== null
+			? (int) $item['preferred_dealer_id']
+			: 0;
+		$item['preferred_dealer_id'] = $preferredId > 0 ? $preferredId : null;
+		$item['preferred_dealer']    = null;
+
+		if ( $preferredId > 0 )
+		{
+			try
+			{
+				$row = Db::i()->select(
+					'l.dealer_id, l.dealer_price, l.shipping_info, l.in_stock, l.stock_qty, l.condition, l.listing_url, c.dealer_name',
+					[ 'gd_dealer_listings', 'l' ],
+					[ 'l.upc=? AND l.listing_status=? AND l.dealer_id=?', $upc, 'active', $preferredId ]
+				)->join(
+					[ 'gd_dealer_feed_config', 'c' ],
+					'l.dealer_id = c.dealer_id'
+				)->first();
+
+				$item['preferred_dealer'] = [
+					'dealer_id'     => (int) $row['dealer_id'],
+					'dealer_name'   => (string) ( $row['dealer_name'] ?? '' ),
+					'price'         => $row['dealer_price'] !== null ? (float) $row['dealer_price'] : null,
+					'shipping_info' => (string) ( $row['shipping_info'] ?? '' ),
+					'in_stock'      => (bool) ( $row['in_stock'] ?? false ),
+					'stock_qty'     => (int) ( $row['stock_qty'] ?? 0 ),
+					'condition'     => (string) ( $row['condition'] ?? 'new' ),
+					'listing_url'   => (string) ( $row['listing_url'] ?? '' ),
+				];
+			}
+			catch ( \Throwable )
+			{
+				/* Preferred dealer no longer carries this UPC or the row
+				   is gone — leave preferred_dealer null so the client
+				   falls back to the cheapest offer. Don't wipe the
+				   preferred_dealer_id — user's choice is still valid,
+				   just currently unfulfillable. */
+			}
+		}
+
+		return $item;
+	}
+
+	/**
+	 * v1.0.67 — GET/POST endpoint returning every ACTIVE dealer
+	 * carrying a given UPC, joined with gd_dealer_feed_config for
+	 * the dealer_name / slug. Sorted cheapest first. Used by the
+	 * builder's per-item "Choose dealer" picker.
+	 *
+	 * SAFETY: read-only. Never writes to any table. The result set
+	 * is capped at 50 rows as a sanity limit against a UPC with
+	 * dozens of duplicate feed entries.
+	 */
+	protected function dealers(): void
+	{
+		if ( !Member::loggedIn()->member_id )
+		{
+			Output::i()->json( [ 'error' => 'login' ], 403 );
+			return;
+		}
+
+		$upc = preg_replace( '/[^0-9A-Za-z\-]/', '', (string) ( Request::i()->upc ?? '' ) );
+		if ( $upc === '' )
+		{
+			Output::i()->json( [ 'upc' => '', 'dealers' => [] ] );
+			return;
+		}
+
+		$out = [];
+		try
+		{
+			$rows = Db::i()->select(
+				'l.dealer_id, l.dealer_price, l.shipping_info, l.in_stock, l.stock_qty, l.condition, l.listing_url, c.dealer_name, c.dealer_slug',
+				[ 'gd_dealer_listings', 'l' ],
+				[ 'l.upc=? AND l.listing_status=?', $upc, 'active' ],
+				'l.dealer_price ASC',
+				50
+			)->join(
+				[ 'gd_dealer_feed_config', 'c' ],
+				'l.dealer_id = c.dealer_id'
+			);
+			foreach ( $rows as $r )
+			{
+				$out[] = [
+					'dealer_id'     => (int) $r['dealer_id'],
+					'dealer_name'   => (string) ( $r['dealer_name'] ?? '' ),
+					'dealer_slug'   => (string) ( $r['dealer_slug'] ?? '' ),
+					'price'         => $r['dealer_price'] !== null ? (float) $r['dealer_price'] : null,
+					'shipping_info' => (string) ( $r['shipping_info'] ?? '' ),
+					'in_stock'      => (bool) ( $r['in_stock'] ?? false ),
+					'stock_qty'     => (int) ( $r['stock_qty'] ?? 0 ),
+					'condition'     => (string) ( $r['condition'] ?? 'new' ),
+					'url'           => (string) ( $r['listing_url'] ?? '' ),
+				];
+			}
+		}
+		catch ( \Throwable ) { /* fall through — return empty list */ }
+
+		Output::i()->json( [ 'upc' => $upc, 'dealers' => $out ] );
+	}
+
+	/**
+	 * v1.0.67 — POST endpoint to persist a per-item preferred
+	 * dealer immediately (used when the loadout has already been
+	 * saved). CSRF-checked; the target item must belong to a
+	 * loadout owned by the current member. Guarded UPDATE against
+	 * gd_loadout_items only.
+	 */
+	protected function setItemDealer(): void
+	{
+		Session::i()->csrfCheck();
+
+		$member = Member::loggedIn();
+		if ( !$member->member_id ) { Output::i()->json( [ 'error' => 'login' ], 403 ); return; }
+
+		$itemId    = (int) ( Request::i()->item_id ?? 0 );
+		$dealerRaw = Request::i()->dealer_id ?? null;
+		$dealerId  = ( $dealerRaw === '' || $dealerRaw === null ) ? 0 : (int) $dealerRaw;
+
+		if ( $itemId <= 0 ) { Output::i()->json( [ 'error' => 'bad_item' ], 400 ); return; }
+
+		/* Verify ownership: item → loadout → member. */
+		try
+		{
+			$row = Db::i()->select(
+				'i.id, l.member_id',
+				[ 'gd_loadout_items', 'i' ],
+				[ 'i.id=?', $itemId ]
+			)->join(
+				[ 'gd_loadouts', 'l' ],
+				'i.loadout_id = l.id'
+			)->first();
+			if ( (int) $row['member_id'] !== (int) $member->member_id )
+			{
+				Output::i()->json( [ 'error' => 'forbidden' ], 403 );
+				return;
+			}
+		}
+		catch ( \Throwable )
+		{
+			Output::i()->json( [ 'error' => 'not_found' ], 404 );
+			return;
+		}
+
+		try
+		{
+			Db::i()->update( 'gd_loadout_items',
+				[ 'preferred_dealer_id' => $dealerId > 0 ? $dealerId : null ],
+				[ 'id=?', $itemId ]
+			);
+		}
+		catch ( \Throwable )
+		{
+			Output::i()->json( [ 'error' => 'save_failed' ], 500 );
+			return;
+		}
+
+		Output::i()->json( [ 'ok' => TRUE, 'item_id' => $itemId, 'dealer_id' => $dealerId > 0 ? $dealerId : null ] );
+	}
+
 	protected function manage(): void
 	{
 		$member = Member::loggedIn();
@@ -350,6 +537,7 @@ class _builder extends \IPS\Dispatcher\Controller
 					}
 					catch ( \Throwable ) { $item['price_snapshot'] = null; }
 				}
+				$item = $this->enrichItemWithDealer( $item );
 				$items[] = $item;
 			}
 		}
@@ -434,6 +622,9 @@ class _builder extends \IPS\Dispatcher\Controller
 		   navigation. */
 		$setStateUrl        = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=setComplianceState', 'front' );
 		$complianceCheckUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=complianceCheck', 'front' );
+		/* v1.0.67 — dealer picker endpoints. */
+		$dealersUrl        = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=dealers', 'front' );
+		$setItemDealerUrl  = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=setItemDealer', 'front' );
 		$csrfKey   = Session::i()->csrfKey;
 
 		$initData = json_encode( [
@@ -463,6 +654,9 @@ class _builder extends \IPS\Dispatcher\Controller
 			/* v1.0.65 — AJAX state selector endpoints. */
 			'setStateUrl'          => $setStateUrl,
 			'complianceCheckUrl'   => $complianceCheckUrl,
+			/* v1.0.67 — dealer picker endpoints. */
+			'dealersUrl'           => $dealersUrl,
+			'setItemDealerUrl'     => $setItemDealerUrl,
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
@@ -860,10 +1054,18 @@ class _builder extends \IPS\Dispatcher\Controller
 			$notes = NULL;
 			if ( $isVip && !empty( $slot['notes'] ) ) $notes = substr( trim( $slot['notes'] ), 0, 300 );
 
+			/* v1.0.67 — carry the user's dealer choice through
+			   save. NULL / 0 = "default to cheapest offer",
+			   matches v1.0.66 behavior. */
+			$prefDealer = isset( $slot['preferred_dealer_id'] ) && (int) $slot['preferred_dealer_id'] > 0
+				? (int) $slot['preferred_dealer_id']
+				: null;
+
 			Db::i()->insert( 'gd_loadout_items', [
 				'loadout_id' => (int) $loadoutId, 'upc' => substr( trim( $slot['upc'] ), 0, 20 ),
 				'slot_type' => $slotType, 'custom_label' => !empty( $slot['custom_label'] ) ? substr( trim( $slot['custom_label'] ), 0, 100 ) : NULL,
 				'sort_order' => $order, 'notes' => $notes, 'added_at' => time(),
+				'preferred_dealer_id' => $prefDealer,
 			] );
 			$totalItems++; $order++;
 			if ( isset( $slot['price'] ) && (float) $slot['price'] > 0 ) $totalCost += (float) $slot['price'];

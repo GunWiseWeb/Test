@@ -270,6 +270,15 @@
                 "allow_null": false,
                 "default": 0,
                 "name": "added_at"
+            },
+            "preferred_dealer_id": {
+                "type": "INT",
+                "length": 10,
+                "unsigned": true,
+                "allow_null": true,
+                "default": null,
+                "name": "preferred_dealer_id",
+                "comment": "gd_dealer_feed_config.dealer_id — NULL = default to cheapest offer for this UPC"
             }
         },
         "indexes": {
