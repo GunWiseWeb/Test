@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl='', $restrictionRows=array(), $advisoryRows=array()" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl='', $restrictionRows=array(), $advisoryRows=array(), $reviewsHtml='', $reviewCount=0, $reviewRating=null" />
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 .gdsp-wrap{width:100%;margin:0;padding:18px;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#0f172a}
@@ -110,6 +110,18 @@
 @media (max-width:600px){
 	.gdsp-restrict__popup{max-width:calc(100vw - 40px);left:8px !important;right:8px}
 }
+/* v1.0.82 — Prices / Reviews tab shell. Prices tab wraps the full
+   pre-existing offers + chart card block untouched; Reviews tab
+   renders {$reviewsHtml} from gdreviews' shared renderSection(). */
+.gdsp-tabs{margin-top:16px}
+.gdsp-tabnav{display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:14px}
+.gdsp-tab{padding:10px 18px;font-weight:600;color:#64748b;text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s;cursor:pointer;background:none;border-left:none;border-right:none;border-top:none;font-size:1em;font-family:inherit}
+.gdsp-tab:hover{color:#0f172a}
+.gdsp-tab--active{color:#0f172a;border-bottom-color:#0f172a}
+.gdsp-tab .gdsp-tab-count{color:#94a3b8;font-weight:500;margin-left:4px;font-size:.9em}
+.gdsp-tab--active .gdsp-tab-count{color:#64748b}
+.gdsp-tabpanel{display:none}
+.gdsp-tabpanel--active{display:block}
 </style>
 <div class="gdsp-wrap">
 	<input type="checkbox" id="gdsp-zoom" class="gdsp-zoom-cb" aria-hidden="true">
@@ -303,6 +315,13 @@
 		</div>
 	</div>
 
+	<div class="gdsp-tabs" id="gdsp-tabs">
+		<div class="gdsp-tabnav" role="tablist">
+			<button type="button" class="gdsp-tab gdsp-tab--active" data-tab="prices" role="tab" aria-selected="true">{lang="gdsearch_tab_prices"}</button>
+			<button type="button" class="gdsp-tab" data-tab="reviews" role="tab" aria-selected="false">{lang="gdsearch_tab_reviews"}<span class="gdsp-tab-count">({$reviewCount})</span></button>
+		</div>
+
+	<div class="gdsp-tabpanel gdsp-tabpanel--active" id="gdsp-tab-prices" role="tabpanel">
 	<div class="gdsp-card" id="gdsp-listings" style="overflow:hidden">
 		<div class="gdsp-listhead">
 			<h2 style="margin:0;font-size:1.05em;font-weight:600;color:#0f172a">{lang="gdsearch_price_comparison"} <span style="font-weight:400;color:#94a3b8;font-size:0.9em">({expression="count($listings)"} {lang="gdsearch_dealers"})</span></h2>
@@ -381,6 +400,43 @@
 		</div>
 		{{endif}}
 	</div>
+	</div><!-- /gdsp-tab-prices -->
+
+	<div class="gdsp-tabpanel" id="gdsp-tab-reviews" role="tabpanel">
+		<div class="gdsp-card"><div class="gdsp-pad" style="padding:20px">
+			{{if $reviewsHtml}}
+				{$reviewsHtml|raw}
+			{{else}}
+				<div style="color:#64748b;font-style:italic;padding:12px 0">{lang="gdreviews_no_reviews"}</div>
+			{{endif}}
+		</div></div>
+	</div><!-- /gdsp-tab-reviews -->
+	</div><!-- /gdsp-tabs -->
+
+	<script>
+	(function(){
+		var tabs = document.getElementById('gdsp-tabs');
+		if ( !tabs ) return;
+		var buttons = tabs.querySelectorAll('.gdsp-tab');
+		var panels  = tabs.querySelectorAll('.gdsp-tabpanel');
+		function activate( key ) {
+			buttons.forEach(function(b){
+				var on = b.getAttribute('data-tab') === key;
+				b.classList.toggle('gdsp-tab--active', on);
+				b.setAttribute('aria-selected', on ? 'true' : 'false');
+			});
+			panels.forEach(function(p){
+				p.classList.toggle('gdsp-tabpanel--active', p.id === 'gdsp-tab-' + key);
+			});
+		}
+		buttons.forEach(function(b){
+			b.addEventListener('click', function(){ activate(b.getAttribute('data-tab')); });
+		});
+		if ( location.hash === '#gdsp-reviews' || location.hash === '#gdsp-tab-reviews' ) { activate('reviews'); }
+		var viewDeals = document.querySelector('.gdsp-buy-btn');
+		if ( viewDeals ) viewDeals.addEventListener('click', function(){ activate('prices'); });
+	})();
+	</script>
 
 	{{if $alertLoggedIn}}
 	<div class="gd-alert-modal" id="gdAlertModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.5);align-items:center;justify-content:center;padding:16px">

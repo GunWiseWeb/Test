@@ -31,6 +31,8 @@
     <word key="gdsearch_view_dealers" js="0" export="1">View All Dealers</word>
     <word key="gdsearch_product_title" js="0" export="1">Product Details</word>
     <word key="gdsearch_price_comparison" js="0" export="1">Price Comparison</word>
+    <word key="gdsearch_tab_prices" js="0" export="1">Prices</word>
+    <word key="gdsearch_tab_reviews" js="0" export="1">Reviews</word>
     <word key="gdsearch_dealer" js="0" export="1">Dealer</word>
     <word key="gdsearch_price" js="0" export="1">Price</word>
     <word key="gdsearch_shipping" js="0" export="1">Shipping</word>

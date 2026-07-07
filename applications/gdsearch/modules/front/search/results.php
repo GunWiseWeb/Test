@@ -481,6 +481,38 @@ class _results extends \IPS\Dispatcher\Controller
             'front'
         );
 
+        /* v1.0.82 — Stage 3 reviews tab. Fetch the reviews section
+           HTML + aggregate from gdreviews if it's installed. The
+           call is triple-guarded (class_exists + method_exists +
+           try/catch) so a missing / broken gdreviews can never
+           break the price page. */
+        $reviewsHtml  = '';
+        $reviewCount  = 0;
+        $reviewRating = null;
+        try
+        {
+            if ( class_exists( '\IPS\gdreviews\Product\Product' )
+                && method_exists( '\IPS\gdreviews\Product\Product', 'aggregate' )
+                && method_exists( '\IPS\gdreviews\Product\Product', 'renderSection' ) )
+            {
+                $agg          = \IPS\gdreviews\Product\Product::aggregate( $upc );
+                $reviewCount  = (int)   ( $agg['count']  ?? 0 );
+                $reviewRating = isset( $agg['rating'] ) && $agg['rating'] !== null ? (float) $agg['rating'] : null;
+
+                $returnUrl = (string) \IPS\Http\Url::internal(
+                    'app=gdsearch&module=search&controller=results&do=product&upc=' . urlencode( $upc ),
+                    'front'
+                ) . '#gdsp-reviews';
+
+                $flash = (string) ( \IPS\Request::i()->flash ?? '' );
+                $reviewsHtml = (string) \IPS\gdreviews\Product\Product::renderSection( $upc, $member, $flash, $returnUrl );
+            }
+        }
+        catch ( \Throwable $e )
+        {
+            try { \IPS\Log::log( 'gdsearch reviews tab: ' . $e->getMessage(), 'gdsearch_reviews' ); } catch ( \Throwable ) {}
+        }
+
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
             $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow,
@@ -488,7 +520,8 @@ class _results extends \IPS\Dispatcher\Controller
             $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey,
             $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey,
             $listingReportUrl, $listingReportLoggedIn, $listingReportCsrfKey, $listingReportLoginUrl,
-            $offersSort, $sortOptions, $sortBaseUrl, $restrictionRows, $advisoryRows
+            $offersSort, $sortOptions, $sortBaseUrl, $restrictionRows, $advisoryRows,
+            $reviewsHtml, $reviewCount, $reviewRating
         );
     }
 

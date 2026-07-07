@@ -40,7 +40,9 @@ class _product extends \IPS\Dispatcher\Controller
 
 	/**
 	 * GET /product-reviews/product/{upc}
-	 * Product header + review list + form (or edit/delete).
+	 * Product header + reviews section. Uses
+	 * ReviewProduct::renderSection() so this standalone page and
+	 * gdsearch's product-page Reviews tab share ONE renderer.
 	 */
 	protected function manage(): void
 	{
@@ -62,14 +64,46 @@ class _product extends \IPS\Dispatcher\Controller
 		   to attach — safe when nobody has reviewed yet. */
 		ReviewProduct::loadByUpc( $upc, TRUE );
 
-		$member    = \IPS\Member::loggedIn();
-		$gate      = $this->settingsGate( $member );
-		$mine      = $member->member_id ? $this->loadMemberReview( $upc, (int) $member->member_id ) : null;
-		$reviews   = $gate['showList'] ? $this->loadReviews( $upc ) : [];
-		$aggregate = $this->loadAggregate( $upc );
+		$member = \IPS\Member::loggedIn();
+		$flash  = (string) ( \IPS\Request::i()->flash ?? '' );
 
 		\IPS\Output::i()->title  = htmlspecialchars( (string) $product['title'], ENT_QUOTES, 'UTF-8' ) . ' — ' . (string) $member->language()->addToStack( 'gdreviews_reviews' );
-		\IPS\Output::i()->output = $this->pageStyles() . $this->pageHtml( $upc, $product, $reviews, $aggregate, $member, $mine, $gate );
+		\IPS\Output::i()->output = $this->pageChrome( $upc, $product )
+			. ReviewProduct::renderSection( $upc, $member, $flash, '' );
+	}
+
+	/**
+	 * Standalone-page chrome: product header (title + image + UPC).
+	 * Not part of the shared renderSection, because gdsearch's own
+	 * product page already carries its title / image and we don't
+	 * want a duplicate header on that surface.
+	 */
+	private function pageChrome( string $upc, array $product ): string
+	{
+		$esc = fn( string $s ) => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+		$img = trim( (string) ( $product['image_url'] ?? '' ) );
+
+		$out  = '<style>
+.gdrv-page{max-width:960px;margin:24px auto;padding:0 16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#0f172a}
+.gdrv-page .gdrv-header{display:flex;gap:24px;align-items:flex-start;padding:20px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:16px}
+.gdrv-page .gdrv-header img{width:120px;height:120px;object-fit:contain;background:#f8fafc;border-radius:8px;border:1px solid #e5e7eb;flex-shrink:0}
+.gdrv-page .gdrv-title{font-size:1.4em;font-weight:700;margin:0 0 6px}
+.gdrv-page .gdrv-meta{color:#64748b;font-size:.85em;margin-top:4px}
+</style>';
+
+		$out .= '<div class="gdrv-page">';
+		$out .= '<div class="gdrv-header">';
+		if ( $img !== '' )
+		{
+			$out .= '<img src="' . $esc( $img ) . '" alt="">';
+		}
+		$out .= '<div>';
+		$out .= '<h1 class="gdrv-title">' . $esc( (string) $product['title'] ) . '</h1>';
+		$out .= '<div class="gdrv-meta">UPC: ' . $esc( $upc ) . '</div>';
+		$out .= '</div></div>';
+		$out .= '</div>';
+
+		return $out;
 	}
 
 	/**
@@ -336,8 +370,25 @@ class _product extends \IPS\Dispatcher\Controller
 		return [ $rating, $title, $content ];
 	}
 
+	/**
+	 * Post-action redirect URL. If a `return` query param was
+	 * passed with the submission (gdsearch's product page includes
+	 * one so the tab-submission lands back on the tab), we honor
+	 * it; otherwise we bounce to the gdreviews standalone page.
+	 */
 	private function pageUrl( string $upc, ?string $flash = null ): string
 	{
+		$ret = (string) ( \IPS\Request::i()->return ?? '' );
+		if ( $ret !== '' )
+		{
+			$decoded = base64_decode( $ret, TRUE );
+			if ( is_string( $decoded ) && $decoded !== '' && str_starts_with( $decoded, ( \IPS\Settings::i()->base_url ?: 'https://' ) ) )
+			{
+				$sep = ( strpos( $decoded, '?' ) === false ) ? '?' : '&';
+				return $decoded . ( $flash !== null ? $sep . 'flash=' . urlencode( $flash ) : '' );
+			}
+		}
+
 		$url = \IPS\Http\Url::internal(
 			'app=gdreviews&module=reviews&controller=product&upc=' . urlencode( $upc ),
 			'front'
