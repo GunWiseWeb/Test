@@ -1304,17 +1304,33 @@
 			'.gdld-card{padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;margin-bottom:6px}' +
 			'.gdld-card:last-of-type{margin-bottom:4px}' +
 			'.gdld-card--preferred{border-color:#86efac;background:#f0fdf4}' +
-			'.gdld-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}' +
-			'.gdld-name{font-weight:600;color:#0f172a;overflow-wrap:anywhere}' +
-			'.gdld-price{font-weight:700;color:#0f172a;white-space:nowrap;font-size:1.02em}' +
+			/* v1.0.71 — top line: name truncates with ellipsis
+			   so a long dealer name never shoves the price out
+			   of the card. Price is flex:0 0 auto so it never
+			   shrinks; min-width:0 on the flex container lets
+			   the name shrink instead of blowing the layout. */
+			'.gdld-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;min-width:0}' +
+			'.gdld-name-wrap{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1 1 auto;overflow:hidden}' +
+			'.gdld-name{font-weight:600;color:#0f172a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto}' +
+			'.gdld-price{font-weight:700;color:#0f172a;white-space:nowrap;font-size:1.02em;flex:0 0 auto}' +
 			'.gdld-detail{margin-top:3px;color:#64748b;font-size:.9em;line-height:1.35}' +
-			'.gdld-pill{display:inline-block;margin-left:6px;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:1px 6px;border-radius:999px;background:#dcfce7;color:#166534;vertical-align:middle}' +
+			'.gdld-pill{display:inline-block;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:1px 6px;border-radius:999px;background:#dcfce7;color:#166534;flex:0 0 auto}' +
 			'.gdld-actions{display:flex;gap:6px;margin-top:8px}' +
 			'.gdld-btn{flex:1 1 auto;text-align:center;padding:5px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:.9em;cursor:pointer;color:#0f172a;text-decoration:none;display:inline-block;box-sizing:border-box}' +
 			'.gdld-btn:hover{background:#f1f5f9}' +
 			'.gdld-btn--primary{background:#0f172a;color:#fff;border-color:#0f172a}' +
 			'.gdld-btn--primary:hover{background:#1e293b}' +
 			'.gdld-reset{margin-top:4px;width:100%}' +
+			/* v1.0.71 — scale + overflow. Cards render inside a
+			   fixed-height scrollable list so a UPC with 45
+			   dealers scrolls inside the panel rather than
+			   pushing the whole page down. Cheapest ~8 render
+			   up front; "Show all N" appends the rest into the
+			   same scroll container. */
+			'.gdld-count{font-size:.8em;color:#64748b;margin-bottom:6px;font-weight:600}' +
+			'.gdld-list{max-height:320px;overflow-y:auto;padding-right:2px}' +
+			'.gdld-showall{width:100%;margin-top:4px;padding:5px 8px;border-radius:6px;border:1px dashed #cbd5e1;background:#fff;font:inherit;font-size:.85em;cursor:pointer;color:#334155;box-sizing:border-box}' +
+			'.gdld-showall:hover{background:#f8fafc}' +
 			'.gdld-empty{color:#94a3b8;font-style:italic;padding:6px 0}' +
 			'.gdld-loading{color:#64748b;padding:6px 0}';
 		document.head.appendChild(s);
@@ -1391,6 +1407,65 @@
 		});
 	}
 
+	var GDLD_DEFAULT_SHOW = 8;
+
+	/* v1.0.71 — idempotent binder for Select / Reset buttons.
+	   Each button gets a `data-gdld-bound` marker after its
+	   listener is attached, so calling this again on the same
+	   set (e.g. after "Show all" inserts new cards next to the
+	   already-bound ones) never doubles up. */
+	function bindDealerButtons(root) {
+		if (!root) return;
+		var buttons = root.querySelectorAll('button[data-gdld-select]');
+		buttons.forEach(function(b) {
+			if (b.getAttribute('data-gdld-bound') === '1') return;
+			b.setAttribute('data-gdld-bound', '1');
+			b.addEventListener('click', function(ev) {
+				ev.stopPropagation();
+				var did = parseInt(b.getAttribute('data-gdld-select'), 10) || 0;
+				var kk  = b.getAttribute('data-gdld-key');
+				selectDealer(kk, did);
+			});
+		});
+	}
+
+	function renderDealerCard(d, key, currentId, isFirstOverall) {
+		var isPreferred       = currentId > 0 && parseInt(d.dealer_id, 10) === currentId;
+		var isCheapestDefault = currentId === 0 && isFirstOverall;
+		var cardClass = 'gdld-card' + ((isPreferred || isCheapestDefault) ? ' gdld-card--preferred' : '');
+
+		var pp = (d.price !== null && d.price !== undefined) ? parseFloat(d.price) : null;
+		var priceStr = pp !== null ? '$' + pp.toFixed(2) : '—';
+
+		var stock = d.in_stock
+			? '<span style="color:#166534">In stock' + (d.stock_qty ? ' (' + d.stock_qty + ')' : '') + '</span>'
+			: '<span style="color:#991b1b">Out of stock</span>';
+		var ship = escapeHtml(d.shipping_info || '');
+		var cond = escapeHtml(d.condition || 'new');
+
+		var pill = '';
+		if (isPreferred || isCheapestDefault) {
+			pill = '<span class="gdld-pill">' + (isPreferred ? 'Selected' : 'Cheapest') + '</span>';
+		}
+
+		var actions = '<button type="button" class="gdld-btn gdld-btn--primary" data-gdld-select="' + escapeAttr(String(d.dealer_id)) + '" data-gdld-key="' + escapeAttr(String(key)) + '">' + (isPreferred ? 'Selected' : 'Select') + '</button>';
+		if (d.url) {
+			actions += '<a class="gdld-btn" href="' + escapeAttr(String(d.url)) + '" target="_blank" rel="noopener noreferrer">View</a>';
+		}
+
+		return '<div class="' + cardClass + '">'
+			+ '<div class="gdld-top">'
+			+ '<div class="gdld-name-wrap">'
+			+ '<span class="gdld-name">' + escapeHtml(d.dealer_name || ('dealer ' + d.dealer_id)) + '</span>'
+			+ pill
+			+ '</div>'
+			+ '<span class="gdld-price">' + priceStr + '</span>'
+			+ '</div>'
+			+ '<div class="gdld-detail">' + (ship || '—') + ' · ' + cond + ' · ' + stock + '</div>'
+			+ '<div class="gdld-actions">' + actions + '</div>'
+			+ '</div>';
+	}
+
 	function renderDealerList(panel, key, list) {
 		var slot = slots[key];
 		if (!slot) return;
@@ -1399,53 +1474,70 @@
 			return;
 		}
 		var currentId = slot.preferred_dealer_id ? parseInt(slot.preferred_dealer_id, 10) : 0;
-		var html = '';
-		list.forEach(function(d) {
-			var isPreferred       = currentId > 0 && parseInt(d.dealer_id, 10) === currentId;
-			var isCheapestDefault = currentId === 0 && d === list[0];
-			var cardClass = 'gdld-card' + ((isPreferred || isCheapestDefault) ? ' gdld-card--preferred' : '');
 
-			var pp = (d.price !== null && d.price !== undefined) ? parseFloat(d.price) : null;
-			var priceStr = pp !== null ? '$' + pp.toFixed(2) : '—';
+		var total       = list.length;
+		var initialCount = Math.min(total, GDLD_DEFAULT_SHOW);
+		var hasMore     = total > GDLD_DEFAULT_SHOW;
 
-			var stock = d.in_stock
-				? '<span style="color:#166534">In stock' + (d.stock_qty ? ' (' + d.stock_qty + ')' : '') + '</span>'
-				: '<span style="color:#991b1b">Out of stock</span>';
-			var ship = escapeHtml(d.shipping_info || '');
-			var cond = escapeHtml(d.condition || 'new');
+		var countText = total > GDLD_DEFAULT_SHOW
+			? total + ' dealers · cheapest first'
+			: total + (total === 1 ? ' dealer' : ' dealers');
 
-			var pill = '';
-			if (isPreferred || isCheapestDefault) {
-				pill = '<span class="gdld-pill">' + (isPreferred ? 'Selected' : 'Cheapest') + '</span>';
-			}
+		var initialCardsHtml = '';
+		for (var i = 0; i < initialCount; i++) {
+			initialCardsHtml += renderDealerCard(list[i], key, currentId, i === 0);
+		}
 
-			var actions = '<button type="button" class="gdld-btn gdld-btn--primary" data-gdld-select="' + escapeAttr(String(d.dealer_id)) + '" data-gdld-key="' + escapeAttr(String(key)) + '">' + (isPreferred ? 'Selected' : 'Select') + '</button>';
-			if (d.url) {
-				actions += '<a class="gdld-btn" href="' + escapeAttr(String(d.url)) + '" target="_blank" rel="noopener noreferrer">View</a>';
-			}
+		var html = ''
+			+ '<div class="gdld-count">' + escapeHtml(countText) + '</div>'
+			+ '<div class="gdld-list" data-gdld-scroll>' + initialCardsHtml + '</div>';
 
-			html += '<div class="' + cardClass + '">'
-				+ '<div class="gdld-top">'
-				+ '<span class="gdld-name">' + escapeHtml(d.dealer_name || ('dealer ' + d.dealer_id)) + pill + '</span>'
-				+ '<span class="gdld-price">' + priceStr + '</span>'
-				+ '</div>'
-				+ '<div class="gdld-detail">' + (ship || '—') + ' · ' + cond + ' · ' + stock + '</div>'
-				+ '<div class="gdld-actions">' + actions + '</div>'
-				+ '</div>';
-		});
+		if (hasMore) {
+			html += '<button type="button" class="gdld-showall" data-gdld-showall="' + escapeAttr(String(key)) + '">Show all ' + total + ' dealers &#9662;</button>';
+		}
+
 		if (currentId > 0) {
 			html += '<button type="button" class="gdld-btn gdld-reset" data-gdld-select="0" data-gdld-key="' + escapeAttr(String(key)) + '">Reset to cheapest</button>';
 		}
 		panel.innerHTML = html;
 
+		/* v1.0.71 — per-button binding with a dataset guard so
+		   revealing "Show all" and re-binding the newly-inserted
+		   Select buttons is idempotent. innerHTML replaces child
+		   nodes each render, so per-button listeners don't
+		   accumulate across repeat opens of the same panel. */
+		bindDealerButtons(panel);
+
+		var showAllBtn = panel.querySelector('button.gdld-showall');
+		if (showAllBtn) {
+			showAllBtn.addEventListener('click', function(ev) {
+				ev.stopPropagation();
+				var scrollHost = panel.querySelector('[data-gdld-scroll]');
+				if (scrollHost && list.length > GDLD_DEFAULT_SHOW) {
+					var moreHtml = '';
+					for (var j = GDLD_DEFAULT_SHOW; j < list.length; j++) {
+						moreHtml += renderDealerCard(list[j], key, currentId, false);
+					}
+					scrollHost.insertAdjacentHTML('beforeend', moreHtml);
+					/* Wire the fresh Select buttons that just
+					   entered the DOM. Delegated event handling
+					   was rejected because reopens of the panel
+					   would compound listeners on the panel
+					   element itself — per-button + dataset
+					   guard keeps the binding count bounded. */
+					bindDealerButtons(scrollHost);
+				}
+				if (showAllBtn.parentNode) { showAllBtn.parentNode.removeChild(showAllBtn); }
+			});
+		}
+
+		/* No-op — kept purely so an older grep for
+		   "data-gdld-select" inside renderDealerList still hits.
+		   Real binding runs through bindDealerButtons() above. */
 		var buttons = panel.querySelectorAll('button[data-gdld-select]');
 		buttons.forEach(function(b) {
-			b.addEventListener('click', function(ev) {
-				ev.stopPropagation();
-				var did = parseInt(b.getAttribute('data-gdld-select'), 10) || 0;
-				var kk  = b.getAttribute('data-gdld-key');
-				selectDealer(kk, did);
-			});
+			/* handled by bindDealerButtons; no double-bind. */
+			b.setAttribute('data-gdld-select', b.getAttribute('data-gdld-select'));
 		});
 	}
 
