@@ -287,6 +287,14 @@
 
 		card.addEventListener('click', function (e) {
 			if (e.target.closest('.gdlo-card-remove')) return;
+			/* v1.0.68 — dealer picker UI (toggle button + expanded
+			   panel with Select/Reset/View controls) sits INSIDE
+			   the card. Any click on it must NOT bubble up to
+			   openPicker() → do=search — that was hijacking the
+			   Choose-dealer click and firing search instead of
+			   the dealer fetch. */
+			if (e.target.closest('.gdld-toggle')) return;
+			if (e.target.closest('.gdld-panel'))  return;
 			activeSlotKey = key;
 			highlightCards();
 			openPicker(key, slotDef);
@@ -346,6 +354,12 @@
 
 		card.addEventListener('click', function (e) {
 			if (e.target.closest('.gdlo-card-remove')) return;
+			/* v1.0.68 — same guard as createSlotCard: the dealer
+			   toggle + expanded panel controls live inside this
+			   extra-slot card too. Ignore them so Choose-dealer
+			   doesn't fall through to openPicker/do=search. */
+			if (e.target.closest('.gdld-toggle')) return;
+			if (e.target.closest('.gdld-panel'))  return;
 			activeSlotKey = key;
 			highlightCards();
 			openPicker(key, { label: label, icon: 'fa-solid fa-cube', required: false });
