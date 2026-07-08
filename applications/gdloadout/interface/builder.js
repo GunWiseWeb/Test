@@ -1304,17 +1304,17 @@
 			'.gdld-card{padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;margin-bottom:6px}' +
 			'.gdld-card:last-of-type{margin-bottom:4px}' +
 			'.gdld-card--preferred{border-color:#86efac;background:#f0fdf4}' +
-			/* v1.0.71 — top line: name truncates with ellipsis
-			   so a long dealer name never shoves the price out
-			   of the card. Price is flex:0 0 auto so it never
-			   shrinks; min-width:0 on the flex container lets
-			   the name shrink instead of blowing the layout. */
+			/* v1.0.72 — top line is now just name + price. The
+			   "Cheapest" / "Selected" marker moved off the name
+			   line (where it crowded the truncated name) and
+			   into the muted detail line as a small green tag.
+			   The card's green tint still carries the primary
+			   "this is the one" signal. */
 			'.gdld-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;min-width:0}' +
-			'.gdld-name-wrap{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1 1 auto;overflow:hidden}' +
 			'.gdld-name{font-weight:600;color:#0f172a;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto}' +
 			'.gdld-price{font-weight:700;color:#0f172a;white-space:nowrap;font-size:1.02em;flex:0 0 auto}' +
 			'.gdld-detail{margin-top:3px;color:#64748b;font-size:.9em;line-height:1.35}' +
-			'.gdld-pill{display:inline-block;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:1px 6px;border-radius:999px;background:#dcfce7;color:#166534;flex:0 0 auto}' +
+			'.gdld-flag{display:inline-block;font-size:.85em;font-weight:700;color:#166534;background:#dcfce7;border-radius:4px;padding:0 5px;margin-right:6px}' +
 			'.gdld-actions{display:flex;gap:6px;margin-top:8px}' +
 			'.gdld-btn{flex:1 1 auto;text-align:center;padding:5px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:.9em;cursor:pointer;color:#0f172a;text-decoration:none;display:inline-block;box-sizing:border-box}' +
 			'.gdld-btn:hover{background:#f1f5f9}' +
@@ -1443,10 +1443,13 @@
 		var ship = escapeHtml(d.shipping_info || '');
 		var cond = escapeHtml(d.condition || 'new');
 
-		var pill = '';
-		if (isPreferred || isCheapestDefault) {
-			pill = '<span class="gdld-pill">' + (isPreferred ? 'Selected' : 'Cheapest') + '</span>';
-		}
+		/* v1.0.72 — Cheapest / Selected marker moved off the
+		   truncated name line and into the muted detail line
+		   as a small green tag. Card tint (.gdld-card--preferred)
+		   still carries the primary signal. */
+		var flag = isPreferred
+			? '<span class="gdld-flag">Selected</span>'
+			: ( isCheapestDefault ? '<span class="gdld-flag">Cheapest</span>' : '' );
 
 		var actions = '<button type="button" class="gdld-btn gdld-btn--primary" data-gdld-select="' + escapeAttr(String(d.dealer_id)) + '" data-gdld-key="' + escapeAttr(String(key)) + '">' + (isPreferred ? 'Selected' : 'Select') + '</button>';
 		if (d.url) {
@@ -1455,13 +1458,10 @@
 
 		return '<div class="' + cardClass + '">'
 			+ '<div class="gdld-top">'
-			+ '<div class="gdld-name-wrap">'
 			+ '<span class="gdld-name">' + escapeHtml(d.dealer_name || ('dealer ' + d.dealer_id)) + '</span>'
-			+ pill
-			+ '</div>'
 			+ '<span class="gdld-price">' + priceStr + '</span>'
 			+ '</div>'
-			+ '<div class="gdld-detail">' + (ship || '—') + ' · ' + cond + ' · ' + stock + '</div>'
+			+ '<div class="gdld-detail">' + flag + (ship || '—') + ' · ' + cond + ' · ' + stock + '</div>'
 			+ '<div class="gdld-actions">' + actions + '</div>'
 			+ '</div>';
 	}
