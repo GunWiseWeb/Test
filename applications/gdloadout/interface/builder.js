@@ -1150,14 +1150,28 @@
 	}
 
 	/* ===== Utilities ===== */
+	/* v1.0.69 — coerce to String at the source so numbers,
+	   booleans, or any non-string value never crash the caller.
+	   Passing null / undefined yields '' as before, while
+	   preserving safe rendering for 0 / false (which the old
+	   `str || ''` shortcut swallowed as empty). Root cause of
+	   the v1.0.67 dealer-picker crash: escapeAttr(d.dealer_id)
+	   was called with a NUMBER, and Number.prototype has no
+	   .replace() → TypeError "(str || '').replace is not a
+	   function" → the dealer panel never rendered. */
 	function escapeHtml(str) {
 		var d = document.createElement('div');
-		d.appendChild(document.createTextNode(str || ''));
+		d.appendChild(document.createTextNode(String(str == null ? '' : str)));
 		return d.innerHTML;
 	}
 
 	function escapeAttr(str) {
-		return (str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		return String(str == null ? '' : str)
+			.replace(/&/g, '&amp;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;');
 	}
 
 	/* ===== v1.0.63 — real-time compliance badge on search results.
