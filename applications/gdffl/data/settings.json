@@ -1,0 +1,10 @@
+[
+	{"key": "gdffl_default_radius",   "default": "25",         "report": "full"},
+	{"key": "gdffl_default_types",    "default": "01,02",      "report": "full"},
+	{"key": "gdffl_delimiter",        "default": "auto",       "report": "full"},
+	{"key": "gdffl_import_mode",      "default": "replace",    "report": "full"},
+	{"key": "gdffl_per_page",         "default": "20",         "report": "full"},
+	{"key": "gdffl_last_import_at",   "default": "0",          "report": "none"},
+	{"key": "gdffl_last_import_rows", "default": "0",          "report": "none"},
+	{"key": "gdffl_last_import_skipped", "default": "0",       "report": "none"}
+]

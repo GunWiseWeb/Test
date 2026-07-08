@@ -1,0 +1,8 @@
+{
+	"core": {
+		"Queue": {
+			"FflImport":    "IPS\\gdffl\\extensions\\core\\Queue\\FflImport",
+			"ZipGeoImport": "IPS\\gdffl\\extensions\\core\\Queue\\ZipGeoImport"
+		}
+	}
+}

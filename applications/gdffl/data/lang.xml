@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language>
+	<app key="gdffl" version="1.0.0">
+		<word key="__app_gdffl" js="0"><![CDATA[Gun Rack FFL Finder]]></word>
+		<word key="menutab__gdffl" js="0"><![CDATA[FFL Finder]]></word>
+		<word key="menutab__gdffl_icon" js="0"><![CDATA[location-dot]]></word>
+
+		<word key="module__admin_manage" js="0"><![CDATA[FFL Finder]]></word>
+		<word key="menu__gdffl_manage_settings" js="0"><![CDATA[Settings]]></word>
+		<word key="menu__gdffl_manage_import" js="0"><![CDATA[Import ATF CSV]]></word>
+		<word key="r__ffl_manage" js="0"><![CDATA[Manage FFL Finder]]></word>
+
+		<word key="gdffl_default_radius" js="0"><![CDATA[Default search radius (miles)]]></word>
+		<word key="gdffl_default_radius_desc" js="0"><![CDATA[Miles from the buyer's ZIP centroid used by the Stage 2 lookup.]]></word>
+		<word key="gdffl_default_types" js="0"><![CDATA[Default license types shown]]></word>
+		<word key="gdffl_default_types_desc" js="0"><![CDATA[Comma-separated ATF LIC_TYPE codes counted as transfer-capable for the default view (e.g. 01,02).]]></word>
+		<word key="gdffl_delimiter" js="0"><![CDATA[CSV delimiter]]></word>
+		<word key="gdffl_delimiter_desc" js="0"><![CDATA[ATF's published file is TAB-delimited; leave on auto to detect.]]></word>
+		<word key="gdffl_import_mode" js="0"><![CDATA[Import mode]]></word>
+		<word key="gdffl_import_mode_desc" js="0"><![CDATA[Replace: TRUNCATE gd_ffl before import (correct for the monthly full file). Merge: upsert by lic_number.]]></word>
+		<word key="gdffl_per_page" js="0"><![CDATA[Results per page]]></word>
+
+		<word key="gdffl_acp_settings_title" js="0"><![CDATA[FFL Finder — Settings]]></word>
+		<word key="gdffl_acp_import_title" js="0"><![CDATA[FFL Finder — Import ATF CSV]]></word>
+		<word key="gdffl_acp_import_intro" js="0"><![CDATA[Upload the ATF full-FFL CSV (TAB-delimited). The import runs chunked in the background queue so 77k rows never run in one web request. Progress is visible in the ACP queue after upload.]]></word>
+		<word key="gdffl_acp_import_upload" js="0"><![CDATA[ATF FFL CSV file]]></word>
+		<word key="gdffl_acp_import_submit" js="0"><![CDATA[Queue import]]></word>
+		<word key="gdffl_acp_import_queued" js="0"><![CDATA[Import queued — %s rows to process. Track progress in the ACP queue.]]></word>
+		<word key="gdffl_acp_zipgeo_title" js="0"><![CDATA[ZIP centroid data]]></word>
+		<word key="gdffl_acp_zipgeo_load" js="0"><![CDATA[Load bundled ZIP centroid CSV]]></word>
+		<word key="gdffl_acp_zipgeo_intro" js="0"><![CDATA[Loads the bundled US Census ZCTA public-domain ZIP→lat/lng centroid CSV into gd_zip_geo. Chunked; safe to re-run.]]></word>
+		<word key="gdffl_acp_zipgeo_queued" js="0"><![CDATA[ZIP centroid load queued — %s rows to process.]]></word>
+		<word key="gdffl_acp_last_import" js="0"><![CDATA[Last ATF import: %s rows imported, %s skipped, %s]]></word>
+
+		<word key="gdffl_queue_ffl" js="0"><![CDATA[Importing ATF FFL rows: %s of %s]]></word>
+		<word key="gdffl_queue_zipgeo" js="0"><![CDATA[Loading ZIP centroids: %s of %s]]></word>
+		<word key="gdffl_err_no_upload" js="0"><![CDATA[Please choose a CSV file to upload.]]></word>
+		<word key="gdffl_err_bad_file" js="0"><![CDATA[Could not read the uploaded file.]]></word>
+	</app>
+</language>

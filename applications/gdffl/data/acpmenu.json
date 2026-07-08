@@ -1,0 +1,16 @@
+{
+	"manage": {
+		"settings": {
+			"tab": "gdffl",
+			"controller": "settings",
+			"do": "",
+			"restriction": "ffl_manage"
+		},
+		"import": {
+			"tab": "gdffl",
+			"controller": "import",
+			"do": "",
+			"restriction": "ffl_manage"
+		}
+	}
+}

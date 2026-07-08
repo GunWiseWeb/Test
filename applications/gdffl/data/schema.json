@@ -1,0 +1,42 @@
+{
+	"gd_ffl": {
+		"name": "gd_ffl",
+		"columns": {
+			"id":             { "name": "id",             "type": "INT",     "length": 10,  "decimals": null, "allow_null": false, "default": null, "auto_increment": true,  "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+			"lic_number":     { "name": "lic_number",     "type": "VARCHAR", "length": 30,  "decimals": null, "allow_null": false, "default": "",   "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "R-DD-CCC-TT-XX-SSSSS joined from LIC_REGN + LIC_DIST + LIC_CNTY + LIC_TYPE + LIC_XPRDTE + LIC_SEQN" },
+			"lic_type":       { "name": "lic_type",       "type": "VARCHAR", "length": 2,   "decimals": null, "allow_null": false, "default": "",   "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "ATF license type code (01, 02, 03, 06, 07, 08, 09, 10, 11)" },
+			"license_name":   { "name": "license_name",   "type": "VARCHAR", "length": 200, "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"business_name":  { "name": "business_name",  "type": "VARCHAR", "length": 200, "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Shop name — falls back to license_name when blank" },
+			"premise_street": { "name": "premise_street", "type": "VARCHAR", "length": 200, "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"premise_city":   { "name": "premise_city",   "type": "VARCHAR", "length": 100, "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"premise_state":  { "name": "premise_state",  "type": "CHAR",    "length": 2,   "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"premise_zip":    { "name": "premise_zip",    "type": "CHAR",    "length": 5,   "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Normalized to 5 digits at import" },
+			"voice_phone":    { "name": "voice_phone",    "type": "VARCHAR", "length": 30,  "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"lat":            { "name": "lat",            "type": "DECIMAL", "length": 10,  "decimals": 7,    "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "Populated at import from gd_zip_geo by premise_zip" },
+			"lng":            { "name": "lng",            "type": "DECIMAL", "length": 10,  "decimals": 7,    "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"imported_at":    { "name": "imported_at",    "type": "INT",     "length": 10,  "decimals": null, "allow_null": false, "default": "0",  "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":     { "type": "primary", "name": "PRIMARY",     "length": [ null ], "columns": [ "id" ] },
+			"idx_lic":     { "type": "unique",  "name": "idx_lic",     "length": [ null ], "columns": [ "lic_number" ] },
+			"idx_zip":     { "type": "key",     "name": "idx_zip",     "length": [ null ], "columns": [ "premise_zip" ] },
+			"idx_state":   { "type": "key",     "name": "idx_state",   "length": [ null ], "columns": [ "premise_state" ] },
+			"idx_type":    { "type": "key",     "name": "idx_type",    "length": [ null ], "columns": [ "lic_type" ] },
+			"idx_latlng":  { "type": "key",     "name": "idx_latlng",  "length": [ null, null ], "columns": [ "lat", "lng" ] }
+		}
+	},
+	"gd_zip_geo": {
+		"name": "gd_zip_geo",
+		"columns": {
+			"zip":   { "name": "zip",   "type": "CHAR",    "length": 5,   "decimals": null, "allow_null": false, "default": "",   "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "5-digit US ZIP; PK" },
+			"lat":   { "name": "lat",   "type": "DECIMAL", "length": 10,  "decimals": 7,    "allow_null": false, "default": "0.0000000", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"lng":   { "name": "lng",   "type": "DECIMAL", "length": 10,  "decimals": 7,    "allow_null": false, "default": "0.0000000", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"city":  { "name": "city",  "type": "VARCHAR", "length": 100, "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+			"state": { "name": "state", "type": "CHAR",    "length": 2,   "decimals": null, "allow_null": true,  "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+		},
+		"indexes": {
+			"PRIMARY":   { "type": "primary", "name": "PRIMARY",   "length": [ null ], "columns": [ "zip" ] },
+			"idx_state": { "type": "key",     "name": "idx_state", "length": [ null ], "columns": [ "state" ] }
+		}
+	}
+}

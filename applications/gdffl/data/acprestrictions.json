@@ -1,0 +1,6 @@
+{
+	"manage": {
+		"settings": { "ffl_manage": "ffl_manage" },
+		"import":   { "ffl_manage": "ffl_manage" }
+	}
+}
