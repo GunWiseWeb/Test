@@ -1,5 +1,13 @@
 {
 	"topLevel": "ffl-finder",
 	"pages": {
+		"finder_root": {
+			"friendly": "",
+			"real":     "app=gdffl&module=finder&controller=finder"
+		},
+		"finder_find": {
+			"friendly": "find",
+			"real":     "app=gdffl&module=finder&controller=finder&do=search"
+		}
 	}
 }

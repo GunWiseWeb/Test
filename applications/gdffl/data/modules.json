@@ -4,5 +4,11 @@
 			"default_controller": "settings",
 			"protected": false
 		}
+	},
+	"front": {
+		"finder": {
+			"default_controller": "finder",
+			"protected": false
+		}
 	}
 }

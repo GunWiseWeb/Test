@@ -35,4 +35,22 @@ $lang = [
 	'gdffl_queue_zipgeo'          => 'Loading ZIP centroids: %s of %s',
 	'gdffl_err_no_upload'         => 'Please choose a CSV file to upload.',
 	'gdffl_err_bad_file'          => 'Could not read the uploaded file.',
+
+	/* v1.0.1 — public finder page + JSON endpoint. */
+	'module__front_finder'        => 'FFL Finder',
+	'gdffl_finder_title'          => 'Find an FFL near you',
+	'gdffl_finder_lead'           => 'Enter your ZIP code to find licensed dealers who can receive a transfer for you. Distance is calculated from the ZIP centroid.',
+	'gdffl_finder_zip'            => 'Your ZIP code',
+	'gdffl_finder_radius'         => 'Within',
+	'gdffl_finder_submit'         => 'Find FFLs',
+	'gdffl_finder_types'          => 'License types',
+	'gdffl_finder_all_types'      => 'Show all license types',
+	'gdffl_finder_searching'      => 'Searching…',
+	'gdffl_finder_no_results'     => 'No FFLs found within the selected radius. Try a wider search.',
+	'gdffl_finder_zip_bad'        => 'Please enter a 5-digit ZIP code.',
+	'gdffl_finder_zip_notfound'   => 'That ZIP code is not in our lookup. Try a nearby ZIP.',
+	'gdffl_finder_error'          => 'Search failed — please try again in a moment.',
+	'gdffl_finder_distance'       => 'mi',
+	'gdffl_finder_no_phone'       => 'No phone on file',
+	'gdffl_finder_load_more'      => 'Show more results',
 ];

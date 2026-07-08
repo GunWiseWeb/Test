@@ -36,5 +36,22 @@
 		<word key="gdffl_queue_zipgeo" js="0"><![CDATA[Loading ZIP centroids: %s of %s]]></word>
 		<word key="gdffl_err_no_upload" js="0"><![CDATA[Please choose a CSV file to upload.]]></word>
 		<word key="gdffl_err_bad_file" js="0"><![CDATA[Could not read the uploaded file.]]></word>
+
+		<word key="module__front_finder" js="0"><![CDATA[FFL Finder]]></word>
+		<word key="gdffl_finder_title" js="0"><![CDATA[Find an FFL near you]]></word>
+		<word key="gdffl_finder_lead" js="0"><![CDATA[Enter your ZIP code to find licensed dealers who can receive a transfer for you. Distance is calculated from the ZIP centroid.]]></word>
+		<word key="gdffl_finder_zip" js="0"><![CDATA[Your ZIP code]]></word>
+		<word key="gdffl_finder_radius" js="0"><![CDATA[Within]]></word>
+		<word key="gdffl_finder_submit" js="0"><![CDATA[Find FFLs]]></word>
+		<word key="gdffl_finder_types" js="0"><![CDATA[License types]]></word>
+		<word key="gdffl_finder_all_types" js="0"><![CDATA[Show all license types]]></word>
+		<word key="gdffl_finder_searching" js="0"><![CDATA[Searching…]]></word>
+		<word key="gdffl_finder_no_results" js="0"><![CDATA[No FFLs found within the selected radius. Try a wider search.]]></word>
+		<word key="gdffl_finder_zip_bad" js="0"><![CDATA[Please enter a 5-digit ZIP code.]]></word>
+		<word key="gdffl_finder_zip_notfound" js="0"><![CDATA[That ZIP code is not in our lookup. Try a nearby ZIP.]]></word>
+		<word key="gdffl_finder_error" js="0"><![CDATA[Search failed — please try again in a moment.]]></word>
+		<word key="gdffl_finder_distance" js="0"><![CDATA[mi]]></word>
+		<word key="gdffl_finder_no_phone" js="0"><![CDATA[No phone on file]]></word>
+		<word key="gdffl_finder_load_more" js="0"><![CDATA[Show more results]]></word>
 	</app>
 </language>
