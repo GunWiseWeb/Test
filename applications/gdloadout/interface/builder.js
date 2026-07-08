@@ -1289,22 +1289,32 @@
 		gdloDealerStylesInjected = true;
 		var s = document.createElement('style');
 		s.textContent =
+			/* Slot-card footer bits (line under price + Choose-dealer toggle) */
 			'.gdld-line{margin-top:4px;font-size:.85em;color:#475569;line-height:1.35}' +
 			'.gdld-line strong{color:#0f172a}' +
 			'.gdld-line--preferred{color:#166534}' +
 			'.gdld-toggle{display:inline-block;margin-top:4px;font-size:.85em;color:#0f172a;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:2px 8px;cursor:pointer}' +
 			'.gdld-toggle:hover{background:#e2e8f0}' +
+			/* Expanded dealer picker panel */
 			'.gdld-panel{margin-top:6px;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:.85em}' +
-			'.gdld-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed #e2e8f0}' +
-			'.gdld-row:first-child{border-top:none}' +
-			'.gdld-row--preferred{background:#dcfce7;padding-left:6px;padding-right:6px;border-radius:6px;border-top:none}' +
-			'.gdld-name{font-weight:600;color:#0f172a}' +
-			'.gdld-meta{color:#64748b;font-size:.9em}' +
-			'.gdld-actions{display:flex;gap:6px;flex-shrink:0}' +
-			'.gdld-btn{padding:3px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:.85em;cursor:pointer;color:#0f172a;text-decoration:none;display:inline-block}' +
+			/* v1.0.70 — stacked dealer cards. Each dealer is a
+			   compact vertical card that reads cleanly at narrow
+			   slot-column widths. Replaces the v1.0.67 horizontal
+			   flex row, which wrapped ugly inside the slot pane. */
+			'.gdld-card{padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;margin-bottom:6px}' +
+			'.gdld-card:last-of-type{margin-bottom:4px}' +
+			'.gdld-card--preferred{border-color:#86efac;background:#f0fdf4}' +
+			'.gdld-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}' +
+			'.gdld-name{font-weight:600;color:#0f172a;overflow-wrap:anywhere}' +
+			'.gdld-price{font-weight:700;color:#0f172a;white-space:nowrap;font-size:1.02em}' +
+			'.gdld-detail{margin-top:3px;color:#64748b;font-size:.9em;line-height:1.35}' +
+			'.gdld-pill{display:inline-block;margin-left:6px;font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:1px 6px;border-radius:999px;background:#dcfce7;color:#166534;vertical-align:middle}' +
+			'.gdld-actions{display:flex;gap:6px;margin-top:8px}' +
+			'.gdld-btn{flex:1 1 auto;text-align:center;padding:5px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;font:inherit;font-size:.9em;cursor:pointer;color:#0f172a;text-decoration:none;display:inline-block;box-sizing:border-box}' +
 			'.gdld-btn:hover{background:#f1f5f9}' +
 			'.gdld-btn--primary{background:#0f172a;color:#fff;border-color:#0f172a}' +
 			'.gdld-btn--primary:hover{background:#1e293b}' +
+			'.gdld-reset{margin-top:4px;width:100%}' +
 			'.gdld-empty{color:#94a3b8;font-style:italic;padding:6px 0}' +
 			'.gdld-loading{color:#64748b;padding:6px 0}';
 		document.head.appendChild(s);
@@ -1391,31 +1401,40 @@
 		var currentId = slot.preferred_dealer_id ? parseInt(slot.preferred_dealer_id, 10) : 0;
 		var html = '';
 		list.forEach(function(d) {
-			var isPreferred = currentId > 0 && parseInt(d.dealer_id, 10) === currentId;
+			var isPreferred       = currentId > 0 && parseInt(d.dealer_id, 10) === currentId;
 			var isCheapestDefault = currentId === 0 && d === list[0];
-			var badgeClass = (isPreferred || isCheapestDefault) ? ' gdld-row--preferred' : '';
+			var cardClass = 'gdld-card' + ((isPreferred || isCheapestDefault) ? ' gdld-card--preferred' : '');
+
 			var pp = (d.price !== null && d.price !== undefined) ? parseFloat(d.price) : null;
 			var priceStr = pp !== null ? '$' + pp.toFixed(2) : '—';
-			var stock = d.in_stock ? '<span style="color:#166534">In stock' + (d.stock_qty ? ' (' + d.stock_qty + ')' : '') + '</span>' : '<span style="color:#991b1b">Out of stock</span>';
+
+			var stock = d.in_stock
+				? '<span style="color:#166534">In stock' + (d.stock_qty ? ' (' + d.stock_qty + ')' : '') + '</span>'
+				: '<span style="color:#991b1b">Out of stock</span>';
 			var ship = escapeHtml(d.shipping_info || '');
 			var cond = escapeHtml(d.condition || 'new');
-			var actions = '';
-			if (d.url) {
-				actions += '<a class="gdld-btn" href="' + escapeAttr(d.url) + '" target="_blank" rel="noopener noreferrer">View</a>';
+
+			var pill = '';
+			if (isPreferred || isCheapestDefault) {
+				pill = '<span class="gdld-pill">' + (isPreferred ? 'Selected' : 'Cheapest') + '</span>';
 			}
-			actions += '<button type="button" class="gdld-btn gdld-btn--primary" data-gdld-select="' + escapeAttr(d.dealer_id) + '" data-gdld-key="' + escapeAttr(key) + '">' + (isPreferred ? 'Selected' : 'Select') + '</button>';
-			html += '<div class="gdld-row' + badgeClass + '">'
-				+ '<div>'
-				+ '<div class="gdld-name">' + escapeHtml(d.dealer_name || ('dealer ' + d.dealer_id)) + '</div>'
-				+ '<div class="gdld-meta"><strong>' + priceStr + '</strong> · ' + (ship || '—') + ' · ' + stock + ' · ' + cond + '</div>'
+
+			var actions = '<button type="button" class="gdld-btn gdld-btn--primary" data-gdld-select="' + escapeAttr(String(d.dealer_id)) + '" data-gdld-key="' + escapeAttr(String(key)) + '">' + (isPreferred ? 'Selected' : 'Select') + '</button>';
+			if (d.url) {
+				actions += '<a class="gdld-btn" href="' + escapeAttr(String(d.url)) + '" target="_blank" rel="noopener noreferrer">View</a>';
+			}
+
+			html += '<div class="' + cardClass + '">'
+				+ '<div class="gdld-top">'
+				+ '<span class="gdld-name">' + escapeHtml(d.dealer_name || ('dealer ' + d.dealer_id)) + pill + '</span>'
+				+ '<span class="gdld-price">' + priceStr + '</span>'
 				+ '</div>'
+				+ '<div class="gdld-detail">' + (ship || '—') + ' · ' + cond + ' · ' + stock + '</div>'
 				+ '<div class="gdld-actions">' + actions + '</div>'
 				+ '</div>';
 		});
 		if (currentId > 0) {
-			html += '<div style="margin-top:8px;text-align:right">'
-				+ '<button type="button" class="gdld-btn" data-gdld-select="0" data-gdld-key="' + escapeAttr(key) + '">Reset to cheapest</button>'
-				+ '</div>';
+			html += '<button type="button" class="gdld-btn gdld-reset" data-gdld-select="0" data-gdld-key="' + escapeAttr(String(key)) + '">Reset to cheapest</button>';
 		}
 		panel.innerHTML = html;
 
