@@ -4,11 +4,13 @@
  * Reads window.gdfflImportConfig (set inline by the ACP import
  * page):
  *     {
- *       fflStep:  URL of the FFL step endpoint,
- *       zipStep:  URL of the ZIP step endpoint,
- *       csrfKey:  session CSRF key (POSTed as csrfKey),
- *       startFfl: bool — auto-start the FFL loop on page load,
- *       startZip: bool — auto-start the ZIP loop on page load,
+ *       fflStep:   URL of the FFL batch endpoint,
+ *       zipStep:   URL of the ZIP batch endpoint,
+ *       fflResume: URL of the "start / resume ATF import" endpoint,
+ *       zipResume: URL of the "start / resume ZIP import" endpoint,
+ *       csrfKey:   session CSRF key (POSTed as csrfKey),
+ *       startFfl:  bool — auto-start the FFL loop on page load,
+ *       startZip:  bool — auto-start the ZIP loop on page load,
  *     }
  *
  * On each step the endpoint returns { done, processed, total,
@@ -106,7 +108,53 @@
 		runLoop( cfg.zipStep, 'gdffl-zip-progress', 'gdffl-zip-fill', 'gdffl-zip-text', 'ZIP centroid import' );
 	}
 
+	/*
+	 * Wire the two explicit "Start Import" buttons so the admin
+	 * can kick either loop directly, even if the session-based
+	 * autostart flag from the upload → 302 → manage() hop was
+	 * lost (which happens under some ACP session configs). The
+	 * button's <form> POSTs to fflResume / zipResume — a normal
+	 * form submit works, but we intercept and let the JS drive
+	 * the loop straight after the resume returns.
+	 */
+	function bindStartButton ( buttonId, formAction, kickFn ) {
+		var btn = el( buttonId );
+		if ( !btn ) { return; }
+		btn.addEventListener( 'click', function ( ev ) {
+			ev.preventDefault();
+			btn.disabled = true;
+
+			/* POST to the resume endpoint to prime the session job.
+			   The server responds with a 302; we don't want to
+			   follow it (that would download manage()'s HTML for
+			   nothing) — redirect: 'manual' makes the fetch resolve
+			   with an opaqueredirect response instead. Either way,
+			   as long as the POST reaches the server, the session
+			   job is primed and we can kick the AJAX loop. */
+			var form = new FormData();
+			form.append( 'csrfKey', cfg.csrfKey );
+			fetch( formAction, {
+				method: 'POST',
+				credentials: 'same-origin',
+				redirect: 'manual',
+				headers: { 'X-Requested-With': 'XMLHttpRequest' },
+				body: form,
+			} ).then( function () {
+				kickFn();
+			} ).catch( function () {
+				/* Fall back to the plain <form> submission if the
+				   POST failed — the browser will land back on
+				   manage() which will autostart from the session. */
+				var backupForm = btn.closest( 'form' );
+				if ( backupForm ) { backupForm.submit(); }
+			} );
+		} );
+	}
+
 	function onReady () {
+		bindStartButton( 'gdffl-ffl-start', cfg.fflResume || cfg.fflStep, bootFfl );
+		bindStartButton( 'gdffl-zip-start', cfg.zipResume || cfg.zipStep, bootZip );
+
 		if ( cfg.startFfl ) { bootFfl(); }
 		if ( cfg.startZip ) { bootZip(); }
 	}

@@ -1,44 +1,39 @@
 <?php
 /**
- * @brief  GD FFL Finder — upgrade 1.0.2 (consolidates 1.0.1 + 1.0.2).
+ * @brief  GD FFL Finder — upgrade 1.0.3 (consolidates 1.0.1 + 1.0.2 + 1.0.3).
  *
- * Per rule #79 the app carries exactly ONE upg_* dir at a time.
- * This step is self-contained — safe to run against 1.0.0, 1.0.1,
- * or a re-install where cached data got wiped:
+ * Per rule #79 this is the app's ONLY upg_* dir. Safe to run
+ * against 1.0.0, 1.0.1, 1.0.2, or a re-install where cached
+ * data got wiped. No schema changes in this version — only
+ * lang reseed + cache clear.
  *
- *   1. Reseed the full lang set (v1.0.0 + v1.0.1 + v1.0.2 keys).
- *      New in v1.0.2:
- *        * gdffl_acp_zipgeo_upload           — ACP button label
- *        * gdffl_acp_zipgeo_upload_submit
- *        * gdffl_acp_zipgeo_load_hint
- *        * gdffl_err_no_zip_file
- *        * gdffl_import_running_ffl / _zip
- *      Reseeds v1.0.1's finder keys too, so an install stuck at
- *      1.0.0 still lands cleanly on 1.0.2.
- *   2. Self-heal data/extensions.json (rule #16) — IPS has been
- *      observed to overwrite it from a stale datastore cache; we
- *      rewrite it from the known-good literal here.
- *   3. Cache-purge — modules_front / modules_admin / furl /
- *      applications / extensions / settings / interface_files /
- *      Data\Store::clearAll + Data\Cache::clearAll + opcache_reset.
+ * WHY v1.0.3 EXISTS:
+ *   v1.0.2's ACP importer built form-action / AJAX-endpoint
+ *   URLs with \IPS\Http\Url::internal() WITHOUT the 'admin'
+ *   base as the second argument. In the ACP that URL matched
+ *   a route that the front dispatcher 301-redirects to the
+ *   admin dispatcher — and a 301 on a multipart POST tells
+ *   the browser to retry as GET, which drops $_FILES. Result:
+ *   uploads landed with empty $_FILES, fflUploadAct bailed on
+ *   the "no file" branch, no session job was primed, and the
+ *   import never started. gd_ffl stayed at 0 rows through
+ *   multiple attempts even though the AJAX architecture from
+ *   v1.0.2 was otherwise correct.
  *
- * NOTHING in this upgrade writes to another app's tables. The
- * ATF CSV / ZIP centroid imports are user-driven from the ACP
- * (modules/admin/manage/import.php) so this step never processes
- * data rows itself.
+ *   v1.0.3 fixes it by passing 'admin' as the second arg to
+ *   every Url::internal() call in the ACP importer (mirrors
+ *   the pattern used by working ACP forms in gddealer). Also
+ *   adds explicit "Start ATF import" / "Load ZIP data" buttons
+ *   that inspect uploads/gdffl/ for a pending file, so the
+ *   import is startable even if the ACP session flag was lost
+ *   across the upload → redirect round-trip.
  *
- * WHY v1.0.2 EXISTS (context for future maintainers):
- *   v1.0.0 shipped queue-based imports that never fired on low-
- *   traffic sites; the ATF CSV "queued" and gd_ffl stayed at 0.
- *   v1.0.2 rewrites the ACP importer as an AJAX batch loop
- *   driven by the browser — no queue dependency, immediate
- *   progress display, no single-request timeout. The old
- *   extensions/core/Queue/{FflImport,ZipGeoImport}.php files
- *   remain shipped as optional fallbacks (the scheduler picks
- *   them up if it ever does run) but the AJAX path is primary.
+ * No new lang keys strictly required, but the ZIP-load button
+ * label may render differently; reseed the full set to keep
+ * the flow bullet-proof (rule #43/#44 shape).
  */
 
-namespace IPS\gdffl\setup\upg_10002;
+namespace IPS\gdffl\setup\upg_10003;
 
 use function defined;
 use function function_exists;
@@ -54,13 +49,11 @@ class _upgrade
 	public function step1(): bool
 	{
 		/* ------------------------------------------------------------
-		 * LANG RESEED — full set for v1.0.0 + v1.0.1 + v1.0.2.
-		 * Per rule #43 (IPS 5.0.18 6-column schema) and rule #44
-		 * (per-row try/catch so one bad row doesn't poison the loop).
+		 * LANG RESEED — full set for v1.0.0 + v1.0.1 + v1.0.2 (no
+		 * new keys in v1.0.3). Per rules #43 / #44.
 		 * ------------------------------------------------------------ */
 		$strings = [
-			/* v1.0.1 — public finder page + JSON endpoint (reseeded
-			   here so a 1.0.0 → 1.0.2 jump still lands them). */
+			/* v1.0.1 — public finder page. */
 			'module__front_finder'        => 'FFL Finder',
 			'gdffl_finder_title'          => 'Find an FFL near you',
 			'gdffl_finder_lead'           => 'Enter your ZIP code to find licensed dealers who can receive a transfer for you. Distance is calculated from the ZIP centroid.',
@@ -111,11 +104,8 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * EXTENSIONS.JSON SELF-HEAL — rule #16. The two Queue
-		 * extensions (FflImport, ZipGeoImport) MUST stay registered
-		 * even though the AJAX path is now primary — the scheduler
-		 * still runs them and admins can still queue jobs from
-		 * older code paths.
+		 * EXTENSIONS.JSON SELF-HEAL — rule #16. Both Queue
+		 * extensions must stay registered as an optional fallback.
 		 * ------------------------------------------------------------ */
 		$expected = [
 			'core' => [
@@ -144,8 +134,9 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * CACHE PURGE — must clear so IPS re-parses modules_front /
-		 * furl / extensions / interface files on the next request.
+		 * CACHE PURGE — v1.0.3 ships new import.php + import.js;
+		 * the ACP importer page needs the new interface asset URLs
+		 * so the datastore MUST re-resolve on the next request.
 		 * ------------------------------------------------------------ */
 		try { unset( \IPS\Data\Store::i()->furl_configuration ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->furl ); }               catch ( \Throwable ) {}
