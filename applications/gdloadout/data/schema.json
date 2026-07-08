@@ -160,6 +160,15 @@
                 "allow_null": false,
                 "default": 1,
                 "name": "suggestions_open"
+            },
+            "preferred_dealer_id": {
+                "type": "INT",
+                "length": 10,
+                "unsigned": true,
+                "allow_null": true,
+                "default": null,
+                "name": "preferred_dealer_id",
+                "comment": "gd_dealer_feed_config.dealer_id — loadout-level preferred dealer; NULL = no whole-build preference"
             }
         },
         "indexes": {

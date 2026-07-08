@@ -385,20 +385,18 @@ class _builder extends \IPS\Dispatcher\Controller
 	 * is capped at 50 rows as a sanity limit against a UPC with
 	 * dozens of duplicate feed entries.
 	 */
-	protected function dealers(): void
+	/**
+	 * v1.0.73 — extracted from the do=dealers endpoint so
+	 * manage() can pre-fetch dealer lists for every filled item
+	 * without a client round-trip. READ-ONLY: SELECT joined
+	 * against gd_dealer_listings + gd_dealer_feed_config, sorted
+	 * cheapest first, capped at 50 rows. Guarded per-UPC so a
+	 * bad row doesn't sink the whole enrichment pass.
+	 */
+	private function dealersForUpc( string $upc ): array
 	{
-		if ( !Member::loggedIn()->member_id )
-		{
-			Output::i()->json( [ 'error' => 'login' ], 403 );
-			return;
-		}
-
-		$upc = preg_replace( '/[^0-9A-Za-z\-]/', '', (string) ( Request::i()->upc ?? '' ) );
-		if ( $upc === '' )
-		{
-			Output::i()->json( [ 'upc' => '', 'dealers' => [] ] );
-			return;
-		}
+		$upc = preg_replace( '/[^0-9A-Za-z\-]/', '', $upc );
+		if ( $upc === '' ) { return []; }
 
 		$out = [];
 		try
@@ -428,9 +426,78 @@ class _builder extends \IPS\Dispatcher\Controller
 				];
 			}
 		}
-		catch ( \Throwable ) { /* fall through — return empty list */ }
+		catch ( \Throwable ) { /* silent fallback */ }
 
-		Output::i()->json( [ 'upc' => $upc, 'dealers' => $out ] );
+		return $out;
+	}
+
+	protected function dealers(): void
+	{
+		if ( !Member::loggedIn()->member_id )
+		{
+			Output::i()->json( [ 'error' => 'login' ], 403 );
+			return;
+		}
+
+		$upc = (string) ( Request::i()->upc ?? '' );
+		if ( trim( $upc ) === '' )
+		{
+			Output::i()->json( [ 'upc' => '', 'dealers' => [] ] );
+			return;
+		}
+
+		Output::i()->json( [ 'upc' => $upc, 'dealers' => $this->dealersForUpc( $upc ) ] );
+	}
+
+	/**
+	 * v1.0.73 — Feature B2 endpoint: set/clear the loadout-level
+	 * preferred dealer on gd_loadouts. AJAX-only, CSRF-checked;
+	 * ownership verified by matching member_id. Guarded UPDATE
+	 * against gd_loadouts only — gd_dealer_listings and
+	 * gd_dealer_feed_config are never written.
+	 */
+	protected function setLoadoutDealer(): void
+	{
+		Session::i()->csrfCheck();
+
+		$member = Member::loggedIn();
+		if ( !$member->member_id ) { Output::i()->json( [ 'error' => 'login' ], 403 ); return; }
+
+		$loadoutId = (int) ( Request::i()->loadout_id ?? 0 );
+		$rawDealer = Request::i()->dealer_id ?? null;
+		$dealerId  = ( $rawDealer === '' || $rawDealer === null ) ? 0 : (int) $rawDealer;
+
+		if ( $loadoutId <= 0 ) { Output::i()->json( [ 'error' => 'bad_loadout' ], 400 ); return; }
+
+		try
+		{
+			$row = Db::i()->select( 'member_id', 'gd_loadouts', [ 'id=?', $loadoutId ] )->first();
+			if ( (int) $row['member_id'] !== (int) $member->member_id )
+			{
+				Output::i()->json( [ 'error' => 'forbidden' ], 403 );
+				return;
+			}
+		}
+		catch ( \Throwable )
+		{
+			Output::i()->json( [ 'error' => 'not_found' ], 404 );
+			return;
+		}
+
+		try
+		{
+			Db::i()->update( 'gd_loadouts',
+				[ 'preferred_dealer_id' => $dealerId > 0 ? $dealerId : null ],
+				[ 'id=?', $loadoutId ]
+			);
+		}
+		catch ( \Throwable )
+		{
+			Output::i()->json( [ 'error' => 'save_failed' ], 500 );
+			return;
+		}
+
+		Output::i()->json( [ 'ok' => TRUE, 'preferred_dealer_id' => $dealerId > 0 ? $dealerId : null ] );
 	}
 
 	/**
@@ -608,6 +675,49 @@ class _builder extends \IPS\Dispatcher\Controller
 		unset( $it );
 		$complianceSummary = $this->summarizeCompliance( $items );
 
+		/* v1.0.73 — Feature B2: pre-fetch dealer lists for every
+		   filled UPC (READ-ONLY), and build the union of dealers
+		   carrying at least one item so the loadout-level "Prefer
+		   this dealer" selector can populate its options without
+		   a client round-trip. The per-UPC list is used by the
+		   client to resolve slot precedence:
+		     per-item choice > loadout preferred > single auto > cheapest. */
+		$dealersByUpc      = [];
+		$loadoutDealersMap = [];
+		foreach ( $items as $it )
+		{
+			$upc = (string) ( $it['upc'] ?? '' );
+			if ( $upc === '' || isset( $dealersByUpc[ $upc ] ) ) { continue; }
+			$dealersByUpc[ $upc ] = $this->dealersForUpc( $upc );
+			foreach ( $dealersByUpc[ $upc ] as $d )
+			{
+				$did = (int) $d['dealer_id'];
+				if ( !isset( $loadoutDealersMap[ $did ] ) )
+				{
+					$loadoutDealersMap[ $did ] = [
+						'dealer_id'     => $did,
+						'dealer_name'   => (string) $d['dealer_name'],
+						'carries_count' => 0,
+						'carries_upcs'  => [],
+					];
+				}
+				$loadoutDealersMap[ $did ]['carries_count']++;
+				$loadoutDealersMap[ $did ]['carries_upcs'][] = $upc;
+			}
+		}
+		$loadoutDealers = array_values( $loadoutDealersMap );
+		usort( $loadoutDealers, function( $a, $b ) {
+			if ( $a['carries_count'] !== $b['carries_count'] )
+			{
+				return $b['carries_count'] - $a['carries_count'];
+			}
+			return strcasecmp( $a['dealer_name'], $b['dealer_name'] );
+		} );
+
+		$loadoutPreferredDealerId = ( is_array( $loadout ) && !empty( $loadout['preferred_dealer_id'] ) )
+			? (int) $loadout['preferred_dealer_id']
+			: null;
+
 		$limits  = \IPS\gdloadout\Loadout\Limits::forMember( $member );
 		$isVip   = $this->isVip( $member );
 
@@ -625,6 +735,8 @@ class _builder extends \IPS\Dispatcher\Controller
 		/* v1.0.67 — dealer picker endpoints. */
 		$dealersUrl        = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=dealers', 'front' );
 		$setItemDealerUrl  = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=setItemDealer', 'front' );
+		/* v1.0.73 — Feature B2 loadout-level preferred dealer endpoint. */
+		$setLoadoutDealerUrl = (string) Url::internal( 'app=gdloadout&module=loadouts&controller=builder&do=setLoadoutDealer', 'front' );
 		$csrfKey   = Session::i()->csrfKey;
 
 		$initData = json_encode( [
@@ -657,6 +769,11 @@ class _builder extends \IPS\Dispatcher\Controller
 			/* v1.0.67 — dealer picker endpoints. */
 			'dealersUrl'           => $dealersUrl,
 			'setItemDealerUrl'     => $setItemDealerUrl,
+			/* v1.0.73 — Feature B2 loadout-level dealer state. */
+			'setLoadoutDealerUrl'  => $setLoadoutDealerUrl,
+			'loadoutPreferredDealerId' => $loadoutPreferredDealerId,
+			'loadoutDealers'       => $loadoutDealers,
+			'dealersByUpc'         => $dealersByUpc,
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		Output::i()->cssFiles = array_merge( Output::i()->cssFiles, Theme::i()->css( 'loadouts.css', 'gdloadout', 'interface' ) );
@@ -790,6 +907,9 @@ class _builder extends \IPS\Dispatcher\Controller
 		   by builder.js's updateAllSummaries()); the server-side
 		   summary above stays as an initial-render fallback. */
 		$html .= '<div id="gdlc-summary" style="margin-top:10px"></div>';
+		/* v1.0.73 — Feature B2 loadout-level dealer panel placeholder;
+		   filled + updated in builder.js. */
+		$html .= '<div id="gdld-loadout-panel-host" style="margin-top:10px"></div>';
 
 		$html .= '</div>';
 		return $html;
@@ -971,11 +1091,22 @@ class _builder extends \IPS\Dispatcher\Controller
 				catch ( \Throwable ) { break; }
 			}
 
+			/* v1.0.73 — carry the JS-side loadout preferred dealer
+			   through save so a new loadout can persist a
+			   preference picked before the first save.
+			   setLoadoutDealer handles the update path once the
+			   loadout has an id; save() covers the create path. */
+			$rawLoadoutDealer = Request::i()->loadout_preferred_dealer_id ?? null;
+			$loadoutDealerVal = ( $rawLoadoutDealer === '' || $rawLoadoutDealer === null )
+				? null
+				: ( (int) $rawLoadoutDealer > 0 ? (int) $rawLoadoutDealer : null );
+
 			Db::i()->update( 'gd_loadouts', [
 				'name' => $name, 'slug' => $uniqueSlug,
 				'description' => $description ?: NULL, 'use_case' => $useCase ?: NULL,
 				'visibility' => $visibility, 'build_mode' => $buildModeParam,
 				'platform' => $platformParam ?: NULL, 'updated_at' => time(),
+				'preferred_dealer_id' => $loadoutDealerVal,
 			], [ 'id=?', $editId ] );
 
 			$loadoutId = $editId;
@@ -1028,11 +1159,19 @@ class _builder extends \IPS\Dispatcher\Controller
 				catch ( \Throwable ) { break; }
 			}
 
+			/* v1.0.73 — persist a pre-first-save loadout preferred
+			   dealer picked while the loadout was still local. */
+			$rawLoadoutDealer = Request::i()->loadout_preferred_dealer_id ?? null;
+			$loadoutDealerVal = ( $rawLoadoutDealer === '' || $rawLoadoutDealer === null )
+				? null
+				: ( (int) $rawLoadoutDealer > 0 ? (int) $rawLoadoutDealer : null );
+
 			$loadoutId = Db::i()->insert( 'gd_loadouts', [
 				'member_id' => (int) $member->member_id, 'name' => $name, 'slug' => $uniqueSlug,
 				'description' => $description ?: NULL, 'use_case' => $useCase ?: NULL,
 				'visibility' => $visibility, 'build_mode' => $buildModeParam,
 				'platform' => $platformParam ?: NULL, 'created_at' => time(),
+				'preferred_dealer_id' => $loadoutDealerVal,
 			] );
 		}
 

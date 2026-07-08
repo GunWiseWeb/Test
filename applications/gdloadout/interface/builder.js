@@ -25,6 +25,11 @@
 	/* v1.0.67 — dealer picker endpoints */
 	var dealersUrl       = init.dealersUrl || '';
 	var setItemDealerUrl = init.setItemDealerUrl || '';
+	/* v1.0.73 — Feature B2 loadout-level preferred dealer state. */
+	var setLoadoutDealerUrl = init.setLoadoutDealerUrl || '';
+	var currentLoadoutPreferredDealerId = init.loadoutPreferredDealerId ? parseInt(init.loadoutPreferredDealerId, 10) : 0;
+	var loadoutDealers = Array.isArray(init.loadoutDealers) ? init.loadoutDealers.slice() : [];
+	var dealersByUpc   = (init.dealersByUpc && typeof init.dealersByUpc === 'object') ? init.dealersByUpc : {};
 	var originalSlots = {};
 
 	var completeFirearmCore = init.completeFirearmCore || {};
@@ -527,6 +532,10 @@
 		   it reflects add/remove instantly, without a server
 		   round trip. */
 		updateComplianceBanner(filled);
+		/* v1.0.73 — Feature B2: loadout-level dealer selector +
+		   "Build from {dealer}" summary. Same client-side pattern
+		   into the server-rendered #gdld-loadout-panel-host. */
+		updateLoadoutDealerPanel(filled);
 	}
 
 	function updateComplianceBanner(filled) {
@@ -563,6 +572,116 @@
 			return;
 		}
 		host.innerHTML = '<div class="gdlo-banner gdlo-banner--ok">&#10003; No items restricted in ' + escapeHtml(stateName) + '.</div>';
+	}
+
+	/* v1.0.73 — Feature B2: loadout-level "Prefer this dealer"
+	   selector + "Build from {dealer}: $X · N of M items available"
+	   summary. Renders into the server-emitted
+	   #gdld-loadout-panel-host placeholder. Uses effectiveDealer()
+	   for per-slot resolution so per-item choice > loadout pref >
+	   single auto > cheapest is honored. Setting the dealer POSTs
+	   AJAX to setLoadoutDealer, then re-renders the slot grid + the
+	   summary in place — no navigation. */
+	function updateLoadoutDealerPanel(filled) {
+		var host = document.getElementById('gdld-loadout-panel-host');
+		if (!host) return;
+		ensureDealerStyles();
+
+		if (!filled.length && !currentLoadoutPreferredDealerId) {
+			host.innerHTML = '';
+			return;
+		}
+
+		/* Union of dealers across currently-filled items — recomputed
+		   from live slot data so the option list stays in sync as
+		   items are added/removed after page load. */
+		var union = {};
+		filled.forEach(function(f) {
+			var upc = f.slot && f.slot.upc;
+			if (!upc) return;
+			var list = gdloDealerCache[upc] || dealersByUpc[upc] || [];
+			list.forEach(function(d) {
+				var id = parseInt(d.dealer_id, 10) || 0;
+				if (!id) return;
+				if (!union[id]) { union[id] = { dealer_id: id, dealer_name: d.dealer_name || '', carries_count: 0 }; }
+				union[id].carries_count++;
+			});
+		});
+		var options = Object.keys(union).map(function(k){ return union[k]; }).sort(function(a,b){
+			if (a.carries_count !== b.carries_count) return b.carries_count - a.carries_count;
+			return (a.dealer_name || '').localeCompare(b.dealer_name || '');
+		});
+
+		var totalFilled = filled.length;
+		var chosenName  = currentLoadoutPreferredDealerId ? loadoutDealerNameById(currentLoadoutPreferredDealerId) : '';
+		var availableCount = 0;
+		var total = 0;
+		filled.forEach(function(f) {
+			var eff = effectiveDealer(f.slot);
+			if (!eff) return;
+			if (eff.dealer && eff.dealer.price !== null && eff.dealer.price !== undefined) {
+				total += parseFloat(eff.dealer.price);
+			}
+			if (currentLoadoutPreferredDealerId && !eff.isFallback) {
+				availableCount++;
+			}
+		});
+
+		var html = '<div class="gdld-lp">'
+			+ '<label for="gdld-lp-select">Prefer this dealer for the whole build:</label>'
+			+ '<select id="gdld-lp-select">'
+			+ '<option value="">No preference (cheapest per item)</option>';
+		options.forEach(function(o) {
+			var sel = (currentLoadoutPreferredDealerId && parseInt(o.dealer_id, 10) === currentLoadoutPreferredDealerId) ? ' selected' : '';
+			html += '<option value="' + escapeAttr(String(o.dealer_id)) + '"' + sel + '>' + escapeHtml(o.dealer_name || ('dealer ' + o.dealer_id)) + ' (' + o.carries_count + '/' + totalFilled + ')</option>';
+		});
+		html += '</select>'
+			+ '<span class="gdld-status" id="gdld-lp-status"></span>';
+
+		if (currentLoadoutPreferredDealerId && chosenName) {
+			var totalStr = '$' + total.toFixed(2);
+			var cls = (availableCount === totalFilled) ? 'gdld-lp-summary' : 'gdld-lp-summary gdld-lp-summary--warn';
+			html += '<div class="' + cls + '">Build from <strong>' + escapeHtml(chosenName) + '</strong>: <strong>' + escapeHtml(totalStr) + '</strong> · ' + availableCount + ' of ' + totalFilled + ' items available</div>';
+		}
+		html += '</div>';
+		host.innerHTML = html;
+
+		var sel = document.getElementById('gdld-lp-select');
+		if (sel) {
+			sel.addEventListener('change', function() {
+				var v = parseInt(sel.value, 10) || 0;
+				var status = document.getElementById('gdld-lp-status');
+				if (status) status.textContent = 'Updating…';
+				postLoadoutDealer(v).then(function(){
+					currentLoadoutPreferredDealerId = v;
+					if (status) status.textContent = '';
+					if (currentStep === 2) renderCoreGrid();
+					if (currentStep === 3) { renderAccGrid(); renderExtraGrid(); }
+					updateAllSummaries();
+				}).catch(function(){
+					if (status) status.textContent = 'Failed — try again';
+				});
+			});
+		}
+	}
+
+	function postLoadoutDealer(dealerId) {
+		if (!setLoadoutDealerUrl || !loadoutId) {
+			currentLoadoutPreferredDealerId = dealerId;
+			return Promise.resolve();
+		}
+		var body = 'csrfKey=' + encodeURIComponent(csrfKey)
+			+ '&loadout_id=' + encodeURIComponent(loadoutId)
+			+ '&dealer_id=' + encodeURIComponent(dealerId);
+		return fetch(setLoadoutDealerUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+				'X-Requested-With': 'XMLHttpRequest'
+			},
+			body: body
+		}).then(function(r){ return r.json(); });
 	}
 
 	/* ===== Review (Step 4) ===== */
@@ -1102,6 +1221,10 @@
 			body.append('loadout_build_mode', buildMode);
 			body.append('loadout_platform', platform);
 			body.append('loadout_slots', JSON.stringify(slotArr));
+			/* v1.0.73 — persist a pre-first-save loadout preferred
+			   dealer (setLoadoutDealer only handles updates once
+			   the loadout has an id). */
+			body.append('loadout_preferred_dealer_id', currentLoadoutPreferredDealerId || 0);
 			if (acceptSuggestionId) body.append('accept_suggestion_id', acceptSuggestionId);
 
 			saveBtn.disabled = true;
@@ -1293,6 +1416,16 @@
 			'.gdld-line{margin-top:4px;font-size:.85em;color:#475569;line-height:1.35}' +
 			'.gdld-line strong{color:#0f172a}' +
 			'.gdld-line--preferred{color:#166534}' +
+			/* v1.0.73 — Feature B2 fallback warn (preferred dealer
+			   doesn't carry this item; cheapest was substituted). */
+			'.gdld-warn{margin-top:2px;font-size:.82em;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:3px 6px;display:inline-block}' +
+			/* v1.0.73 — loadout-level dealer panel + summary. */
+			'.gdld-lp{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;margin:0 auto 16px;max-width:1200px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#0f172a;display:flex;flex-wrap:wrap;gap:10px;align-items:center}' +
+			'.gdld-lp label{font-weight:600;font-size:.9em}' +
+			'.gdld-lp select{padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font:inherit;background:#fff;min-width:240px}' +
+			'.gdld-lp .gdld-status{font-size:.82em;color:#64748b}' +
+			'.gdld-lp-summary{flex:1 1 100%;padding:8px 12px;border-radius:8px;font-size:.92em;font-weight:500;background:#f0fdf4;color:#14532d;border:1px solid #bbf7d0;box-sizing:border-box}' +
+			'.gdld-lp-summary--warn{background:#fef3c7;color:#78350f;border-color:#fde68a}' +
 			'.gdld-toggle{display:inline-block;margin-top:4px;font-size:.85em;color:#0f172a;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:2px 8px;cursor:pointer}' +
 			'.gdld-toggle:hover{background:#e2e8f0}' +
 			/* Expanded dealer picker panel */
@@ -1339,16 +1472,37 @@
 	function renderDealerLine(slot, key) {
 		ensureDealerStyles();
 		var priceStr, dealerLine;
-		var pref = slot.preferred_dealer || null;
 
-		if (pref) {
-			var pp = (pref.price !== null && pref.price !== undefined) ? parseFloat(pref.price) : null;
+		/* v1.0.73 — resolver drives the display: item choice /
+		   loadout preference / single-auto all get "via {name} —
+		   $price". Loadout-preferred-but-doesn't-carry falls back
+		   to cheapest and shows a warn line naming the missing
+		   dealer. Pure cheapest still shows "N dealers — from $X". */
+		var eff = effectiveDealer(slot);
+		var pp, count;
+
+		if (eff && (eff.source === 'item_choice' || eff.source === 'loadout_preference' || eff.source === 'single_auto')) {
+			pp = (eff.dealer.price !== null && eff.dealer.price !== undefined) ? parseFloat(eff.dealer.price) : null;
 			priceStr = pp !== null ? '$' + pp.toFixed(2) : '';
-			dealerLine = '<div class="gdld-line gdld-line--preferred">via <strong>' + escapeHtml(pref.dealer_name || 'dealer') + '</strong>'
+			dealerLine = '<div class="gdld-line gdld-line--preferred">via <strong>' + escapeHtml(eff.dealer.dealer_name || 'dealer') + '</strong>'
 				+ (priceStr ? ' — <strong>' + priceStr + '</strong>' : '') + '</div>';
+		} else if (eff && eff.source === 'cheapest_fallback') {
+			pp = (eff.dealer.price !== null && eff.dealer.price !== undefined) ? parseFloat(eff.dealer.price) : null;
+			priceStr = pp !== null ? '$' + pp.toFixed(2) : '';
+			dealerLine = '<div class="gdld-line">cheapest ' + (priceStr ? '<strong>' + priceStr + '</strong>' : '')
+				+ ' from <strong>' + escapeHtml(eff.dealer.dealer_name || 'dealer') + '</strong></div>'
+				+ '<div class="gdld-warn">&#9888; ' + escapeHtml(eff.preferredMissingName || 'preferred dealer') + " doesn&#39;t carry this</div>";
+		} else if (eff && eff.source === 'cheapest') {
+			pp = (eff.dealer.price !== null && eff.dealer.price !== undefined) ? parseFloat(eff.dealer.price) : null;
+			priceStr = pp !== null ? '$' + pp.toFixed(2) : (slot.price ? '$' + parseFloat(slot.price).toFixed(2) : '');
+			count = parseInt(slot.dealer_count || 0, 10) || (gdloDealerCache[slot.upc] ? gdloDealerCache[slot.upc].length : 0) || 0;
+			dealerLine = '<div class="gdlo-card-price">' + priceStr + '</div>';
+			if (count > 1) {
+				dealerLine += '<div class="gdld-line">' + count + ' dealers — from <strong>' + priceStr + '</strong></div>';
+			}
 		} else if (slot.price) {
 			priceStr = '$' + parseFloat(slot.price).toFixed(2);
-			var count = parseInt(slot.dealer_count || 0, 10) || 0;
+			count = parseInt(slot.dealer_count || 0, 10) || 0;
 			dealerLine = '<div class="gdlo-card-price">' + priceStr + '</div>';
 			if (count > 1) {
 				dealerLine += '<div class="gdld-line">' + count + ' dealers — from <strong>' + priceStr + '</strong></div>';
@@ -1379,7 +1533,57 @@
 		});
 	}
 
+	/* v1.0.73 — prime the per-UPC dealer cache from the server's
+	   pre-fetch so opening the per-item picker on a filled slot
+	   has zero-latency data, and the resolver can pick between
+	   per-item / loadout-preferred / single-auto / cheapest
+	   without a client round-trip. */
 	var gdloDealerCache = {};
+	Object.keys(dealersByUpc).forEach(function(u) {
+		if (Array.isArray(dealersByUpc[u])) { gdloDealerCache[u] = dealersByUpc[u]; }
+	});
+
+	function loadoutDealerNameById(id) {
+		id = parseInt(id, 10) || 0;
+		if (!id) return '';
+		for (var i = 0; i < loadoutDealers.length; i++) {
+			if (parseInt(loadoutDealers[i].dealer_id, 10) === id) return loadoutDealers[i].dealer_name || '';
+		}
+		return '';
+	}
+
+	/* v1.0.73 — precedence resolver: per-item choice > loadout
+	   preferred (if they carry the UPC) > single auto > cheapest.
+	   Returns null when no dealers currently carry the UPC.
+	   isFallback = true when the loadout-preferred dealer does not
+	   carry this item and we've fallen back to cheapest (the item
+	   display gets a warn flag). */
+	function effectiveDealer(slot) {
+		if (!slot || !slot.upc) return null;
+		var dealersHere = gdloDealerCache[slot.upc] || dealersByUpc[slot.upc] || [];
+		if (!dealersHere.length) return null;
+
+		var itemPref = slot.preferred_dealer_id ? parseInt(slot.preferred_dealer_id, 10) : 0;
+		if (itemPref) {
+			for (var i = 0; i < dealersHere.length; i++) {
+				if (parseInt(dealersHere[i].dealer_id, 10) === itemPref) {
+					return { dealer: dealersHere[i], source: 'item_choice', isFallback: false, preferredMissingName: '' };
+				}
+			}
+		}
+		if (currentLoadoutPreferredDealerId) {
+			for (var j = 0; j < dealersHere.length; j++) {
+				if (parseInt(dealersHere[j].dealer_id, 10) === currentLoadoutPreferredDealerId) {
+					return { dealer: dealersHere[j], source: 'loadout_preference', isFallback: false, preferredMissingName: '' };
+				}
+			}
+			return { dealer: dealersHere[0], source: 'cheapest_fallback', isFallback: true, preferredMissingName: loadoutDealerNameById(currentLoadoutPreferredDealerId) };
+		}
+		if (dealersHere.length === 1) {
+			return { dealer: dealersHere[0], source: 'single_auto', isFallback: false, preferredMissingName: '' };
+		}
+		return { dealer: dealersHere[0], source: 'cheapest', isFallback: false, preferredMissingName: '' };
+	}
 	function loadDealerPanel(panel, key) {
 		var slot = slots[key];
 		if (!slot || !slot.upc) { panel.innerHTML = '<div class="gdld-empty">No product in this slot.</div>'; return; }
