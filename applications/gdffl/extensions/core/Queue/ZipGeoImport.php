@@ -36,10 +36,21 @@ class _ZipGeoImport
 		$path = (string) ( $data['file'] ?? '' );
 		if ( $path === '' )
 		{
-			$path = \IPS\ROOT_PATH . '/applications/gdffl/data/zip_geo.csv';
+			/* v1.0.2: resolution order matches the AJAX importer —
+			   uploads/gdffl/zip_geo.csv → data/zip_geo.csv (admin
+			   scp) → data/zip_geo.sample.csv (10-row format ref). */
+			$candidates = [
+				\IPS\ROOT_PATH . '/uploads/gdffl/zip_geo.csv',
+				\IPS\ROOT_PATH . '/applications/gdffl/data/zip_geo.csv',
+				\IPS\ROOT_PATH . '/applications/gdffl/data/zip_geo.sample.csv',
+			];
+			foreach ( $candidates as $candidate )
+			{
+				if ( is_readable( $candidate ) ) { $path = $candidate; break; }
+			}
 			$data['file'] = $path;
 		}
-		if ( !is_readable( $path ) ) { return null; }
+		if ( $path === '' || !is_readable( $path ) ) { return null; }
 
 		$fh = @fopen( $path, 'r' );
 		if ( !$fh ) { return null; }

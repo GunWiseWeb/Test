@@ -1,0 +1,38 @@
+/* GD FFL Finder — ACP importer progress bars.
+   Purely presentational; the JS in interface/import.js flips
+   display:none/block on .gdffl-progress and rewrites the width
+   of .gdffl-progress-fill. Kept static in interface/ per rule
+   #47 so the template engine never touches it. */
+
+.gdffl-progress {
+	margin: 6px 0 0;
+	max-width: 640px;
+}
+
+.gdffl-progress-bar {
+	background: #e2e8f0;
+	border-radius: 999px;
+	height: 12px;
+	overflow: hidden;
+}
+
+.gdffl-progress-fill {
+	background: linear-gradient( 90deg, #3b82f6, #2563eb );
+	height: 100%;
+	transition: width .18s ease-out;
+	width: 0%;
+}
+
+.gdffl-progress-fill--done {
+	background: linear-gradient( 90deg, #16a34a, #15803d );
+}
+
+.gdffl-progress-fill--error {
+	background: linear-gradient( 90deg, #ef4444, #b91c1c );
+}
+
+.gdffl-progress-text {
+	color: #334155;
+	font-size: .9em;
+	margin-top: 6px;
+}

@@ -1,0 +1,39 @@
+# Gun Rack FFL Finder — ZIP → lat/lng centroid FORMAT SAMPLE.
+#
+# This tiny 10-row file is a FORMAT REFERENCE only — NOT the
+# production dataset. gdffl ships without the full ~33-42k
+# Census ZCTA archive because the container the tarball is
+# built in cannot reach www2.census.gov (proxy policy).
+#
+# HOW TO INSTALL THE REAL DATASET (either approach works):
+#
+#   (a) ACP path — recommended.
+#       ACP → FFL Finder → Import ATF CSV →
+#       "Upload real Census ZCTA CSV" panel → pick the file.
+#       Lands in uploads/gdffl/zip_geo.csv, survives upgrades.
+#
+#   (b) Server-disk path.
+#       Drop the CSV at applications/gdffl/data/zip_geo.csv.
+#       The importer's resolveZipPath() picks it up as a fallback
+#       when uploads/gdffl/zip_geo.csv is missing. This sample
+#       file is only used when neither of the above is present.
+#
+# CSV shape (comma-delimited; # comment lines skipped; the loader
+# ignores any header row where the first column is literally
+# "zip"):
+#     zip,lat,lng,city,state
+#     33101,25.7743,-80.1937,Miami,FL
+#
+# ZIPs are 5-digit, zero-padded. lat/lng are decimal degrees
+# (WGS-84). city and state are optional.
+zip,lat,lng,city,state
+33101,25.7743,-80.1937,Miami,FL
+77002,29.7589,-95.3677,Houston,TX
+10001,40.7506,-73.9971,New York,NY
+90001,33.9731,-118.2479,Los Angeles,CA
+60601,41.8858,-87.6181,Chicago,IL
+02108,42.3577,-71.0653,Boston,MA
+30303,33.7527,-84.3906,Atlanta,GA
+80202,39.7484,-104.9993,Denver,CO
+98101,47.6111,-122.3369,Seattle,WA
+20001,38.9126,-77.0187,Washington,DC

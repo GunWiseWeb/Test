@@ -53,4 +53,12 @@ $lang = [
 	'gdffl_finder_distance'       => 'mi',
 	'gdffl_finder_no_phone'       => 'No phone on file',
 	'gdffl_finder_load_more'      => 'Show more results',
+
+	/* v1.0.2 — AJAX-driven ACP importer + ZIP-file admin upload. */
+	'gdffl_acp_zipgeo_upload'         => 'Upload real Census ZCTA CSV',
+	'gdffl_acp_zipgeo_upload_submit'  => 'Upload ZIP centroid file',
+	'gdffl_acp_zipgeo_load_hint'      => 'Loads whatever CSV is currently on disk (uploaded copy preferred, then bundled placeholder).',
+	'gdffl_err_no_zip_file'           => 'No ZIP centroid file is on disk yet. Upload a real Census ZCTA CSV or drop one into applications/gdffl/data/zip_geo.csv first.',
+	'gdffl_import_running_ffl'        => 'ATF FFL import running…',
+	'gdffl_import_running_zip'        => 'ZIP centroid import running…',
 ];

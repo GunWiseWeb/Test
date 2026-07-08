@@ -53,5 +53,12 @@
 		<word key="gdffl_finder_distance" js="0"><![CDATA[mi]]></word>
 		<word key="gdffl_finder_no_phone" js="0"><![CDATA[No phone on file]]></word>
 		<word key="gdffl_finder_load_more" js="0"><![CDATA[Show more results]]></word>
+
+		<word key="gdffl_acp_zipgeo_upload" js="0"><![CDATA[Upload real Census ZCTA CSV]]></word>
+		<word key="gdffl_acp_zipgeo_upload_submit" js="0"><![CDATA[Upload ZIP centroid file]]></word>
+		<word key="gdffl_acp_zipgeo_load_hint" js="0"><![CDATA[Loads whatever CSV is currently on disk (uploaded copy preferred, then bundled placeholder).]]></word>
+		<word key="gdffl_err_no_zip_file" js="0"><![CDATA[No ZIP centroid file is on disk yet. Upload a real Census ZCTA CSV or drop one into applications/gdffl/data/zip_geo.csv first.]]></word>
+		<word key="gdffl_import_running_ffl" js="0"><![CDATA[ATF FFL import running…]]></word>
+		<word key="gdffl_import_running_zip" js="0"><![CDATA[ZIP centroid import running…]]></word>
 	</app>
 </language>
