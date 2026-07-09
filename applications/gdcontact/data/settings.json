@@ -1,0 +1,12 @@
+[
+	{ "key": "gdcontact_recipient",        "default": "",                                                "report": "full" },
+	{ "key": "gdcontact_from_email",       "default": "",                                                "report": "full" },
+	{ "key": "gdcontact_from_name",        "default": "",                                                "report": "full" },
+	{ "key": "gdcontact_subject_prefix",   "default": "[GunRack Contact]",                               "report": "full" },
+	{ "key": "gdcontact_page_title",       "default": "Contact us",                                       "report": "full" },
+	{ "key": "gdcontact_intro",            "default": "Have a question, a partnership pitch, or a bug to report? Send us a note and we'll get back to you.", "report": "full" },
+	{ "key": "gdcontact_success_message",  "default": "Thanks — your message is on its way. We usually reply within one business day.", "report": "full" },
+	{ "key": "gdcontact_captcha_enabled",  "default": "1",                                               "report": "full" },
+	{ "key": "gdcontact_routes_json",      "default": "[]",                                              "report": "full" },
+	{ "key": "gdcontact_honeypot_enabled", "default": "1",                                               "report": "full" }
+]

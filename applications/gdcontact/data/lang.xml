@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<language>
+	<app key="gdcontact" version="1.0.0">
+		<word key="__app_gdcontact" js="0"><![CDATA[Gun Rack Contact]]></word>
+		<word key="menutab__gdcontact" js="0"><![CDATA[Contact]]></word>
+		<word key="menutab__gdcontact_icon" js="0"><![CDATA[envelope]]></word>
+
+		<word key="module__admin_manage" js="0"><![CDATA[Contact]]></word>
+		<word key="menu__gdcontact_manage_settings" js="0"><![CDATA[Settings]]></word>
+		<word key="menu__gdcontact_manage_fields" js="0"><![CDATA[Fields]]></word>
+		<word key="r__contact_manage" js="0"><![CDATA[Manage Contact]]></word>
+
+		<word key="gdcontact_recipient" js="0"><![CDATA[Default recipient email]]></word>
+		<word key="gdcontact_recipient_desc" js="0"><![CDATA[Every submission is emailed here unless a routing rule overrides.]]></word>
+		<word key="gdcontact_from_email" js="0"><![CDATA[From email]]></word>
+		<word key="gdcontact_from_email_desc" js="0"><![CDATA[Optional — the email address the outgoing message appears to come from. Leave blank to use IPS's default outgoing address.]]></word>
+		<word key="gdcontact_from_name" js="0"><![CDATA[From name]]></word>
+		<word key="gdcontact_from_name_desc" js="0"><![CDATA[Optional — the display name on the outgoing message. Leave blank to use IPS's default.]]></word>
+		<word key="gdcontact_subject_prefix" js="0"><![CDATA[Email subject prefix]]></word>
+		<word key="gdcontact_subject_prefix_desc" js="0"><![CDATA[Prepended to the outgoing email subject.]]></word>
+		<word key="gdcontact_page_title" js="0"><![CDATA[Public page title]]></word>
+		<word key="gdcontact_intro" js="0"><![CDATA[Public page intro text]]></word>
+		<word key="gdcontact_success_message" js="0"><![CDATA[Success message]]></word>
+		<word key="gdcontact_success_message_desc" js="0"><![CDATA[Shown to the visitor after a successful submission.]]></word>
+		<word key="gdcontact_captcha_enabled" js="0"><![CDATA[CAPTCHA on the public form]]></word>
+		<word key="gdcontact_captcha_enabled_desc" js="0"><![CDATA[Uses whatever CAPTCHA the site has configured (Turnstile, reCAPTCHA, etc.).]]></word>
+		<word key="gdcontact_routes_json" js="0"><![CDATA[Routing rules (JSON)]]></word>
+		<word key="gdcontact_routes_json_desc" js="0"><![CDATA[Optional per-field-value routing. Array of {"field_key":"…","value":"…","recipient":"…"} entries. Matching entries route the email to the listed recipient INSTEAD of the default.]]></word>
+		<word key="gdcontact_honeypot_enabled" js="0"><![CDATA[Honeypot anti-spam]]></word>
+		<word key="gdcontact_honeypot_enabled_desc" js="0"><![CDATA[Adds an invisible field that bots fill in and humans don't. Highly recommended.]]></word>
+
+		<word key="gdcontact_field_label" js="0"><![CDATA[Label]]></word>
+		<word key="gdcontact_field_label_desc" js="0"><![CDATA[What the visitor sees above the input.]]></word>
+		<word key="gdcontact_field_key" js="0"><![CDATA[Field key]]></word>
+		<word key="gdcontact_field_key_desc" js="0"><![CDATA[Machine-safe slug (letters, digits, underscores). Auto-derived from the label — override only if you need to.]]></word>
+		<word key="gdcontact_field_type" js="0"><![CDATA[Field type]]></word>
+		<word key="gdcontact_field_required" js="0"><![CDATA[Required]]></word>
+		<word key="gdcontact_field_position" js="0"><![CDATA[Position]]></word>
+		<word key="gdcontact_field_position_desc" js="0"><![CDATA[Lower = higher on the form.]]></word>
+		<word key="gdcontact_field_options" js="0"><![CDATA[Options (for Select)]]></word>
+		<word key="gdcontact_field_options_desc" js="0"><![CDATA[One option per line. Ignored for other field types.]]></word>
+		<word key="gdcontact_field_placeholder" js="0"><![CDATA[Placeholder]]></word>
+		<word key="gdcontact_field_help_text" js="0"><![CDATA[Help text]]></word>
+		<word key="gdcontact_field_enabled" js="0"><![CDATA[Enabled]]></word>
+
+		<word key="gdcontact_fields_title" js="0"><![CDATA[Contact fields]]></word>
+		<word key="gdcontact_fields_intro" js="0"><![CDATA[Define what the visitor sees on /contact/. Drag by position or edit each row to reorder.]]></word>
+		<word key="gdcontact_fields_add" js="0"><![CDATA[Add field]]></word>
+		<word key="gdcontact_field_edit_title" js="0"><![CDATA[Edit field]]></word>
+		<word key="gdcontact_field_add_title" js="0"><![CDATA[Add field]]></word>
+		<word key="gdcontact_field_saved" js="0"><![CDATA[Field saved.]]></word>
+		<word key="gdcontact_field_deleted" js="0"><![CDATA[Field deleted.]]></word>
+		<word key="gdcontact_field_delete_confirm" js="0"><![CDATA[Delete this field?]]></word>
+
+		<word key="gdcontact_settings_title" js="0"><![CDATA[Contact form settings]]></word>
+		<word key="gdcontact_settings_saved" js="0"><![CDATA[Settings saved.]]></word>
+
+		<word key="gdcontact_ftype_text" js="0"><![CDATA[Single-line text]]></word>
+		<word key="gdcontact_ftype_email" js="0"><![CDATA[Email address]]></word>
+		<word key="gdcontact_ftype_phone" js="0"><![CDATA[Phone number]]></word>
+		<word key="gdcontact_ftype_textarea" js="0"><![CDATA[Multi-line text]]></word>
+		<word key="gdcontact_ftype_select" js="0"><![CDATA[Dropdown (Select)]]></word>
+		<word key="gdcontact_ftype_checkbox" js="0"><![CDATA[Checkbox]]></word>
+		<word key="gdcontact_ftype_number" js="0"><![CDATA[Number]]></word>
+
+		<word key="gdcontact_submit" js="0"><![CDATA[Send message]]></word>
+		<word key="gdcontact_field_required_star" js="0"><![CDATA[*]]></word>
+		<word key="gdcontact_err_captcha" js="0"><![CDATA[Please complete the CAPTCHA.]]></word>
+		<word key="gdcontact_err_required" js="0"><![CDATA[Please complete every required field.]]></word>
+		<word key="gdcontact_err_email" js="0"><![CDATA[Please enter a valid email address.]]></word>
+		<word key="gdcontact_err_number" js="0"><![CDATA[Please enter a numeric value.]]></word>
+		<word key="gdcontact_err_send" js="0"><![CDATA[Sorry — we couldn't send your message. Please try again in a moment or email us directly.]]></word>
+
+		<word key="gdcontact_default_field_name" js="0"><![CDATA[Your name]]></word>
+		<word key="gdcontact_default_field_email" js="0"><![CDATA[Email address]]></word>
+		<word key="gdcontact_default_field_phone" js="0"><![CDATA[Phone (optional)]]></word>
+		<word key="gdcontact_default_field_message" js="0"><![CDATA[Message]]></word>
+	</app>
+</language>

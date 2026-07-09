@@ -1,0 +1,6 @@
+{
+	"manage": {
+		"settings": { "contact_manage": "contact_manage" },
+		"fields":   { "contact_manage": "contact_manage" }
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"admin": {
+		"manage": {
+			"default_controller": "settings",
+			"protected": false
+		}
+	},
+	"front": {
+		"contact": {
+			"default_controller": "contact",
+			"protected": false
+		}
+	}
+}

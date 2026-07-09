@@ -1,0 +1,17 @@
+{
+	"topLevel": "contact",
+	"pages": {
+		"contact_root": {
+			"friendly": "",
+			"real":     "app=gdcontact&module=contact&controller=contact"
+		},
+		"contact_send": {
+			"friendly": "send",
+			"real":     "app=gdcontact&module=contact&controller=contact&do=send"
+		},
+		"contact_thanks": {
+			"friendly": "thanks",
+			"real":     "app=gdcontact&module=contact&controller=contact&do=thanks"
+		}
+	}
+}

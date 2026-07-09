@@ -1,0 +1,16 @@
+{
+	"manage": {
+		"settings": {
+			"tab":         "gdcontact",
+			"controller":  "settings",
+			"do":          "",
+			"restriction": "contact_manage"
+		},
+		"fields": {
+			"tab":         "gdcontact",
+			"controller":  "fields",
+			"do":          "",
+			"restriction": "contact_manage"
+		}
+	}
+}
