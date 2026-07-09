@@ -1,33 +1,42 @@
 /*
- * GD FFL Finder — public finder page (v1.0.10).
+ * GD FFL Finder — public finder page (v1.0.12).
  *
- * Everything scoped under .gr5 .gdffl-wrap so nothing here can
- * touch global selectors. CSS custom properties provide fallbacks
- * to reasonable defaults; when the surrounding theme sets its own
- * --i-* / --gr5-* palette those cascade in automatically.
+ * Everything scoped under `.gr5 .gdffl-wrap`. Inputs are styled
+ * by CLASS (.gdffl-input) plus bare `input` inside .gdffl-row,
+ * NOT by attribute selectors — the v1.0.10 / v1.0.11 files used
+ * selectors with whitespace between the brackets, which the CSS
+ * spec treats as invalid, so every browser silently discarded
+ * the whole input block. Result: the ZIP field rendered with no
+ * border / no background / no padding — invisible.
+ *
+ * All custom properties fall back to reasonable defaults when the
+ * surrounding theme's --i-* vars aren't set.
  */
 
 .gr5 .gdffl-wrap {
-	--gdffl-fg:        var(--i-color_hard,   #0f172a);
-	--gdffl-fg-muted:  var(--i-color_soft,   #475569);
-	--gdffl-fg-dim:    var(--i-color_meta,   #64748b);
-	--gdffl-bg:        var(--i-body_bg,      #ffffff);
-	--gdffl-surface:   var(--i-page_bg,      #ffffff);
-	--gdffl-border:    var(--i-color_grid_lines, #e5e7eb);
-	--gdffl-border-2:  var(--i-color_grid_lines_soft, #f1f5f9);
-	--gdffl-accent:    var(--i-color_primary, #1d4ed8);
+	--gdffl-fg:        var(--i-color_hard,        #0f172a);
+	--gdffl-fg-muted:  var(--i-color_soft,        #475569);
+	--gdffl-fg-dim:    var(--i-color_meta,        #64748b);
+	--gdffl-bg:        var(--i-body_bg,           #ffffff);
+	--gdffl-surface:   var(--i-page_bg,           #ffffff);
+	--gdffl-panel:     #f8fafc;
+	--gdffl-border:    var(--i-color_grid_lines,  #cbd5e1);
+	--gdffl-border-2:  var(--i-color_grid_lines_soft, #e2e8f0);
+	--gdffl-accent:    var(--i-color_primary,     #1d4ed8);
+	--gdffl-accent-hi: #2563eb;
 	--gdffl-accent-fg: #ffffff;
-	--gdffl-radius:    var(--i-radius, 10px);
-	--gdffl-radius-sm: 6px;
+	--gdffl-radius:    var(--i-radius, 12px);
+	--gdffl-radius-sm: 8px;
 	--gdffl-shadow:    0 1px 2px rgba( 15, 23, 42, 0.04 );
 	--gdffl-shadow-hi: 0 4px 12px rgba( 15, 23, 42, 0.08 );
+	--gdffl-focus:     0 0 0 3px rgba( 29, 78, 216, 0.18 );
 
 	box-sizing: border-box;
 	max-width: 860px;
 	margin: 24px auto;
 	padding: 0 16px;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-	color: var( --gdffl-fg );
+	color: var(--gdffl-fg);
 }
 .gr5 .gdffl-wrap *,
 .gr5 .gdffl-wrap *::before,
@@ -39,91 +48,141 @@
 	font-size: 1.6em;
 	font-weight: 700;
 	margin: 0 0 4px;
-	color: var( --gdffl-fg );
+	color: var(--gdffl-fg);
 }
 .gr5 .gdffl-lead {
-	color: var( --gdffl-fg-muted );
+	color: var(--gdffl-fg-muted);
 	margin: 0 0 18px;
 	font-size: 0.95em;
 	line-height: 1.5;
 }
 
-/* --- Search form ------------------------------------------- */
+/* --- Search panel -----------------------------------------
+ * The whole search area is a bordered card so it reads as a
+ * clearly-defined "search zone" instead of loose form controls
+ * floating on a blank page.
+ */
 
 .gr5 .gdffl-form {
-	background: var( --gdffl-surface );
-	border: 1px solid var( --gdffl-border );
-	border-radius: var( --gdffl-radius );
-	padding: 16px 18px;
-	margin-bottom: 18px;
-	box-shadow: var( --gdffl-shadow );
+	background: var(--gdffl-panel);
+	border: 1px solid var(--gdffl-border);
+	border-radius: var(--gdffl-radius);
+	padding: 20px 22px;
+	margin-bottom: 20px;
+	box-shadow: var(--gdffl-shadow);
 }
+
 .gr5 .gdffl-row {
 	display: flex;
-	gap: 12px;
+	gap: 14px;
 	align-items: flex-end;
 	flex-wrap: wrap;
 }
-.gr5 .gdffl-row label {
+
+.gr5 .gdffl-field {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-	font-weight: 600;
-	font-size: 0.88em;
-	color: var( --gdffl-fg-muted );
-	flex: 1 1 140px;
+	gap: 6px;
+	flex: 1 1 180px;
 	min-width: 0;
 }
-.gr5 .gdffl-row input[ type=text ],
-.gr5 .gdffl-row select {
-	padding: 10px 12px;
-	border: 1px solid var( --gdffl-border );
-	border-radius: var( --gdffl-radius-sm );
-	font: inherit;
-	background: var( --gdffl-bg );
-	color: var( --gdffl-fg );
-	min-height: 42px;
-	width: 100%;
-}
-.gr5 .gdffl-row input[ type=text ]:focus,
-.gr5 .gdffl-row select:focus {
-	outline: 2px solid var( --gdffl-accent );
-	outline-offset: -1px;
-	border-color: var( --gdffl-accent );
-}
-.gr5 .gdffl-btn {
-	padding: 10px 20px;
-	border-radius: var( --gdffl-radius-sm );
-	border: none;
-	background: var( --gdffl-accent );
-	color: var( --gdffl-accent-fg );
-	font-weight: 600;
-	cursor: pointer;
-	font-size: 0.95em;
-	min-height: 42px;
-	flex: 0 0 auto;
-	transition: filter .15s ease;
-}
-.gr5 .gdffl-btn:hover { filter: brightness( 1.08 ); }
-.gr5 .gdffl-btn:active { filter: brightness( 0.95 ); }
+.gr5 .gdffl-field--zip    { flex: 2 2 220px; }
+.gr5 .gdffl-field--radius { flex: 1 1 140px; }
 
+.gr5 .gdffl-field-label {
+	font-weight: 600;
+	font-size: 0.82em;
+	color: var(--gdffl-fg-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+/* Class-based selectors — no attribute selectors so nothing
+   can silently break these rules. Bare `input` and `select`
+   inside .gdffl-row are covered too as a defensive fallback. */
+.gr5 .gdffl-input,
+.gr5 .gdffl-row input,
+.gr5 .gdffl-row select {
+	appearance: none;
+	-webkit-appearance: none;
+	padding: 12px 14px;
+	border: 1.5px solid var(--gdffl-border);
+	border-radius: var(--gdffl-radius-sm);
+	font: inherit;
+	font-size: 16px;                     /* ≥16px on iOS avoids zoom-on-focus */
+	line-height: 1.4;
+	background: var(--gdffl-bg);
+	color: var(--gdffl-fg);
+	min-height: 46px;
+	width: 100%;
+	transition: border-color .15s ease, box-shadow .15s ease;
+}
+.gr5 .gdffl-input::placeholder { color: var(--gdffl-fg-dim); }
+.gr5 .gdffl-input:hover,
+.gr5 .gdffl-row input:hover,
+.gr5 .gdffl-row select:hover {
+	border-color: var(--gdffl-fg-muted);
+}
+.gr5 .gdffl-input:focus,
+.gr5 .gdffl-row input:focus,
+.gr5 .gdffl-row select:focus {
+	outline: none;
+	border-color: var(--gdffl-accent);
+	box-shadow: var(--gdffl-focus);
+}
+
+/* Custom chevron for the radius select (native chevron differs
+   wildly between browsers). Uses a data-URI SVG so the file is
+   fully self-contained. */
+.gr5 .gdffl-row select {
+	background-image: url( "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20' fill='%2364748b'><path d='M5.516 7.548 10 12.032l4.484-4.484 1.406 1.406L10 14.844 4.11 8.954z'/></svg>" );
+	background-repeat: no-repeat;
+	background-position: right 12px center;
+	padding-right: 40px;
+}
+
+/* Primary Search button — big, filled, obvious. */
+.gr5 .gdffl-btn {
+	appearance: none;
+	-webkit-appearance: none;
+	padding: 12px 22px;
+	border-radius: var(--gdffl-radius-sm);
+	border: none;
+	background: var(--gdffl-accent);
+	color: var(--gdffl-accent-fg);
+	font: inherit;
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	cursor: pointer;
+	min-height: 46px;
+	flex: 0 0 auto;
+	transition: background .15s ease, transform .05s ease;
+	box-shadow: 0 1px 0 rgba( 15, 23, 42, 0.08 );
+}
+.gr5 .gdffl-btn:hover    { background: var(--gdffl-accent-hi); }
+.gr5 .gdffl-btn:active   { transform: translateY(1px); }
+.gr5 .gdffl-btn:focus    { outline: none; box-shadow: var(--gdffl-focus); }
+
+/* License-type collapsible — kept out of the way but reachable. */
 .gr5 .gdffl-typewrap {
-	margin-top: 14px;
-	padding-top: 12px;
-	border-top: 1px solid var( --gdffl-border-2 );
+	margin-top: 16px;
+	padding-top: 14px;
+	border-top: 1px solid var(--gdffl-border-2);
 }
 .gr5 .gdffl-typewrap > summary {
 	cursor: pointer;
 	font-weight: 600;
 	font-size: 0.9em;
-	color: var( --gdffl-fg-muted );
+	color: var(--gdffl-fg-muted);
 	list-style: revert;
 	padding: 4px 0;
+	user-select: none;
 }
 .gr5 .gdffl-typelist {
 	display: grid;
-	grid-template-columns: repeat( auto-fill, minmax( 200px, 1fr ) );
-	gap: 6px 12px;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 6px 14px;
 	margin: 10px 0 6px;
 }
 .gr5 .gdffl-type {
@@ -131,7 +190,7 @@
 	align-items: center;
 	gap: 6px;
 	font-size: 0.9em;
-	color: var( --gdffl-fg-muted );
+	color: var(--gdffl-fg-muted);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -141,7 +200,7 @@
 	align-items: center;
 	gap: 6px;
 	font-weight: 600;
-	color: var( --gdffl-fg );
+	color: var(--gdffl-fg);
 	margin-top: 6px;
 	font-size: 0.9em;
 }
@@ -150,7 +209,7 @@
 
 .gr5 .gdffl-count {
 	margin: 6px 0 12px;
-	color: var( --gdffl-fg );
+	color: var(--gdffl-fg);
 	font-size: 0.95em;
 	font-weight: 600;
 }
@@ -158,21 +217,20 @@
 
 .gr5 .gdffl-status {
 	margin: 8px 0;
-	color: var( --gdffl-fg-muted );
+	color: var(--gdffl-fg-muted);
 	font-size: 0.95em;
-	padding: 0;
 }
 .gr5 .gdffl-status--err {
 	color: #991b1b;
 	background: #fef2f2;
 	border: 1px solid #fecaca;
-	border-radius: var( --gdffl-radius-sm );
+	border-radius: var(--gdffl-radius-sm);
 	padding: 10px 12px;
 }
 .gr5 .gdffl-status--empty {
-	color: var( --gdffl-fg-muted );
-	background: var( --gdffl-border-2 );
-	border-radius: var( --gdffl-radius-sm );
+	color: var(--gdffl-fg-muted);
+	background: var(--gdffl-border-2);
+	border-radius: var(--gdffl-radius-sm);
 	padding: 14px 16px;
 	text-align: center;
 	font-size: 0.95em;
@@ -184,12 +242,12 @@
 	height: 0.9em;
 	margin-left: 6px;
 	vertical-align: -2px;
-	border: 2px solid var( --gdffl-border );
-	border-top-color: var( --gdffl-fg-muted );
+	border: 2px solid var(--gdffl-border);
+	border-top-color: var(--gdffl-fg-muted);
 	border-radius: 50%;
 	animation: gdffl-spin 0.7s linear infinite;
 }
-@keyframes gdffl-spin { to { transform: rotate( 360deg ); } }
+@keyframes gdffl-spin { to { transform: rotate(360deg); } }
 
 /* --- Result cards ------------------------------------------ */
 
@@ -200,16 +258,16 @@
 }
 
 .gr5 .gdffl-card {
-	background: var( --gdffl-surface );
-	border: 1px solid var( --gdffl-border );
-	border-radius: var( --gdffl-radius );
+	background: var(--gdffl-surface);
+	border: 1px solid var(--gdffl-border);
+	border-radius: var(--gdffl-radius);
 	padding: 14px 16px;
-	box-shadow: var( --gdffl-shadow );
+	box-shadow: var(--gdffl-shadow);
 	transition: box-shadow .15s ease, transform .15s ease;
 }
 .gr5 .gdffl-card:hover {
-	box-shadow: var( --gdffl-shadow-hi );
-	transform: translateY( -1px );
+	box-shadow: var(--gdffl-shadow-hi);
+	transform: translateY(-1px);
 }
 
 .gr5 .gdffl-card__head {
@@ -224,13 +282,13 @@
 	margin: 0;
 	font-size: 1.05em;
 	font-weight: 700;
-	color: var( --gdffl-fg );
+	color: var(--gdffl-fg);
 	line-height: 1.3;
 	overflow-wrap: anywhere;
 	word-break: break-word;
 }
 .gr5 .gdffl-card__addr {
-	color: var( --gdffl-fg-muted );
+	color: var(--gdffl-fg-muted);
 	font-size: 0.92em;
 	line-height: 1.45;
 	margin: 0 0 12px;
@@ -252,7 +310,6 @@
 	min-width: 0;
 }
 
-/* Pills — distance is the prominent sort signal, type is muted. */
 .gr5 .gdffl-pill {
 	display: inline-flex;
 	align-items: center;
@@ -265,44 +322,39 @@
 	white-space: nowrap;
 }
 .gr5 .gdffl-pill--type {
-	background: var( --gdffl-border-2 );
-	color: var( --gdffl-fg-muted );
+	background: var(--gdffl-border-2);
+	color: var(--gdffl-fg-muted);
 	text-transform: uppercase;
 	font-size: 0.72em;
 }
 .gr5 .gdffl-pill--distance {
-	background: var( --gdffl-fg );
-	color: var( --gdffl-accent-fg );
+	background: var(--gdffl-fg);
+	color: var(--gdffl-accent-fg);
 	font-size: 0.85em;
 	padding: 4px 12px;
 }
 
-/* Call button — real anchor, styled as a button. Tap-target 44px+. */
 .gr5 .gdffl-call {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
 	padding: 8px 14px;
 	min-height: 40px;
-	border-radius: var( --gdffl-radius-sm );
-	background: var( --gdffl-accent );
-	color: var( --gdffl-accent-fg );
+	border-radius: var(--gdffl-radius-sm);
+	background: var(--gdffl-accent);
+	color: var(--gdffl-accent-fg);
 	font-weight: 600;
 	font-size: 0.9em;
 	text-decoration: none;
 	white-space: nowrap;
-	transition: filter .15s ease;
+	transition: background .15s ease;
 }
-.gr5 .gdffl-call:hover  { filter: brightness( 1.08 ); text-decoration: none; }
-.gr5 .gdffl-call:active { filter: brightness( 0.95 ); }
-.gr5 .gdffl-call__icon {
-	display: inline-block;
-	font-size: 1em;
-	line-height: 1;
-}
+.gr5 .gdffl-call:hover  { background: var(--gdffl-accent-hi); text-decoration: none; }
+.gr5 .gdffl-call:active { transform: translateY(1px); }
+.gr5 .gdffl-call__icon  { display: inline-block; font-size: 1em; line-height: 1; }
 .gr5 .gdffl-call--none {
 	background: transparent;
-	color: var( --gdffl-fg-dim );
+	color: var(--gdffl-fg-dim);
 	font-weight: 500;
 	font-size: 0.85em;
 	padding: 8px 4px;
@@ -316,27 +368,27 @@
 	margin: 16px auto 0;
 	padding: 10px 22px;
 	min-height: 44px;
-	border-radius: var( --gdffl-radius-sm );
-	border: 1px solid var( --gdffl-border );
-	background: var( --gdffl-surface );
+	border-radius: var(--gdffl-radius-sm);
+	border: 1px solid var(--gdffl-border);
+	background: var(--gdffl-surface);
 	cursor: pointer;
 	font: inherit;
 	font-weight: 600;
-	color: var( --gdffl-fg );
+	color: var(--gdffl-fg);
 	transition: background .15s ease;
 }
-.gr5 .gdffl-more:hover { background: var( --gdffl-border-2 ); }
+.gr5 .gdffl-more:hover { background: var(--gdffl-border-2); }
 
 /* --- Mobile (≤ 640px) -------------------------------------- */
 
-@media ( max-width: 640px ) {
-	.gr5 .gdffl-wrap { margin: 12px auto; padding: 0 12px; }
+@media (max-width: 640px) {
+	.gr5 .gdffl-wrap  { margin: 12px auto; padding: 0 12px; }
 	.gr5 .gdffl-title { font-size: 1.4em; }
-	.gr5 .gdffl-form { padding: 14px; }
-	.gr5 .gdffl-row { flex-direction: column; align-items: stretch; gap: 10px; }
-	.gr5 .gdffl-row label { flex: 1 1 auto; }
-	.gr5 .gdffl-btn { width: 100%; padding: 12px 16px; }
-	.gr5 .gdffl-card__head { gap: 10px; }
+	.gr5 .gdffl-form  { padding: 16px; }
+	.gr5 .gdffl-row   { flex-direction: column; align-items: stretch; gap: 12px; }
+	.gr5 .gdffl-field { flex: 1 1 auto; }
+	.gr5 .gdffl-btn   { width: 100%; padding: 14px 16px; font-size: 16px; }
+	.gr5 .gdffl-card__head    { gap: 10px; }
 	.gr5 .gdffl-card__actions { gap: 10px; }
 	.gr5 .gdffl-call {
 		flex: 1 1 auto;
@@ -345,23 +397,24 @@
 		font-size: 1em;
 	}
 	.gr5 .gdffl-typelist {
-		grid-template-columns: repeat( auto-fill, minmax( 160px, 1fr ) );
+		grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 	}
 }
 
 /* --- Dark mode --------------------------------------------- */
 
-@media ( prefers-color-scheme: dark ) {
-	.gr5 .gdffl-wrap:not( [ data-theme="light" ] ) {
+@media (prefers-color-scheme: dark) {
+	.gr5 .gdffl-wrap:not([data-theme="light"]) {
 		--gdffl-fg:        #f1f5f9;
 		--gdffl-fg-muted:  #cbd5e1;
 		--gdffl-fg-dim:    #94a3b8;
 		--gdffl-bg:        #0f172a;
 		--gdffl-surface:   #1e293b;
+		--gdffl-panel:     #1e293b;
 		--gdffl-border:    #334155;
-		--gdffl-border-2: #1e293b;
+		--gdffl-border-2:  #253044;
 	}
-	.gr5 .gdffl-wrap:not( [ data-theme="light" ] ) .gdffl-pill--distance {
+	.gr5 .gdffl-wrap:not([data-theme="light"]) .gdffl-pill--distance {
 		background: #f1f5f9;
 		color: #0f172a;
 	}

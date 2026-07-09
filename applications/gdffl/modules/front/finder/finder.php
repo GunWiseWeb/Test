@@ -175,16 +175,28 @@ class _finder extends \IPS\Dispatcher\Controller
 		$html .= '<h1 class="gdffl-title">' . $L( 'gdffl_finder_title' ) . '</h1>';
 		$html .= '<p class="gdffl-lead">' . $L( 'gdffl_finder_lead' ) . '</p>';
 
+		/* Structured .gdffl-field wrappers so the label sits above
+		   each control and the CSS class-based selectors
+		   (.gdffl-input) can style the inputs reliably — no
+		   attribute selectors, which v1.0.10/.11 tripped over
+		   because CSS treats `input[ type=text ]` (with inner
+		   spaces) as invalid and silently discards the rule. */
 		$html .= '<form class="gdffl-form" id="gdfflForm">'
 			. '<div class="gdffl-row">'
-			. '<label>' . $L( 'gdffl_finder_zip' ) . ' <input type="text" id="gdffl-zip" inputmode="numeric" maxlength="10" pattern="[0-9\-]*" required></label>'
-			. '<label>' . $L( 'gdffl_finder_radius' ) . ' <select id="gdffl-radius">' . $radiusOpts . '</select></label>'
-			. '<button type="submit" class="gdffl-btn">' . $L( 'gdffl_finder_submit' ) . '</button>'
+			.   '<div class="gdffl-field gdffl-field--zip">'
+			.     '<label class="gdffl-field-label" for="gdffl-zip">' . $L( 'gdffl_finder_zip' ) . '</label>'
+			.     '<input class="gdffl-input" id="gdffl-zip" type="text" inputmode="numeric" maxlength="10" pattern="[0-9\-]*" placeholder="e.g. 61938" autocomplete="postal-code" required>'
+			.   '</div>'
+			.   '<div class="gdffl-field gdffl-field--radius">'
+			.     '<label class="gdffl-field-label" for="gdffl-radius">' . $L( 'gdffl_finder_radius' ) . '</label>'
+			.     '<select id="gdffl-radius">' . $radiusOpts . '</select>'
+			.   '</div>'
+			.   '<button type="submit" class="gdffl-btn">' . $L( 'gdffl_finder_submit' ) . '</button>'
 			. '</div>'
 			. '<details class="gdffl-typewrap">'
-			. '<summary>' . $L( 'gdffl_finder_types' ) . '</summary>'
-			. '<div class="gdffl-typelist">' . $typeRows . '</div>'
-			. '<label class="gdffl-alltypes"><input type="checkbox" id="gdffl-alltypes"> ' . $L( 'gdffl_finder_all_types' ) . '</label>'
+			.   '<summary>' . $L( 'gdffl_finder_types' ) . '</summary>'
+			.   '<div class="gdffl-typelist">' . $typeRows . '</div>'
+			.   '<label class="gdffl-alltypes"><input type="checkbox" id="gdffl-alltypes"> ' . $L( 'gdffl_finder_all_types' ) . '</label>'
 			. '</details>'
 			. '</form>';
 

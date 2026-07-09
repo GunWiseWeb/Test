@@ -1,34 +1,43 @@
 <?php
 /**
- * @brief  GD FFL Finder — upgrade 1.0.11.
+ * @brief  GD FFL Finder — upgrade 1.0.12.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHY v1.0.11 EXISTS:
- *   modules/front/finder/finder.php enqueued the front CSS with
- *     \IPS\Output::i()->css( 'finder.css', 'gdffl', 'interface' )
- *   That method does NOT exist on \IPS\Output — the call threw
- *     Call to undefined method IPS\Output::css()
- *   which the surrounding empty
- *     catch ( \Throwable ) {}
- *   silently swallowed. Result: finder.css never made it onto
- *   the page. The v1.0.10 redesign shipped fine but was
- *   invisible, so the finder rendered as raw text.
+ * WHY v1.0.12 EXISTS:
+ *   interface/finder.css targeted the ZIP + radius controls
+ *   with attribute selectors that had SPACES inside the
+ *   brackets:
+ *     .gr5 .gdffl-row input[ type=text ] { ... }
+ *   Per the CSS spec, spaces inside `[ ]` make the selector
+ *   invalid, so every browser silently drops the whole rule.
+ *   Result: the ZIP input rendered with zero border, zero
+ *   background, zero padding — invisible to the user.
  *
- *   The correct helper is
- *     \IPS\Theme::i()->css( 'finder.css', 'gdffl', 'interface' )
- *   which is what gdbills / gdloadout use, and matches what
- *   modules/admin/manage/import.php already uses for import.css.
- *   The JS enqueue (Output::js) IS a real method and was fine.
+ *   Same bug hit the dark-mode override:
+ *     .gr5 .gdffl-wrap:not( [ data-theme="light" ] ) { ... }
+ *   which also silently dropped.
  *
- *   Both enqueues now log any future exception to core_log
- *   category=gdffl instead of swallowing silently — so if
- *   something else in this path breaks later, it shows up.
+ *   v1.0.12 rewrites finder.css using class selectors
+ *   (.gdffl-input) plus bare `input` / `select` inside
+ *   .gdffl-row as a defensive fallback — no attribute
+ *   selectors, so nothing can silently break these rules
+ *   again. Redesigns the search panel around the fix so
+ *   the ZIP input reads unmistakably as a box (labeled,
+ *   placeholder, 1.5px border, 46px min height, focus ring)
+ *   and the whole search area sits in a bordered card so
+ *   it looks like a defined search zone.
  *
- * No schema, no lang, no template changes.
+ *   Also adjusts modules/front/finder/finder.php to wrap
+ *   the ZIP + radius controls in .gdffl-field divs with a
+ *   .gdffl-field-label above each (matches the new CSS),
+ *   and adds a placeholder + autocomplete="postal-code" +
+ *   .gdffl-input class on the ZIP input.
+ *
+ * No schema, no lang changes.
  */
 
-namespace IPS\gdffl\setup\upg_10011;
+namespace IPS\gdffl\setup\upg_10012;
 
 use function defined;
 use function function_exists;
@@ -43,9 +52,9 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* Cache purge — IPS caches the resolved CSS file map by
-		   theme/app; we MUST bust it so the corrected enqueue
-		   actually resolves finder.css on the next hit. */
+		/* Cache purge — CSS file map + interface_files + themes
+		   MUST re-resolve so the corrected finder.css is served
+		   under a new versioned URL on the next hit. */
 		try { unset( \IPS\Data\Store::i()->furl_configuration ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->furl ); }               catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_front ); }      catch ( \Throwable ) {}
