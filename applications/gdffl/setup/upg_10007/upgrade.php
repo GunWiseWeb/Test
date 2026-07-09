@@ -1,41 +1,38 @@
 <?php
 /**
- * @brief  GD FFL Finder — upgrade 1.0.6.
+ * @brief  GD FFL Finder — upgrade 1.0.7.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained
- * against 1.0.0 → 1.0.5 (or a re-install).
+ * against 1.0.0 → 1.0.6 (or a re-install).
  *
- * WHY v1.0.6 EXISTS:
- *   v1.0.5's tarball failed to upload to Derrick's ACP with
- *     1C133/K "not a valid application / corrupt / perms"
- *   even though the archive was byte-structurally identical
- *   to v1.0.4 (which installed cleanly). The likely trigger
- *   was data/versions.json shipping only two entries
- *     { "10000": "1.0.0", "10005": "1.0.5" }
- *   — Derrick's installed version 10004 was NOT present, and
- *   IPS's upload validator requires the currently-installed
- *   version key to be in the incoming versions.json so it
- *   can compute the upgrade delta.
+ * WHY v1.0.7 EXISTS:
+ *   modules/front/finder/finder.php search() built its
+ *   distance query ending in
+ *     ... HAVING distance_miles <= ?
+ *         ORDER BY distance_miles ASC
+ *         LIMIT ? OFFSET ?
+ *   and appended $per + $off to $binds. mysqli's prepared-
+ *   statement layer binds every ? as a STRING, and MySQL
+ *   refuses `LIMIT '20' OFFSET '0'` as a syntax error at
+ *   the server — preparedQuery()->get_result() returns
+ *   false, the loop never enters, and the finder returns
+ *   0 results for every ZIP even though the distance /
+ *   bounding-box / type-filter logic is correct (the same
+ *   query with LIMIT/OFFSET inlined returns 32 real FFLs
+ *   for 61938 / radius 25).
  *
- *   v1.0.6 aligns with the working pattern used by every
- *   other app in this codebase (gdrebates, gdcatalog,
- *   gddealer, gdcompliance, gddeals): FULL version history
- *   is listed in versions.json (10000 → 10006), even though
- *   only ONE upg_* directory ships (upg_10006 — rule #79).
- *   That satisfies IPS's validator and preserves the
- *   consolidated-upgrade pattern.
- *
- *   Also carries forward v1.0.5's finder-search fix:
- *     $stmt   = \IPS\Db::i()->preparedQuery( ... );
- *     $result = $stmt->get_result();
- *     while ( $row = $result->fetch_assoc() ) { ... }
- *   (preparedQuery returns mysqli_stmt, which has no
- *   fetch_assoc() — must go through get_result first).
+ *   v1.0.7 forces $per and $off through (int) with min
+ *   guards (per >= 1, off >= 0) and inlines them into the
+ *   SQL as integer literals. Nothing but validated ints
+ *   ever reaches the query — no injection risk. Every
+ *   OTHER value in the query stays a bound parameter
+ *   (haversine origin, bounding-box corners, radius,
+ *   type IN list).
  *
  * No schema changes.
  */
 
-namespace IPS\gdffl\setup\upg_10006;
+namespace IPS\gdffl\setup\upg_10007;
 
 use function defined;
 use function function_exists;
@@ -51,9 +48,8 @@ class _upgrade
 	public function step1(): bool
 	{
 		/* ------------------------------------------------------------
-		 * LANG RESEED — full set for v1.0.0 + v1.0.1 + v1.0.2 +
-		 * v1.0.4. No new keys in v1.0.5 or v1.0.6. Rule #43 shape
-		 * (6 cols), rule #44 per-row try/catch.
+		 * LANG RESEED — full historical set. No new keys in v1.0.7.
+		 * Rule #43 6-col shape, rule #44 per-row try/catch.
 		 * ------------------------------------------------------------ */
 		$strings = [
 			'module__front_finder'        => 'FFL Finder',

@@ -263,12 +263,24 @@ class _finder extends \IPS\Dispatcher\Controller
 			foreach ( $typesArr as $t ) { $binds[] = $t; }
 		}
 
+		/* MySQL prepared statements refuse string-bound LIMIT /
+		   OFFSET — mysqli binds every ? as a string, and
+		   `LIMIT '20' OFFSET '0'` is a syntax error at the server
+		   which makes preparedQuery()->get_result() return false
+		   (search silently returns 0 rows even though the
+		   distance / bounding-box / type-filter logic above is
+		   correct). $per and $off are cast to strict int + range-
+		   clamped right here, then inlined into the SQL as literal
+		   integers so no parameter binding is required for them.
+		   Every other value in the query (haversine origin, bbox
+		   corners, radius, type IN list) remains a bound param. */
+		$per = max( 1, (int) $per );
+		$off = max( 0, (int) $off );
+
 		$sql .= " HAVING distance_miles <= ?
 				  ORDER BY distance_miles ASC
-				  LIMIT ? OFFSET ?";
+				  LIMIT " . $per . " OFFSET " . $off;
 		$binds[] = $radius;
-		$binds[] = $per;
-		$binds[] = $off;
 
 		$results = [];
 		try
