@@ -1,35 +1,41 @@
 <?php
 /**
- * @brief  GD FFL Finder — upgrade 1.0.5.
+ * @brief  GD FFL Finder — upgrade 1.0.6.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained
- * against 1.0.0 → 1.0.4 (or a re-install).
+ * against 1.0.0 → 1.0.5 (or a re-install).
  *
- * WHY v1.0.5 EXISTS:
- *   modules/front/finder/finder.php search() called
- *     $stmt = \IPS\Db::i()->preparedQuery( ... );
- *     while ( $row = $stmt->fetch_assoc() ) { ... }
- *   preparedQuery() returns a mysqli_stmt in IPS 5.0.18, and
- *   mysqli_stmt has NO fetch_assoc() method. The result was
- *     Call to undefined method mysqli_stmt::fetch_assoc()
- *   caught by the endpoint's try/catch and returned as
- *   {"error":"server_error"} — the finder page said "search
- *   failed" for every query even though the distance SQL
- *   itself was correct.
+ * WHY v1.0.6 EXISTS:
+ *   v1.0.5's tarball failed to upload to Derrick's ACP with
+ *     1C133/K "not a valid application / corrupt / perms"
+ *   even though the archive was byte-structurally identical
+ *   to v1.0.4 (which installed cleanly). The likely trigger
+ *   was data/versions.json shipping only two entries
+ *     { "10000": "1.0.0", "10005": "1.0.5" }
+ *   — Derrick's installed version 10004 was NOT present, and
+ *   IPS's upload validator requires the currently-installed
+ *   version key to be in the incoming versions.json so it
+ *   can compute the upgrade delta.
  *
- *   v1.0.5 changes the fetch idiom to the codebase's blessed
- *   pattern:
- *     $stmt   = \IPS\Db::i()->preparedQuery( $sql, $binds );
+ *   v1.0.6 aligns with the working pattern used by every
+ *   other app in this codebase (gdrebates, gdcatalog,
+ *   gddealer, gdcompliance, gddeals): FULL version history
+ *   is listed in versions.json (10000 → 10006), even though
+ *   only ONE upg_* directory ships (upg_10006 — rule #79).
+ *   That satisfies IPS's validator and preserves the
+ *   consolidated-upgrade pattern.
+ *
+ *   Also carries forward v1.0.5's finder-search fix:
+ *     $stmt   = \IPS\Db::i()->preparedQuery( ... );
  *     $result = $stmt->get_result();
  *     while ( $row = $result->fetch_assoc() ) { ... }
- *   Zero changes to the SQL, binds, bounding-box prefilter,
- *   HAVING/ORDER/LIMIT clauses, or per-row processing.
+ *   (preparedQuery returns mysqli_stmt, which has no
+ *   fetch_assoc() — must go through get_result first).
  *
- * No schema changes, no new lang keys. Cache-purge + full
- * lang reseed for defensive convergence on old installs.
+ * No schema changes.
  */
 
-namespace IPS\gdffl\setup\upg_10005;
+namespace IPS\gdffl\setup\upg_10006;
 
 use function defined;
 use function function_exists;
@@ -46,8 +52,8 @@ class _upgrade
 	{
 		/* ------------------------------------------------------------
 		 * LANG RESEED — full set for v1.0.0 + v1.0.1 + v1.0.2 +
-		 * v1.0.4. No new keys in v1.0.5. Rule #43 shape (6 cols),
-		 * rule #44 per-row try/catch.
+		 * v1.0.4. No new keys in v1.0.5 or v1.0.6. Rule #43 shape
+		 * (6 cols), rule #44 per-row try/catch.
 		 * ------------------------------------------------------------ */
 		$strings = [
 			'module__front_finder'        => 'FFL Finder',
@@ -131,8 +137,7 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * CACHE PURGE — finder.php source changed, so IPS's cached
-		 * front module map + opcache must re-resolve.
+		 * CACHE PURGE.
 		 * ------------------------------------------------------------ */
 		try { unset( \IPS\Data\Store::i()->furl_configuration ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->furl ); }               catch ( \Throwable ) {}
