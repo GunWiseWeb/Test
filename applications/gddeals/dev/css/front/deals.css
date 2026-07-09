@@ -17,7 +17,8 @@
 .gd-seg a:hover{color:var(--gd-heading,#1a2b4a);}
 .gd-seg a.gd-active{background:var(--gd-surface,#fff);color:var(--gd-primary,#1f3a63);box-shadow:0 1px 3px rgba(0,0,0,.12);}
 
-.gd-deal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px;}
+.gd-deal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px;margin-bottom:32px;}
+.gd-deals-wrap .ipsPagination{margin-top:32px;}
 .gd-deal-card{display:flex;flex-direction:column;background:var(--gd-surface,#fff);border:1px solid var(--gd-border,#e6e9ee);border-radius:12px;overflow:hidden;transition:transform .18s,box-shadow .18s,border-color .18s;text-decoration:none;color:inherit;}
 .gd-deal-card:hover{box-shadow:0 8px 24px rgba(16,24,40,.10);transform:translateY(-3px);border-color:var(--gd-border_hover,#d3d9e0);}
 .gd-card-top{padding:15px 16px 0;}
