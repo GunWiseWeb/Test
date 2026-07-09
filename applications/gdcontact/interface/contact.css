@@ -1,90 +1,46 @@
 /*
- * GD Contact — public /contact-us/ page (v1.0.5).
+ * GD Contact — public /contact-us/ page (v1.0.6).
  *
- * All fields render as custom HTML from gd_contact_fields
- * (contact.php), so this file no longer needs to reset IPS's
- * form chrome. Palette is explicit hex — no theme dependency.
- * No attribute selectors anywhere (whitespace-in-brackets bit
- * gdffl multiple times).
+ * Reset from v1.0.3–v1.0.5: no custom card, no wrapper hacks,
+ * no attempts to strip IPS's content panel. The form sits in
+ * IPS's normal content area — sidebar and widgets stay
+ * visible. contact.css only styles the FIELDS inside, cleanly.
  *
- * v1.0.5 adds a scoped "strip the outer IPS content panel"
- * block. IPS's default content template wraps every non-app-
- * templated output in a full-width white .ipsBox / .ipsBox_body
- * so our custom card sat inside a second white background.
- * We neutralise the outer chrome using two independent scopes
- * so it works in every browser:
- *   * body.gdcontact-page   — set from the controller
- *     (\IPS\Output::i()->bodyClasses[] = 'gdcontact-page')
- *   * :has(.gdcontact-wrap) — modern browsers only, but a
- *     surer target if the body class ever falls out
- * Together they ensure the outer panel is neutralised ONLY on
- * /contact-us/ — every other page's content panel is
- * untouched.
+ * All selectors are class-based; NO attribute selectors
+ * anywhere (whitespace-in-brackets bit gdffl multiple times).
+ * Palette is explicit hex — no theme dependency.
  */
 
-/* --- Strip IPS's default outer content panel ---------------- *
- *
- * Two independent scopes — either alone is enough; both together
- * make this bullet-proof:
- *
- *   (a) body.gdcontact-page — set from the controller. Targets
- *       the whole layout tree top-down so we can neutralise the
- *       usual suspects (.ipsBox, .ipsBox_body, .ipsPad, the
- *       main-area wrapper).
- *   (b) .ipsBox:has(.gdcontact-wrap) — modern-browser-only DOM
- *       matcher; catches an outer panel by its content even if
- *       (a) somehow fails. Safe to combine — no other page
- *       contains .gdcontact-wrap.
- *
- * Nothing here touches other pages: without .gdcontact-page on
- * the body AND without .gdcontact-wrap inside a box, none of
- * these selectors match.
- */
-body.gdcontact-page #ipsLayout_mainArea,
-body.gdcontact-page #ipsLayout_mainArea > .ipsBox,
-body.gdcontact-page #ipsLayout_mainArea > .ipsColumn,
-body.gdcontact-page #ipsLayout_mainArea > article,
-body.gdcontact-page .ipsBox,
-body.gdcontact-page .ipsBox_body,
-body.gdcontact-page .ipsBox_container,
-body.gdcontact-page .ipsPad,
-body.gdcontact-page .ipsPad_double,
-body.gdcontact-page .ipsAreaBackground,
-body.gdcontact-page .ipsAreaBackground_light,
-.ipsBox:has( .gdcontact-wrap ),
-.ipsBox:has( > .gdcontact-wrap ),
-.ipsBox_body:has( .gdcontact-wrap ),
-.ipsPad:has( .gdcontact-wrap ),
-.ipsAreaBackground:has( .gdcontact-wrap ),
-.ipsAreaBackground_light:has( .gdcontact-wrap ) {
-	background: transparent !important;
-	background-color: transparent !important;
-	background-image: none !important;
-	border: 0 !important;
-	box-shadow: none !important;
-	padding: 0 !important;
-	margin: 0 !important;
-}
+/* --- Layout ------------------------------------------------- */
 
-/* --- Base wrap ---------------------------------------------- */
-
-.gr5 .gdcontact-wrap {
+.gr5 .gdcontact-form-area {
 	box-sizing: border-box;
-	max-width: 720px;
-	margin: 24px auto;
-	padding: 0 16px;
+	max-width: 640px;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 	color: #0f172a;
 }
-.gr5 .gdcontact-wrap *,
-.gr5 .gdcontact-wrap *::before,
-.gr5 .gdcontact-wrap *::after { box-sizing: inherit; }
+.gr5 .gdcontact-form-area *,
+.gr5 .gdcontact-form-area *::before,
+.gr5 .gdcontact-form-area *::after { box-sizing: inherit; }
 
-/* --- Success / error banners (sit above the card) ----------- */
+.gr5 .gdcontact-title {
+	font-size: 22px;
+	font-weight: 600;
+	margin: 0 0 4px;
+	color: #0f172a;
+	line-height: 1.25;
+}
+.gr5 .gdcontact-intro {
+	color: #64748b;
+	font-size: 14px;
+	margin: 0 0 20px;
+	line-height: 1.5;
+}
+
+/* --- Banners ------------------------------------------------ */
 
 .gr5 .gdcontact-success {
-	max-width: 640px;
-	margin: 0 auto 14px;
+	margin: 0 0 16px;
 	padding: 12px 16px;
 	background: #f0fdf4;
 	border: 1px solid #86efac;
@@ -95,10 +51,8 @@ body.gdcontact-page .ipsAreaBackground_light,
 	font-weight: 500;
 	line-height: 1.4;
 }
-
 .gr5 .gdcontact-error {
-	max-width: 640px;
-	margin: 0 auto 14px;
+	margin: 0 0 16px;
 	padding: 12px 16px;
 	background: #fef2f2;
 	border: 1px solid #fca5a5;
@@ -110,61 +64,12 @@ body.gdcontact-page .ipsAreaBackground_light,
 }
 .gr5 .gdcontact-error > div + div { margin-top: 4px; }
 
-/* --- The single card ---------------------------------------- */
+/* --- Form + fields ----------------------------------------- */
 
-.gr5 .gdcontact-card {
-	max-width: 640px;
-	margin: 0 auto;
-	background: #ffffff;
-	border: 1px solid #e2e8f0;
-	border-radius: 14px;
-	overflow: hidden;
-	box-shadow: 0 1px 3px rgba( 15, 23, 42, 0.06 );
-}
-
-/* Header — navy band, teal mail icon, title + sub-line. */
-.gr5 .gdcontact-header {
-	background: #0f2740;
-	color: #ffffff;
-	padding: 24px 28px;
-	display: flex;
-	align-items: flex-start;
-	gap: 12px;
-}
-.gr5 .gdcontact-header__icon {
-	color: #5dcaa5;
-	display: inline-flex;
-	flex: 0 0 auto;
-	margin-top: 2px;
-}
-.gr5 .gdcontact-header__icon svg { display: block; }
-.gr5 .gdcontact-header__text { flex: 1 1 auto; min-width: 0; }
-.gr5 .gdcontact-header__title {
-	margin: 0;
-	font-size: 21px;
-	font-weight: 500;
-	line-height: 1.25;
-	color: #ffffff;
-}
-.gr5 .gdcontact-header__sub {
-	margin: 4px 0 0;
-	color: #9db4cc;
-	font-size: 13.5px;
-	line-height: 1.5;
-}
-
-/* Body — where the form lives. */
-.gr5 .gdcontact-body {
-	padding: 24px 28px 26px;
-	background: #ffffff;
-}
+.gr5 .gdcontact-body { margin: 0; }
 .gr5 .gdcontact-form { margin: 0; }
 
-/* --- Fields ------------------------------------------------- */
-
-.gr5 .gdcontact-field {
-	margin-bottom: 18px;
-}
+.gr5 .gdcontact-field { margin-bottom: 18px; }
 .gr5 .gdcontact-field:last-of-type { margin-bottom: 0; }
 
 .gr5 .gdcontact-label {
@@ -181,7 +86,6 @@ body.gdcontact-page .ipsAreaBackground_light,
 	margin-left: 2px;
 }
 
-/* Inputs — class-based, no attribute selectors. */
 .gr5 .gdcontact-input {
 	appearance: none;
 	-webkit-appearance: none;
@@ -198,8 +102,8 @@ body.gdcontact-page .ipsAreaBackground_light,
 	transition: border-color .15s ease, box-shadow .15s ease;
 	box-shadow: none;
 }
-.gr5 .gdcontact-input:hover  { border-color: #94a3b8; }
-.gr5 .gdcontact-input:focus  {
+.gr5 .gdcontact-input:hover { border-color: #94a3b8; }
+.gr5 .gdcontact-input:focus {
 	outline: none;
 	border-color: #0f6e56;
 	box-shadow: 0 0 0 3px rgba( 15, 110, 86, .15 );
@@ -207,13 +111,13 @@ body.gdcontact-page .ipsAreaBackground_light,
 
 .gr5 .gdcontact-textarea {
 	height: auto;
-	min-height: 128px;
+	min-height: 120px;
 	padding: 12px 14px;
 	line-height: 1.5;
 	resize: vertical;
 }
 
-/* Custom chevron for selects (data-URI SVG, fully self-contained). */
+/* SVG chevron on select — data-URI so nothing external loads. */
 .gr5 select.gdcontact-input {
 	background-image: url( "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20' fill='%2364748b'><path d='M5.516 7.548 10 12.032l4.484-4.484 1.406 1.406L10 14.844 4.11 8.954z'/></svg>" );
 	background-repeat: no-repeat;
@@ -229,10 +133,8 @@ body.gdcontact-page .ipsAreaBackground_light,
 	line-height: 1.4;
 }
 
-/* Checkbox — inline layout, no 44px box. */
-.gr5 .gdcontact-field--checkbox {
-	margin-bottom: 18px;
-}
+/* Checkbox row. */
+.gr5 .gdcontact-field--checkbox { margin-bottom: 18px; }
 .gr5 .gdcontact-check {
 	display: inline-flex;
 	align-items: center;
@@ -251,24 +153,16 @@ body.gdcontact-page .ipsAreaBackground_light,
 	accent-color: #0f6e56;
 }
 
-/* --- CAPTCHA wrapper — subtle spacing above the button ----- */
+/* --- CAPTCHA + submit --------------------------------------- */
 
-.gr5 .gdcontact-captcha {
-	margin: 8px 0 20px;
-}
-
-/* --- Submit button ----------------------------------------- */
+.gr5 .gdcontact-captcha { margin: 8px 0 20px; }
 
 .gr5 .gdcontact-submit {
 	appearance: none;
 	-webkit-appearance: none;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 8px;
-	width: 100%;
-	height: 48px;
-	padding: 0 22px;
+	display: inline-block;
+	padding: 0 28px;
+	height: 46px;
 	border: 0;
 	border-radius: 8px;
 	background: #0f6e56;
@@ -276,14 +170,11 @@ body.gdcontact-page .ipsAreaBackground_light,
 	font: inherit;
 	font-size: 15px;
 	font-weight: 500;
-	letter-spacing: 0.01em;
 	line-height: 1;
 	cursor: pointer;
-	box-shadow: 0 1px 0 rgba( 15, 23, 42, .08 );
 	transition: background .15s ease, transform .05s ease;
-	text-decoration: none;
+	box-shadow: 0 1px 0 rgba( 15, 23, 42, .08 );
 }
-.gr5 .gdcontact-submit svg { display: block; }
 .gr5 .gdcontact-submit:hover  { background: #0b5a46; }
 .gr5 .gdcontact-submit:active { transform: translateY( 1px ); }
 .gr5 .gdcontact-submit:focus  {
@@ -291,7 +182,7 @@ body.gdcontact-page .ipsAreaBackground_light,
 	box-shadow: 0 0 0 3px rgba( 15, 110, 86, .3 );
 }
 
-/* --- Honeypot — kept off-screen at all costs ---------------- */
+/* --- Honeypot — always off-screen -------------------------- */
 
 .gr5 .gdcontact-hp,
 .gdcontact-hp {
@@ -306,12 +197,9 @@ body.gdcontact-page .ipsAreaBackground_light,
 	pointer-events: none !important;
 }
 
-/* --- Mobile (≤ 600px) --------------------------------------- */
+/* --- Mobile ------------------------------------------------- */
 
 @media (max-width: 600px) {
-	.gr5 .gdcontact-wrap    { margin: 12px auto; padding: 0 12px; }
-	.gr5 .gdcontact-header  { padding: 18px 20px; }
-	.gr5 .gdcontact-header__title { font-size: 19px; }
-	.gr5 .gdcontact-body    { padding: 18px 20px 20px; }
-	.gr5 .gdcontact-submit  { height: 50px; font-size: 16px; }
+	.gr5 .gdcontact-title  { font-size: 20px; }
+	.gr5 .gdcontact-submit { width: 100%; height: 50px; font-size: 16px; }
 }

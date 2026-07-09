@@ -2,13 +2,18 @@
 /**
  * @brief  GD Contact — public /contact-us/ page.
  *
- * v1.0.4 stops using \IPS\Helpers\Form for the visible fields
- * because IPS's form markup nests its own ipsForm / ipsFieldRow
- * / ipsSubmit chrome inside our .gdcontact-card, which produced
- * the box-in-a-box look no amount of CSS could tidy up. The
- * fields are now rendered as CUSTOM HTML directly from the
+ * v1.0.4 stopped using \IPS\Helpers\Form for the visible
+ * fields because IPS's form markup nests its own ipsForm /
+ * ipsFieldRow / ipsSubmit chrome around the output, which
+ * produced a box-in-a-box look no amount of CSS could tidy up.
+ * Fields are now rendered as CUSTOM HTML directly from the
  * gd_contact_fields definitions, with proper .gdcontact-*
- * classes matching the approved mockup.
+ * classes.
+ *
+ * v1.0.6 walks back the custom navy header wrapper and outer-
+ * panel neutralisation from v1.0.3–v1.0.5 — those hid the
+ * page's widgets. The form now sits inside IPS's normal
+ * content area with just the fields styled cleanly.
  *
  * Preserved verbatim:
  *   * CSRF — hidden csrfKey input + \IPS\Session::i()->csrfCheck()
@@ -220,44 +225,19 @@ class _contact extends \IPS\Dispatcher\Controller
 			'front'
 		);
 
-		/* Mark the whole document as the contact page so contact.css
-		   can scope its "strip the outer IPS content panel" rules to
-		   THIS page only — nothing site-wide gets touched. Also
-		   disable the front sidebar so the card can center on the
-		   full viewport width. Both writes are wrapped in try/catch
-		   because a hardened theme could redefine the property away. */
-		try
-		{
-			$existing = (array) ( \IPS\Output::i()->bodyClasses ?? [] );
-			if ( !in_array( 'gdcontact-page', $existing, TRUE ) )
-			{
-				$existing[] = 'gdcontact-page';
-				\IPS\Output::i()->bodyClasses = $existing;
-			}
-		}
-		catch ( \Throwable ) {}
-		try
-		{
-			\IPS\Output::i()->sidebar['enabled'] = FALSE;
-		}
-		catch ( \Throwable ) {}
+		/* Reset from v1.0.5: no body-class hack, no sidebar
+		   toggle, no navy-header custom wrapper, no outer
+		   content-panel neutralisation. The form now sits in
+		   IPS's normal content area so the page's widgets
+		   (sidebar etc.) render normally. Only the form fields
+		   themselves get styled cleanly via contact.css. */
 
-		$iconMail =
-			'<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-			. '<rect width="20" height="16" x="2" y="4" rx="2"/>'
-			. '<path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>'
-			. '</svg>';
-		$iconSend =
-			'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-			. '<line x1="22" y1="2" x2="11" y2="13"/>'
-			. '<polygon points="22 2 15 22 11 13 2 9 22 2"/>'
-			. '</svg>';
-
-		/* .gdcontact-page is a defensive fallback — some themes drop
-		   the <body> classes on template compile, so having the
-		   scope class on the wrapper too guarantees contact.css can
-		   still target this page. */
-		$html  = '<div class="gr5 gdcontact-wrap gdcontact-page">';
+		$html  = '<div class="gr5 gdcontact-form-area">';
+		$html .= '<h1 class="gdcontact-title">' . $esc( $title ) . '</h1>';
+		if ( $intro !== '' )
+		{
+			$html .= '<p class="gdcontact-intro">' . $esc( $intro ) . '</p>';
+		}
 
 		if ( $successFlag )
 		{
@@ -276,21 +256,6 @@ class _contact extends \IPS\Dispatcher\Controller
 			$html .= '</div>';
 		}
 
-		$html .= '<div class="gdcontact-card">';
-
-		/* Header — navy band, teal mail icon, title + sub-line. */
-		$html .= '<div class="gdcontact-header">';
-		$html .= '<span class="gdcontact-header__icon">' . $iconMail . '</span>';
-		$html .= '<div class="gdcontact-header__text">';
-		$html .= '<h1 class="gdcontact-header__title">' . $esc( $title ) . '</h1>';
-		if ( $intro !== '' )
-		{
-			$html .= '<p class="gdcontact-header__sub">' . $esc( $intro ) . '</p>';
-		}
-		$html .= '</div>';
-		$html .= '</div>';
-
-		/* Body — the custom form. */
 		$html .= '<div class="gdcontact-body">';
 		$html .= '<form class="gdcontact-form" method="post" action="' . $esc( $formUrl ) . '" novalidate>';
 		$html .= '<input type="hidden" name="csrfKey" value="' . $esc( (string) \IPS\Session::i()->csrfKey ) . '">';
@@ -302,8 +267,9 @@ class _contact extends \IPS\Dispatcher\Controller
 			$html .= $this->renderFieldHtml( $f, $value, $esc );
 		}
 
-		/* Honeypot — the anti-bot trap. Off-screen inline styles as
-		   belt-and-suspenders in case .gdcontact-hp CSS didn't load. */
+		/* Honeypot — anti-bot trap. Off-screen inline styles as
+		   belt-and-suspenders in case .gdcontact-hp CSS didn't
+		   load. */
 		if ( $honeypotOn )
 		{
 			$html .= '<div class="gdcontact-hp" aria-hidden="true" tabindex="-1"'
@@ -325,15 +291,11 @@ class _contact extends \IPS\Dispatcher\Controller
 			}
 		}
 
-		$html .= '<button type="submit" class="gdcontact-submit">'
-			. '<span aria-hidden="true">' . $iconSend . '</span>'
-			. '<span>' . $esc( $L( 'gdcontact_submit' ) ) . '</span>'
-			. '</button>';
+		$html .= '<button type="submit" class="gdcontact-submit">' . $esc( $L( 'gdcontact_submit' ) ) . '</button>';
 
 		$html .= '</form>';
 		$html .= '</div>';   /* /.gdcontact-body */
-		$html .= '</div>';   /* /.gdcontact-card */
-		$html .= '</div>';   /* /.gdcontact-wrap */
+		$html .= '</div>';   /* /.gdcontact-form-area */
 
 		\IPS\Output::i()->title  = $title;
 		\IPS\Output::i()->output = $html;
