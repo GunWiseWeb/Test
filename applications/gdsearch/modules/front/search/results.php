@@ -513,6 +513,26 @@ class _results extends \IPS\Dispatcher\Controller
             try { \IPS\Log::log( 'gdsearch reviews tab: ' . $e->getMessage(), 'gdsearch_reviews' ); } catch ( \Throwable ) {}
         }
 
+        /* v1.0.83 — Stage 3 FFL finder panel. Fetch the collapsible
+           "Find an FFL to receive your transfer" panel from gdffl.
+           Same triple-guard pattern as gdreviews above so a missing
+           / broken gdffl can never break the product page. Always
+           rendered when gdffl is present (no firearm heuristic —
+           ammo and other transfer-required items also benefit). */
+        $fflPanelHtml = '';
+        try
+        {
+            if ( class_exists( '\IPS\gdffl\Finder\Panel' )
+                && method_exists( '\IPS\gdffl\Finder\Panel', 'render' ) )
+            {
+                $fflPanelHtml = (string) \IPS\gdffl\Finder\Panel::render( $upc );
+            }
+        }
+        catch ( \Throwable $e )
+        {
+            try { \IPS\Log::log( 'gdsearch ffl panel: ' . $e->getMessage(), 'gdsearch_ffl' ); } catch ( \Throwable ) {}
+        }
+
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->product(
             $product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow,
@@ -521,7 +541,8 @@ class _results extends \IPS\Dispatcher\Controller
             $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey,
             $listingReportUrl, $listingReportLoggedIn, $listingReportCsrfKey, $listingReportLoginUrl,
             $offersSort, $sortOptions, $sortBaseUrl, $restrictionRows, $advisoryRows,
-            $reviewsHtml, $reviewCount, $reviewRating
+            $reviewsHtml, $reviewCount, $reviewRating,
+            $fflPanelHtml
         );
     }
 

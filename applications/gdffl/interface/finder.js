@@ -31,6 +31,25 @@
 	var resultsEl  = document.getElementById('gdfflResults');
 	var moreBtn    = document.getElementById('gdfflMore');
 
+	/* Remember the last-entered ZIP across page navigations so a
+	   buyer who searched on one product doesn't retype it on the
+	   next. The embedded product-page panel (Panel::render) reads
+	   the same localStorage key so the two flows stay in sync. */
+	var ZIP_STORAGE_KEY = 'gdffl_zip';
+	try {
+		if (zipInput && !zipInput.value) {
+			var stored = window.localStorage && window.localStorage.getItem(ZIP_STORAGE_KEY);
+			if (stored && /^[0-9]{5}$/.test(stored)) { zipInput.value = stored; }
+		}
+	} catch (e) { /* private mode — ignore */ }
+	function rememberZip(zip) {
+		try {
+			if (window.localStorage && /^[0-9]{5}$/.test(zip)) {
+				window.localStorage.setItem(ZIP_STORAGE_KEY, zip);
+			}
+		} catch (e) {}
+	}
+
 	var currentPage = 1;
 	var lastZip     = '';
 	var lastRadius  = 0;
@@ -194,6 +213,7 @@
 			lastRadius  = radius;
 			lastTypes   = types;
 			totalShown  = 0;
+			rememberZip(zipDigits);
 			statusEl.className = 'gdffl-status gdffl-status--loading';
 			statusEl.textContent = labels.searching || 'Searching…';
 			resultsEl.innerHTML = '';

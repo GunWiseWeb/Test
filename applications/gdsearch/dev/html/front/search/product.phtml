@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl='', $restrictionRows=array(), $advisoryRows=array(), $reviewsHtml='', $reviewCount=0, $reviewRating=null" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl='', $restrictionRows=array(), $advisoryRows=array(), $reviewsHtml='', $reviewCount=0, $reviewRating=null, $fflPanelHtml=''" />
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 .gdsp-wrap{width:100%;margin:0;padding:18px;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#0f172a}
@@ -400,6 +400,7 @@
 		</div>
 		{{endif}}
 	</div>
+	{{if $fflPanelHtml}}{$fflPanelHtml|raw}{{endif}}
 	</div><!-- /gdsp-tab-prices -->
 
 	<div class="gdsp-tabpanel" id="gdsp-tab-reviews" role="tabpanel">
