@@ -252,11 +252,16 @@ class _finder extends \IPS\Dispatcher\Controller
 		$blatSql = number_format( $blat, 7, '.', '' );
 		$blngSql = number_format( $blng, 7, '.', '' );
 
+		/* Four opening parens on the first line — one outer wrapper
+		   plus ACOS + LEAST + GREATEST — so the closing line MUST
+		   supply four `)`s. Shipping three (v1.0.8) produced a
+		   MariaDB "syntax error near AS distance_miles" and the
+		   whole endpoint returned server_error. */
 		$distExpr = "( 3959 * ACOS( LEAST( 1.0, GREATEST( -1.0,"
 			. " COS( RADIANS( {$blatSql} ) ) * COS( RADIANS( lat ) )"
 			. " * COS( RADIANS( lng ) - RADIANS( {$blngSql} ) )"
 			. " + SIN( RADIANS( {$blatSql} ) ) * SIN( RADIANS( lat ) )"
-			. " ) ) )";
+			. " ) ) ) )";
 
 		$cols = "lic_number, lic_type, license_name, business_name,"
 			. " premise_street, premise_city, premise_state, premise_zip, voice_phone,"

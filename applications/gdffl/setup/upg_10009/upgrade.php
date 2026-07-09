@@ -1,41 +1,31 @@
 <?php
 /**
- * @brief  GD FFL Finder — upgrade 1.0.8.
+ * @brief  GD FFL Finder — upgrade 1.0.9.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained
- * against 1.0.0 → 1.0.7 (or a re-install).
+ * against 1.0.0 → 1.0.8 (or a re-install).
  *
- * WHY v1.0.8 EXISTS:
- *   modules/front/finder/finder.php search() built the
- *   distance query with
- *     \IPS\Db::i()->preparedQuery( $sql, $binds )->get_result()
- *   Prod's mysqli extension has NO mysqlnd driver — and
- *   mysqli_stmt::get_result() REQUIRES mysqlnd. Every call
- *   returned FALSE with errno 2014 "Commands out of sync",
- *   the fetch loop never entered, and the finder JSON was
- *   {"count":0,"results":[]} for every ZIP even though the
- *   distance / bounding-box / type-filter logic was correct.
+ * WHY v1.0.9 EXISTS:
+ *   v1.0.8's haversine SELECT column construction opened
+ *   four parens
+ *     ( 3959 * ACOS( LEAST( 1.0, GREATEST( -1.0, ... ) ) )
+ *   but closed only three, leaving one open. MariaDB parsed
+ *   past the closing parens into `AS distance_miles` while
+ *   still short one `)`, threw
+ *     "You have an error in your SQL syntax; check the
+ *      manual ... near 'AS distance_miles FROM `gd_ffl` ...'"
+ *   and the endpoint's catch returned {error: server_error}.
+ *   The frontend showed "Search failed — please try again."
  *
- *   v1.0.8 rewrites search() to use IPS's own Db\Select
- *   cursor — \IPS\Db::i()->select( cols, table, whereParam )
- *   iterating with foreach — which does NOT depend on
- *   get_result() and works on this host. Approach:
- *     * SQL:   bounding-box + type filter only, no HAVING,
- *              no LIMIT/OFFSET binding. Buyer lat/lng are
- *              interpolated as float literals (7 decimals,
- *              zero injection surface); every other value
- *              stays a bound param.
- *     * PHP:   iterate the select() cursor, drop rows whose
- *              haversine distance > radius, sort ASC by
- *              distance, then array_slice($all, $off, $per)
- *              for the page. Bounding box keeps the row
- *              count tiny so PHP-side sort/paginate is
- *              cheap.
+ *   v1.0.9 adds the fourth closing `)` — nothing else
+ *   changes. The whole rest of v1.0.8 (Db\Select cursor,
+ *   PHP-side dist filter + sort + slice, IPS Form uploader,
+ *   ACP 'admin' base URLs, AJAX batch imports) is retained.
  *
  * No schema changes.
  */
 
-namespace IPS\gdffl\setup\upg_10008;
+namespace IPS\gdffl\setup\upg_10009;
 
 use function defined;
 use function function_exists;
@@ -50,10 +40,7 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		/* ------------------------------------------------------------
-		 * LANG RESEED — full historical set. No new keys in v1.0.8.
-		 * Rule #43 6-col shape, rule #44 per-row try/catch.
-		 * ------------------------------------------------------------ */
+		/* Full lang reseed. No new keys in v1.0.9. */
 		$strings = [
 			'module__front_finder'        => 'FFL Finder',
 			'gdffl_finder_title'          => 'Find an FFL near you',
@@ -106,9 +93,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* ------------------------------------------------------------
-		 * EXTENSIONS.JSON SELF-HEAL — rule #16.
-		 * ------------------------------------------------------------ */
+		/* extensions.json self-heal (rule #16). */
 		$expected = [
 			'core' => [
 				'Queue' => [
@@ -135,9 +120,7 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* ------------------------------------------------------------
-		 * CACHE PURGE.
-		 * ------------------------------------------------------------ */
+		/* Cache purge — finder.php source changed. */
 		try { unset( \IPS\Data\Store::i()->furl_configuration ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->furl ); }               catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_front ); }      catch ( \Throwable ) {}
