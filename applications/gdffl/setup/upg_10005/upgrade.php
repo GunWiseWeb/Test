@@ -1,43 +1,35 @@
 <?php
 /**
- * @brief  GD FFL Finder — upgrade 1.0.4.
+ * @brief  GD FFL Finder — upgrade 1.0.5.
  *
- * Rule #79 — exactly ONE upg_* dir per app. This upgrade is
- * self-contained: safe to run against 1.0.0, 1.0.1, 1.0.2,
- * or 1.0.3 (or a re-install where cached data got wiped).
+ * Rule #79 — exactly ONE upg_* dir per app. Self-contained
+ * against 1.0.0 → 1.0.4 (or a re-install).
  *
- * WHY v1.0.4 EXISTS:
- *   The ACP importer's upload form has been failing under
- *   IPS 5.0.18's ACP dispatcher since v1.0.0 because the
- *   hand-built <form action="…&do=fflUploadAct"> URL got 301-
- *   redirected by the admin dispatcher. A 301 on multipart
- *   POST tells the browser to retry as GET, which drops
- *   $_FILES → the upload never reaches the handler → gd_ffl
- *   stays at 0. Adding the 'admin' base to Url::internal in
- *   v1.0.3 didn't fix it because the CANONICAL working ACP
- *   form idiom is NOT "hand-build the form action + URL", it
- *   is \IPS\Helpers\Form: IPS renders the form against the
- *   CURRENT page URL, injects the required session key + form
- *   key + CSRF, and the framework normalizes the POST route
- *   so no redirect happens.
+ * WHY v1.0.5 EXISTS:
+ *   modules/front/finder/finder.php search() called
+ *     $stmt = \IPS\Db::i()->preparedQuery( ... );
+ *     while ( $row = $stmt->fetch_assoc() ) { ... }
+ *   preparedQuery() returns a mysqli_stmt in IPS 5.0.18, and
+ *   mysqli_stmt has NO fetch_assoc() method. The result was
+ *     Call to undefined method mysqli_stmt::fetch_assoc()
+ *   caught by the endpoint's try/catch and returned as
+ *   {"error":"server_error"} — the finder page said "search
+ *   failed" for every query even though the distance SQL
+ *   itself was correct.
  *
- *   v1.0.4 rewrites modules/admin/manage/import.php to mirror
- *   applications/gdbills/modules/admin/bills/import.php (also
- *   applications/gdcatalog/modules/admin/catalog/feeds.php),
- *   both of which use \IPS\Helpers\Form + \IPS\Helpers\Form\
- *   Upload and demonstrably work in this same ACP. The ATF-
- *   specific parsing (Ffl::toDbRow, header-name mapping,
- *   fgetcsv, batch AJAX loop) is unchanged. Only the initial
- *   upload mechanism is swapped to the framework-blessed form.
+ *   v1.0.5 changes the fetch idiom to the codebase's blessed
+ *   pattern:
+ *     $stmt   = \IPS\Db::i()->preparedQuery( $sql, $binds );
+ *     $result = $stmt->get_result();
+ *     while ( $row = $result->fetch_assoc() ) { ... }
+ *   Zero changes to the SQL, binds, bounding-box prefilter,
+ *   HAVING/ORDER/LIMIT clauses, or per-row processing.
  *
- *   Two new lang keys are added for the Upload field labels:
- *     gdffl_acp_import_file  — "ATF FFL CSV file"
- *     gdffl_acp_zipgeo_file  — "Census ZCTA CSV file"
- *
- * No schema changes in this version.
+ * No schema changes, no new lang keys. Cache-purge + full
+ * lang reseed for defensive convergence on old installs.
  */
 
-namespace IPS\gdffl\setup\upg_10004;
+namespace IPS\gdffl\setup\upg_10005;
 
 use function defined;
 use function function_exists;
@@ -54,10 +46,10 @@ class _upgrade
 	{
 		/* ------------------------------------------------------------
 		 * LANG RESEED — full set for v1.0.0 + v1.0.1 + v1.0.2 +
-		 * v1.0.4 (rule #43 6-column shape, rule #44 per-row catch).
+		 * v1.0.4. No new keys in v1.0.5. Rule #43 shape (6 cols),
+		 * rule #44 per-row try/catch.
 		 * ------------------------------------------------------------ */
 		$strings = [
-			/* v1.0.1 — public finder page. */
 			'module__front_finder'        => 'FFL Finder',
 			'gdffl_finder_title'          => 'Find an FFL near you',
 			'gdffl_finder_lead'           => 'Enter your ZIP code to find licensed dealers who can receive a transfer for you. Distance is calculated from the ZIP centroid.',
@@ -75,7 +67,6 @@ class _upgrade
 			'gdffl_finder_no_phone'       => 'No phone on file',
 			'gdffl_finder_load_more'      => 'Show more results',
 
-			/* v1.0.2 — AJAX-driven ACP importer + ZIP admin upload. */
 			'gdffl_acp_zipgeo_upload'         => 'Upload real Census ZCTA CSV',
 			'gdffl_acp_zipgeo_upload_submit'  => 'Upload ZIP centroid file',
 			'gdffl_acp_zipgeo_load_hint'      => 'Loads whatever CSV is currently on disk (uploaded copy preferred, then bundled placeholder).',
@@ -83,7 +74,6 @@ class _upgrade
 			'gdffl_import_running_ffl'        => 'ATF FFL import running…',
 			'gdffl_import_running_zip'        => 'ZIP centroid import running…',
 
-			/* v1.0.4 — \IPS\Helpers\Form\Upload field labels. */
 			'gdffl_acp_import_file'           => 'ATF FFL CSV file',
 			'gdffl_acp_zipgeo_file'           => 'Census ZCTA CSV file',
 		];
@@ -141,8 +131,8 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * CACHE PURGE — new import.php + updated lang mean the
-		 * datastore MUST re-resolve on the next request.
+		 * CACHE PURGE — finder.php source changed, so IPS's cached
+		 * front module map + opcache must re-resolve.
 		 * ------------------------------------------------------------ */
 		try { unset( \IPS\Data\Store::i()->furl_configuration ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->furl ); }               catch ( \Throwable ) {}

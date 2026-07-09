@@ -273,10 +273,20 @@ class _finder extends \IPS\Dispatcher\Controller
 		$results = [];
 		try
 		{
-			$res = \IPS\Db::i()->preparedQuery( $sql, $binds );
-			if ( $res !== null )
+			/* preparedQuery() returns a mysqli_stmt in IPS 5.0.18 —
+			   it does NOT have fetch_assoc() directly. Calling it
+			   on the stmt raises "Call to undefined method
+			   mysqli_stmt::fetch_assoc()" and the search 500s.
+			   The correct idiom is stmt → get_result() → mysqli_
+			   result, then fetch_assoc() in a while loop. */
+			$stmt   = \IPS\Db::i()->preparedQuery( $sql, $binds );
+			$result = ( $stmt !== null && method_exists( $stmt, 'get_result' ) )
+				? $stmt->get_result()
+				: null;
+
+			if ( $result !== null && $result !== false )
 			{
-				while ( $row = $res->fetch_assoc() )
+				while ( $row = $result->fetch_assoc() )
 				{
 					$biz = trim( (string) ( $row['business_name'] ?? '' ) );
 					if ( $biz === '' ) { $biz = trim( (string) ( $row['license_name'] ?? '' ) ); }
