@@ -168,10 +168,16 @@ class _finder extends \IPS\Dispatcher\Controller
 	/**
 	 * GET /ffl-finder/search?zip=&radius=&types=&page= — JSON.
 	 *
-	 * Distance query = bounding-box prefilter (uses idx_latlng)
-	 * then haversine ACOS() for exact distance / ordering.
-	 * preparedQuery keeps every bind param safely typed.
-	 * Guest-callable — no login required. Read-only.
+	 * Distance flow: bounding-box + type filter run in SQL via
+	 * \IPS\Db::i()->select() (which works on hosts without the
+	 * mysqlnd driver — the raw-mysqli path was replaced in
+	 * v1.0.8); each row is decorated with a haversine-derived
+	 * distance_miles column returned by MySQL. PHP then drops
+	 * rows whose distance > radius, sorts ASC by distance, and
+	 * slices for pagination. Buyer lat/lng are interpolated
+	 * into the SELECT expression as float literals (zero
+	 * injection surface); every WHERE value stays a bound
+	 * parameter. Guest-callable — no login required. Read-only.
 	 */
 	protected function search(): void
 	{
@@ -239,84 +245,77 @@ class _finder extends \IPS\Dispatcher\Controller
 		$lngMin = $blng - $lngDelta;
 		$lngMax = $blng + $lngDelta;
 
-		$prefix = \IPS\Db::i()->prefix;
+		/* Haversine returned directly by MySQL. $blat / $blng come
+		   from gd_zip_geo lat/lng (DECIMAL(10,7)) and are cast to
+		   float — no injection risk from a float literal. Everything
+		   else in the SELECT is a plain column reference. */
+		$blatSql = number_format( $blat, 7, '.', '' );
+		$blngSql = number_format( $blng, 7, '.', '' );
 
-		$sql = "SELECT lic_number, lic_type, license_name, business_name,
-					premise_street, premise_city, premise_state, premise_zip, voice_phone,
-					lat, lng,
-					( 3959 * ACOS(
-						LEAST( 1.0, GREATEST( -1.0,
-							COS( RADIANS( ? ) ) * COS( RADIANS( lat ) ) * COS( RADIANS( lng ) - RADIANS( ? ) )
-							+ SIN( RADIANS( ? ) ) * SIN( RADIANS( lat ) )
-						) )
-					) ) AS distance_miles
-				FROM {$prefix}gd_ffl
-				WHERE lat IS NOT NULL
-					AND lat BETWEEN ? AND ?
-					AND lng BETWEEN ? AND ?";
-		$binds = [ $blat, $blng, $blat, $latMin, $latMax, $lngMin, $lngMax ];
+		$distExpr = "( 3959 * ACOS( LEAST( 1.0, GREATEST( -1.0,"
+			. " COS( RADIANS( {$blatSql} ) ) * COS( RADIANS( lat ) )"
+			. " * COS( RADIANS( lng ) - RADIANS( {$blngSql} ) )"
+			. " + SIN( RADIANS( {$blatSql} ) ) * SIN( RADIANS( lat ) )"
+			. " ) ) )";
+
+		$cols = "lic_number, lic_type, license_name, business_name,"
+			. " premise_street, premise_city, premise_state, premise_zip, voice_phone,"
+			. " lat, lng, {$distExpr} AS distance_miles";
+
+		/* WHERE — IPS select() supports the "flat" form
+		     [ "sql AND sql AND sql...", ...binds ]
+		   with `?` placeholders for the bound params. The bounding
+		   box is a cheap prefilter that uses idx_latlng; the exact
+		   distance filter runs in PHP against the returned rows,
+		   which avoids HAVING + LIMIT/OFFSET (both of which trip
+		   the "commands out of sync" / no-mysqlnd stack on this
+		   server). */
+		$sqlWhere = "lat IS NOT NULL AND lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?";
+		$binds    = [ $latMin, $latMax, $lngMin, $lngMax ];
 
 		if ( !$allTypes && !empty( $typesArr ) )
 		{
 			$placeholders = implode( ',', array_fill( 0, count( $typesArr ), '?' ) );
-			$sql .= " AND lic_type IN ({$placeholders})";
+			$sqlWhere    .= " AND lic_type IN ({$placeholders})";
 			foreach ( $typesArr as $t ) { $binds[] = $t; }
 		}
 
-		/* MySQL prepared statements refuse string-bound LIMIT /
-		   OFFSET — mysqli binds every ? as a string, and
-		   `LIMIT '20' OFFSET '0'` is a syntax error at the server
-		   which makes preparedQuery()->get_result() return false
-		   (search silently returns 0 rows even though the
-		   distance / bounding-box / type-filter logic above is
-		   correct). $per and $off are cast to strict int + range-
-		   clamped right here, then inlined into the SQL as literal
-		   integers so no parameter binding is required for them.
-		   Every other value in the query (haversine origin, bbox
-		   corners, radius, type IN list) remains a bound param. */
-		$per = max( 1, (int) $per );
-		$off = max( 0, (int) $off );
+		$whereParam = array_merge( [ $sqlWhere ], $binds );
 
-		$sql .= " HAVING distance_miles <= ?
-				  ORDER BY distance_miles ASC
-				  LIMIT " . $per . " OFFSET " . $off;
-		$binds[] = $radius;
+		/* Iterate via IPS's select() iterator. This path uses the
+		   codebase's tested Db\Select cursor — it does NOT rely
+		   on the mysqli-native fetch stack (which requires the
+		   mysqlnd driver, absent on this host). Bounding box
+		   keeps the row count small so PHP-side distance-filter
+		   + sort + paginate is cheap. */
+		$radiusF = (float) $radius;
+		$all     = [];
 
-		$results = [];
 		try
 		{
-			/* preparedQuery() returns a mysqli_stmt in IPS 5.0.18 —
-			   it does NOT have fetch_assoc() directly. Calling it
-			   on the stmt raises "Call to undefined method
-			   mysqli_stmt::fetch_assoc()" and the search 500s.
-			   The correct idiom is stmt → get_result() → mysqli_
-			   result, then fetch_assoc() in a while loop. */
-			$stmt   = \IPS\Db::i()->preparedQuery( $sql, $binds );
-			$result = ( $stmt !== null && method_exists( $stmt, 'get_result' ) )
-				? $stmt->get_result()
-				: null;
-
-			if ( $result !== null && $result !== false )
+			foreach ( \IPS\Db::i()->select( $cols, 'gd_ffl', $whereParam ) as $row )
 			{
-				while ( $row = $result->fetch_assoc() )
-				{
-					$biz = trim( (string) ( $row['business_name'] ?? '' ) );
-					if ( $biz === '' ) { $biz = trim( (string) ( $row['license_name'] ?? '' ) ); }
-					$code = (string) ( $row['lic_type'] ?? '' );
-					$results[] = [
-						'lic_number'      => (string) ( $row['lic_number'] ?? '' ),
-						'business_name'   => $biz,
-						'license_name'    => (string) ( $row['license_name'] ?? '' ),
-						'street'          => (string) ( $row['premise_street'] ?? '' ),
-						'city'            => (string) ( $row['premise_city']   ?? '' ),
-						'state'           => (string) ( $row['premise_state']  ?? '' ),
-						'zip'             => (string) ( $row['premise_zip']    ?? '' ),
-						'phone'           => (string) ( $row['voice_phone']    ?? '' ),
-						'lic_type'        => $code,
-						'lic_type_label'  => self::LIC_TYPE_LABELS[ $code ] ?? $code,
-						'distance_miles'  => round( (float) $row['distance_miles'], 1 ),
-					];
-				}
+				$dist = (float) ( $row['distance_miles'] ?? 0.0 );
+				if ( $dist > $radiusF ) { continue; }
+
+				$biz = trim( (string) ( $row['business_name'] ?? '' ) );
+				if ( $biz === '' ) { $biz = trim( (string) ( $row['license_name'] ?? '' ) ); }
+				$code = (string) ( $row['lic_type'] ?? '' );
+
+				$all[] = [
+					'lic_number'      => (string) ( $row['lic_number'] ?? '' ),
+					'business_name'   => $biz,
+					'license_name'    => (string) ( $row['license_name'] ?? '' ),
+					'street'          => (string) ( $row['premise_street'] ?? '' ),
+					'city'            => (string) ( $row['premise_city']   ?? '' ),
+					'state'           => (string) ( $row['premise_state']  ?? '' ),
+					'zip'             => (string) ( $row['premise_zip']    ?? '' ),
+					'phone'           => (string) ( $row['voice_phone']    ?? '' ),
+					'lic_type'        => $code,
+					'lic_type_label'  => self::LIC_TYPE_LABELS[ $code ] ?? $code,
+					'distance_miles'  => round( $dist, 1 ),
+					'_dist_raw'       => $dist,
+				];
 			}
 		}
 		catch ( \Throwable $e )
@@ -325,6 +324,16 @@ class _finder extends \IPS\Dispatcher\Controller
 			\IPS\Output::i()->json( [ 'error' => 'server_error' ], 500 );
 			return;
 		}
+
+		/* Sort by raw distance ASC, then slice for pagination. */
+		usort( $all, fn( array $a, array $b ) => $a['_dist_raw'] <=> $b['_dist_raw'] );
+		$totalWithin = count( $all );
+
+		$per     = max( 1, (int) $per );
+		$off     = max( 0, (int) $off );
+		$results = array_slice( $all, $off, $per );
+		foreach ( $results as &$r ) { unset( $r['_dist_raw'] ); }
+		unset( $r );
 
 		\IPS\Output::i()->json( [
 			'zip'     => $zip,

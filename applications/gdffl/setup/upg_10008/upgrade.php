@@ -1,38 +1,41 @@
 <?php
 /**
- * @brief  GD FFL Finder — upgrade 1.0.7.
+ * @brief  GD FFL Finder — upgrade 1.0.8.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained
- * against 1.0.0 → 1.0.6 (or a re-install).
+ * against 1.0.0 → 1.0.7 (or a re-install).
  *
- * WHY v1.0.7 EXISTS:
- *   modules/front/finder/finder.php search() built its
- *   distance query ending in
- *     ... HAVING distance_miles <= ?
- *         ORDER BY distance_miles ASC
- *         LIMIT ? OFFSET ?
- *   and appended $per + $off to $binds. mysqli's prepared-
- *   statement layer binds every ? as a STRING, and MySQL
- *   refuses `LIMIT '20' OFFSET '0'` as a syntax error at
- *   the server — preparedQuery()->get_result() returns
- *   false, the loop never enters, and the finder returns
- *   0 results for every ZIP even though the distance /
- *   bounding-box / type-filter logic is correct (the same
- *   query with LIMIT/OFFSET inlined returns 32 real FFLs
- *   for 61938 / radius 25).
+ * WHY v1.0.8 EXISTS:
+ *   modules/front/finder/finder.php search() built the
+ *   distance query with
+ *     \IPS\Db::i()->preparedQuery( $sql, $binds )->get_result()
+ *   Prod's mysqli extension has NO mysqlnd driver — and
+ *   mysqli_stmt::get_result() REQUIRES mysqlnd. Every call
+ *   returned FALSE with errno 2014 "Commands out of sync",
+ *   the fetch loop never entered, and the finder JSON was
+ *   {"count":0,"results":[]} for every ZIP even though the
+ *   distance / bounding-box / type-filter logic was correct.
  *
- *   v1.0.7 forces $per and $off through (int) with min
- *   guards (per >= 1, off >= 0) and inlines them into the
- *   SQL as integer literals. Nothing but validated ints
- *   ever reaches the query — no injection risk. Every
- *   OTHER value in the query stays a bound parameter
- *   (haversine origin, bounding-box corners, radius,
- *   type IN list).
+ *   v1.0.8 rewrites search() to use IPS's own Db\Select
+ *   cursor — \IPS\Db::i()->select( cols, table, whereParam )
+ *   iterating with foreach — which does NOT depend on
+ *   get_result() and works on this host. Approach:
+ *     * SQL:   bounding-box + type filter only, no HAVING,
+ *              no LIMIT/OFFSET binding. Buyer lat/lng are
+ *              interpolated as float literals (7 decimals,
+ *              zero injection surface); every other value
+ *              stays a bound param.
+ *     * PHP:   iterate the select() cursor, drop rows whose
+ *              haversine distance > radius, sort ASC by
+ *              distance, then array_slice($all, $off, $per)
+ *              for the page. Bounding box keeps the row
+ *              count tiny so PHP-side sort/paginate is
+ *              cheap.
  *
  * No schema changes.
  */
 
-namespace IPS\gdffl\setup\upg_10007;
+namespace IPS\gdffl\setup\upg_10008;
 
 use function defined;
 use function function_exists;
@@ -48,7 +51,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		/* ------------------------------------------------------------
-		 * LANG RESEED — full historical set. No new keys in v1.0.7.
+		 * LANG RESEED — full historical set. No new keys in v1.0.8.
 		 * Rule #43 6-col shape, rule #44 per-row try/catch.
 		 * ------------------------------------------------------------ */
 		$strings = [
