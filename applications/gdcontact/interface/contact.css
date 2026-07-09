@@ -1,22 +1,12 @@
 /*
- * GD Contact — public /contact-us/ page (v1.0.3).
+ * GD Contact — public /contact-us/ page (v1.0.4).
  *
- * ONE clean card: navy header + styled fields + green Send.
- * Everything is scoped under `.gr5 .gdcontact-*` (attribute
- * selectors carry NO inner whitespace — bad practice bit
- * gdffl in v1.0.10/.11 and it's still the leading source of
- * silent-drop rules in this codebase). Palette is explicit
- * hex, not IPS vars, so the form looks identical no matter
- * what theme wraps it.
- *
- * Because IPS's \IPS\Helpers\Form emits its own ipsForm /
- * ipsFieldRow / ipsSubmit chrome (bordered fieldsets, boxed
- * submit rows), a chunk of this file is dedicated to
- * neutralising that chrome inside .gdcontact-body so we don't
- * end up with a box-inside-a-box on the page.
+ * All fields render as custom HTML from gd_contact_fields
+ * (contact.php), so this file no longer needs to reset IPS's
+ * form chrome. Palette is explicit hex — no theme dependency.
+ * No attribute selectors anywhere (whitespace-in-brackets bit
+ * gdffl multiple times).
  */
-
-/* --- Wrap ---------------------------------------------------- */
 
 .gr5 .gdcontact-wrap {
 	box-sizing: border-box;
@@ -30,24 +20,41 @@
 .gr5 .gdcontact-wrap *::before,
 .gr5 .gdcontact-wrap *::after { box-sizing: inherit; }
 
-/* --- Success banner sits ABOVE the card --------------------- */
+/* --- Success / error banners (sit above the card) ----------- */
 
-.gr5 .gdcontact-wrap .gdcontact-success {
-	margin: 0 0 16px;
+.gr5 .gdcontact-success {
+	max-width: 640px;
+	margin: 0 auto 14px;
 	padding: 12px 16px;
-	background: #e1f5ee;
-	border: 1px solid #a7dcbf;
-	border-left: 4px solid #0f6e56;
+	background: #f0fdf4;
+	border: 1px solid #86efac;
+	border-left: 4px solid #16a34a;
 	border-radius: 10px;
-	color: #0b5a46;
-	font-size: 0.95em;
+	color: #166534;
+	font-size: 14px;
 	font-weight: 500;
 	line-height: 1.4;
 }
 
+.gr5 .gdcontact-error {
+	max-width: 640px;
+	margin: 0 auto 14px;
+	padding: 12px 16px;
+	background: #fef2f2;
+	border: 1px solid #fca5a5;
+	border-left: 4px solid #dc2626;
+	border-radius: 10px;
+	color: #991b1b;
+	font-size: 14px;
+	line-height: 1.5;
+}
+.gr5 .gdcontact-error > div + div { margin-top: 4px; }
+
 /* --- The single card ---------------------------------------- */
 
 .gr5 .gdcontact-card {
+	max-width: 640px;
+	margin: 0 auto;
 	background: #ffffff;
 	border: 1px solid #e2e8f0;
 	border-radius: 14px;
@@ -55,14 +62,14 @@
 	box-shadow: 0 1px 3px rgba( 15, 23, 42, 0.06 );
 }
 
-/* Header — navy band, mail icon (teal), title + sub. */
+/* Header — navy band, teal mail icon, title + sub-line. */
 .gr5 .gdcontact-header {
 	background: #0f2740;
 	color: #ffffff;
-	padding: 22px 26px;
+	padding: 24px 28px;
 	display: flex;
 	align-items: flex-start;
-	gap: 14px;
+	gap: 12px;
 }
 .gr5 .gdcontact-header__icon {
 	color: #5dcaa5;
@@ -80,120 +87,42 @@
 	color: #ffffff;
 }
 .gr5 .gdcontact-header__sub {
-	margin: 6px 0 0;
+	margin: 4px 0 0;
 	color: #9db4cc;
 	font-size: 13.5px;
 	line-height: 1.5;
 }
 
-/* Body — the IPS form drops in here. */
+/* Body — where the form lives. */
 .gr5 .gdcontact-body {
 	padding: 24px 28px 26px;
 	background: #ffffff;
 }
+.gr5 .gdcontact-form { margin: 0; }
 
-/* ============================================================
- * IPS FORM CHROME RESET
- * IPS's Form renders with a lot of boxed chrome (nested
- * fieldsets, .ipsForm_horizontal wrappers, .ipsSubmit trays,
- * gray backgrounds). Inside .gdcontact-body we strip all of
- * that so the form reads as bare inputs sitting on the card.
- * ============================================================ */
+/* --- Fields ------------------------------------------------- */
 
-.gr5 .gdcontact-body form,
-.gr5 .gdcontact-body .ipsForm,
-.gr5 .gdcontact-body .ipsForm_horizontal,
-.gr5 .gdcontact-body .ipsForm_vertical {
-	background: transparent !important;
-	border: 0 !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	box-shadow: none !important;
+.gr5 .gdcontact-field {
+	margin-bottom: 18px;
 }
-.gr5 .gdcontact-body fieldset {
-	background: transparent !important;
-	border: 0 !important;
-	padding: 0 !important;
-	margin: 0 !important;
-}
-.gr5 .gdcontact-body legend {
-	display: none !important;
-}
-.gr5 .gdcontact-body ul,
-.gr5 .gdcontact-body ol {
-	list-style: none !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	background: transparent !important;
-}
-.gr5 .gdcontact-body .ipsSubmit,
-.gr5 .gdcontact-body .ipsFormBar {
-	background: transparent !important;
-	border: 0 !important;
-	padding: 0 !important;
-	margin: 20px 0 0 !important;
-	text-align: left !important;
-}
+.gr5 .gdcontact-field:last-of-type { margin-bottom: 0; }
 
-/* Field row — one input per row, ~18px gap. */
-.gr5 .gdcontact-body li,
-.gr5 .gdcontact-body .ipsFieldRow {
-	background: transparent !important;
-	border: 0 !important;
-	padding: 0 !important;
-	margin: 0 0 18px !important;
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-}
-.gr5 .gdcontact-body li:last-of-type,
-.gr5 .gdcontact-body .ipsFieldRow:last-of-type { margin-bottom: 0 !important; }
-
-/* Labels. */
-.gr5 .gdcontact-body label,
-.gr5 .gdcontact-body .ipsFieldRow_label {
+.gr5 .gdcontact-label {
 	display: block;
-	width: auto !important;
-	max-width: none !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	background: transparent !important;
-	text-align: left !important;
 	font-size: 13px;
 	font-weight: 500;
-	color: #334155;
+	color: #0f172a;
+	margin: 0 0 6px;
 	line-height: 1.3;
 }
-.gr5 .gdcontact-body .ipsFieldRow_content,
-.gr5 .gdcontact-body .ipsFieldRow_desc {
-	width: auto !important;
-	max-width: none !important;
-	padding: 0 !important;
-	margin: 0 !important;
-	background: transparent !important;
-}
-.gr5 .gdcontact-body .ipsFieldRow_desc {
-	color: #64748b;
-	font-size: 12px;
-	line-height: 1.4;
-	margin-top: 4px !important;
-}
-
-/* Required marker. */
-.gr5 .gdcontact-body .ipsFieldRow--required .ipsFieldRow_label::after,
-.gr5 .gdcontact-body label.ipsFieldRow_label--required::after {
-	content: " *";
+.gr5 .gdcontact-req {
 	color: #dc2626;
 	font-weight: 700;
+	margin-left: 2px;
 }
 
-/* Inputs. Class-based first (belt and suspenders), plus a
-   defensive bare-element fallback inside .gdcontact-body.
-   NO attribute selectors — nothing here can silently drop. */
-.gr5 .gdcontact-body input,
-.gr5 .gdcontact-body select,
-.gr5 .gdcontact-body textarea,
-.gr5 .gdcontact-body .ipsField_input {
+/* Inputs — class-based, no attribute selectors. */
+.gr5 .gdcontact-input {
 	appearance: none;
 	-webkit-appearance: none;
 	width: 100%;
@@ -203,85 +132,74 @@
 	border-radius: 8px;
 	background: #ffffff;
 	color: #0f172a;
-	font: inherit;
+	font-family: inherit;
 	font-size: 15px;
 	line-height: 1.4;
 	transition: border-color .15s ease, box-shadow .15s ease;
 	box-shadow: none;
 }
-.gr5 .gdcontact-body textarea {
+.gr5 .gdcontact-input:hover  { border-color: #94a3b8; }
+.gr5 .gdcontact-input:focus  {
+	outline: none;
+	border-color: #0f6e56;
+	box-shadow: 0 0 0 3px rgba( 15, 110, 86, .15 );
+}
+
+.gr5 .gdcontact-textarea {
 	height: auto;
 	min-height: 128px;
 	padding: 12px 14px;
 	line-height: 1.5;
 	resize: vertical;
 }
-.gr5 .gdcontact-body input:hover,
-.gr5 .gdcontact-body select:hover,
-.gr5 .gdcontact-body textarea:hover { border-color: #94a3b8; }
-.gr5 .gdcontact-body input:focus,
-.gr5 .gdcontact-body select:focus,
-.gr5 .gdcontact-body textarea:focus {
-	outline: none;
-	border-color: #0f6e56;
-	box-shadow: 0 0 0 3px rgba( 15, 110, 86, .15 );
-}
 
-/* Custom chevron on selects (IPS's default varies by theme). */
-.gr5 .gdcontact-body select {
+/* Custom chevron for selects (data-URI SVG, fully self-contained). */
+.gr5 select.gdcontact-input {
 	background-image: url( "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20' fill='%2364748b'><path d='M5.516 7.548 10 12.032l4.484-4.484 1.406 1.406L10 14.844 4.11 8.954z'/></svg>" );
 	background-repeat: no-repeat;
 	background-position: right 12px center;
 	padding-right: 40px;
 }
 
-/* Checkboxes are special — force them back to native so they
-   don't inherit the 44 px box from the rule above. */
-.gr5 .gdcontact-body input[type=checkbox],
-.gr5 .gdcontact-body input[type=radio] {
+.gr5 .gdcontact-help {
+	display: block;
+	margin-top: 4px;
+	color: #64748b;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+/* Checkbox — inline layout, no 44px box. */
+.gr5 .gdcontact-field--checkbox {
+	margin-bottom: 18px;
+}
+.gr5 .gdcontact-check {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	font-size: 14px;
+	color: #0f172a;
+	line-height: 1.4;
+}
+.gr5 .gdcontact-check input {
 	appearance: auto;
 	-webkit-appearance: auto;
 	width: 18px;
 	height: 18px;
-	padding: 0;
-	margin: 0 8px 0 0;
-	border: 0;
-	background: transparent;
-	box-shadow: none;
-	vertical-align: middle;
-}
-.gr5 .gdcontact-body input[type=checkbox]:focus,
-.gr5 .gdcontact-body input[type=radio]:focus  { box-shadow: none; outline: 2px solid #0f6e56; outline-offset: 1px; }
-
-/* Errors that IPS Form emits above the wrong field. */
-.gr5 .gdcontact-body .ipsForm_error,
-.gr5 .gdcontact-body .ipsMessage--error,
-.gr5 .gdcontact-body .ipsErrorMessage {
-	background: #fef2f2;
-	border: 1px solid #fecaca;
-	border-left: 4px solid #dc2626;
-	color: #991b1b;
-	font-size: 13.5px;
-	line-height: 1.4;
-	padding: 10px 14px;
-	border-radius: 8px;
-	margin: 0 0 14px !important;
+	margin: 0;
+	accent-color: #0f6e56;
 }
 
-/* CAPTCHA — modest wrapper so the widget doesn't butt against
-   the Send button. Don't restyle the widget itself. */
-.gr5 .gdcontact-body .ipsFieldRow.ipsFieldRow--captcha,
-.gr5 .gdcontact-body li.ipsCaptcha,
-.gr5 .gdcontact-body .cf-turnstile,
-.gr5 .gdcontact-body .g-recaptcha { margin-top: 6px; }
+/* --- CAPTCHA wrapper — subtle spacing above the button ----- */
 
-/* Submit button — full-width, 48 px, green. Overrides
-   whatever ipsButton style IPS glued on. */
-.gr5 .gdcontact-body button[type=submit],
-.gr5 .gdcontact-body input[type=submit],
-.gr5 .gdcontact-body .ipsSubmit button,
-.gr5 .gdcontact-body .ipsSubmit input,
-.gr5 .gdcontact-body .ipsSubmit .ipsButton {
+.gr5 .gdcontact-captcha {
+	margin: 8px 0 20px;
+}
+
+/* --- Submit button ----------------------------------------- */
+
+.gr5 .gdcontact-submit {
 	appearance: none;
 	-webkit-appearance: none;
 	display: inline-flex;
@@ -305,15 +223,10 @@
 	transition: background .15s ease, transform .05s ease;
 	text-decoration: none;
 }
-.gr5 .gdcontact-body button[type=submit]:hover,
-.gr5 .gdcontact-body input[type=submit]:hover,
-.gr5 .gdcontact-body .ipsSubmit .ipsButton:hover { background: #0b5a46; }
-.gr5 .gdcontact-body button[type=submit]:active,
-.gr5 .gdcontact-body input[type=submit]:active,
-.gr5 .gdcontact-body .ipsSubmit .ipsButton:active { transform: translateY( 1px ); }
-.gr5 .gdcontact-body button[type=submit]:focus,
-.gr5 .gdcontact-body input[type=submit]:focus,
-.gr5 .gdcontact-body .ipsSubmit .ipsButton:focus {
+.gr5 .gdcontact-submit svg { display: block; }
+.gr5 .gdcontact-submit:hover  { background: #0b5a46; }
+.gr5 .gdcontact-submit:active { transform: translateY( 1px ); }
+.gr5 .gdcontact-submit:focus  {
 	outline: none;
 	box-shadow: 0 0 0 3px rgba( 15, 110, 86, .3 );
 }
@@ -340,7 +253,5 @@
 	.gr5 .gdcontact-header  { padding: 18px 20px; }
 	.gr5 .gdcontact-header__title { font-size: 19px; }
 	.gr5 .gdcontact-body    { padding: 18px 20px 20px; }
-	.gr5 .gdcontact-body button[type=submit],
-	.gr5 .gdcontact-body input[type=submit],
-	.gr5 .gdcontact-body .ipsSubmit .ipsButton { height: 50px; font-size: 16px; }
+	.gr5 .gdcontact-submit  { height: 50px; font-size: 16px; }
 }
