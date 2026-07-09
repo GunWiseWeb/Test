@@ -73,13 +73,31 @@ class _contact extends \IPS\Dispatcher\Controller
 			$this->addField( $form, $f, $preName, $preMail );
 		}
 
-		/* Honeypot — an invisible field that bots fill and humans
-		   don't. Rendered plainly here; hidden client-side via
-		   contact.css. Wrap in a name that reads plausible so
-		   naive bots pick it up. */
-		if ( (bool) \IPS\Settings::i()->gdcontact_honeypot_enabled )
+		/* Honeypot is NOT added to the IPS Form — IPS renders every
+		   Form\Text field labelled + visible, which defeats the
+		   entire trap. Instead we (a) intercept the raw POST value
+		   BEFORE $form->values() runs and silent-reject on match,
+		   and (b) inject the input as raw HTML wrapped in an
+		   off-screen container (position:absolute + left:-9999px +
+		   aria-hidden + tabindex=-1) right before rendering. Bots
+		   scanning the DOM see and fill a normal <input>; humans
+		   never see it. */
+		$honeypotEnabled = (bool) \IPS\Settings::i()->gdcontact_honeypot_enabled;
+		if ( $honeypotEnabled && ( $_SERVER['REQUEST_METHOD'] ?? '' ) === 'POST' )
 		{
-			$form->add( new \IPS\Helpers\Form\Text( 'gdcontact_hp_website', '', FALSE, [], null, null, null, 'gdcontact_hp_website' ) );
+			$hpRaw = '';
+			try { $hpRaw = trim( (string) ( \IPS\Request::i()->gdcontact_hp_website ?? '' ) ); }
+			catch ( \Throwable ) {}
+			if ( $hpRaw !== '' )
+			{
+				/* Silent success — bots don't get a validation
+				   error, they just move on thinking they scored. */
+				$_SESSION[ 'gdcontact_flash' ] = 'ok';
+				\IPS\Output::i()->redirect(
+					\IPS\Http\Url::internal( 'app=gdcontact&module=contact&controller=contact', 'front' )
+				);
+				return;
+			}
 		}
 
 		/* CAPTCHA — reads whatever the site has configured
@@ -95,19 +113,6 @@ class _contact extends \IPS\Dispatcher\Controller
 
 		if ( $values = $form->values() )
 		{
-			/* Silent-reject honeypot hits — bots don't get a
-			   validation error, just a fake "success" so they
-			   move on. */
-			$hp = trim( (string) ( $values['gdcontact_hp_website'] ?? '' ) );
-			if ( $hp !== '' )
-			{
-				$_SESSION[ $flashKey ] = 'ok';
-				\IPS\Output::i()->redirect(
-					\IPS\Http\Url::internal( 'app=gdcontact&module=contact&controller=contact', 'front' )
-				);
-				return;
-			}
-
 			$submitted = [];
 			foreach ( $fields as $f )
 			{
@@ -155,7 +160,31 @@ class _contact extends \IPS\Dispatcher\Controller
 				. '</div>';
 		}
 
-		$html .= '<div class="gdcontact-card">' . (string) $form . '</div>';
+		$formHtml = (string) $form;
+
+		/* Inject the honeypot INSIDE the <form> element so its
+		   value POSTs alongside the real inputs. Off-screen
+		   container + aria-hidden + tabindex=-1 hides it from
+		   humans and screen readers; real bots that scan the DOM
+		   still fill it. Inline styles as belt-and-suspenders in
+		   case contact.css didn't load. */
+		if ( $honeypotEnabled )
+		{
+			$honeypotHtml =
+				  '<div class="gdcontact-hp" aria-hidden="true" tabindex="-1"'
+				. ' style="position:absolute;left:-9999px;top:-9999px;height:0;width:0;overflow:hidden">'
+				.   '<label for="gdcontact-hp-website">' . $esc( (string) $lang->addToStack( 'gdcontact_hp_website' ) ) . '</label>'
+				.   '<input type="text" id="gdcontact-hp-website" name="gdcontact_hp_website" value=""'
+				.       ' autocomplete="off" tabindex="-1">'
+				. '</div>';
+			$injected = preg_replace( '#</form>#i', $honeypotHtml . '</form>', $formHtml, 1 );
+			if ( is_string( $injected ) && $injected !== $formHtml )
+			{
+				$formHtml = $injected;
+			}
+		}
+
+		$html .= '<div class="gdcontact-card">' . $formHtml . '</div>';
 		$html .= '</div>';
 
 		\IPS\Output::i()->title  = $title;

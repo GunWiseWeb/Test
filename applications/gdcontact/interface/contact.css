@@ -48,17 +48,23 @@
 	font-weight: 500;
 }
 
-/* Honeypot — visually hidden but retained in the tab order for
-   naive bots that scrape input names. Real users never see it. */
-.gr5 .gdcontact-wrap [name="gdcontact_hp_website"],
-.gr5 .gdcontact-wrap label[for="elInput_gdcontact_hp_website"],
-.gr5 .gdcontact-wrap li#form_gdcontact_hp_website {
+/* Honeypot — the input is injected as raw HTML inside the form
+   (not registered with IPS's Form helper) so IPS never renders
+   a label + wrapper for it. The container itself is already
+   off-screen via inline styles as a belt-and-suspenders, but
+   this rule keeps the ID/hover/focus states safe if the theme
+   ever tries to un-hide `position:absolute` elements. */
+.gr5 .gdcontact-hp,
+.gdcontact-hp {
 	position: absolute !important;
-	left: -10000px !important;
-	top: auto !important;
-	width: 1px !important;
-	height: 1px !important;
+	left: -9999px !important;
+	top: -9999px !important;
+	width: 0 !important;
+	height: 0 !important;
 	overflow: hidden !important;
+	visibility: hidden !important;
+	opacity: 0 !important;
+	pointer-events: none !important;
 }
 
 @media (max-width: 600px) {

@@ -81,4 +81,9 @@ $lang = [
 	'gdcontact_default_field_email'   => 'Email address',
 	'gdcontact_default_field_phone'   => 'Phone (optional)',
 	'gdcontact_default_field_message' => 'Message',
+
+	/* Honeypot label — rendered inside the off-screen container
+	   so real users never see it. Present so the raw key doesn't
+	   leak into DOM inspectors either. */
+	'gdcontact_hp_website' => 'Website',
 ];

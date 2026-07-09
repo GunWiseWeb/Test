@@ -75,5 +75,7 @@
 		<word key="gdcontact_default_field_email" js="0"><![CDATA[Email address]]></word>
 		<word key="gdcontact_default_field_phone" js="0"><![CDATA[Phone (optional)]]></word>
 		<word key="gdcontact_default_field_message" js="0"><![CDATA[Message]]></word>
+
+		<word key="gdcontact_hp_website" js="0"><![CDATA[Website]]></word>
 	</app>
 </language>
