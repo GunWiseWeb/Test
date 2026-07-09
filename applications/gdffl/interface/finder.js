@@ -131,15 +131,23 @@
 			? '<span class="gdffl-card__type">' + typeText + '</span>'
 			: '';
 
-		var phoneDigits = String(r.phone || '').replace(/[^0-9]/g, '');
+		/* Show the actual phone number as visible clickable text —
+		   desktop users can read/copy it, mobile users tap to dial.
+		   `formatPhone()` yields "(XXX) XXX-XXXX" when we have 10
+		   digits (or 11 with a leading 1); otherwise falls back to
+		   the raw voice_phone from ATF. The href strips every
+		   non-digit so `tel:` gets a clean number. */
+		var phoneDigits  = String(r.phone || '').replace(/[^0-9]/g, '');
+		var phoneDisplay = fmtPhone(r.phone);
 		var callBtn;
 		if (phoneDigits.length >= 10) {
-			callBtn = '<a class="gdffl-call" href="tel:' + escapeAttr(phoneDigits) + '"'
-				+ ' aria-label="Call ' + escapeAttr(biz) + '">'
-				+   iconPhone() + '<span>Call</span>'
+			callBtn = '<a class="gdffl-phone" href="tel:' + escapeAttr(phoneDigits) + '"'
+				+ ' aria-label="Call ' + escapeAttr(biz) + ' at ' + escapeAttr(phoneDisplay) + '">'
+				+   iconPhone()
+				+   '<span class="gdffl-phone__num">' + escapeHtml(phoneDisplay) + '</span>'
 				+ '</a>';
 		} else {
-			callBtn = '<span class="gdffl-call gdffl-call--none">' + escapeHtml(labels.no_phone || 'No phone on file') + '</span>';
+			callBtn = '<span class="gdffl-phone gdffl-phone--none">' + escapeHtml(labels.no_phone || 'No phone on file') + '</span>';
 		}
 
 		return '<div class="gdffl-card" role="listitem">'

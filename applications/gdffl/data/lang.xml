@@ -11,7 +11,7 @@
 		<word key="r__ffl_manage" js="0"><![CDATA[Manage FFL Finder]]></word>
 
 		<word key="gdffl_default_radius" js="0"><![CDATA[Default search radius (miles)]]></word>
-		<word key="gdffl_default_radius_desc" js="0"><![CDATA[Miles from the buyer's ZIP centroid used by the Stage 2 lookup.]]></word>
+		<word key="gdffl_default_radius_desc" js="0"><![CDATA[Miles from the buyer's ZIP location used by the Stage 2 lookup.]]></word>
 		<word key="gdffl_default_types" js="0"><![CDATA[Default license types shown]]></word>
 		<word key="gdffl_default_types_desc" js="0"><![CDATA[Comma-separated ATF LIC_TYPE codes counted as transfer-capable for the default view (e.g. 01,02).]]></word>
 		<word key="gdffl_delimiter" js="0"><![CDATA[CSV delimiter]]></word>
@@ -26,20 +26,20 @@
 		<word key="gdffl_acp_import_upload" js="0"><![CDATA[ATF FFL CSV file]]></word>
 		<word key="gdffl_acp_import_submit" js="0"><![CDATA[Queue import]]></word>
 		<word key="gdffl_acp_import_queued" js="0"><![CDATA[Import queued — %s rows to process. Track progress in the ACP queue.]]></word>
-		<word key="gdffl_acp_zipgeo_title" js="0"><![CDATA[ZIP centroid data]]></word>
-		<word key="gdffl_acp_zipgeo_load" js="0"><![CDATA[Load bundled ZIP centroid CSV]]></word>
-		<word key="gdffl_acp_zipgeo_intro" js="0"><![CDATA[Loads the bundled US Census ZCTA public-domain ZIP→lat/lng centroid CSV into gd_zip_geo. Chunked; safe to re-run.]]></word>
-		<word key="gdffl_acp_zipgeo_queued" js="0"><![CDATA[ZIP centroid load queued — %s rows to process.]]></word>
+		<word key="gdffl_acp_zipgeo_title" js="0"><![CDATA[ZIP location data]]></word>
+		<word key="gdffl_acp_zipgeo_load" js="0"><![CDATA[Load bundled ZIP location CSV]]></word>
+		<word key="gdffl_acp_zipgeo_intro" js="0"><![CDATA[Loads the bundled US Census ZCTA public-domain ZIP→lat/lng CSV into gd_zip_geo. Chunked; safe to re-run.]]></word>
+		<word key="gdffl_acp_zipgeo_queued" js="0"><![CDATA[ZIP location load queued — %s rows to process.]]></word>
 		<word key="gdffl_acp_last_import" js="0"><![CDATA[Last ATF import: %s rows imported, %s skipped, %s]]></word>
 
 		<word key="gdffl_queue_ffl" js="0"><![CDATA[Importing ATF FFL rows: %s of %s]]></word>
-		<word key="gdffl_queue_zipgeo" js="0"><![CDATA[Loading ZIP centroids: %s of %s]]></word>
+		<word key="gdffl_queue_zipgeo" js="0"><![CDATA[Loading ZIP locations: %s of %s]]></word>
 		<word key="gdffl_err_no_upload" js="0"><![CDATA[Please choose a CSV file to upload.]]></word>
 		<word key="gdffl_err_bad_file" js="0"><![CDATA[Could not read the uploaded file.]]></word>
 
 		<word key="module__front_finder" js="0"><![CDATA[FFL Finder]]></word>
 		<word key="gdffl_finder_title" js="0"><![CDATA[Find an FFL near you]]></word>
-		<word key="gdffl_finder_lead" js="0"><![CDATA[Enter your ZIP code to find licensed dealers who can receive a transfer for you. Distance is calculated from the ZIP centroid.]]></word>
+		<word key="gdffl_finder_lead" js="0"><![CDATA[Enter your ZIP code to find nearby dealers who can receive your transfer.]]></word>
 		<word key="gdffl_finder_zip" js="0"><![CDATA[Your ZIP code]]></word>
 		<word key="gdffl_finder_radius" js="0"><![CDATA[Within]]></word>
 		<word key="gdffl_finder_submit" js="0"><![CDATA[Find FFLs]]></word>
@@ -55,11 +55,11 @@
 		<word key="gdffl_finder_load_more" js="0"><![CDATA[Show more results]]></word>
 
 		<word key="gdffl_acp_zipgeo_upload" js="0"><![CDATA[Upload real Census ZCTA CSV]]></word>
-		<word key="gdffl_acp_zipgeo_upload_submit" js="0"><![CDATA[Upload ZIP centroid file]]></word>
+		<word key="gdffl_acp_zipgeo_upload_submit" js="0"><![CDATA[Upload ZIP location file]]></word>
 		<word key="gdffl_acp_zipgeo_load_hint" js="0"><![CDATA[Loads whatever CSV is currently on disk (uploaded copy preferred, then bundled placeholder).]]></word>
-		<word key="gdffl_err_no_zip_file" js="0"><![CDATA[No ZIP centroid file is on disk yet. Upload a real Census ZCTA CSV or drop one into applications/gdffl/data/zip_geo.csv first.]]></word>
+		<word key="gdffl_err_no_zip_file" js="0"><![CDATA[No ZIP location file is on disk yet. Upload a real Census ZCTA CSV or drop one into applications/gdffl/data/zip_geo.csv first.]]></word>
 		<word key="gdffl_import_running_ffl" js="0"><![CDATA[ATF FFL import running…]]></word>
-		<word key="gdffl_import_running_zip" js="0"><![CDATA[ZIP centroid import running…]]></word>
+		<word key="gdffl_import_running_zip" js="0"><![CDATA[ZIP location import running…]]></word>
 
 		<word key="gdffl_acp_import_file" js="0"><![CDATA[ATF FFL CSV file]]></word>
 		<word key="gdffl_acp_zipgeo_file" js="0"><![CDATA[Census ZCTA CSV file]]></word>
