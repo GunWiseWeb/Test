@@ -1,29 +1,368 @@
-/* GD FFL Finder — public finder page. Scoped `.gdffl-` prefix. */
-.gdffl-wrap{max-width:820px;margin:24px auto;padding:0 16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#0f172a}
-.gdffl-title{font-size:1.6em;font-weight:700;margin:0 0 6px}
-.gdffl-lead{color:#475569;margin:0 0 16px}
-.gdffl-form{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px;margin-bottom:16px}
-.gdffl-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
-.gdffl-row label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.92em;color:#334155}
-.gdffl-row input[type=text],.gdffl-row select{padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font:inherit;background:#fff;min-width:120px}
-.gdffl-btn{padding:9px 16px;border-radius:6px;border:none;background:#0f172a;color:#fff;font-weight:600;cursor:pointer;font-size:.95em}
-.gdffl-btn:hover{background:#1e293b}
-.gdffl-typewrap{margin-top:14px;padding-top:12px;border-top:1px solid #f1f5f9}
-.gdffl-typewrap summary{cursor:pointer;font-weight:600;font-size:.9em;color:#334155}
-.gdffl-typelist{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;margin:10px 0 6px}
-.gdffl-type{display:flex;align-items:center;gap:6px;font-size:.9em;color:#475569}
-.gdffl-alltypes{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:#0f172a;margin-top:4px}
-.gdffl-status{margin:10px 0;color:#475569;font-size:.95em}
-.gdffl-status--err{color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px}
-.gdffl-results{display:flex;flex-direction:column;gap:10px}
-.gdffl-card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start;justify-content:space-between}
-.gdffl-card__body{flex:1 1 auto;min-width:0}
-.gdffl-card__biz{font-weight:700;font-size:1.05em;color:#0f172a;margin:0 0 4px;overflow-wrap:anywhere}
-.gdffl-card__addr{color:#475569;font-size:.92em;line-height:1.4}
-.gdffl-card__meta{margin-top:6px;color:#64748b;font-size:.85em}
-.gdffl-card__meta a{color:#1e40af;text-decoration:none}
-.gdffl-card__meta a:hover{text-decoration:underline}
-.gdffl-card__type{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.75em;font-weight:700;letter-spacing:.03em;text-transform:uppercase;background:#e2e8f0;color:#334155;margin-right:6px}
-.gdffl-card__dist{flex:0 0 auto;text-align:right;font-weight:700;color:#0f172a;font-size:1em;white-space:nowrap}
-.gdffl-more{display:block;margin:14px auto 0;padding:8px 18px;border-radius:8px;border:1px dashed #cbd5e1;background:#fff;cursor:pointer;font:inherit;color:#334155}
-.gdffl-more:hover{background:#f8fafc}
+/*
+ * GD FFL Finder — public finder page (v1.0.10).
+ *
+ * Everything scoped under .gr5 .gdffl-wrap so nothing here can
+ * touch global selectors. CSS custom properties provide fallbacks
+ * to reasonable defaults; when the surrounding theme sets its own
+ * --i-* / --gr5-* palette those cascade in automatically.
+ */
+
+.gr5 .gdffl-wrap {
+	--gdffl-fg:        var(--i-color_hard,   #0f172a);
+	--gdffl-fg-muted:  var(--i-color_soft,   #475569);
+	--gdffl-fg-dim:    var(--i-color_meta,   #64748b);
+	--gdffl-bg:        var(--i-body_bg,      #ffffff);
+	--gdffl-surface:   var(--i-page_bg,      #ffffff);
+	--gdffl-border:    var(--i-color_grid_lines, #e5e7eb);
+	--gdffl-border-2:  var(--i-color_grid_lines_soft, #f1f5f9);
+	--gdffl-accent:    var(--i-color_primary, #1d4ed8);
+	--gdffl-accent-fg: #ffffff;
+	--gdffl-radius:    var(--i-radius, 10px);
+	--gdffl-radius-sm: 6px;
+	--gdffl-shadow:    0 1px 2px rgba( 15, 23, 42, 0.04 );
+	--gdffl-shadow-hi: 0 4px 12px rgba( 15, 23, 42, 0.08 );
+
+	box-sizing: border-box;
+	max-width: 860px;
+	margin: 24px auto;
+	padding: 0 16px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	color: var( --gdffl-fg );
+}
+.gr5 .gdffl-wrap *,
+.gr5 .gdffl-wrap *::before,
+.gr5 .gdffl-wrap *::after { box-sizing: inherit; }
+
+/* --- Header ------------------------------------------------- */
+
+.gr5 .gdffl-title {
+	font-size: 1.6em;
+	font-weight: 700;
+	margin: 0 0 4px;
+	color: var( --gdffl-fg );
+}
+.gr5 .gdffl-lead {
+	color: var( --gdffl-fg-muted );
+	margin: 0 0 18px;
+	font-size: 0.95em;
+	line-height: 1.5;
+}
+
+/* --- Search form ------------------------------------------- */
+
+.gr5 .gdffl-form {
+	background: var( --gdffl-surface );
+	border: 1px solid var( --gdffl-border );
+	border-radius: var( --gdffl-radius );
+	padding: 16px 18px;
+	margin-bottom: 18px;
+	box-shadow: var( --gdffl-shadow );
+}
+.gr5 .gdffl-row {
+	display: flex;
+	gap: 12px;
+	align-items: flex-end;
+	flex-wrap: wrap;
+}
+.gr5 .gdffl-row label {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-weight: 600;
+	font-size: 0.88em;
+	color: var( --gdffl-fg-muted );
+	flex: 1 1 140px;
+	min-width: 0;
+}
+.gr5 .gdffl-row input[ type=text ],
+.gr5 .gdffl-row select {
+	padding: 10px 12px;
+	border: 1px solid var( --gdffl-border );
+	border-radius: var( --gdffl-radius-sm );
+	font: inherit;
+	background: var( --gdffl-bg );
+	color: var( --gdffl-fg );
+	min-height: 42px;
+	width: 100%;
+}
+.gr5 .gdffl-row input[ type=text ]:focus,
+.gr5 .gdffl-row select:focus {
+	outline: 2px solid var( --gdffl-accent );
+	outline-offset: -1px;
+	border-color: var( --gdffl-accent );
+}
+.gr5 .gdffl-btn {
+	padding: 10px 20px;
+	border-radius: var( --gdffl-radius-sm );
+	border: none;
+	background: var( --gdffl-accent );
+	color: var( --gdffl-accent-fg );
+	font-weight: 600;
+	cursor: pointer;
+	font-size: 0.95em;
+	min-height: 42px;
+	flex: 0 0 auto;
+	transition: filter .15s ease;
+}
+.gr5 .gdffl-btn:hover { filter: brightness( 1.08 ); }
+.gr5 .gdffl-btn:active { filter: brightness( 0.95 ); }
+
+.gr5 .gdffl-typewrap {
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid var( --gdffl-border-2 );
+}
+.gr5 .gdffl-typewrap > summary {
+	cursor: pointer;
+	font-weight: 600;
+	font-size: 0.9em;
+	color: var( --gdffl-fg-muted );
+	list-style: revert;
+	padding: 4px 0;
+}
+.gr5 .gdffl-typelist {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 200px, 1fr ) );
+	gap: 6px 12px;
+	margin: 10px 0 6px;
+}
+.gr5 .gdffl-type {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.9em;
+	color: var( --gdffl-fg-muted );
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.gr5 .gdffl-alltypes {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+	color: var( --gdffl-fg );
+	margin-top: 6px;
+	font-size: 0.9em;
+}
+
+/* --- Status / count header --------------------------------- */
+
+.gr5 .gdffl-count {
+	margin: 6px 0 12px;
+	color: var( --gdffl-fg );
+	font-size: 0.95em;
+	font-weight: 600;
+}
+.gr5 .gdffl-count b { font-weight: 700; }
+
+.gr5 .gdffl-status {
+	margin: 8px 0;
+	color: var( --gdffl-fg-muted );
+	font-size: 0.95em;
+	padding: 0;
+}
+.gr5 .gdffl-status--err {
+	color: #991b1b;
+	background: #fef2f2;
+	border: 1px solid #fecaca;
+	border-radius: var( --gdffl-radius-sm );
+	padding: 10px 12px;
+}
+.gr5 .gdffl-status--empty {
+	color: var( --gdffl-fg-muted );
+	background: var( --gdffl-border-2 );
+	border-radius: var( --gdffl-radius-sm );
+	padding: 14px 16px;
+	text-align: center;
+	font-size: 0.95em;
+}
+.gr5 .gdffl-status--loading::after {
+	content: "";
+	display: inline-block;
+	width: 0.9em;
+	height: 0.9em;
+	margin-left: 6px;
+	vertical-align: -2px;
+	border: 2px solid var( --gdffl-border );
+	border-top-color: var( --gdffl-fg-muted );
+	border-radius: 50%;
+	animation: gdffl-spin 0.7s linear infinite;
+}
+@keyframes gdffl-spin { to { transform: rotate( 360deg ); } }
+
+/* --- Result cards ------------------------------------------ */
+
+.gr5 .gdffl-results {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.gr5 .gdffl-card {
+	background: var( --gdffl-surface );
+	border: 1px solid var( --gdffl-border );
+	border-radius: var( --gdffl-radius );
+	padding: 14px 16px;
+	box-shadow: var( --gdffl-shadow );
+	transition: box-shadow .15s ease, transform .15s ease;
+}
+.gr5 .gdffl-card:hover {
+	box-shadow: var( --gdffl-shadow-hi );
+	transform: translateY( -1px );
+}
+
+.gr5 .gdffl-card__head {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	margin-bottom: 6px;
+}
+.gr5 .gdffl-card__name {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	font-size: 1.05em;
+	font-weight: 700;
+	color: var( --gdffl-fg );
+	line-height: 1.3;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+.gr5 .gdffl-card__addr {
+	color: var( --gdffl-fg-muted );
+	font-size: 0.92em;
+	line-height: 1.45;
+	margin: 0 0 12px;
+}
+
+.gr5 .gdffl-card__actions {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	flex-wrap: wrap;
+	justify-content: space-between;
+}
+.gr5 .gdffl-card__actions-left {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	flex-wrap: wrap;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* Pills — distance is the prominent sort signal, type is muted. */
+.gr5 .gdffl-pill {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: 0.78em;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	line-height: 1.4;
+	white-space: nowrap;
+}
+.gr5 .gdffl-pill--type {
+	background: var( --gdffl-border-2 );
+	color: var( --gdffl-fg-muted );
+	text-transform: uppercase;
+	font-size: 0.72em;
+}
+.gr5 .gdffl-pill--distance {
+	background: var( --gdffl-fg );
+	color: var( --gdffl-accent-fg );
+	font-size: 0.85em;
+	padding: 4px 12px;
+}
+
+/* Call button — real anchor, styled as a button. Tap-target 44px+. */
+.gr5 .gdffl-call {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 14px;
+	min-height: 40px;
+	border-radius: var( --gdffl-radius-sm );
+	background: var( --gdffl-accent );
+	color: var( --gdffl-accent-fg );
+	font-weight: 600;
+	font-size: 0.9em;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: filter .15s ease;
+}
+.gr5 .gdffl-call:hover  { filter: brightness( 1.08 ); text-decoration: none; }
+.gr5 .gdffl-call:active { filter: brightness( 0.95 ); }
+.gr5 .gdffl-call__icon {
+	display: inline-block;
+	font-size: 1em;
+	line-height: 1;
+}
+.gr5 .gdffl-call--none {
+	background: transparent;
+	color: var( --gdffl-fg-dim );
+	font-weight: 500;
+	font-size: 0.85em;
+	padding: 8px 4px;
+	cursor: default;
+}
+
+/* --- Load more --------------------------------------------- */
+
+.gr5 .gdffl-more {
+	display: block;
+	margin: 16px auto 0;
+	padding: 10px 22px;
+	min-height: 44px;
+	border-radius: var( --gdffl-radius-sm );
+	border: 1px solid var( --gdffl-border );
+	background: var( --gdffl-surface );
+	cursor: pointer;
+	font: inherit;
+	font-weight: 600;
+	color: var( --gdffl-fg );
+	transition: background .15s ease;
+}
+.gr5 .gdffl-more:hover { background: var( --gdffl-border-2 ); }
+
+/* --- Mobile (≤ 640px) -------------------------------------- */
+
+@media ( max-width: 640px ) {
+	.gr5 .gdffl-wrap { margin: 12px auto; padding: 0 12px; }
+	.gr5 .gdffl-title { font-size: 1.4em; }
+	.gr5 .gdffl-form { padding: 14px; }
+	.gr5 .gdffl-row { flex-direction: column; align-items: stretch; gap: 10px; }
+	.gr5 .gdffl-row label { flex: 1 1 auto; }
+	.gr5 .gdffl-btn { width: 100%; padding: 12px 16px; }
+	.gr5 .gdffl-card__head { gap: 10px; }
+	.gr5 .gdffl-card__actions { gap: 10px; }
+	.gr5 .gdffl-call {
+		flex: 1 1 auto;
+		justify-content: center;
+		min-height: 44px;
+		font-size: 1em;
+	}
+	.gr5 .gdffl-typelist {
+		grid-template-columns: repeat( auto-fill, minmax( 160px, 1fr ) );
+	}
+}
+
+/* --- Dark mode --------------------------------------------- */
+
+@media ( prefers-color-scheme: dark ) {
+	.gr5 .gdffl-wrap:not( [ data-theme="light" ] ) {
+		--gdffl-fg:        #f1f5f9;
+		--gdffl-fg-muted:  #cbd5e1;
+		--gdffl-fg-dim:    #94a3b8;
+		--gdffl-bg:        #0f172a;
+		--gdffl-surface:   #1e293b;
+		--gdffl-border:    #334155;
+		--gdffl-border-2: #1e293b;
+	}
+	.gr5 .gdffl-wrap:not( [ data-theme="light" ] ) .gdffl-pill--distance {
+		background: #f1f5f9;
+		color: #0f172a;
+	}
+}

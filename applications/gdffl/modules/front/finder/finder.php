@@ -139,7 +139,10 @@ class _finder extends \IPS\Dispatcher\Controller
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
 		$html  = '<script type="application/json" id="gdffl-finder-init">' . $init . '</script>';
-		$html .= '<div class="gdffl-wrap">';
+		/* The wrapper carries `.gr5` so finder.css's IPS-5-scoped
+		   selectors (`.gr5 .gdffl-*`) apply even when the outer
+		   theme chrome isn't already namespaced with it. */
+		$html .= '<div class="gr5 gdffl-wrap">';
 		$html .= '<h1 class="gdffl-title">' . $L( 'gdffl_finder_title' ) . '</h1>';
 		$html .= '<p class="gdffl-lead">' . $L( 'gdffl_finder_lead' ) . '</p>';
 
@@ -156,6 +159,7 @@ class _finder extends \IPS\Dispatcher\Controller
 			. '</details>'
 			. '</form>';
 
+		$html .= '<div class="gdffl-count" id="gdfflCount" hidden></div>';
 		$html .= '<div class="gdffl-status" id="gdfflStatus"></div>';
 		$html .= '<div class="gdffl-results" id="gdfflResults" role="list"></div>';
 		$html .= '<button type="button" class="gdffl-more" id="gdfflMore" hidden>' . $L( 'gdffl_finder_load_more' ) . '</button>';
