@@ -1,12 +1,72 @@
 /*
- * GD Contact — public /contact-us/ page (v1.0.4).
+ * GD Contact — public /contact-us/ page (v1.0.5).
  *
  * All fields render as custom HTML from gd_contact_fields
  * (contact.php), so this file no longer needs to reset IPS's
  * form chrome. Palette is explicit hex — no theme dependency.
  * No attribute selectors anywhere (whitespace-in-brackets bit
  * gdffl multiple times).
+ *
+ * v1.0.5 adds a scoped "strip the outer IPS content panel"
+ * block. IPS's default content template wraps every non-app-
+ * templated output in a full-width white .ipsBox / .ipsBox_body
+ * so our custom card sat inside a second white background.
+ * We neutralise the outer chrome using two independent scopes
+ * so it works in every browser:
+ *   * body.gdcontact-page   — set from the controller
+ *     (\IPS\Output::i()->bodyClasses[] = 'gdcontact-page')
+ *   * :has(.gdcontact-wrap) — modern browsers only, but a
+ *     surer target if the body class ever falls out
+ * Together they ensure the outer panel is neutralised ONLY on
+ * /contact-us/ — every other page's content panel is
+ * untouched.
  */
+
+/* --- Strip IPS's default outer content panel ---------------- *
+ *
+ * Two independent scopes — either alone is enough; both together
+ * make this bullet-proof:
+ *
+ *   (a) body.gdcontact-page — set from the controller. Targets
+ *       the whole layout tree top-down so we can neutralise the
+ *       usual suspects (.ipsBox, .ipsBox_body, .ipsPad, the
+ *       main-area wrapper).
+ *   (b) .ipsBox:has(.gdcontact-wrap) — modern-browser-only DOM
+ *       matcher; catches an outer panel by its content even if
+ *       (a) somehow fails. Safe to combine — no other page
+ *       contains .gdcontact-wrap.
+ *
+ * Nothing here touches other pages: without .gdcontact-page on
+ * the body AND without .gdcontact-wrap inside a box, none of
+ * these selectors match.
+ */
+body.gdcontact-page #ipsLayout_mainArea,
+body.gdcontact-page #ipsLayout_mainArea > .ipsBox,
+body.gdcontact-page #ipsLayout_mainArea > .ipsColumn,
+body.gdcontact-page #ipsLayout_mainArea > article,
+body.gdcontact-page .ipsBox,
+body.gdcontact-page .ipsBox_body,
+body.gdcontact-page .ipsBox_container,
+body.gdcontact-page .ipsPad,
+body.gdcontact-page .ipsPad_double,
+body.gdcontact-page .ipsAreaBackground,
+body.gdcontact-page .ipsAreaBackground_light,
+.ipsBox:has( .gdcontact-wrap ),
+.ipsBox:has( > .gdcontact-wrap ),
+.ipsBox_body:has( .gdcontact-wrap ),
+.ipsPad:has( .gdcontact-wrap ),
+.ipsAreaBackground:has( .gdcontact-wrap ),
+.ipsAreaBackground_light:has( .gdcontact-wrap ) {
+	background: transparent !important;
+	background-color: transparent !important;
+	background-image: none !important;
+	border: 0 !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+	margin: 0 !important;
+}
+
+/* --- Base wrap ---------------------------------------------- */
 
 .gr5 .gdcontact-wrap {
 	box-sizing: border-box;

@@ -220,6 +220,28 @@ class _contact extends \IPS\Dispatcher\Controller
 			'front'
 		);
 
+		/* Mark the whole document as the contact page so contact.css
+		   can scope its "strip the outer IPS content panel" rules to
+		   THIS page only — nothing site-wide gets touched. Also
+		   disable the front sidebar so the card can center on the
+		   full viewport width. Both writes are wrapped in try/catch
+		   because a hardened theme could redefine the property away. */
+		try
+		{
+			$existing = (array) ( \IPS\Output::i()->bodyClasses ?? [] );
+			if ( !in_array( 'gdcontact-page', $existing, TRUE ) )
+			{
+				$existing[] = 'gdcontact-page';
+				\IPS\Output::i()->bodyClasses = $existing;
+			}
+		}
+		catch ( \Throwable ) {}
+		try
+		{
+			\IPS\Output::i()->sidebar['enabled'] = FALSE;
+		}
+		catch ( \Throwable ) {}
+
 		$iconMail =
 			'<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
 			. '<rect width="20" height="16" x="2" y="4" rx="2"/>'
@@ -231,7 +253,11 @@ class _contact extends \IPS\Dispatcher\Controller
 			. '<polygon points="22 2 15 22 11 13 2 9 22 2"/>'
 			. '</svg>';
 
-		$html  = '<div class="gr5 gdcontact-wrap">';
+		/* .gdcontact-page is a defensive fallback — some themes drop
+		   the <body> classes on template compile, so having the
+		   scope class on the wrapper too guarantees contact.css can
+		   still target this page. */
+		$html  = '<div class="gr5 gdcontact-wrap gdcontact-page">';
 
 		if ( $successFlag )
 		{
