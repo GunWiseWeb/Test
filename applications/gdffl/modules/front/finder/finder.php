@@ -137,10 +137,20 @@ class _finder extends \IPS\Dispatcher\Controller
 		$defaultTypes  = $this->transferCapableTypes();
 
 		$typeRows = '';
+		/* Filter chips replace the old checkbox grid — same underlying
+		   values, but each type is a <button role="checkbox">
+		   toggled by finder.js. `data-value` holds the ATF LIC_TYPE
+		   code; `data-active` is flipped by JS and controls the
+		   `.is-active` visual state. Defaults preselect the
+		   transfer-capable codes (01, 02). */
 		foreach ( self::LIC_TYPE_LABELS as $code => $label )
 		{
-			$checked = in_array( $code, $defaultTypes, TRUE ) ? ' checked' : '';
-			$typeRows .= '<label class="gdffl-type"><input type="checkbox" name="type" value="' . $esc( $code ) . '"' . $checked . '> ' . $esc( $code ) . ' — ' . $esc( $label ) . '</label>';
+			$active = in_array( $code, $defaultTypes, TRUE );
+			$typeRows .= '<button type="button" class="gdffl-chip' . ( $active ? ' is-active' : '' ) . '"'
+				. ' role="checkbox" aria-checked="' . ( $active ? 'true' : 'false' ) . '"'
+				. ' data-role="type" data-value="' . $esc( $code ) . '">'
+				. $esc( $code ) . ' · ' . $esc( $label )
+				. '</button>';
 		}
 
 		$radiusOpts = '';
@@ -167,44 +177,81 @@ class _finder extends \IPS\Dispatcher\Controller
 			],
 		], JSON_HEX_TAG | JSON_HEX_AMP );
 
+		/* Inline SVGs — no external icon CDN dependency. */
+		$iconPin =
+			'<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+			. '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0Z"/>'
+			. '<circle cx="12" cy="10" r="3"/>'
+			. '</svg>';
+		$iconSearch =
+			'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+			. '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'
+			. '</svg>';
+		$iconSearchSmall =
+			'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+			. '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'
+			. '</svg>';
+
 		$html  = '<script type="application/json" id="gdffl-finder-init">' . $init . '</script>';
-		/* The wrapper carries `.gr5` so finder.css's IPS-5-scoped
-		   selectors (`.gr5 .gdffl-*`) apply even when the outer
-		   theme chrome isn't already namespaced with it. */
+		/* The wrapper carries `.gr5` so finder.css's `.gr5 .gdffl-*`
+		   selectors apply even when the surrounding theme chrome
+		   isn't already namespaced with it. */
 		$html .= '<div class="gr5 gdffl-wrap">';
-		$html .= '<h1 class="gdffl-title">' . $L( 'gdffl_finder_title' ) . '</h1>';
-		$html .= '<p class="gdffl-lead">' . $L( 'gdffl_finder_lead' ) . '</p>';
+		$html .= '<div class="gdffl-shell">';
 
-		/* Structured .gdffl-field wrappers so the label sits above
-		   each control and the CSS class-based selectors
-		   (.gdffl-input) can style the inputs reliably — no
-		   attribute selectors, which v1.0.10/.11 tripped over
-		   because CSS treats `input[ type=text ]` (with inner
-		   spaces) as invalid and silently discards the rule. */
-		$html .= '<form class="gdffl-form" id="gdfflForm">'
-			. '<div class="gdffl-row">'
-			.   '<div class="gdffl-field gdffl-field--zip">'
-			.     '<label class="gdffl-field-label" for="gdffl-zip">' . $L( 'gdffl_finder_zip' ) . '</label>'
-			.     '<input class="gdffl-input" id="gdffl-zip" type="text" inputmode="numeric" maxlength="10" pattern="[0-9\-]*" placeholder="e.g. 61938" autocomplete="postal-code" required>'
-			.   '</div>'
-			.   '<div class="gdffl-field gdffl-field--radius">'
-			.     '<label class="gdffl-field-label" for="gdffl-radius">' . $L( 'gdffl_finder_radius' ) . '</label>'
-			.     '<select id="gdffl-radius">' . $radiusOpts . '</select>'
-			.   '</div>'
-			.   '<button type="submit" class="gdffl-btn">' . $L( 'gdffl_finder_submit' ) . '</button>'
-			. '</div>'
-			. '<details class="gdffl-typewrap">'
-			.   '<summary>' . $L( 'gdffl_finder_types' ) . '</summary>'
-			.   '<div class="gdffl-typelist">' . $typeRows . '</div>'
-			.   '<label class="gdffl-alltypes"><input type="checkbox" id="gdffl-alltypes"> ' . $L( 'gdffl_finder_all_types' ) . '</label>'
-			. '</details>'
-			. '</form>';
+		/* Header band — navy background, pin icon, title + sub. */
+		$html .= '<div class="gdffl-header">';
+		$html .= '<div class="gdffl-header__row">';
+		$html .= '<span class="gdffl-header__icon">' . $iconPin . '</span>';
+		$html .= '<h1 class="gdffl-header__title">' . $L( 'gdffl_finder_title' ) . '</h1>';
+		$html .= '</div>';
+		$html .= '<div class="gdffl-header__sub">' . $L( 'gdffl_finder_lead' ) . '</div>';
+		$html .= '</div>';
 
+		/* Search panel — light bg, sits flush under header. */
+		$html .= '<form class="gdffl-panel" id="gdfflForm">';
+		$html .= '<div class="gdffl-row">';
+
+		$html .= '<div class="gdffl-field gdffl-field--zip">';
+		$html .= '<label class="gdffl-field-label" for="gdffl-zip">' . $L( 'gdffl_finder_zip' ) . '</label>';
+		$html .= '<div class="gdffl-input-wrap">';
+		$html .= '<span class="gdffl-input-wrap__icon">' . $iconSearchSmall . '</span>';
+		$html .= '<input class="gdffl-input" id="gdffl-zip" type="text" inputmode="numeric" maxlength="10" pattern="[0-9\-]*" placeholder="e.g. 61938" autocomplete="postal-code" required>';
+		$html .= '</div>';
+		$html .= '</div>';
+
+		$html .= '<div class="gdffl-field gdffl-field--radius">';
+		$html .= '<label class="gdffl-field-label" for="gdffl-radius">' . $L( 'gdffl_finder_radius' ) . '</label>';
+		$html .= '<select id="gdffl-radius">' . $radiusOpts . '</select>';
+		$html .= '</div>';
+
+		$html .= '<button type="submit" class="gdffl-btn">';
+		$html .= '<span aria-hidden="true">' . $iconSearch . '</span>';
+		$html .= '<span>' . $L( 'gdffl_finder_submit' ) . '</span>';
+		$html .= '</button>';
+
+		$html .= '</div>';
+
+		/* Filter chips row — type filter + "Show all types" toggle. */
+		$html .= '<div class="gdffl-chips" id="gdfflChips">';
+		$html .= '<span class="gdffl-chips__hint">' . $L( 'gdffl_finder_types' ) . ':</span>';
+		$html .= $typeRows;
+		$html .= '<button type="button" class="gdffl-chip" role="checkbox" aria-checked="false" data-role="alltypes" id="gdffl-alltypes">'
+			. $L( 'gdffl_finder_all_types' )
+			. '</button>';
+		$html .= '</div>';
+
+		$html .= '</form>';
+
+		/* Results wrap — white bg, bottom corners rounded. */
+		$html .= '<div class="gdffl-results-wrap">';
 		$html .= '<div class="gdffl-count" id="gdfflCount" hidden></div>';
 		$html .= '<div class="gdffl-status" id="gdfflStatus"></div>';
 		$html .= '<div class="gdffl-results" id="gdfflResults" role="list"></div>';
 		$html .= '<button type="button" class="gdffl-more" id="gdfflMore" hidden>' . $L( 'gdffl_finder_load_more' ) . '</button>';
-		$html .= '</div>';
+		$html .= '</div>';        /* /gdffl-results-wrap */
+		$html .= '</div>';        /* /gdffl-shell */
+		$html .= '</div>';        /* /gdffl-wrap */
 
 		\IPS\Output::i()->title  = $lang->addToStack( 'gdffl_finder_title' );
 		\IPS\Output::i()->output = $html;
