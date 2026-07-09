@@ -513,24 +513,27 @@ class _results extends \IPS\Dispatcher\Controller
             try { \IPS\Log::log( 'gdsearch reviews tab: ' . $e->getMessage(), 'gdsearch_reviews' ); } catch ( \Throwable ) {}
         }
 
-        /* v1.0.83 — Stage 3 FFL finder panel. Fetch the collapsible
-           "Find an FFL to receive your transfer" panel from gdffl.
-           Same triple-guard pattern as gdreviews above so a missing
-           / broken gdffl can never break the product page. Always
-           rendered when gdffl is present (no firearm heuristic —
-           ammo and other transfer-required items also benefit). */
-        $fflPanelHtml = '';
+        /* v1.0.84 — Stage 3 FFL locator. Fetch the compact
+           "Find an FFL" button + modal from gdffl. The button
+           renders in the price-comparison chart header (top-
+           right, by the sort control); clicking it opens a
+           modal that runs the same FFL search inline. Same
+           triple-guard pattern as gdreviews so a missing /
+           broken / disabled gdffl can never break the product
+           page. Always rendered when gdffl is present — no
+           firearm heuristic. */
+        $fflLocatorHtml = '';
         try
         {
             if ( class_exists( '\IPS\gdffl\Finder\Panel' )
-                && method_exists( '\IPS\gdffl\Finder\Panel', 'render' ) )
+                && method_exists( '\IPS\gdffl\Finder\Panel', 'renderButton' ) )
             {
-                $fflPanelHtml = (string) \IPS\gdffl\Finder\Panel::render( $upc );
+                $fflLocatorHtml = (string) \IPS\gdffl\Finder\Panel::renderButton( $upc );
             }
         }
         catch ( \Throwable $e )
         {
-            try { \IPS\Log::log( 'gdsearch ffl panel: ' . $e->getMessage(), 'gdsearch_ffl' ); } catch ( \Throwable ) {}
+            try { \IPS\Log::log( 'gdsearch ffl locator: ' . $e->getMessage(), 'gdsearch_ffl' ); } catch ( \Throwable ) {}
         }
 
         \IPS\Output::i()->title = (string) ( $product['title'] ?? $upc );
@@ -542,7 +545,7 @@ class _results extends \IPS\Dispatcher\Controller
             $listingReportUrl, $listingReportLoggedIn, $listingReportCsrfKey, $listingReportLoginUrl,
             $offersSort, $sortOptions, $sortBaseUrl, $restrictionRows, $advisoryRows,
             $reviewsHtml, $reviewCount, $reviewRating,
-            $fflPanelHtml
+            $fflLocatorHtml
         );
     }
 

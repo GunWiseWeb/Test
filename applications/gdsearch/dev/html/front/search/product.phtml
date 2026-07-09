@@ -1,4 +1,4 @@
-<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl='', $restrictionRows=array(), $advisoryRows=array(), $reviewsHtml='', $reviewCount=0, $reviewRating=null, $fflPanelHtml=''" />
+<ips:template parameters="$product, $listings, $categoryName, $backUrl, $restrictedStatesStr, $priceChartSvg, $priceChartJson, $priceAllTimeLow, $alertLoggedIn, $alertThreshold, $alertSetUrl, $alertCancelUrl, $alertCsrfKey, $alertCurrent, $alertLoginUrl, $wishLoggedIn, $wishlisted, $wishAddUrl, $wishRemoveUrl, $wishLoginUrl, $wishCsrfKey, $reportLoggedIn, $reportUrl, $reportLoginUrl, $reportCsrfKey, $listingReportUrl='', $listingReportLoggedIn=false, $listingReportCsrfKey='', $listingReportLoginUrl='', $offersSort='standard', $sortOptions=array(), $sortBaseUrl='', $restrictionRows=array(), $advisoryRows=array(), $reviewsHtml='', $reviewCount=0, $reviewRating=null, $fflLocatorHtml=''" />
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 .gdsp-wrap{width:100%;margin:0;padding:18px;box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#0f172a}
@@ -324,6 +324,7 @@
 	<div class="gdsp-tabpanel gdsp-tabpanel--active" id="gdsp-tab-prices" role="tabpanel">
 	<div class="gdsp-card" id="gdsp-listings" style="overflow:hidden">
 		<div class="gdsp-listhead">
+			{{if $fflLocatorHtml}}<div style="float:right;margin-left:12px">{$fflLocatorHtml|raw}</div>{{endif}}
 			<h2 style="margin:0;font-size:1.05em;font-weight:600;color:#0f172a">{lang="gdsearch_price_comparison"} <span style="font-weight:400;color:#94a3b8;font-size:0.9em">({expression="count($listings)"} {lang="gdsearch_dealers"})</span></h2>
 			{{if count($listings) > 1}}
 			<div class="gdsp-sort">
@@ -400,7 +401,6 @@
 		</div>
 		{{endif}}
 	</div>
-	{{if $fflPanelHtml}}{$fflPanelHtml|raw}{{endif}}
 	</div><!-- /gdsp-tab-prices -->
 
 	<div class="gdsp-tabpanel" id="gdsp-tab-reviews" role="tabpanel">

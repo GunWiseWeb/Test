@@ -1,30 +1,31 @@
 <?php
 /**
- * @brief  GD Search — upgrade 1.0.83 (Stage 3 FFL finder embed).
+ * @brief  GD Search — upgrade 1.0.84 (Stage 3 FFL locator button).
  *
- * WHAT SHIPS IN 1.0.83:
+ * WHAT SHIPS IN 1.0.84:
  *
- *   * Product page (product.phtml) template accepts a new
- *     $fflPanelHtml parameter and outputs it at the bottom of
- *     the "Prices" tab, directly below the dealer offers card.
- *   * results.php product() reads the FFL panel HTML via a
- *     triple-guarded call to \IPS\gdffl\Finder\Panel::render()
- *     (class_exists + method_exists + try/catch) — mirrors the
- *     v1.0.82 gdreviews pattern exactly. A missing / broken /
- *     disabled gdffl app leaves $fflPanelHtml as '' and the
- *     product page renders unchanged.
+ *   * Product page (product.phtml) template parameter renamed
+ *     $fflPanelHtml → $fflLocatorHtml. The BELOW-offers panel
+ *     output from v1.0.83 is REMOVED; the button now floats
+ *     top-right of the price-comparison chart header, next to
+ *     the sort control. Everything else (offers table, sort,
+ *     reviews tab, restrictions, chart, alerts, wishlist) is
+ *     byte-identical to v1.0.83.
+ *   * results.php product() reads the locator HTML via a
+ *     triple-guarded call to
+ *       \IPS\gdffl\Finder\Panel::renderButton( $upc )
+ *     — mirrors the v1.0.82 gdreviews pattern exactly. A
+ *     missing / broken / disabled gdffl leaves
+ *     $fflLocatorHtml as '' and the product page renders
+ *     unchanged (button simply absent).
  *   * Template reseed via the existing templates_10046.php
  *     overlay (rule #53 convention).
  *
- * No new lang keys. No schema. All price-comparison / sort /
- * chart / alerts / wishlist / reviews-tab / restriction rows
- * from v1.0.82 are byte-identical.
- *
- * Rule #79 — the app has exactly ONE upg_* dir at a time; the
- * v1.0.82 dir was removed as part of this bump.
+ * Rule #79 — exactly one upg_* dir at a time; the v1.0.83 dir
+ * was removed as part of this bump.
  */
 
-namespace IPS\gdsearch\setup\upg_10083;
+namespace IPS\gdsearch\setup\upg_10084;
 
 use function defined;
 use function function_exists;
@@ -40,12 +41,9 @@ class _upgrade
 	public function step1(): bool
 	{
 		/* Re-seed the product template from the current
-		   dev/html/front/search/product.phtml (which now
-		   declares $fflPanelHtml in its <ips:template
-		   parameters=…> header and outputs it at the tail of
-		   the prices tab). templates_10046.php is the
-		   canonical overlay for the product template — see
-		   rule #53 for the pattern. */
+		   dev/html/front/search/product.phtml (now declares
+		   $fflLocatorHtml in its <ips:template parameters=…>
+		   header and renders the button in the chart header). */
 		try
 		{
 			$overlay = \IPS\ROOT_PATH . '/applications/gdsearch/setup/templates_10046.php';
@@ -56,7 +54,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'gdsearch upg_10083 template reseed: ' . $e->getMessage(), 'gdsearch' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'gdsearch upg_10084 template reseed: ' . $e->getMessage(), 'gdsearch' ); } catch ( \Throwable ) {}
 		}
 
 		/* Cache purge. */

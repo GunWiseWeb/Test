@@ -1,30 +1,28 @@
 <?php
 /**
- * @brief  GD FFL Finder — embeddable product-page panel (Stage 3).
+ * @brief  GD FFL Finder — embeddable "Find an FFL" button + modal (Stage 3).
  *
- * gdsearch's product page calls `\IPS\gdffl\Finder\Panel::render($upc)`
- * from a guarded try/catch (mirrors the gdreviews shared-render
- * pattern). This class returns a collapsible "Find an FFL to
- * receive your transfer" panel that reuses the finder's own
- * search endpoint + card markup.
+ * v1.0.16 replaces v1.0.15's collapsible below-offers panel
+ * with a compact button that lives in the price-comparison
+ * chart header (top-right, by the sort control). Clicking it
+ * opens a modal — same search endpoint, same result-card
+ * design — so the buyer finds a transfer FFL without leaving
+ * the product page AND the price comparison stays uncluttered.
  *
- * The returned HTML is fully self-contained:
- *   - enqueues finder.css so the .gr5 .gdffl-* styles apply
- *   - includes an inline <script> block that handles this
- *     panel's search + render (kept small; standalone
- *     interface/finder.js already handles /ffl-finder itself)
- *   - reads/writes the last ZIP under localStorage key
- *     'gdffl_zip' — same key the standalone finder uses, so
- *     the two flows stay in sync
- *   - links to /ffl-finder for the full experience
+ * gdsearch calls \IPS\gdffl\Finder\Panel::renderButton( $upc )
+ * from a triple-guarded try/catch (mirrors the v1.0.82
+ * gdreviews shared-render pattern). A missing / broken /
+ * disabled gdffl leaves $fflLocatorHtml as '' → the button
+ * simply doesn't render and the page is unaffected.
  *
- * Always shown — no firearm-only heuristic — so buyers looking
- * at ammo, receivers, or other transfer-required items also see
- * the panel.
+ * `render()` is kept around as a no-op returning '' so a
+ * gdsearch install still on v1.0.83 (which called ::render())
+ * doesn't error while both apps are being upgraded in the
+ * same maintenance window.
  *
- * gd_ffl / gd_zip_geo are read exclusively through the existing
- * do=search JSON endpoint (fetch call). This class writes zero
- * database rows and touches no other app's tables.
+ * gd_ffl / gd_zip_geo are read exclusively through the finder's
+ * existing do=search JSON endpoint (fetch call from the modal).
+ * This class writes zero database rows.
  */
 
 namespace IPS\gdffl\Finder;
@@ -40,36 +38,53 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 class _Panel
 {
 	/**
-	 * Render the embeddable panel. Returns the full HTML fragment
-	 * (opening details + form + results container + inline JS).
-	 * Guaranteed never to raise: any internal failure returns ''
-	 * so a caller's `.$fflPanelHtml` template output is safe.
-	 *
-	 * $upc is accepted for future use (per-item filtering) but the
-	 * current render doesn't gate on it — every product page shows
-	 * the panel.
+	 * v1.0.15 shim — retained so a gdsearch install still on
+	 * v1.0.83 (which called Panel::render()) doesn't crash if
+	 * gdffl is upgraded first. Returns '' so no unwanted below-
+	 * offers panel renders while both apps are mid-upgrade.
 	 */
 	public static function render( string $upc = '' ): string
 	{
+		return '';
+	}
+
+	/**
+	 * Render the outlined "Find an FFL" button plus the hidden
+	 * modal it opens. gdsearch drops the returned HTML into the
+	 * price-comparison chart header via {$fflLocatorHtml|raw}.
+	 *
+	 * Guaranteed never to raise: any internal failure returns
+	 * '' so the caller's `.$fflLocatorHtml` template output is
+	 * safe against a broken gdffl.
+	 *
+	 * $upc is accepted for future per-item logic but the current
+	 * render doesn't gate on it — the button appears on every
+	 * product page.
+	 */
+	public static function renderButton( string $upc = '' ): string
+	{
 		try
 		{
-			return self::renderInner( $upc );
+			return self::renderButtonInner( $upc );
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'gdffl panel: ' . $e->getMessage(), 'gdffl' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'gdffl locator button: ' . $e->getMessage(), 'gdffl' ); } catch ( \Throwable ) {}
 			return '';
 		}
 	}
 
-	protected static function renderInner( string $upc ): string
+	protected static function renderButtonInner( string $upc ): string
 	{
 		$esc = fn( string $s ): string => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
 
-		/* Enqueue the finder's stylesheet so .gr5 .gdffl-* rules
-		   apply on the product page too. Uses \IPS\Theme::i()->css
-		   — NOT \IPS\Output::i()->css (which doesn't exist — that
-		   was the v1.0.11 bug). */
+		/* Enqueue the finder's own stylesheet so the SAME
+		   .gr5 .gdffl-* rules used on /ffl-finder style the
+		   modal's result cards (distance chips, phone pills,
+		   type tags, spinner). CSS enqueue MUST use
+		   \IPS\Theme::i()->css() — the css helper on
+		   \IPS\Output does not exist (that was the v1.0.11
+		   bug — don't reintroduce it). */
 		try
 		{
 			\IPS\Output::i()->cssFiles = array_merge(
@@ -79,22 +94,18 @@ class _Panel
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'gdffl panel css enqueue: ' . $e->getMessage(), 'gdffl' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'gdffl locator css enqueue: ' . $e->getMessage(), 'gdffl' ); } catch ( \Throwable ) {}
 		}
 
-		/* Absolute URLs — the panel embeds on the product page
-		   which lives under a different route, so relative won't
-		   work. Both point at gdffl's own front controller. */
+		/* Absolute URL — the modal fetches from gdffl's front
+		   controller, not gdsearch's. */
 		$searchUrl = (string) \IPS\Http\Url::internal(
 			'app=gdffl&module=finder&controller=finder&do=search',
 			'front'
 		);
-		$finderUrl = (string) \IPS\Http\Url::internal(
-			'app=gdffl&module=finder&controller=finder',
-			'front'
-		);
 
-		/* Radius <option> list — matches the standalone page's set. */
+		/* Radius <option> list — same set as the standalone
+		   finder. Default from ACP setting when present. */
 		$radiusOptions = [ 5, 10, 25, 50, 100 ];
 		$defaultRadius = 25;
 		try
@@ -109,149 +120,172 @@ class _Panel
 			$radiusOpts .= '<option value="' . (int) $r . '"' . $sel . '>' . (int) $r . ' mi</option>';
 		}
 
-		/* Inline SVGs — no external CDN dependency. */
+		/* Inline SVG icons — no external CDN dependency. */
 		$iconPin =
-			'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+			'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
 			. '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0Z"/>'
 			. '<circle cx="12" cy="10" r="3"/>'
 			. '</svg>';
-		$iconChevron =
-			'<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-			. '<polyline points="6 9 12 15 18 9"/>'
+		$iconPinBig =
+			'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+			. '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0Z"/>'
+			. '<circle cx="12" cy="10" r="3"/>'
 			. '</svg>';
 		$iconSearchSm =
 			'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
 			. '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'
 			. '</svg>';
 		$iconSearchBtn = $iconSearchSm;
-		$iconArrow =
-			'<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
-			. '<line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>'
+		$iconX =
+			'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+			. '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'
 			. '</svg>';
 
-		/* Panel labels — hard-coded English for now; can be
-		   promoted to lang keys later if translation is needed. */
-		$titleTxt   = 'Find an FFL to receive your transfer';
-		$hintTxt    = 'Enter your ZIP code to find nearby licensed dealers.';
-		$zipLabel   = 'ZIP code';
-		$radLabel   = 'Radius';
-		$submitTxt  = 'Search';
-		$openTxt    = 'Open full FFL finder';
+		/* Labels — hard-coded English for now; can be promoted
+		   to lang keys later if translation matters. */
+		$btnTxt      = 'Find an FFL';
+		$modalTitle  = 'Find an FFL near you';
+		$modalSub    = 'Enter your ZIP to find nearby dealers who can receive your transfer.';
+		$closeTxt    = 'Close';
+		$zipLabel    = 'ZIP code';
+		$radLabel    = 'Radius';
+		$submitTxt   = 'Search';
 
-		/* Build the panel HTML. Uses <details>/<summary> so
-		   there's zero JS required just to open it (the search
-		   itself needs JS, but the collapse doesn't). */
-		$html  = '<div class="gr5 gdffl-panel-wrap">';
-		$html .= '<details class="gdffl-panel" data-gdffl-panel>';
-		$html .= '<summary class="gdffl-panel__summary">';
-		$html .= '<span class="gdffl-panel__summary-icon">' . $iconPin . '</span>';
-		$html .= '<span class="gdffl-panel__summary-text">' . $esc( $titleTxt ) . '</span>';
-		$html .= '<span class="gdffl-panel__summary-chevron">' . $iconChevron . '</span>';
-		$html .= '</summary>';
+		/* --- Button ------------------------------------------ */
+		$btn  = '<button type="button" class="gdffl-locator-btn" data-gdffl-locator-open aria-haspopup="dialog">';
+		$btn .= '<span class="gdffl-locator-btn__icon" aria-hidden="true">' . $iconPin . '</span>';
+		$btn .= '<span>' . $esc( $btnTxt ) . '</span>';
+		$btn .= '</button>';
 
-		$html .= '<div class="gdffl-panel__body">';
-		$html .= '<p class="gdffl-panel__hint">' . $esc( $hintTxt ) . '</p>';
+		/* --- Modal (hidden until opened) --------------------- */
+		$modal  = '<div class="gr5 gdffl-locator-overlay" data-gdffl-locator-overlay role="dialog" aria-modal="true" aria-labelledby="gdffl-loc-title" hidden>';
+		$modal .= '<div class="gdffl-locator-card">';
 
-		/* Compact search form. IDs prefixed with gdffl-p- so the
-		   standalone finder's IDs (gdffl-zip, gdfflForm, …) never
-		   collide when both live on the same document. */
-		$html .= '<form class="gdffl-panel__form" data-gdffl-panel-form data-search-url="' . $esc( $searchUrl ) . '">';
-		$html .= '<div class="gdffl-row">';
+		/* Header — navy. */
+		$modal .= '<div class="gdffl-locator-header">';
+		$modal .= '<div class="gdffl-locator-header__row">';
+		$modal .= '<span class="gdffl-locator-header__icon">' . $iconPinBig . '</span>';
+		$modal .= '<h2 class="gdffl-locator-header__title" id="gdffl-loc-title">' . $esc( $modalTitle ) . '</h2>';
+		$modal .= '<button type="button" class="gdffl-locator-close" data-gdffl-locator-close aria-label="' . $esc( $closeTxt ) . '">' . $iconX . '</button>';
+		$modal .= '</div>';
+		$modal .= '<div class="gdffl-locator-header__sub">' . $esc( $modalSub ) . '</div>';
+		$modal .= '</div>';
 
-		$html .= '<div class="gdffl-field gdffl-field--zip">';
-		$html .= '<label class="gdffl-field-label" for="gdffl-p-zip">' . $esc( $zipLabel ) . '</label>';
-		$html .= '<div class="gdffl-input-wrap">';
-		$html .= '<span class="gdffl-input-wrap__icon">' . $iconSearchSm . '</span>';
-		$html .= '<input class="gdffl-input" id="gdffl-p-zip" type="text" inputmode="numeric" maxlength="10" pattern="[0-9\-]*" placeholder="e.g. 61938" autocomplete="postal-code" required>';
-		$html .= '</div>';
-		$html .= '</div>';
+		/* Search form. */
+		$modal .= '<form class="gdffl-locator-searchbar" data-gdffl-locator-form data-search-url="' . $esc( $searchUrl ) . '">';
+		$modal .= '<div class="gdffl-row">';
 
-		$html .= '<div class="gdffl-field gdffl-field--radius">';
-		$html .= '<label class="gdffl-field-label" for="gdffl-p-radius">' . $esc( $radLabel ) . '</label>';
-		$html .= '<select id="gdffl-p-radius">' . $radiusOpts . '</select>';
-		$html .= '</div>';
+		$modal .= '<div class="gdffl-field gdffl-field--zip">';
+		$modal .= '<label class="gdffl-field-label" for="gdffl-loc-zip">' . $esc( $zipLabel ) . '</label>';
+		$modal .= '<div class="gdffl-input-wrap">';
+		$modal .= '<span class="gdffl-input-wrap__icon">' . $iconSearchSm . '</span>';
+		$modal .= '<input class="gdffl-input" id="gdffl-loc-zip" type="text" inputmode="numeric" maxlength="10" pattern="[0-9\-]*" placeholder="e.g. 61938" autocomplete="postal-code" required>';
+		$modal .= '</div>';
+		$modal .= '</div>';
 
-		$html .= '<button type="submit" class="gdffl-btn">'
+		$modal .= '<div class="gdffl-field gdffl-field--radius">';
+		$modal .= '<label class="gdffl-field-label" for="gdffl-loc-radius">' . $esc( $radLabel ) . '</label>';
+		$modal .= '<select id="gdffl-loc-radius">' . $radiusOpts . '</select>';
+		$modal .= '</div>';
+
+		$modal .= '<button type="submit" class="gdffl-btn">'
 			. '<span aria-hidden="true">' . $iconSearchBtn . '</span>'
 			. '<span>' . $esc( $submitTxt ) . '</span>'
 			. '</button>';
 
-		$html .= '</div>';
-		$html .= '</form>';
+		$modal .= '</div>';
+		$modal .= '</form>';
 
-		$html .= '<div class="gdffl-count" id="gdffl-p-count" hidden></div>';
-		$html .= '<div class="gdffl-status" id="gdffl-p-status"></div>';
-		$html .= '<div class="gdffl-results" id="gdffl-p-results" role="list"></div>';
+		/* Results area (scroll). */
+		$modal .= '<div class="gdffl-locator-body">';
+		$modal .= '<div class="gdffl-count" id="gdffl-loc-count" hidden></div>';
+		$modal .= '<div class="gdffl-status" id="gdffl-loc-status"></div>';
+		$modal .= '<div class="gdffl-results" id="gdffl-loc-results" role="list"></div>';
+		$modal .= '</div>';
 
-		$html .= '<div class="gdffl-panel__footer">';
-		$html .= '<a class="gdffl-panel__open-full" href="' . $esc( $finderUrl ) . '">'
-			. $esc( $openTxt ) . ' <span aria-hidden="true">' . $iconArrow . '</span>'
-			. '</a>';
-		$html .= '</div>';
+		$modal .= '</div>'; /* /.gdffl-locator-card */
+		$modal .= '</div>'; /* /.gdffl-locator-overlay */
 
-		$html .= '</div>';   /* /gdffl-panel__body */
-		$html .= '</details>';
-		$html .= '</div>';   /* /gdffl-panel-wrap */
-
-		/* Panel-specific styles (small — just the header row +
-		   footer link). Everything else reuses finder.css. */
-		$html .= '<style>'
-			. '.gr5 .gdffl-panel-wrap{max-width:none;margin:16px 0 0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#0f172a}'
-			. '.gr5 .gdffl-panel{border:1px solid #e2e8f0;border-radius:12px;background:#ffffff;overflow:hidden}'
-			. '.gr5 .gdffl-panel__summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:14px 18px;background:#0f2740;color:#ffffff;font-size:15px;font-weight:500;user-select:none}'
-			. '.gr5 .gdffl-panel__summary::-webkit-details-marker{display:none}'
-			. '.gr5 .gdffl-panel__summary-icon{color:#5dcaa5;display:inline-flex}'
-			. '.gr5 .gdffl-panel__summary-icon svg,.gr5 .gdffl-panel__summary-chevron svg{display:block}'
-			. '.gr5 .gdffl-panel__summary-text{flex:1 1 auto}'
-			. '.gr5 .gdffl-panel__summary-chevron{color:#9db4cc;transition:transform .15s ease}'
-			. '.gr5 .gdffl-panel[open] .gdffl-panel__summary-chevron{transform:rotate(180deg)}'
-			. '.gr5 .gdffl-panel__body{padding:16px 20px 18px;background:#f8fafc;border-top:1px solid #e2e8f0}'
-			. '.gr5 .gdffl-panel__hint{margin:0 0 12px;color:#64748b;font-size:13.5px;line-height:1.4}'
-			. '.gr5 .gdffl-panel__form{margin:0 0 14px}'
-			. '.gr5 .gdffl-panel__footer{margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end}'
-			. '.gr5 .gdffl-panel__open-full{color:#0f6e56;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px}'
-			. '.gr5 .gdffl-panel__open-full:hover{color:#0b5a46;text-decoration:underline}'
-			. '.gr5 .gdffl-panel__open-full svg{display:block}'
+		/* --- Inline styles (small — buttony + modal shell;
+		       the result-card + form-field styles come from
+		       finder.css via the enqueue above). ------------- */
+		$styles = '<style>'
+			/* Outlined green button for the chart header. */
+			. '.gdffl-locator-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:8px;background:#ffffff;border:1.5px solid #0f6e56;color:#0f6e56;font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s ease,color .15s ease;line-height:1;white-space:nowrap;text-decoration:none}'
+			. '.gdffl-locator-btn:hover{background:#e1f5ee;color:#0b5a46}'
+			. '.gdffl-locator-btn:focus{outline:none;box-shadow:0 0 0 3px rgba(15,110,86,.2)}'
+			. '.gdffl-locator-btn__icon{display:inline-flex;color:#0f6e56}'
+			. '.gdffl-locator-btn__icon svg{display:block}'
+			/* Modal overlay. */
+			. '.gdffl-locator-overlay{position:fixed;inset:0;background:rgba(15,39,64,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}'
+			. '.gdffl-locator-overlay[hidden]{display:none}'
+			. '.gdffl-locator-overlay .gdffl-locator-card{background:#ffffff;border-radius:14px;max-width:560px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 40px rgba(15,23,42,.3);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#0f172a}'
+			/* Header. */
+			. '.gdffl-locator-header{background:#0f2740;color:#fff;padding:18px 22px}'
+			. '.gdffl-locator-header__row{display:flex;align-items:center;gap:10px}'
+			. '.gdffl-locator-header__icon{color:#5dcaa5;display:inline-flex;flex:0 0 auto}'
+			. '.gdffl-locator-header__icon svg{display:block}'
+			. '.gdffl-locator-header__title{margin:0;font-size:18px;font-weight:500;color:#fff;flex:1 1 auto;line-height:1.25}'
+			. '.gdffl-locator-header__sub{margin:8px 0 0 30px;color:#9db4cc;font-size:13px;line-height:1.4}'
+			. '.gdffl-locator-close{background:transparent;border:0;color:#9db4cc;cursor:pointer;padding:4px;border-radius:6px;display:inline-flex;transition:background .15s ease,color .15s ease}'
+			. '.gdffl-locator-close:hover{background:rgba(255,255,255,.1);color:#fff}'
+			. '.gdffl-locator-close svg{display:block}'
+			/* Search bar. */
+			. '.gdffl-locator-searchbar{background:#f8fafc;padding:16px 20px;border-bottom:1px solid #e2e8f0}'
+			. '.gdffl-locator-searchbar .gdffl-row{margin:0}'
+			/* Body — scrolls independently. */
+			. '.gdffl-locator-body{padding:14px 20px 18px;overflow-y:auto;max-height:340px}'
+			. '.gdffl-locator-body .gdffl-count{margin-top:0;margin-bottom:10px}'
+			/* Small-screen. */
+			. '@media (max-width:520px){'
+			.   '.gdffl-locator-header__title{font-size:16px}'
+			.   '.gdffl-locator-header__sub{margin-left:0;margin-top:6px}'
+			.   '.gdffl-locator-searchbar{padding:14px 16px}'
+			.   '.gdffl-locator-body{padding:12px 16px 16px;max-height:none;flex:1 1 auto}'
+			. '}'
 			. '</style>';
 
-		/* Panel search JS — self-contained, does not touch the
-		   standalone finder's element IDs. Reads / writes the
-		   same `gdffl_zip` localStorage key so ZIP is remembered
-		   across pages (and pre-filled from wherever the buyer
-		   last searched, panel or standalone). */
-		$html .= '<script>' . self::inlineJs() . '</script>';
+		/* --- Inline script — open/close + search --------- */
+		$script = '<script>' . self::inlineJs() . '</script>';
 
-		return $html;
+		return $btn . $modal . $styles . $script;
 	}
 
 	/* ------------------------------------------------------------------
-	 * INTERNAL — inline JS for the panel. Kept as a heredoc so we can
-	 * edit it as JS, but everything is UTF-8 plain text with no PHP
-	 * interpolation (no `$` variables from PHP context leak into the
-	 * script — the string is emitted verbatim).
+	 * Modal open/close + search + card-render JS. Self-contained so it
+	 * does not touch the standalone finder's element IDs. Reads/writes
+	 * the same `gdffl_zip` localStorage key so a ZIP entered here is
+	 * remembered on /ffl-finder and vice-versa.
 	 * ------------------------------------------------------------------ */
 	protected static function inlineJs(): string
 	{
 		$js = <<<'JS'
 (function () {
 	'use strict';
-	var panelForm = document.querySelector('[data-gdffl-panel-form]');
-	if (!panelForm) { return; }
-	var zipInput  = document.getElementById('gdffl-p-zip');
-	var radiusSel = document.getElementById('gdffl-p-radius');
-	var countEl   = document.getElementById('gdffl-p-count');
-	var statusEl  = document.getElementById('gdffl-p-status');
-	var resultsEl = document.getElementById('gdffl-p-results');
-	var searchUrl = panelForm.getAttribute('data-search-url') || '';
+	var openBtn  = document.querySelector('[data-gdffl-locator-open]');
+	var overlay  = document.querySelector('[data-gdffl-locator-overlay]');
+	if (!openBtn || !overlay) { return; }
 
-	/* Same localStorage key as the standalone finder. */
+	var card      = overlay.querySelector('.gdffl-locator-card');
+	var closeBtns = overlay.querySelectorAll('[data-gdffl-locator-close]');
+	var form      = overlay.querySelector('[data-gdffl-locator-form]');
+	var zipInput  = overlay.querySelector('#gdffl-loc-zip');
+	var radiusSel = overlay.querySelector('#gdffl-loc-radius');
+	var statusEl  = overlay.querySelector('#gdffl-loc-status');
+	var countEl   = overlay.querySelector('#gdffl-loc-count');
+	var resultsEl = overlay.querySelector('#gdffl-loc-results');
+	var searchUrl = form ? (form.getAttribute('data-search-url') || '') : '';
+
 	var ZIP_KEY = 'gdffl_zip';
-	try {
-		if (zipInput && !zipInput.value) {
+	var NEAR_MI = 5;
+
+	function readStoredZip() {
+		try {
 			var stored = window.localStorage && window.localStorage.getItem(ZIP_KEY);
-			if (stored && /^[0-9]{5}$/.test(stored)) { zipInput.value = stored; }
-		}
-	} catch (e) {}
+			if (stored && /^[0-9]{5}$/.test(stored)) { return stored; }
+		} catch (e) {}
+		return '';
+	}
 	function rememberZip(zip) {
 		try {
 			if (window.localStorage && /^[0-9]{5}$/.test(zip)) {
@@ -260,8 +294,26 @@ class _Panel
 		} catch (e) {}
 	}
 
-	var NEAR_MI = 5;
+	function openModal() {
+		overlay.hidden = false;
+		document.body.style.overflow = 'hidden';
+		if (zipInput && !zipInput.value) {
+			var s = readStoredZip();
+			if (s) { zipInput.value = s; }
+		}
+		setTimeout(function () { if (zipInput) { zipInput.focus(); zipInput.select(); } }, 30);
+	}
+	function closeModal() {
+		overlay.hidden = true;
+		document.body.style.overflow = '';
+	}
 
+	openBtn.addEventListener('click', function (ev) { ev.preventDefault(); openModal(); });
+	closeBtns.forEach(function (b) { b.addEventListener('click', function () { closeModal(); }); });
+	overlay.addEventListener('click', function (ev) { if (ev.target === overlay) { closeModal(); } });
+	document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !overlay.hidden) { closeModal(); } });
+
+	/* --- Search + render --------------------------------- */
 	function esc(str) {
 		var d = document.createElement('div');
 		d.appendChild(document.createTextNode(String(str == null ? '' : str)));
@@ -286,11 +338,11 @@ class _Panel
 	}
 
 	function cardHtml(r) {
-		var dist = (r.distance_miles != null) ? Number(r.distance_miles) : null;
+		var dist    = (r.distance_miles != null) ? Number(r.distance_miles) : null;
 		var distCls = 'gdffl-distance' + (dist != null && dist < NEAR_MI ? ' gdffl-distance--near' : '');
 		var distNum = dist === null ? '?' : (Number.isInteger(dist) ? String(dist) : dist.toFixed(1));
-		var biz  = r.business_name || r.license_name || 'FFL';
-		var addr = [r.street, [r.city, r.state].filter(Boolean).join(', '), r.zip].filter(Boolean).map(esc).join(', ');
+		var biz     = r.business_name || r.license_name || 'FFL';
+		var addr    = [r.street, [r.city, r.state].filter(Boolean).join(', '), r.zip].filter(Boolean).map(esc).join(', ');
 		var typeText = r.lic_type
 			? (esc(r.lic_type) + ((r.lic_type_label && r.lic_type_label !== r.lic_type) ? ' · ' + esc(r.lic_type_label) : ''))
 			: '';
@@ -373,10 +425,12 @@ class _Panel
 			});
 	}
 
-	panelForm.addEventListener('submit', function (ev) {
-		ev.preventDefault();
-		runSearch();
-	});
+	if (form) {
+		form.addEventListener('submit', function (ev) {
+			ev.preventDefault();
+			runSearch();
+		});
+	}
 })();
 JS;
 		return $js;

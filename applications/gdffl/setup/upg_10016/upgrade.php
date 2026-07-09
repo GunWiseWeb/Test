@@ -1,38 +1,38 @@
 <?php
 /**
- * @brief  GD FFL Finder — upgrade 1.0.15 (Stage 3 embed).
+ * @brief  GD FFL Finder — upgrade 1.0.16 (Stage 3 locator button + modal).
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHY v1.0.15 EXISTS:
- *   Adds the cross-app product-page panel. gdffl now exposes
- *     \IPS\gdffl\Finder\Panel::render( string $upc = '' ): string
- *   which returns a collapsible "Find an FFL to receive your
- *   transfer" panel. gdsearch's product page calls it from a
- *   triple-guarded try/catch (mirrors the gdreviews shared-render
- *   pattern), so a missing / broken gdffl can never break the
- *   product page.
+ * WHY v1.0.16 EXISTS:
+ *   v1.0.15 shipped a collapsible "Find an FFL to receive your
+ *   transfer" panel that landed BELOW the price-comparison
+ *   card on the product page. Buyer feedback: the below-offers
+ *   panel added visual clutter to a page whose focal point
+ *   should stay the price grid.
  *
- *   Panel behaviour:
- *     * Collapsed by default (<details>/<summary>).
- *     * ZIP + radius + Search form; POSTs to gdffl's own do=search
- *       endpoint, renders the same distance-chip + phone-link
- *       cards as the standalone page.
- *     * ZIP is remembered across pages under localStorage key
- *       `gdffl_zip` — same key the standalone finder uses, so a
- *       buyer who searched on one product finds the ZIP
- *       pre-filled on the next.
- *     * "Open full FFL finder" link back to /ffl-finder.
- *     * Always shown (no firearm heuristic — ammo and other
- *       transfer-required items benefit too).
+ *   v1.0.16 replaces that pattern with a compact BUTTON on
+ *   the price-comparison chart header (top-right, next to
+ *   the sort control). Clicking it opens a MODAL that runs
+ *   the same FFL search inline — same result cards, same
+ *   distance-chip + visible-phone-number layout — so the
+ *   buyer never leaves the product page and the offers grid
+ *   stays uncluttered.
  *
- *   Also adds localStorage persistence to interface/finder.js
- *   so the standalone page reads/writes the same key.
+ *   sources/Finder/Panel.php now exposes
+ *     public static function renderButton( string $upc = '' ): string
+ *   which gdsearch v1.0.84 calls from a triple-guarded try/catch
+ *   (mirrors the gdreviews shared-render pattern).
+ *
+ *   The old Panel::render() method is kept as a no-op returning
+ *   '' so a gdsearch install still on v1.0.83 (which called it)
+ *   doesn't error while both apps are being upgraded in the
+ *   same maintenance window.
  *
  * No schema, no lang changes.
  */
 
-namespace IPS\gdffl\setup\upg_10015;
+namespace IPS\gdffl\setup\upg_10016;
 
 use function defined;
 use function function_exists;
@@ -74,9 +74,8 @@ class _upgrade
 		}
 		catch ( \Throwable ) {}
 
-		/* Cache purge — new sources/Finder/Panel.php + updated
-		   interface/finder.js mean the class autoloader map + the
-		   interface_files map both need to re-resolve. */
+		/* Cache purge — Panel class body changed, plus finder.css
+		   URL needs to re-resolve on the product page. */
 		try { unset( \IPS\Data\Store::i()->furl_configuration ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->furl ); }               catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->modules_front ); }      catch ( \Throwable ) {}
