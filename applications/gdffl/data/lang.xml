@@ -60,5 +60,8 @@
 		<word key="gdffl_err_no_zip_file" js="0"><![CDATA[No ZIP centroid file is on disk yet. Upload a real Census ZCTA CSV or drop one into applications/gdffl/data/zip_geo.csv first.]]></word>
 		<word key="gdffl_import_running_ffl" js="0"><![CDATA[ATF FFL import running…]]></word>
 		<word key="gdffl_import_running_zip" js="0"><![CDATA[ZIP centroid import running…]]></word>
+
+		<word key="gdffl_acp_import_file" js="0"><![CDATA[ATF FFL CSV file]]></word>
+		<word key="gdffl_acp_zipgeo_file" js="0"><![CDATA[Census ZCTA CSV file]]></word>
 	</app>
 </language>

@@ -1,39 +1,43 @@
 <?php
 /**
- * @brief  GD FFL Finder — upgrade 1.0.3 (consolidates 1.0.1 + 1.0.2 + 1.0.3).
+ * @brief  GD FFL Finder — upgrade 1.0.4.
  *
- * Per rule #79 this is the app's ONLY upg_* dir. Safe to run
- * against 1.0.0, 1.0.1, 1.0.2, or a re-install where cached
- * data got wiped. No schema changes in this version — only
- * lang reseed + cache clear.
+ * Rule #79 — exactly ONE upg_* dir per app. This upgrade is
+ * self-contained: safe to run against 1.0.0, 1.0.1, 1.0.2,
+ * or 1.0.3 (or a re-install where cached data got wiped).
  *
- * WHY v1.0.3 EXISTS:
- *   v1.0.2's ACP importer built form-action / AJAX-endpoint
- *   URLs with \IPS\Http\Url::internal() WITHOUT the 'admin'
- *   base as the second argument. In the ACP that URL matched
- *   a route that the front dispatcher 301-redirects to the
- *   admin dispatcher — and a 301 on a multipart POST tells
- *   the browser to retry as GET, which drops $_FILES. Result:
- *   uploads landed with empty $_FILES, fflUploadAct bailed on
- *   the "no file" branch, no session job was primed, and the
- *   import never started. gd_ffl stayed at 0 rows through
- *   multiple attempts even though the AJAX architecture from
- *   v1.0.2 was otherwise correct.
+ * WHY v1.0.4 EXISTS:
+ *   The ACP importer's upload form has been failing under
+ *   IPS 5.0.18's ACP dispatcher since v1.0.0 because the
+ *   hand-built <form action="…&do=fflUploadAct"> URL got 301-
+ *   redirected by the admin dispatcher. A 301 on multipart
+ *   POST tells the browser to retry as GET, which drops
+ *   $_FILES → the upload never reaches the handler → gd_ffl
+ *   stays at 0. Adding the 'admin' base to Url::internal in
+ *   v1.0.3 didn't fix it because the CANONICAL working ACP
+ *   form idiom is NOT "hand-build the form action + URL", it
+ *   is \IPS\Helpers\Form: IPS renders the form against the
+ *   CURRENT page URL, injects the required session key + form
+ *   key + CSRF, and the framework normalizes the POST route
+ *   so no redirect happens.
  *
- *   v1.0.3 fixes it by passing 'admin' as the second arg to
- *   every Url::internal() call in the ACP importer (mirrors
- *   the pattern used by working ACP forms in gddealer). Also
- *   adds explicit "Start ATF import" / "Load ZIP data" buttons
- *   that inspect uploads/gdffl/ for a pending file, so the
- *   import is startable even if the ACP session flag was lost
- *   across the upload → redirect round-trip.
+ *   v1.0.4 rewrites modules/admin/manage/import.php to mirror
+ *   applications/gdbills/modules/admin/bills/import.php (also
+ *   applications/gdcatalog/modules/admin/catalog/feeds.php),
+ *   both of which use \IPS\Helpers\Form + \IPS\Helpers\Form\
+ *   Upload and demonstrably work in this same ACP. The ATF-
+ *   specific parsing (Ffl::toDbRow, header-name mapping,
+ *   fgetcsv, batch AJAX loop) is unchanged. Only the initial
+ *   upload mechanism is swapped to the framework-blessed form.
  *
- * No new lang keys strictly required, but the ZIP-load button
- * label may render differently; reseed the full set to keep
- * the flow bullet-proof (rule #43/#44 shape).
+ *   Two new lang keys are added for the Upload field labels:
+ *     gdffl_acp_import_file  — "ATF FFL CSV file"
+ *     gdffl_acp_zipgeo_file  — "Census ZCTA CSV file"
+ *
+ * No schema changes in this version.
  */
 
-namespace IPS\gdffl\setup\upg_10003;
+namespace IPS\gdffl\setup\upg_10004;
 
 use function defined;
 use function function_exists;
@@ -49,8 +53,8 @@ class _upgrade
 	public function step1(): bool
 	{
 		/* ------------------------------------------------------------
-		 * LANG RESEED — full set for v1.0.0 + v1.0.1 + v1.0.2 (no
-		 * new keys in v1.0.3). Per rules #43 / #44.
+		 * LANG RESEED — full set for v1.0.0 + v1.0.1 + v1.0.2 +
+		 * v1.0.4 (rule #43 6-column shape, rule #44 per-row catch).
 		 * ------------------------------------------------------------ */
 		$strings = [
 			/* v1.0.1 — public finder page. */
@@ -78,6 +82,10 @@ class _upgrade
 			'gdffl_err_no_zip_file'           => 'No ZIP centroid file is on disk yet. Upload a real Census ZCTA CSV or drop one into applications/gdffl/data/zip_geo.csv first.',
 			'gdffl_import_running_ffl'        => 'ATF FFL import running…',
 			'gdffl_import_running_zip'        => 'ZIP centroid import running…',
+
+			/* v1.0.4 — \IPS\Helpers\Form\Upload field labels. */
+			'gdffl_acp_import_file'           => 'ATF FFL CSV file',
+			'gdffl_acp_zipgeo_file'           => 'Census ZCTA CSV file',
 		];
 
 		try
@@ -104,8 +112,7 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * EXTENSIONS.JSON SELF-HEAL — rule #16. Both Queue
-		 * extensions must stay registered as an optional fallback.
+		 * EXTENSIONS.JSON SELF-HEAL — rule #16.
 		 * ------------------------------------------------------------ */
 		$expected = [
 			'core' => [
@@ -134,9 +141,8 @@ class _upgrade
 		catch ( \Throwable ) {}
 
 		/* ------------------------------------------------------------
-		 * CACHE PURGE — v1.0.3 ships new import.php + import.js;
-		 * the ACP importer page needs the new interface asset URLs
-		 * so the datastore MUST re-resolve on the next request.
+		 * CACHE PURGE — new import.php + updated lang mean the
+		 * datastore MUST re-resolve on the next request.
 		 * ------------------------------------------------------------ */
 		try { unset( \IPS\Data\Store::i()->furl_configuration ); } catch ( \Throwable ) {}
 		try { unset( \IPS\Data\Store::i()->furl ); }               catch ( \Throwable ) {}

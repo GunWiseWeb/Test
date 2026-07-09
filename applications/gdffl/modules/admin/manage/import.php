@@ -1,29 +1,36 @@
 <?php
 /**
- * @brief  GD FFL Finder — ACP: upload + AJAX-driven batch importer
- *         for the ATF full-FFL CSV and the Census ZCTA zip_geo file.
+ * @brief  GD FFL Finder — ACP importer.
+ *         v1.0.4 — mirrors the gdbills upload pattern verbatim.
  *
- * WHY THIS EXISTS (v1.0.2 rewrite):
- *   Queue-based imports (extensions/core/Queue/*) shipped in v1.0.0
- *   but on low-traffic ACP sessions IPS's scheduled queue runner
- *   never fired, so the ATF CSV "queued" and gd_ffl stayed at 0.
- *   This controller now drives the imports directly from the
- *   browser via an AJAX batch loop:
- *     * manage() — renders the upload form + progress panels.
- *     * fflUploadAct() — accepts the ATF CSV, stores in uploads/
- *       gdffl/, redirects back to manage() with a session marker
- *       so the JS auto-starts the FFL loop.
- *     * zipGeoUploadAct() — same but for the Census ZCTA file.
- *     * fflStep() — JSON endpoint (do=fflStep&offset=N) — reads
- *       up to rowsPerCycle rows starting at offset, inserts them,
- *       returns { done, processed, total, offset } for the JS.
- *     * zipGeoStep() — same shape, against gd_zip_geo.
- *   The queue extensions are still shipped as an optional fallback
- *   (the scheduler picks them up when it eventually runs), but the
- *   AJAX loop is the primary path and does not depend on the queue.
+ * WHY THIS FILE LOOKS THE WAY IT DOES:
+ *   v1.0.0/1.0.2/1.0.3 hand-built the upload form as raw HTML
+ *   pointing at a distinct do=fflUploadAct action. IPS's ACP
+ *   dispatcher 301-redirected those POSTs, and a 301 on a
+ *   multipart POST tells the browser to retry as GET, dropping
+ *   $_FILES → gd_ffl stayed at 0. The 'admin' base fix in
+ *   v1.0.3 still 301'd because the CANONICAL working ACP form
+ *   pattern is NOT "form action = distinct do=", it is
+ *   \IPS\Helpers\Form — which internally targets the SAME URL
+ *   the form was rendered on, injects the required ACP session
+ *   key + form key + CSRF, and lets the framework normalize
+ *   the POST route so no redirect happens.
  *
- * gd_ffl and gd_zip_geo are the only tables this controller writes
- * to. gd_zip_geo is SELECT-only inside Ffl::toDbRow().
+ *   COPIED VERBATIM (structure) from
+ *   applications/gdbills/modules/admin/bills/import.php:
+ *     * new \IPS\Helpers\Form( 'gdbills_import', 'gdbills_acp_import_run' );
+ *     * $form->add( new \IPS\Helpers\Form\Upload( 'gdbills_acp_import_file', null, TRUE, [
+ *         'allowedFileTypes' => [ 'csv', 'txt' ], 'temporary' => true ] ) );
+ *     * if ( $values = $form->values() ) { $file = $values[...]; }
+ *     * echo (string) $form  →  IPS renders the form + posts to
+ *                              the SAME URL that rendered it.
+ *
+ *   ATF-specific parsing (Ffl::toDbRow, header-name mapping,
+ *   fgetcsv, batch AJAX loop) is unchanged; only the initial
+ *   upload mechanism is swapped to the framework-blessed form.
+ *
+ * gd_ffl and gd_zip_geo are the only tables this controller
+ * writes to. gd_zip_geo is SELECT-only inside Ffl::toDbRow().
  */
 
 namespace IPS\gdffl\modules\admin\manage;
@@ -42,8 +49,8 @@ class _import extends \IPS\Dispatcher\Controller
 	public static bool $csrfProtected = TRUE;
 
 	/** Rows processed per AJAX step. Big enough that ~77k rows
-	 *  finish in ~40 requests; small enough that no single request
-	 *  ever comes close to a PHP timeout. */
+	 *  finish in ~40 requests; small enough that no single
+	 *  request comes close to a PHP timeout. */
 	protected const ROWS_PER_STEP = 2000;
 
 	public function execute(): void
@@ -53,28 +60,142 @@ class _import extends \IPS\Dispatcher\Controller
 	}
 
 	/* ------------------------------------------------------------------
-	 * ACP PAGE — form + progress panels.
+	 * ACP PAGE — two \IPS\Helpers\Form instances (FFL + ZIP) plus
+	 * a Load ZIP button, plus JS-driven progress panels for the
+	 * two AJAX batch loops. Whichever form the admin submits is
+	 * detected by ->values() returning non-false; the other form
+	 * still renders untouched on the same page.
 	 * ------------------------------------------------------------------ */
 	protected function manage(): void
 	{
 		$lang = \IPS\Member::loggedIn()->language();
-		$esc  = fn( string $s ): string => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
 
-		/* IPS ACP form actions + AJAX endpoints MUST be built with
-		   the 'admin' base as Url::internal's 2nd arg. Without it,
-		   the dispatcher issues a 301 to normalize to the ACP
-		   entrypoint on POST — and a 301 on a multipart POST tells
-		   the browser to retry as GET, which drops $_FILES and
-		   loses the upload. Mirror the pattern from working ACP
-		   forms in this codebase (see gddealer/modules/admin/
-		   dealers/stockactions.php). */
-		$importUrl   = (string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import&do=fflUploadAct',    'admin' );
-		$zipUpUrl    = (string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import&do=zipGeoUploadAct', 'admin' );
-		$zipLoadUrl  = (string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import&do=zipGeoStart',     'admin' );
+		/* ------------------------------------------------------------
+		 * FFL upload form. Copies the gdbills shape verbatim so
+		 * IPS's ACP dispatcher recognises the POST and does NOT
+		 * 301 it. The Upload field with `temporary => true` gives
+		 * us an \IPS\File on submit; we snapshot its contents into
+		 * uploads/gdffl/atf-<rand>.csv and let the AJAX loop take
+		 * it from there.
+		 * ------------------------------------------------------------ */
+		$fflForm = new \IPS\Helpers\Form( 'gdffl_atf_upload', 'gdffl_acp_import_submit' );
+		$fflForm->add( new \IPS\Helpers\Form\Upload( 'gdffl_acp_import_file', null, TRUE, [
+			'allowedFileTypes' => [ 'csv', 'txt' ],
+			'maxFileSize'      => 128,
+			'temporary'        => true,
+		] ) );
+
+		if ( $values = $fflForm->values() )
+		{
+			$file = $values['gdffl_acp_import_file'] ?? null;
+			if ( $file instanceof \IPS\File )
+			{
+				$workDir = \IPS\ROOT_PATH . '/uploads/gdffl';
+				if ( !is_dir( $workDir ) ) { @mkdir( $workDir, 0755, TRUE ); }
+				$workPath = $workDir . '/atf-' . bin2hex( random_bytes( 6 ) ) . '.csv';
+
+				try
+				{
+					$bytes = (string) $file->contents();
+					@file_put_contents( $workPath, $bytes );
+				}
+				catch ( \Throwable $e )
+				{
+					try { $file->delete(); } catch ( \Throwable ) {}
+					\IPS\Output::i()->error( 'gdffl_err_bad_file', '2GDFFL/1', 500 );
+					return;
+				}
+				try { $file->delete(); } catch ( \Throwable ) {}
+
+				$meta = $this->sniffCsv( $workPath );
+				if ( $meta === null )
+				{
+					@unlink( $workPath );
+					\IPS\Output::i()->error( 'gdffl_err_bad_file', '2GDFFL/2', 500 );
+					return;
+				}
+
+				$mode = (string) ( \IPS\Settings::i()->gdffl_import_mode ?: 'replace' );
+				if ( !in_array( $mode, [ 'replace', 'merge' ], TRUE ) ) { $mode = 'replace'; }
+
+				$_SESSION['gdffl_ffl_job'] = [
+					'file'      => $workPath,
+					'delimiter' => $meta['delimiter'],
+					'header'    => $meta['header'],
+					'total'     => $meta['total'],
+					'skipped'   => 0,
+					'mode'      => $mode,
+					'started'   => time(),
+				];
+				$_SESSION['gdffl_start_ffl'] = TRUE;
+
+				\IPS\Output::i()->redirect(
+					(string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import', 'admin' )
+				);
+				return;
+			}
+		}
+
+		/* ------------------------------------------------------------
+		 * ZIP centroid upload form — same shape as the FFL form.
+		 * Overwrites uploads/gdffl/zip_geo.csv (idempotent) so
+		 * repeat uploads are safe.
+		 * ------------------------------------------------------------ */
+		$zipForm = new \IPS\Helpers\Form( 'gdffl_zip_upload', 'gdffl_acp_zipgeo_upload_submit' );
+		$zipForm->add( new \IPS\Helpers\Form\Upload( 'gdffl_acp_zipgeo_file', null, TRUE, [
+			'allowedFileTypes' => [ 'csv', 'txt' ],
+			'maxFileSize'      => 32,
+			'temporary'        => true,
+		] ) );
+
+		if ( $values = $zipForm->values() )
+		{
+			$file = $values['gdffl_acp_zipgeo_file'] ?? null;
+			if ( $file instanceof \IPS\File )
+			{
+				$workDir = \IPS\ROOT_PATH . '/uploads/gdffl';
+				if ( !is_dir( $workDir ) ) { @mkdir( $workDir, 0755, TRUE ); }
+				$workPath = $workDir . '/zip_geo.csv';
+
+				try
+				{
+					$bytes = (string) $file->contents();
+					@file_put_contents( $workPath, $bytes );
+				}
+				catch ( \Throwable $e )
+				{
+					try { $file->delete(); } catch ( \Throwable ) {}
+					\IPS\Output::i()->error( 'gdffl_err_bad_file', '2GDFFL/3', 500 );
+					return;
+				}
+				try { $file->delete(); } catch ( \Throwable ) {}
+
+				$total = $this->countCsvRows( $workPath );
+				$_SESSION['gdffl_zip_job'] = [
+					'file'    => $workPath,
+					'total'   => $total,
+					'skipped' => 0,
+					'started' => time(),
+				];
+				$_SESSION['gdffl_start_zip'] = TRUE;
+
+				\IPS\Output::i()->redirect(
+					(string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import', 'admin' )
+				);
+				return;
+			}
+		}
+
+		/* ------------------------------------------------------------
+		 * PAGE ASSEMBLY.
+		 * ------------------------------------------------------------ */
+		$esc = fn( string $s ): string => htmlspecialchars( $s, ENT_QUOTES, 'UTF-8' );
+
 		$fflStepUrl  = (string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import&do=fflStep',         'admin' );
 		$zipStepUrl  = (string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import&do=zipGeoStep',      'admin' );
 		$fflStartUrl = (string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import&do=fflResume',       'admin' );
 		$zipStartUrl = (string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import&do=zipResume',       'admin' );
+		$zipLoadUrl  = (string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import&do=zipGeoStart',     'admin' );
 		$csrfKey     = (string) \IPS\Session::i()->csrfKey;
 
 		$fflCount = 0;
@@ -86,33 +207,20 @@ class _import extends \IPS\Dispatcher\Controller
 		$lastImportRows = (int) \IPS\Settings::i()->gdffl_last_import_rows;
 		$lastImportSkip = (int) \IPS\Settings::i()->gdffl_last_import_skipped;
 
-		/* When the FFL / ZIP upload has just completed we drop a
-		   marker into the ACP session so the JS knows to auto-start
-		   the corresponding AJAX batch loop. */
 		$autoStartFfl = !empty( $_SESSION['gdffl_start_ffl'] );
 		$autoStartZip = !empty( $_SESSION['gdffl_start_zip'] );
 		unset( $_SESSION['gdffl_start_ffl'], $_SESSION['gdffl_start_zip'] );
 
-		/* Belt-and-suspenders — if native $_SESSION on the ACP is
-		   flaky and the autostart flag never survives the upload→
-		   redirect round-trip, the admin can still see an explicit
-		   "Start import" button because the upload file itself is
-		   the source of truth: uploads/gdffl/atf-*.csv means "an
-		   ATF upload is pending, no batch loop kicked yet."
-		   uploads/gdffl/zip_geo.csv means "a ZIP upload is pending
-		   OR was already fully loaded" — we surface a start button
-		   any time the file exists so the admin can re-run. */
 		$pendingAtf = $this->hasPendingAtfUpload();
-		$pendingZip = $this->hasZipFileOnDisk();
 
-		$html  = '<div class="ipsBox" style="margin-bottom:16px"><div class="ipsBox_body ipsPad">';
-		$html .= '<h2 class="ipsType_sectionHead" style="margin:0 0 8px">' . $esc( (string) $lang->addToStack( 'gdffl_acp_import_title' ) ) . '</h2>';
-		$html .= '<p style="margin:0 0 12px">' . $esc( (string) $lang->addToStack( 'gdffl_acp_import_intro' ) ) . '</p>';
-		$html .= '<div style="margin:0 0 12px;color:#475569">Current rows: <strong>' . number_format( $fflCount ) . '</strong> FFLs · <strong>' . number_format( $zipCount ) . '</strong> ZIP centroids.</div>';
-
+		/* Intro + counts panel. */
+		$intro  = '<div class="ipsBox" style="margin-bottom:16px"><div class="ipsBox_body ipsPad">';
+		$intro .= '<h2 class="ipsType_sectionHead" style="margin:0 0 8px">' . $esc( (string) $lang->addToStack( 'gdffl_acp_import_title' ) ) . '</h2>';
+		$intro .= '<p style="margin:0 0 12px">' . $esc( (string) $lang->addToStack( 'gdffl_acp_import_intro' ) ) . '</p>';
+		$intro .= '<div style="margin:0 0 12px;color:#475569">Current rows: <strong>' . number_format( $fflCount ) . '</strong> FFLs · <strong>' . number_format( $zipCount ) . '</strong> ZIP centroids.</div>';
 		if ( $lastImportAt > 0 )
 		{
-			$html .= '<div style="margin:0 0 12px;color:#64748b;font-size:.9em">'
+			$intro .= '<div style="margin:0 0 12px;color:#64748b;font-size:.9em">'
 				. sprintf(
 					$esc( (string) $lang->addToStack( 'gdffl_acp_last_import' ) ),
 					number_format( $lastImportRows ),
@@ -121,76 +229,56 @@ class _import extends \IPS\Dispatcher\Controller
 				)
 				. '</div>';
 		}
+		$intro .= '</div></div>';
 
-		$html .= '<form method="post" action="' . $esc( $importUrl ) . '" enctype="multipart/form-data" id="gdffl-ffl-form">';
-		$html .= '<input type="hidden" name="csrfKey" value="' . $esc( $csrfKey ) . '">';
-		$html .= '<div style="margin-bottom:10px">';
-		$html .= '<label for="gdffl-file" style="display:block;font-weight:600;margin-bottom:4px">' . $esc( (string) $lang->addToStack( 'gdffl_acp_import_upload' ) ) . '</label>';
-		$html .= '<input id="gdffl-file" name="ffl_file" type="file" accept=".csv,.txt,text/csv,text/plain" required>';
-		$html .= '</div>';
-		$html .= '<button type="submit" class="ipsButton ipsButton--primary">' . $esc( (string) $lang->addToStack( 'gdffl_acp_import_submit' ) ) . '</button>';
-		$html .= '</form>';
-
-		/* Explicit Start Import — visible when a pending ATF file
-		   exists on disk (uploads/gdffl/atf-*.csv) but the auto-
-		   start session flag has already been consumed or was
-		   never set. Clicking POSTs to do=fflResume which primes
-		   the session job from the on-disk file, then the JS kicks
-		   the loop. */
+		/* FFL upload panel — the \IPS\Helpers\Form renders its own
+		   native ACP chrome (label + file input + submit button).
+		   Explicit Start button below for the case where the
+		   ACP session flag didn't survive the redirect. */
+		$fflPanel  = '<div class="ipsBox" style="margin-bottom:16px"><div class="ipsBox_body ipsPad">';
+		$fflPanel .= '<h3 class="ipsType_sectionHead" style="margin:0 0 12px">ATF FFL CSV</h3>';
+		$fflPanel .= (string) $fflForm;
 		if ( $pendingAtf )
 		{
-			$html .= '<div id="gdffl-ffl-startwrap" style="margin-top:12px">';
-			$html .= '<form method="post" action="' . $esc( $fflStartUrl ) . '" style="display:inline">';
-			$html .= '<input type="hidden" name="csrfKey" value="' . $esc( $csrfKey ) . '">';
-			$html .= '<button type="submit" class="ipsButton ipsButton--important" id="gdffl-ffl-start">Start ATF import</button>';
-			$html .= '</form>';
-			$html .= '<span style="margin-left:8px;color:#64748b;font-size:.9em">A previously-uploaded ATF file is on disk. Click to start / resume the batch loop.</span>';
-			$html .= '</div>';
+			$fflPanel .= '<div id="gdffl-ffl-startwrap" style="margin-top:12px">';
+			$fflPanel .= '<form method="post" action="' . $esc( $fflStartUrl ) . '" style="display:inline">';
+			$fflPanel .= '<input type="hidden" name="csrfKey" value="' . $esc( $csrfKey ) . '">';
+			$fflPanel .= '<button type="submit" class="ipsButton ipsButton--important" id="gdffl-ffl-start">Start ATF import</button>';
+			$fflPanel .= '</form>';
+			$fflPanel .= '<span style="margin-left:8px;color:#64748b;font-size:.9em">A previously-uploaded ATF file is on disk. Click to start / resume the batch loop.</span>';
+			$fflPanel .= '</div>';
 		}
+		$fflPanel .= '<div id="gdffl-ffl-progress" class="gdffl-progress" style="display:none;margin-top:14px">';
+		$fflPanel .= '<div class="gdffl-progress-bar"><div class="gdffl-progress-fill" id="gdffl-ffl-fill" style="width:0%"></div></div>';
+		$fflPanel .= '<div class="gdffl-progress-text" id="gdffl-ffl-text">Starting…</div>';
+		$fflPanel .= '</div>';
+		$fflPanel .= '</div></div>';
 
-		$html .= '<div id="gdffl-ffl-progress" class="gdffl-progress" style="display:none;margin-top:14px">';
-		$html .= '<div class="gdffl-progress-bar"><div class="gdffl-progress-fill" id="gdffl-ffl-fill" style="width:0%"></div></div>';
-		$html .= '<div class="gdffl-progress-text" id="gdffl-ffl-text">Starting…</div>';
-		$html .= '</div>';
+		/* ZIP upload panel — same shape, plus a "Load ZIP data"
+		   button that starts the loop against whatever ZIP CSV is
+		   on disk right now (uploads/gdffl/zip_geo.csv wins, then
+		   the server-disk drop at data/zip_geo.csv, then the
+		   10-row shipped sample). */
+		$zipPanel  = '<div class="ipsBox" style="margin-bottom:16px"><div class="ipsBox_body ipsPad">';
+		$zipPanel .= '<h3 class="ipsType_sectionHead" style="margin:0 0 8px">' . $esc( (string) $lang->addToStack( 'gdffl_acp_zipgeo_title' ) ) . '</h3>';
+		$zipPanel .= '<p style="margin:0 0 12px">' . $esc( (string) $lang->addToStack( 'gdffl_acp_zipgeo_intro' ) ) . '</p>';
+		$zipPanel .= (string) $zipForm;
 
-		$html .= '</div></div>';
+		$zipPanel .= '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0">';
+		$zipPanel .= '<form method="post" action="' . $esc( $zipLoadUrl ) . '" style="display:inline">';
+		$zipPanel .= '<input type="hidden" name="csrfKey" value="' . $esc( $csrfKey ) . '">';
+		$zipPanel .= '<button type="submit" class="ipsButton" id="gdffl-zip-start">' . $esc( (string) $lang->addToStack( 'gdffl_acp_zipgeo_load' ) ) . '</button>';
+		$zipPanel .= '<span style="margin-left:8px;color:#64748b;font-size:.9em">' . $esc( (string) $lang->addToStack( 'gdffl_acp_zipgeo_load_hint' ) ) . '</span>';
+		$zipPanel .= '</form>';
+		$zipPanel .= '</div>';
 
-		/* ZIP centroid panel. */
-		$html .= '<div class="ipsBox"><div class="ipsBox_body ipsPad">';
-		$html .= '<h2 class="ipsType_sectionHead" style="margin:0 0 8px">' . $esc( (string) $lang->addToStack( 'gdffl_acp_zipgeo_title' ) ) . '</h2>';
-		$html .= '<p style="margin:0 0 12px">' . $esc( (string) $lang->addToStack( 'gdffl_acp_zipgeo_intro' ) ) . '</p>';
+		$zipPanel .= '<div id="gdffl-zip-progress" class="gdffl-progress" style="display:none;margin-top:14px">';
+		$zipPanel .= '<div class="gdffl-progress-bar"><div class="gdffl-progress-fill" id="gdffl-zip-fill" style="width:0%"></div></div>';
+		$zipPanel .= '<div class="gdffl-progress-text" id="gdffl-zip-text">Starting…</div>';
+		$zipPanel .= '</div>';
+		$zipPanel .= '</div></div>';
 
-		$html .= '<form method="post" action="' . $esc( $zipUpUrl ) . '" enctype="multipart/form-data" id="gdffl-zip-form" style="margin-bottom:12px">';
-		$html .= '<input type="hidden" name="csrfKey" value="' . $esc( $csrfKey ) . '">';
-		$html .= '<div style="margin-bottom:10px">';
-		$html .= '<label for="gdffl-zip-file" style="display:block;font-weight:600;margin-bottom:4px">' . $esc( (string) $lang->addToStack( 'gdffl_acp_zipgeo_upload' ) ) . '</label>';
-		$html .= '<input id="gdffl-zip-file" name="zip_file" type="file" accept=".csv,.txt,text/csv,text/plain" required>';
-		$html .= '</div>';
-		$html .= '<button type="submit" class="ipsButton ipsButton--important">' . $esc( (string) $lang->addToStack( 'gdffl_acp_zipgeo_upload_submit' ) ) . '</button>';
-		$html .= '</form>';
-
-		$html .= '<form method="post" action="' . $esc( $zipLoadUrl ) . '" style="display:inline">';
-		$html .= '<input type="hidden" name="csrfKey" value="' . $esc( $csrfKey ) . '">';
-		$html .= '<button type="submit" class="ipsButton" id="gdffl-zip-start">' . $esc( (string) $lang->addToStack( 'gdffl_acp_zipgeo_load' ) ) . '</button>';
-		$html .= '<span style="margin-left:8px;color:#64748b;font-size:.9em">' . $esc( (string) $lang->addToStack( 'gdffl_acp_zipgeo_load_hint' ) ) . '</span>';
-		$html .= '</form>';
-
-		if ( $pendingZip )
-		{
-			$html .= '<div style="margin-top:6px;color:#64748b;font-size:.9em">'
-				. 'A ZIP centroid CSV is on disk and ready to load. Click above to start the batch loop.'
-				. '</div>';
-		}
-
-		$html .= '<div id="gdffl-zip-progress" class="gdffl-progress" style="display:none;margin-top:14px">';
-		$html .= '<div class="gdffl-progress-bar"><div class="gdffl-progress-fill" id="gdffl-zip-fill" style="width:0%"></div></div>';
-		$html .= '<div class="gdffl-progress-text" id="gdffl-zip-text">Starting…</div>';
-		$html .= '</div>';
-
-		$html .= '</div></div>';
-
-		/* Config payload for the JS — endpoints, csrf, autostart
-		   flags, plus resume URLs for the explicit start buttons. */
+		/* JS config — endpoints + csrf + autostart flags. */
 		$cfg = [
 			'fflStep'   => $fflStepUrl,
 			'zipStep'   => $zipStepUrl,
@@ -200,10 +288,9 @@ class _import extends \IPS\Dispatcher\Controller
 			'startFfl'  => (bool) $autoStartFfl,
 			'startZip'  => (bool) $autoStartZip,
 		];
-		$html .= '<script>window.gdfflImportConfig = ' . json_encode( $cfg, JSON_UNESCAPED_SLASHES ) . ';</script>';
+		$scriptTag = '<script>window.gdfflImportConfig = ' . json_encode( $cfg, JSON_UNESCAPED_SLASHES ) . ';</script>';
 
-		/* Static CSS + JS from interface/. Rule #47 — served
-		   directly, no template-engine variable substitution. */
+		/* Static CSS + JS from interface/ (rule #47). */
 		try
 		{
 			\IPS\Output::i()->cssFiles = array_merge(
@@ -218,105 +305,11 @@ class _import extends \IPS\Dispatcher\Controller
 		catch ( \Throwable ) {}
 
 		\IPS\Output::i()->title  = $lang->addToStack( 'gdffl_acp_import_title' );
-		\IPS\Output::i()->output = $html;
+		\IPS\Output::i()->output = $intro . $fflPanel . $zipPanel . $scriptTag;
 	}
 
 	/* ------------------------------------------------------------------
-	 * ATF CSV upload — stores to uploads/gdffl/atf-<rand>.csv,
-	 * remembers the resolved delimiter + header + total row count
-	 * in the ACP session, redirects back to manage() so the JS auto-
-	 * kicks the AJAX loop on next page render.
-	 * ------------------------------------------------------------------ */
-	protected function fflUploadAct(): void
-	{
-		\IPS\Session::i()->csrfCheck();
-
-		if ( empty( $_FILES['ffl_file']['tmp_name'] ) || !is_uploaded_file( $_FILES['ffl_file']['tmp_name'] ) )
-		{
-			\IPS\Output::i()->error( 'gdffl_err_no_upload', '2GDFFL/1', 400 );
-			return;
-		}
-
-		$workDir = \IPS\ROOT_PATH . '/uploads/gdffl';
-		if ( !is_dir( $workDir ) ) { @mkdir( $workDir, 0755, TRUE ); }
-		$workPath = $workDir . '/atf-' . bin2hex( random_bytes( 6 ) ) . '.csv';
-
-		if ( !@move_uploaded_file( $_FILES['ffl_file']['tmp_name'], $workPath ) )
-		{
-			\IPS\Output::i()->error( 'gdffl_err_bad_file', '2GDFFL/2', 500 );
-			return;
-		}
-
-		/* Sniff header + delimiter + total row count so the AJAX
-		   loop doesn't have to re-scan the file every step. */
-		$meta = $this->sniffCsv( $workPath );
-		if ( $meta === null )
-		{
-			@unlink( $workPath );
-			\IPS\Output::i()->error( 'gdffl_err_bad_file', '2GDFFL/3', 500 );
-			return;
-		}
-
-		$mode = (string) ( \IPS\Settings::i()->gdffl_import_mode ?: 'replace' );
-		if ( !in_array( $mode, [ 'replace', 'merge' ], TRUE ) ) { $mode = 'replace'; }
-
-		$_SESSION['gdffl_ffl_job'] = [
-			'file'      => $workPath,
-			'delimiter' => $meta['delimiter'],
-			'header'    => $meta['header'],
-			'total'     => $meta['total'],
-			'skipped'   => 0,
-			'mode'      => $mode,
-			'started'   => time(),
-		];
-		$_SESSION['gdffl_start_ffl'] = TRUE;
-
-		\IPS\Output::i()->redirect(
-			(string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import', 'admin' )
-		);
-	}
-
-	/* ------------------------------------------------------------------
-	 * ZIP centroid upload — stores to uploads/gdffl/zip_geo.csv,
-	 * primes the ACP session for the AJAX loop.
-	 * ------------------------------------------------------------------ */
-	protected function zipGeoUploadAct(): void
-	{
-		\IPS\Session::i()->csrfCheck();
-
-		if ( empty( $_FILES['zip_file']['tmp_name'] ) || !is_uploaded_file( $_FILES['zip_file']['tmp_name'] ) )
-		{
-			\IPS\Output::i()->error( 'gdffl_err_no_upload', '2GDFFL/4', 400 );
-			return;
-		}
-
-		$workDir = \IPS\ROOT_PATH . '/uploads/gdffl';
-		if ( !is_dir( $workDir ) ) { @mkdir( $workDir, 0755, TRUE ); }
-		$workPath = $workDir . '/zip_geo.csv';
-
-		if ( !@move_uploaded_file( $_FILES['zip_file']['tmp_name'], $workPath ) )
-		{
-			\IPS\Output::i()->error( 'gdffl_err_bad_file', '2GDFFL/5', 500 );
-			return;
-		}
-
-		$total = $this->countCsvRows( $workPath );
-		$_SESSION['gdffl_zip_job'] = [
-			'file'    => $workPath,
-			'total'   => $total,
-			'skipped' => 0,
-			'started' => time(),
-		];
-		$_SESSION['gdffl_start_zip'] = TRUE;
-
-		\IPS\Output::i()->redirect(
-			(string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import', 'admin' )
-		);
-	}
-
-	/* ------------------------------------------------------------------
-	 * "Load bundled ZIP centroid CSV" — resolves the on-disk path
-	 * (uploaded file preferred; falls back to data/zip_geo.csv),
+	 * "Load bundled ZIP centroid CSV" — resolves the on-disk path,
 	 * primes the AJAX loop.
 	 * ------------------------------------------------------------------ */
 	protected function zipGeoStart(): void
@@ -345,10 +338,78 @@ class _import extends \IPS\Dispatcher\Controller
 	}
 
 	/* ------------------------------------------------------------------
+	 * "Start ATF import" — re-primes the session from whatever
+	 * atf-*.csv is on disk. Belt-and-suspenders for cases where
+	 * the upload's session flag didn't survive the redirect.
+	 * ------------------------------------------------------------------ */
+	protected function fflResume(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$path = $this->latestAtfUpload();
+		if ( $path === '' )
+		{
+			\IPS\Output::i()->error( 'gdffl_err_no_upload', '2GDFFL/7', 400 );
+			return;
+		}
+
+		$meta = $this->sniffCsv( $path );
+		if ( $meta === null )
+		{
+			\IPS\Output::i()->error( 'gdffl_err_bad_file', '2GDFFL/8', 500 );
+			return;
+		}
+
+		$mode = (string) ( \IPS\Settings::i()->gdffl_import_mode ?: 'replace' );
+		if ( !in_array( $mode, [ 'replace', 'merge' ], TRUE ) ) { $mode = 'replace'; }
+
+		$_SESSION['gdffl_ffl_job'] = [
+			'file'      => $path,
+			'delimiter' => $meta['delimiter'],
+			'header'    => $meta['header'],
+			'total'     => $meta['total'],
+			'skipped'   => 0,
+			'mode'      => $mode,
+			'started'   => time(),
+		];
+		$_SESSION['gdffl_start_ffl'] = TRUE;
+
+		\IPS\Output::i()->redirect(
+			(string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import', 'admin' )
+		);
+	}
+
+	protected function zipResume(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+
+		$path = $this->resolveZipPath();
+		if ( $path === '' || !is_readable( $path ) )
+		{
+			\IPS\Output::i()->error( 'gdffl_err_no_zip_file', '2GDFFL/9', 400 );
+			return;
+		}
+
+		$total = $this->countCsvRows( $path );
+		$_SESSION['gdffl_zip_job'] = [
+			'file'    => $path,
+			'total'   => $total,
+			'skipped' => 0,
+			'started' => time(),
+		];
+		$_SESSION['gdffl_start_zip'] = TRUE;
+
+		\IPS\Output::i()->redirect(
+			(string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import', 'admin' )
+		);
+	}
+
+	/* ------------------------------------------------------------------
 	 * AJAX ENDPOINT — FFL step. do=fflStep&offset=N.
-	 * Reads up to ROWS_PER_STEP rows from the ATF CSV starting at
-	 * offset, inserts each via Ffl::toDbRow(), returns JSON:
-	 *   { done, processed, total, offset, skipped }
+	 * Header-name column mapping via array_flip so ATF column
+	 * reorders don't break the import. fgetcsv for quoted fields
+	 * (BUSINESS_NAMEs with embedded commas). Per-row try/catch.
+	 * TRUNCATE gd_ffl once on the first batch in replace mode.
 	 * ------------------------------------------------------------------ */
 	protected function fflStep(): void
 	{
@@ -374,21 +435,16 @@ class _import extends \IPS\Dispatcher\Controller
 			return;
 		}
 
-		/* On the first batch of a replace-mode import, truncate
-		   gd_ffl exactly once. */
 		if ( $offset === 0 && $mode === 'replace' )
 		{
 			try { \IPS\Db::i()->delete( 'gd_ffl' ); } catch ( \Throwable ) {}
 		}
 
-		/* Map header NAME → column index once so per-row lookup is
-		   O(1) and independent of column ordering. */
 		$headerIndex = array_flip( array_values( $header ) );
 
 		$fh = @fopen( $path, 'r' );
 		if ( !$fh ) { $this->jsonError( 'open-failed' ); return; }
 
-		/* Skip the header row + everything up to $offset. */
 		fgetcsv( $fh, 0, $delim );
 		$skip = $offset;
 		while ( $skip > 0 && fgetcsv( $fh, 0, $delim ) !== false ) { $skip--; }
@@ -401,16 +457,12 @@ class _import extends \IPS\Dispatcher\Controller
 		{
 			$fields = fgetcsv( $fh, 0, $delim );
 			if ( $fields === false || $fields === null ) { break; }
-			/* fgetcsv returns [ null ] for blank lines. */
 			if ( count( $fields ) === 1 && ( $fields[0] === null || $fields[0] === '' ) )
 			{
 				$processed++;
 				continue;
 			}
 
-			/* Header-name column mapping — array_flip lets us look
-			   up any ATF column by its published name (LIC_REGN,
-			   BUSINESS_NAME, PREMISE_ZIP_CODE, etc.). */
 			$row = [];
 			foreach ( $headerIndex as $col => $idx )
 			{
@@ -440,13 +492,12 @@ class _import extends \IPS\Dispatcher\Controller
 		}
 		fclose( $fh );
 
-		$newOffset          = $offset + $processed;
-		$job['skipped']     = $skipped;
-		$done               = ( $processed === 0 ) || ( $total > 0 && $newOffset >= $total );
+		$newOffset      = $offset + $processed;
+		$job['skipped'] = $skipped;
+		$done           = ( $processed === 0 ) || ( $total > 0 && $newOffset >= $total );
 
 		if ( $done )
 		{
-			/* Stamp last-import settings, tidy up the work file. */
 			try
 			{
 				\IPS\Settings::i()->changeValues( [
@@ -476,6 +527,8 @@ class _import extends \IPS\Dispatcher\Controller
 
 	/* ------------------------------------------------------------------
 	 * AJAX ENDPOINT — ZIP-centroid step. do=zipGeoStep&offset=N.
+	 * Walks # comments + optional header row, then does one
+	 * replace() per data row against gd_zip_geo.
 	 * ------------------------------------------------------------------ */
 	protected function zipGeoStep(): void
 	{
@@ -501,20 +554,10 @@ class _import extends \IPS\Dispatcher\Controller
 		$fh = @fopen( $path, 'r' );
 		if ( !$fh ) { $this->jsonError( 'open-failed' ); return; }
 
-		/* zip_geo.csv format:
-		     #-prefixed comment lines (any number)
-		     optional header row (zip,lat,lng,city,state)
-		     data rows              (zip,lat,lng,city,state)
-		   We treat comments as skippable, and the header row is
-		   detected by "zip" appearing in the first column (case-
-		   insensitive) rather than by row position. */
 		$processed  = 0;
 		$skipped    = (int) ( $job['skipped'] ?? 0 );
 		$seenBefore = 0;
 
-		/* Walk to the correct data-row offset, counting only DATA
-		   rows (not comments / header). This keeps the JS's
-		   { processed / total } math consistent. */
 		while ( $seenBefore < $offset )
 		{
 			$line = fgets( $fh );
@@ -569,9 +612,9 @@ class _import extends \IPS\Dispatcher\Controller
 		}
 		fclose( $fh );
 
-		$newOffset       = $offset + $processed;
-		$job['skipped']  = $skipped;
-		$done            = ( $processed === 0 ) || ( $total > 0 && $newOffset >= $total );
+		$newOffset      = $offset + $processed;
+		$job['skipped'] = $skipped;
+		$done           = ( $processed === 0 ) || ( $total > 0 && $newOffset >= $total );
 
 		if ( $done )
 		{
@@ -592,132 +635,7 @@ class _import extends \IPS\Dispatcher\Controller
 	}
 
 	/* ------------------------------------------------------------------
-	 * POST endpoint — "Start ATF import" button. Re-primes the
-	 * session job from whatever atf-*.csv is on disk, then
-	 * redirects back to manage() which auto-starts the JS loop.
-	 * Belt-and-suspenders for cases where the upload's session
-	 * flag didn't survive the round-trip.
-	 * ------------------------------------------------------------------ */
-	protected function fflResume(): void
-	{
-		\IPS\Session::i()->csrfCheck();
-
-		$path = $this->latestAtfUpload();
-		if ( $path === '' )
-		{
-			\IPS\Output::i()->error( 'gdffl_err_no_upload', '2GDFFL/7', 400 );
-			return;
-		}
-
-		$meta = $this->sniffCsv( $path );
-		if ( $meta === null )
-		{
-			\IPS\Output::i()->error( 'gdffl_err_bad_file', '2GDFFL/8', 500 );
-			return;
-		}
-
-		$mode = (string) ( \IPS\Settings::i()->gdffl_import_mode ?: 'replace' );
-		if ( !in_array( $mode, [ 'replace', 'merge' ], TRUE ) ) { $mode = 'replace'; }
-
-		$_SESSION['gdffl_ffl_job'] = [
-			'file'      => $path,
-			'delimiter' => $meta['delimiter'],
-			'header'    => $meta['header'],
-			'total'     => $meta['total'],
-			'skipped'   => 0,
-			'mode'      => $mode,
-			'started'   => time(),
-		];
-		$_SESSION['gdffl_start_ffl'] = TRUE;
-
-		\IPS\Output::i()->redirect(
-			(string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import', 'admin' )
-		);
-	}
-
-	/* ------------------------------------------------------------------
-	 * POST endpoint — "Start ZIP import" button. Same shape as
-	 * fflResume, against the resolved ZIP centroid path.
-	 * ------------------------------------------------------------------ */
-	protected function zipResume(): void
-	{
-		\IPS\Session::i()->csrfCheck();
-
-		$path = $this->resolveZipPath();
-		if ( $path === '' || !is_readable( $path ) )
-		{
-			\IPS\Output::i()->error( 'gdffl_err_no_zip_file', '2GDFFL/9', 400 );
-			return;
-		}
-
-		$total = $this->countCsvRows( $path );
-		$_SESSION['gdffl_zip_job'] = [
-			'file'    => $path,
-			'total'   => $total,
-			'skipped' => 0,
-			'started' => time(),
-		];
-		$_SESSION['gdffl_start_zip'] = TRUE;
-
-		\IPS\Output::i()->redirect(
-			(string) \IPS\Http\Url::internal( 'app=gdffl&module=manage&controller=import', 'admin' )
-		);
-	}
-
-	/* ------------------------------------------------------------------
-	 * INTERNAL — does an ATF upload sit in uploads/gdffl/ waiting
-	 * for its batch loop to start / resume? The upload's presence
-	 * is the source of truth — the ACP session flag can be lost
-	 * across the upload → 302 → manage() hop and we don't want
-	 * that to strand the import.
-	 * ------------------------------------------------------------------ */
-	protected function hasPendingAtfUpload(): bool
-	{
-		return $this->latestAtfUpload() !== '';
-	}
-
-	/* ------------------------------------------------------------------
-	 * INTERNAL — path to the most recent atf-*.csv upload sitting
-	 * in uploads/gdffl/, or '' if none is present. Multiple files
-	 * shouldn't accumulate (fflStep unlinks on done), but if two
-	 * uploads race, take the newest by mtime.
-	 * ------------------------------------------------------------------ */
-	protected function latestAtfUpload(): string
-	{
-		$dir = \IPS\ROOT_PATH . '/uploads/gdffl';
-		if ( !is_dir( $dir ) ) { return ''; }
-
-		$candidates = @glob( $dir . '/atf-*.csv' );
-		if ( !is_array( $candidates ) || empty( $candidates ) ) { return ''; }
-
-		$newest = '';
-		$mtime  = 0;
-		foreach ( $candidates as $candidate )
-		{
-			$ts = @filemtime( $candidate );
-			if ( $ts !== false && $ts > $mtime )
-			{
-				$mtime  = $ts;
-				$newest = $candidate;
-			}
-		}
-		return $newest;
-	}
-
-	/* ------------------------------------------------------------------
-	 * INTERNAL — is any ZIP centroid CSV on disk (uploaded or
-	 * server-disk drop or the shipped sample)? True whenever
-	 * resolveZipPath() would return a readable path.
-	 * ------------------------------------------------------------------ */
-	protected function hasZipFileOnDisk(): bool
-	{
-		$path = $this->resolveZipPath();
-		return $path !== '' && is_readable( $path );
-	}
-
-	/* ------------------------------------------------------------------
-	 * INTERNAL — sniff a CSV: detect delimiter, snapshot the
-	 * header row, count total data rows (skipping blanks + header).
+	 * INTERNAL HELPERS.
 	 * ------------------------------------------------------------------ */
 	protected function sniffCsv( string $path ): ?array
 	{
@@ -753,10 +671,6 @@ class _import extends \IPS\Dispatcher\Controller
 		];
 	}
 
-	/* ------------------------------------------------------------------
-	 * INTERNAL — count data rows in a zip_geo-style CSV
-	 * (skips #-comment lines and a zip-header row).
-	 * ------------------------------------------------------------------ */
 	protected function countCsvRows( string $path ): int
 	{
 		$fh = @fopen( $path, 'r' );
@@ -777,43 +691,47 @@ class _import extends \IPS\Dispatcher\Controller
 		return $count;
 	}
 
-	/* ------------------------------------------------------------------
-	 * INTERNAL — resolve the ZIP centroid file path. Uploaded copy
-	 * in uploads/gdffl/ wins; on-disk data/zip_geo.csv is the
-	 * fallback (for admins who dropped the real Census file directly
-	 * onto the server).
-	 * ------------------------------------------------------------------ */
 	protected function resolveZipPath(): string
 	{
-		/* Uploaded via the ACP wins — that's the fastest path an
-		   admin has to get real data in. Kept under uploads/ so it
-		   survives an app-upgrade extraction. */
 		$uploaded = \IPS\ROOT_PATH . '/uploads/gdffl/zip_geo.csv';
 		if ( is_readable( $uploaded ) ) { return $uploaded; }
 
-		/* Server-disk drop of the full Census ZCTA file. The
-		   tarball never overwrites this path (it's excluded from
-		   the build) so an admin who scp'd the real 42k-row file
-		   into data/zip_geo.csv keeps it across upgrades. */
 		$bundled = \IPS\ROOT_PATH . '/applications/gdffl/data/zip_geo.csv';
 		if ( is_readable( $bundled ) ) { return $bundled; }
 
-		/* Format-reference sample that ships in the tarball. Only
-		   10 rows — enough to prove the loader wire against
-		   gd_ffl.premise_zip when the admin has done neither of
-		   the above yet. */
 		$sample = \IPS\ROOT_PATH . '/applications/gdffl/data/zip_geo.sample.csv';
 		if ( is_readable( $sample ) ) { return $sample; }
 
 		return '';
 	}
 
-	/* ------------------------------------------------------------------
-	 * INTERNAL — look up a single ZIP centroid; returns
-	 * [ zip => [ lat, lng ] ] or [] when the ZIP is unknown so the
-	 * FFL row still imports (rule: don't drop the FFL if the ZIP
-	 * lookup misses; store lat/lng as NULL).
-	 * ------------------------------------------------------------------ */
+	protected function hasPendingAtfUpload(): bool
+	{
+		return $this->latestAtfUpload() !== '';
+	}
+
+	protected function latestAtfUpload(): string
+	{
+		$dir = \IPS\ROOT_PATH . '/uploads/gdffl';
+		if ( !is_dir( $dir ) ) { return ''; }
+
+		$candidates = @glob( $dir . '/atf-*.csv' );
+		if ( !is_array( $candidates ) || empty( $candidates ) ) { return ''; }
+
+		$newest = '';
+		$mtime  = 0;
+		foreach ( $candidates as $candidate )
+		{
+			$ts = @filemtime( $candidate );
+			if ( $ts !== false && $ts > $mtime )
+			{
+				$mtime  = $ts;
+				$newest = $candidate;
+			}
+		}
+		return $newest;
+	}
+
 	protected function zipLookup( string $rawZip ): array
 	{
 		$zip = Ffl::normalizeZip( $rawZip );
@@ -829,10 +747,6 @@ class _import extends \IPS\Dispatcher\Controller
 		}
 	}
 
-	/* ------------------------------------------------------------------
-	 * INTERNAL — JSON writers. \IPS\Output::i()->json() emits the
-	 * right Content-Type and short-circuits template rendering.
-	 * ------------------------------------------------------------------ */
 	protected function jsonOut( array $payload ): void
 	{
 		\IPS\Output::i()->json( $payload );

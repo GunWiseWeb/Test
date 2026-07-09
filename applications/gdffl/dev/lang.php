@@ -61,4 +61,8 @@ $lang = [
 	'gdffl_err_no_zip_file'           => 'No ZIP centroid file is on disk yet. Upload a real Census ZCTA CSV or drop one into applications/gdffl/data/zip_geo.csv first.',
 	'gdffl_import_running_ffl'        => 'ATF FFL import running…',
 	'gdffl_import_running_zip'        => 'ZIP centroid import running…',
+
+	/* v1.0.4 — labels for the two \IPS\Helpers\Form\Upload fields. */
+	'gdffl_acp_import_file'           => 'ATF FFL CSV file',
+	'gdffl_acp_zipgeo_file'           => 'Census ZCTA CSV file',
 ];
