@@ -146,28 +146,14 @@ class _contact extends \IPS\Dispatcher\Controller
 		$title = (string) \IPS\Settings::i()->gdcontact_page_title ?: $L( '__app_gdcontact' );
 		$intro = (string) \IPS\Settings::i()->gdcontact_intro;
 
-		$html  = '<div class="gr5 gdcontact-wrap">';
-		$html .= '<h1 class="gdcontact-title">' . $esc( $title ) . '</h1>';
-		if ( $intro !== '' )
-		{
-			$html .= '<p class="gdcontact-intro">' . $esc( $intro ) . '</p>';
-		}
-
-		if ( $successFlag )
-		{
-			$html .= '<div class="gdcontact-success" role="status">'
-				. $esc( (string) \IPS\Settings::i()->gdcontact_success_message )
-				. '</div>';
-		}
-
 		$formHtml = (string) $form;
 
 		/* Inject the honeypot INSIDE the <form> element so its
 		   value POSTs alongside the real inputs. Off-screen
 		   container + aria-hidden + tabindex=-1 hides it from
 		   humans and screen readers; real bots that scan the DOM
-		   still fill it. Inline styles as belt-and-suspenders in
-		   case contact.css didn't load. */
+		   still fill it. Inline styles are belt-and-suspenders
+		   in case contact.css didn't load. */
 		if ( $honeypotEnabled )
 		{
 			$honeypotHtml =
@@ -184,8 +170,50 @@ class _contact extends \IPS\Dispatcher\Controller
 			}
 		}
 
-		$html .= '<div class="gdcontact-card">' . $formHtml . '</div>';
+		/* Inline SVG icons — no external CDN dependency. */
+		$iconMail =
+			'<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+			. '<rect width="20" height="16" x="2" y="4" rx="2"/>'
+			. '<path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>'
+			. '</svg>';
+
+		/* SINGLE CARD — one .gdcontact-card that wraps a navy
+		   header + white body. NO nested/double panels; the CSS
+		   aggressively resets IPS Form defaults inside .gdcontact-
+		   body so the framework's markup blends into the card
+		   style without another border showing up. */
+		$html  = '<div class="gr5 gdcontact-wrap">';
+
+		if ( $successFlag )
+		{
+			$html .= '<div class="gdcontact-success" role="status">'
+				. $esc( (string) \IPS\Settings::i()->gdcontact_success_message )
+				. '</div>';
+		}
+
+		$html .= '<div class="gdcontact-card">';
+
+		/* Header — navy band, mail icon (teal), title + intro. */
+		$html .= '<div class="gdcontact-header">';
+		$html .= '<span class="gdcontact-header__icon">' . $iconMail . '</span>';
+		$html .= '<div class="gdcontact-header__text">';
+		$html .= '<h1 class="gdcontact-header__title">' . $esc( $title ) . '</h1>';
+		if ( $intro !== '' )
+		{
+			$html .= '<p class="gdcontact-header__sub">' . $esc( $intro ) . '</p>';
+		}
 		$html .= '</div>';
+		$html .= '</div>';
+
+		/* Body — the IPS Form output drops in here; contact.css
+		   overrides IPS's default field spacing / borders so the
+		   inputs read as one clean vertical stack. */
+		$html .= '<div class="gdcontact-body">';
+		$html .= $formHtml;
+		$html .= '</div>';
+
+		$html .= '</div>';   /* /.gdcontact-card */
+		$html .= '</div>';   /* /.gdcontact-wrap */
 
 		\IPS\Output::i()->title  = $title;
 		\IPS\Output::i()->output = $html;
