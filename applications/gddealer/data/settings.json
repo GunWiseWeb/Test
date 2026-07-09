@@ -24,6 +24,10 @@
 		"default": "6hr"
 	},
 	{
+		"key": "gddealer_deals_author_id",
+		"default": "0"
+	},
+	{
 		"key": "gddealer_out_of_stock_grace_hours",
 		"default": "24"
 	},

@@ -91,6 +91,8 @@
     <word key="gddealer_settings_general"><![CDATA[General]]></word>
     <word key="gddealer_default_import_schedule"><![CDATA[Default Import Schedule]]></word>
     <word key="gddealer_default_import_schedule_desc"><![CDATA[Schedule assigned to new dealer feeds. Pro tier overrides this to 30min; Enterprise to 15min.]]></word>
+    <word key="gddealer_deals_author_id"><![CDATA[Deals author]]></word>
+    <word key="gddealer_deals_author_id_desc"><![CDATA[Member shown as the author of auto-published deals. Defaults to the AutoDeals system account created at upgrade time. Leave empty to publish deals as Guest.]]></word>
     <word key="gddealer_out_of_stock_grace_hours"><![CDATA[Out-of-Stock Grace Period (Hours)]]></word>
     <word key="gddealer_out_of_stock_grace_hours_desc"><![CDATA[Listings whose last_seen_in_feed is older than this many hours are marked Out of Stock.]]></word>
     <word key="gddealer_click_tracking_enabled"><![CDATA[Enable Click Tracking]]></word>

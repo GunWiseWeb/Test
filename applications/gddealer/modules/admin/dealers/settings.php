@@ -77,6 +77,24 @@ class _settings extends \IPS\Dispatcher\Controller
 		$form->add( new \IPS\Helpers\Form\YesNo( 'gddealer_click_tracking_enabled',
 			(bool) \IPS\Settings::i()->gddealer_click_tracking_enabled, FALSE ) );
 
+		/* Deals author — the member shown as the byline on
+		   auto-published deals. Default is the AutoDeals system
+		   account created by upg_10328. Falls through to guest
+		   only if the configured member has been deleted. */
+		$dealsAuthorMember = null;
+		try
+		{
+			$aid = (int) \IPS\Settings::i()->gddealer_deals_author_id;
+			if ( $aid )
+			{
+				$m = \IPS\Member::load( $aid );
+				if ( $m->member_id ) { $dealsAuthorMember = $m; }
+			}
+		}
+		catch ( \Throwable ) {}
+		$form->add( new \IPS\Helpers\Form\Member( 'gddealer_deals_author_id',
+			$dealsAuthorMember, FALSE ) );
+
 		/* ---- Directory ---- */
 		$form->addHeader( 'gddealer_settings_directory' );
 
@@ -328,6 +346,15 @@ class _settings extends \IPS\Dispatcher\Controller
 
 		if ( $values = $form->values() )
 		{
+			/* Form\Member returns an \IPS\Member instance (or NULL
+			   when the field is empty). Persist just the ID so the
+			   setting stays cheap to load. */
+			$dealsAuthorId = 0;
+			if ( isset( $values['gddealer_deals_author_id'] ) && $values['gddealer_deals_author_id'] instanceof \IPS\Member )
+			{
+				$dealsAuthorId = (int) $values['gddealer_deals_author_id']->member_id;
+			}
+
 			$form->saveAsSettings( [
 				'gddealer_group_founding'             => (int) $values['gddealer_group_founding'],
 				'gddealer_group_basic'                => (int) $values['gddealer_group_basic'],
@@ -338,6 +365,7 @@ class _settings extends \IPS\Dispatcher\Controller
 				'gddealer_announce_style'             => (string) $values['gddealer_announce_style'],
 				'gddealer_announce_body'              => (string) $values['gddealer_announce_body'],
 				'gddealer_default_import_schedule'    => (string) $values['gddealer_default_import_schedule'],
+				'gddealer_deals_author_id'            => $dealsAuthorId,
 				'gddealer_out_of_stock_grace_hours'   => (int) $values['gddealer_out_of_stock_grace_hours'],
 				'gddealer_click_tracking_enabled'     => (int) $values['gddealer_click_tracking_enabled'],
 				'gddealer_commerce_basic_id'          => (int) $values['gddealer_commerce_basic_id'],

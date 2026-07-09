@@ -211,13 +211,20 @@ class _DealPublisher
 			try { \IPS\Log::log( 'DealPublisher load existing: ' . $e->getMessage(), 'gddealer_deals' ); } catch ( \Throwable ) {}
 		}
 
-		/* 4. Pick a system author (Member 0 == guest) and a default category. */
-		$author = \IPS\Member::load( 0 );
-		try
+		/* 4. Author auto-deals as the configured deals-author
+		      member (default: the AutoDeals system account
+		      created by upg_10328). Falls back to guest only if
+		      the configured member has since been deleted so
+		      publishing never dies on a bad setting. */
+		$authorId = 0;
+		try { $authorId = (int) \IPS\Settings::i()->gddealer_deals_author_id; } catch ( \Throwable ) {}
+		$author = $authorId ? \IPS\Member::load( $authorId ) : \IPS\Member::load( 0 );
+		if ( !$author->member_id )
 		{
-			$author = new \IPS\Member;
+			/* Configured member is gone — silently drop back to
+			   guest so the whole publish batch doesn't blow up. */
+			$author = \IPS\Member::load( 0 );
 		}
-		catch ( \Throwable ) {}
 
 		/* Resolve deal category from the catalog hierarchy (granular: rifle vs
 		   handgun vs shotgun). The coarse listing.category can't distinguish
