@@ -101,8 +101,37 @@ class _finder extends \IPS\Dispatcher\Controller
 			'front'
 		);
 
-		try { \IPS\Output::i()->cssFiles = array_merge( \IPS\Output::i()->cssFiles, \IPS\Output::i()->css( 'finder.css', 'gdffl', 'interface' ) ); } catch ( \Throwable ) {}
-		try { \IPS\Output::i()->jsFiles  = array_merge( \IPS\Output::i()->jsFiles,  \IPS\Output::i()->js(  'finder.js',  'gdffl', 'interface' ) ); } catch ( \Throwable ) {}
+		/* CSS enqueue MUST use \IPS\Theme::i()->css() — the earlier
+		   version tried to call a nonexistent method on \IPS\Output
+		   and the silent empty catch swallowed the resulting
+		   "Call to undefined method" fatal, so finder.css never
+		   made it onto the page. Mirrors the working pattern in
+		   gdbills / gdloadout. JS enqueue is different — Output::js
+		   IS a real method and stays as-is. Log any future breakage
+		   so we notice it. */
+		try
+		{
+			\IPS\Output::i()->cssFiles = array_merge(
+				\IPS\Output::i()->cssFiles,
+				\IPS\Theme::i()->css( 'finder.css', 'gdffl', 'interface' )
+			);
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'gdffl finder css enqueue: ' . $e->getMessage(), 'gdffl' ); } catch ( \Throwable ) {}
+		}
+
+		try
+		{
+			\IPS\Output::i()->jsFiles = array_merge(
+				\IPS\Output::i()->jsFiles,
+				\IPS\Output::i()->js( 'finder.js', 'gdffl', 'interface' )
+			);
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'gdffl finder js enqueue: ' . $e->getMessage(), 'gdffl' ); } catch ( \Throwable ) {}
+		}
 
 		$defaultRadius = $this->defaultRadius();
 		$defaultTypes  = $this->transferCapableTypes();
