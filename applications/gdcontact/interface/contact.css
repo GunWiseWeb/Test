@@ -1,35 +1,37 @@
 /*
- * GD Contact — public /contact-us/ page (v1.0.7).
+ * GD Contact — public /contact-us/ page (v1.0.8).
  *
- * Reset from v1.0.3–v1.0.5: no custom card, no wrapper hacks,
- * no attempts to strip IPS's content panel. The form sits in
- * IPS's normal content area — sidebar and widgets stay
- * visible. contact.css only styles the FIELDS inside, cleanly.
+ * The form sits in IPS's normal content area — sidebar and
+ * widgets stay visible. contact.css styles ONLY our own
+ * .gdcontact-form-area block; nothing here targets any IPS
+ * ancestor container. v1.0.7's :has() rules on
+ * .ipsContentWrap / .ipsLayout__primary-column are gone —
+ * they touched containers we don't own and caused knock-on
+ * issues.
  *
  * All selectors are class-based; NO attribute selectors
  * anywhere (whitespace-in-brackets bit gdffl multiple times).
  * Palette is explicit hex — no theme dependency.
- *
- * v1.0.7 adds a background-COLOR-only recolor on the content
- * area that wraps this page, scoped via :has(.gdcontact-form-
- * area) so it only fires when the contact form is inside.
- * NO other property is touched — the sidebar aside is not a
- * matched ancestor, so widgets stay untouched.
  */
 
-/* --- Content-area background tint (scoped to contact page) - */
+/* --- Layout ------------------------------------------------- *
+ *
+ * v1.0.8: the background + padding live ON OUR OWN element.
+ * The v1.0.7 rules that targeted IPS ancestors (.ipsContentWrap,
+ * .ipsLayout__primary-column) have been removed — those touched
+ * containers we don't own and caused knock-on issues. Every
+ * property below is scoped to `.gdcontact-form-area`, so nothing
+ * outside our block is affected.
+ */
 
-.ipsContentWrap:has( .gdcontact-form-area ),
-.ipsLayout__primary-column:has( > .gr5.gdcontact-form-area ),
-.ipsLayout__primary-column:has( .gdcontact-form-area ) {
-	background-color: hsl( 0 0% 99% ) !important;
-}
-
-/* --- Layout ------------------------------------------------- */
-
-.gr5 .gdcontact-form-area {
+.gr5 .gdcontact-form-area,
+.gdcontact-form-area {
 	box-sizing: border-box;
-	max-width: 640px;
+	max-width: 720px;
+	margin: 0 0 24px;
+	padding: 28px 32px;
+	background-color: hsl( 0 0% 99% );
+	border-radius: 12px;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 	color: #0f172a;
 }
