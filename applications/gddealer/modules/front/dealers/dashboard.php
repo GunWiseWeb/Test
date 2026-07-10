@@ -1592,8 +1592,18 @@ class _dashboard extends \IPS\Dispatcher\Controller
 
 		$uniqueClicks = 0;
 		try {
+			/* v1.0.329 — the DB runs in ANSI_QUOTES mode, so
+			   double-quoted tokens inside SQL are parsed as
+			   IDENTIFIERS (column names), not string literals.
+			   The old form used the pipe character between
+			   double-quotes as a separator, which threw
+			   Unknown column pipe in SELECT; the catch below
+			   swallowed it silently, and $uniqueClicks stayed 0.
+			   All string literals in this SELECT are now
+			   single-quoted (the outer PHP delimiter is
+			   double-quoted so single-quotes read cleanly). */
 			$uniqueClicks = (int) \IPS\Db::i()->select(
-				'COUNT(DISTINCT CONCAT(upc, "|", CASE WHEN member_id IS NOT NULL THEN CONCAT("m", member_id) WHEN ip_hash IS NOT NULL AND ip_hash != "" THEN CONCAT("i", ip_hash) ELSE CONCAT("r", id) END))',
+				"COUNT(DISTINCT CONCAT(upc, '|', CASE WHEN member_id IS NOT NULL THEN CONCAT('m', member_id) WHEN ip_hash IS NOT NULL AND ip_hash != '' THEN CONCAT('i', ip_hash) ELSE CONCAT('r', id) END))",
 				'gd_click_log',
 				[ 'dealer_id=? AND clicked_at >= ? AND clicked_at <= ?', $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59' ]
 			)->first();
