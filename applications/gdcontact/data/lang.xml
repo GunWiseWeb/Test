@@ -6,6 +6,9 @@
 		<word key="menutab__gdcontact_icon" js="0"><![CDATA[envelope]]></word>
 
 		<word key="module__admin_manage" js="0"><![CDATA[Contact]]></word>
+		<word key="module__front_contact" js="0"><![CDATA[Contact]]></word>
+		<word key="module__gdcontact_contact" js="0"><![CDATA[Contact]]></word>
+		<word key="module__gdcontact_manage" js="0"><![CDATA[Contact]]></word>
 		<word key="menu__gdcontact_manage_settings" js="0"><![CDATA[Settings]]></word>
 		<word key="menu__gdcontact_manage_fields" js="0"><![CDATA[Fields]]></word>
 		<word key="r__contact_manage" js="0"><![CDATA[Manage Contact]]></word>

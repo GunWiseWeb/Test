@@ -1,5 +1,5 @@
 /*
- * GD Contact — public /contact-us/ page (v1.0.6).
+ * GD Contact — public /contact-us/ page (v1.0.7).
  *
  * Reset from v1.0.3–v1.0.5: no custom card, no wrapper hacks,
  * no attempts to strip IPS's content panel. The form sits in
@@ -9,7 +9,21 @@
  * All selectors are class-based; NO attribute selectors
  * anywhere (whitespace-in-brackets bit gdffl multiple times).
  * Palette is explicit hex — no theme dependency.
+ *
+ * v1.0.7 adds a background-COLOR-only recolor on the content
+ * area that wraps this page, scoped via :has(.gdcontact-form-
+ * area) so it only fires when the contact form is inside.
+ * NO other property is touched — the sidebar aside is not a
+ * matched ancestor, so widgets stay untouched.
  */
+
+/* --- Content-area background tint (scoped to contact page) - */
+
+.ipsContentWrap:has( .gdcontact-form-area ),
+.ipsLayout__primary-column:has( > .gr5.gdcontact-form-area ),
+.ipsLayout__primary-column:has( .gdcontact-form-area ) {
+	background-color: hsl( 0 0% 99% ) !important;
+}
 
 /* --- Layout ------------------------------------------------- */
 

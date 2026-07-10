@@ -5,6 +5,9 @@ $lang = [
 	'menutab__gdcontact_icon'   => 'envelope',
 
 	'module__admin_manage'      => 'Contact',
+	'module__front_contact'     => 'Contact',
+	'module__gdcontact_contact' => 'Contact',
+	'module__gdcontact_manage'  => 'Contact',
 	'menu__gdcontact_manage_settings' => 'Settings',
 	'menu__gdcontact_manage_fields'   => 'Fields',
 	'r__contact_manage'         => 'Manage Contact',
