@@ -15,6 +15,24 @@
  * page's widgets. The form now sits inside IPS's normal
  * content area with just the fields styled cleanly.
  *
+ * v1.0.9 fixes two CRITICAL bugs surfaced in production logs:
+ *   1. \IPS\Email::buildFromContent() was called without the
+ *      email-type argument. IPS 5 rejects this with
+ *      "The email type must be specified when calling
+ *       buildFromContent()", the try/catch caught it, sendEmail()
+ *      returned FALSE, and the visitor saw the generic
+ *      "couldn't send" error. Now we pass
+ *      \IPS\Email::TYPE_TRANSACTIONAL as the 4th arg —
+ *      the same type used across gddealer for every
+ *      transactional message.
+ *   2. Captcha validation could still fire even when the app's
+ *      gdcontact_captcha_enabled setting was OFF. The render/
+ *      instantiation branch already skipped when off, but the
+ *      validate branch only checked `$captcha` (the object),
+ *      not `$captchaOn` (the app setting). Added a defensive
+ *      `$captchaOn` check on the validate branch too so the
+ *      app setting is authoritative in every code path.
+ *
  * Preserved verbatim:
  *   * CSRF — hidden csrfKey input + \IPS\Session::i()->csrfCheck()
  *     on POST.
@@ -23,7 +41,8 @@
  *     site has configured (Turnstile / reCAPTCHA / IPS default).
  *   * Honeypot — off-screen div injected into the form, silent-
  *     reject on hit.
- *   * sendEmail() — same routing + email path as v1.0.0.
+ *   * sendEmail() — same routing + email path as v1.0.0, plus
+ *     the email-type fix.
  *
  * gd_ffl / gd_zip_geo etc. are not touched; this app writes
  * zero database rows on the front page.
@@ -151,7 +170,12 @@ class _contact extends \IPS\Dispatcher\Controller
 				$errors[] = 'Session expired — please refresh and try again.';
 			}
 
-			if ( !$errors && $captcha )
+			/* Two independent gates: $captchaOn (app setting) AND
+			   $captcha (successfully instantiated object). When the
+			   app setting is OFF, validate NEVER runs — even if
+			   $captcha somehow got instantiated by an earlier branch.
+			   The app setting is authoritative. */
+			if ( !$errors && $captchaOn && $captcha )
 			{
 				try
 				{
@@ -466,7 +490,20 @@ class _contact extends \IPS\Dispatcher\Controller
 
 		try
 		{
-			$email = \IPS\Email::buildFromContent( $subject, $html, $plain );
+			/* v1.0.9 — IPS 5's buildFromContent() REQUIRES an
+			   email-type argument. Contact-form messages are
+			   transactional (one-off, admin/dealer-triggered
+			   response), so \IPS\Email::TYPE_TRANSACTIONAL is
+			   the right constant. Without it: "The email type
+			   must be specified when calling buildFromContent()"
+			   is thrown, the try/catch swallows it, sendEmail()
+			   returns FALSE, and no message is ever delivered. */
+			$email = \IPS\Email::buildFromContent(
+				$subject,
+				$html,
+				$plain,
+				\IPS\Email::TYPE_TRANSACTIONAL
+			);
 
 			$fromE = $fromEmail !== '' ? $fromEmail : null;
 			$fromN = $fromName  !== '' ? $fromName  : null;
