@@ -3695,6 +3695,20 @@
 				"values": [],
 				"comment": ""
 			},
+			"user_agent": {
+				"name": "user_agent",
+				"type": "VARCHAR",
+				"length": 255,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": ""
+			},
 			"clicked_at": {
 				"name": "clicked_at",
 				"type": "DATETIME",

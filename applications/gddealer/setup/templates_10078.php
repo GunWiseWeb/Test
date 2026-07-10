@@ -216,8 +216,8 @@ $gddealerV10078Templates[] = [
             <div class="gdGeoRow__bar">
                 <div class="gdGeoRow__fill" style="width: {$g['pct']}%"></div>
             </div>
-            <span class="gdGeoRow__clicks">{expression="number_format($g['clicks'])"}</span>
-            <span class="gdGeoRow__pct">{$g['pct']}%</span>
+            <span class="gdGeoRow__clicks">{expression="number_format($g['clicks'])"} clicks</span>
+            <span class="gdGeoRow__pct">({$g['pct']}%)</span>
         </div>
         {{endforeach}}
     </div>
