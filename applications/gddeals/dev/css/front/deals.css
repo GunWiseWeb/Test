@@ -76,7 +76,14 @@
 
 /* card restructure for vote widget */
 .gd-card-main{display:flex;flex-direction:column;text-decoration:none;color:inherit;flex:1;}
-.gd-card-foot-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+/* v1.0.51 — foot row aligns to top so a 2-line byline (author + posted)
+   sits next to the heat pill without vertically centering the pill
+   between the two lines. min-width:0 on the byline lets the flex parent
+   shrink it if the author name is unusually long. */
+.gd-card-foot-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.gd-card-byline{display:flex;flex-direction:column;min-width:0;flex:1;}
+.gd-card-author{font-weight:600;line-height:1.35;}
+.gd-card-posted{font-size:.8em;opacity:.75;line-height:1.35;}
 
 /* vote widget */
 .gd-vote{display:inline-flex;align-items:center;gap:6px;}
@@ -89,7 +96,10 @@
 .gd-vote--lg .gd-vote-score{font-size:1.3rem;min-width:28px;}
 
 /* heat badges */
-.gd-heat-badge{font-size:.7rem;font-weight:800;border-radius:5px;padding:3px 8px;text-transform:uppercase;letter-spacing:.03em;}
+/* v1.0.51 — white-space:nowrap keeps "Warm"/"Hot"/"Fire" on one line;
+   flex-shrink:0 stops the sibling byline from squeezing the pill and
+   breaking it across two lines ("War"/"m"). */
+.gd-heat-badge{font-size:.7rem;font-weight:800;border-radius:5px;padding:3px 8px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;flex-shrink:0;}
 .gd-heat--warm{background:var(--gd-promo_bg,#fff4e5);color:var(--gd-discount,#b86e00);}
 .gd-heat--hot{background:var(--gd-expired_bg,#fdecea);color:var(--gd-expired,#c0392b);}
 .gd-heat--fire{background:var(--gd-expired,#c0392b);color:#fff;}

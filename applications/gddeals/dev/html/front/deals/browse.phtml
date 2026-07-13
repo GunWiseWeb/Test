@@ -108,7 +108,10 @@
 					</a>
 					<div class="gd-card-foot">
 						<div class="gd-card-foot-row">
-							<span>{lang="gddeals_by"} {$d['author']} · {$d['posted']}{{if $d['expires']}} · {lang="gddeals_expires"} {$d['expires']}{{endif}}</span>
+							<div class="gd-card-byline">
+								<span class="gd-card-author">{lang="gddeals_by"} {$d['author']}</span>
+								<span class="gd-card-posted">{$d['posted']}{{if $d['expires']}} · {lang="gddeals_expires"} {$d['expires']}{{endif}}</span>
+							</div>
 							{{if $d['heat_label'] != 'cold'}}<span class="gd-heat-badge gd-heat--{$d['heat_label']}">{$d['heat_text']}</span>{{endif}}
 						</div>
 						<div class="gd-vote" data-vote-url="{$d['vote_url']}" data-uservote="{$d['user_vote']}">
