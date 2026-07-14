@@ -19,6 +19,8 @@ $lang = array(
 	'menu__gdcompliance_compliance_lowers'     => 'Lowers & Receivers',
 	'menu__gdcompliance_compliance_magazines'  => 'Magazines',
 	'menu__gdcompliance_compliance_advisories' => 'Advisories',
+	'menu__gdcompliance_compliance_ammunition' => 'Ammunition',
+	'menu__gdcompliance_compliance_knives'     => 'Knives',
 	'menu__gdcompliance_compliance_meltingpoint' => 'Melting-Point',
 	'menu__gdcompliance_compliance_rof'        => 'Rate-of-Fire Devices',
 	'menu__gdcompliance_compliance_settings'   => 'Settings',
@@ -62,6 +64,23 @@ $lang = array(
 	'gdcompliance_acp_adv_flagged_title'      => 'Flagged products',
 	'gdcompliance_acp_adv_flagged_intro'      => 'Every product currently carrying an advisory flag. Click a state to filter and reach per-(UPC, state) override — a force_clear suppresses the advisory notice for that specific product in that state.',
 	'gdcompliance_acp_adv_override'           => 'Set override',
+
+	/* v1.6.47 — Ammunition & Knife state advisories. Same shape as the
+	   Buyer-Permit Advisories page above; each row here means the item
+	   CAN ship, and the buyer must satisfy the state\'s ammo/knife rules
+	   at their end. Reason text ends with "verify current law before
+	   purchasing" — informational, not legal advice. */
+	'gdcompliance_acp_ammo_title'             => 'Ammunition State Advisories',
+	'gdcompliance_acp_ammo_intro'             => 'State-specific ammunition rules — FOID card / eligibility permit / vendor licensing / no-ship jurisdictions. Not sale bans (unless a jurisdiction blocks shipment outright). Each row\'s reason is customer-visible in a yellow advisory block on the ammo product page and always ends with "verify current law before purchasing" — informational, not legal advice.',
+	'gdcompliance_acp_ammo_flagged_title'     => 'Flagged ammunition products',
+	'gdcompliance_acp_ammo_flagged_intro'     => 'Every product currently carrying an advisory flag (all classes). Click a state to filter and reach per-(UPC, state) override — a force_clear suppresses the advisory for that specific product in that state.',
+	'gdcompliance_acp_ammo_override'          => 'Set override',
+
+	'gdcompliance_acp_knife_title'            => 'Knife State Advisories',
+	'gdcompliance_acp_knife_intro'            => 'State-specific knife rules — switchblade / automatic / balisong restrictions. Each row\'s reason is customer-visible in a yellow advisory block on the knife product page and always ends with "verify current law before purchasing" — informational, not legal advice.',
+	'gdcompliance_acp_knife_flagged_title'    => 'Flagged knife products',
+	'gdcompliance_acp_knife_flagged_intro'    => 'Every product currently carrying an advisory flag (all classes). Click a state to filter and reach per-(UPC, state) override — a force_clear suppresses the advisory for that specific product in that state.',
+	'gdcompliance_acp_knife_override'         => 'Set override',
 
 	/* v1.6.10 — Lowers ACP */
 	'gdcompliance_acp_lowers_title'           => 'Lowers & Receivers',

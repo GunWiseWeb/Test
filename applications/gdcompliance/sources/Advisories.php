@@ -167,29 +167,60 @@ class _Advisories
 	 * an array of hits. Each hit: [ 'state' => 'CO', 'reason' => '...',
 	 * 'citation' => '...' ].
 	 *
-	 * Detection rules (v1.6.17 MVP):
-	 *   CO advisory (rifle class): action_type contains 'semi', NOT
+	 * Detection rules:
+	 *   RIFLE class (CO SB25-003, MN §624.712, and any future
+	 *     rifle-class rules): action_type contains 'semi', NOT
 	 *     rimfire, NOT manual action, NOT fixed-mag / tube / internal.
-	 *     Excludes handguns for MVP — CO's gas-operated-handgun subset
+	 *     Excludes handguns for now — CO's gas-operated-handgun subset
 	 *     is not reliably detectable from catalog metadata.
-	 *   MN advisory (rifle class): identical detection to CO for rifles.
-	 *     MN's SAMSAW ≈ AR/AK-pattern semi-auto centerfire rifle; the
-	 *     rifle-class rule row's reason text carries the MN-specific
-	 *     permit language.
 	 *
-	 * Shotguns: skip for MVP (fixed-tube-mag is the norm; false
-	 * positives outweigh true positives without careful title parse).
-	 * Derrick can layer in shotguns via a curated list or a later
-	 * version.
+	 *   AMMO class (v1.6.47): applies to EVERY product that classifies
+	 *     as top-level cat 23 (Ammunition). No product-specific gating —
+	 *     state ammo rules (IL FOID, CA Prop 63, CT permit, NY SAFE,
+	 *     etc.) apply to all ammunition sold in-state. The per-state
+	 *     rule row carries the buyer-facing "verify current law"
+	 *     language.
+	 *
+	 *   KNIFE class (v1.6.47): applies to EVERY product that classifies
+	 *     as top-level cat 138 (Knives). Automatic / switchblade /
+	 *     balisong restrictions vary by state; the rule row's reason
+	 *     text points buyers at their own state's statute.
+	 *
+	 * Shotgun rifles: skipped for now (fixed-tube-mag is the norm;
+	 * false positives outweigh true positives without careful title
+	 * parse). Derrick can layer in shotguns via a curated list later.
 	 *
 	 * @param array<string, mixed> $p  catalog row
-	 * @param string               $firearmType  'handgun' | 'rifle' | 'shotgun'
+	 * @param string               $firearmType  'handgun' | 'rifle' | 'shotgun' | 'ammo' | 'knife'
 	 * @return array<int, array{state:string,firearm_class:string,reason:string,citation:string}>
 	 */
 	public static function matchesFor( array $p, string $firearmType ): array
 	{
 		$out = [];
-		if ( $firearmType !== 'rifle' ) { return $out; } /* MVP: rifles only */
+
+		/* Ammo and knife: every product of the class carries the
+		   state advisory. No product-specific gates (state ammo /
+		   knife statutes apply broadly to the class). One row per
+		   state that has an enabled rule for the class. */
+		if ( $firearmType === 'ammo' || $firearmType === 'knife' )
+		{
+			$rules = self::loadRules();
+			if ( empty( $rules ) ) { return $out; }
+			foreach ( $rules as $state => $byClass )
+			{
+				$row = $byClass[ $firearmType ] ?? null;
+				if ( !is_array( $row ) ) { continue; }
+				$out[] = [
+					'state'         => (string) $state,
+					'firearm_class' => $firearmType,
+					'reason'        => (string) ( $row['reason']   ?? '' ),
+					'citation'      => (string) ( $row['citation'] ?? '' ),
+				];
+			}
+			return $out;
+		}
+
+		if ( $firearmType !== 'rifle' ) { return $out; } /* firearm classes: rifles only for now */
 
 		$rules = self::loadRules();
 		if ( empty( $rules ) ) { return $out; }

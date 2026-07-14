@@ -31,14 +31,30 @@ if ( !defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 
 class _Engine
 {
-	/* Category top-level → firearm type. Anything else is non-firearm and
-	   gets skipped (ammo, accessories, holsters, optics, etc.). */
+	/* Category top-level → product class. Firearm classes (handgun /
+	   rifle / shotgun) participate in every downstream pass. Non-
+	   firearm classes (ammo, knife) participate ONLY in the advisory
+	   pass — AWB / roster / melting-point / capacity gates all skip
+	   them explicitly on $type. Anything else is unrelated and gets
+	   skipped at the `$type === null` continue.
+
+	   v1.6.47 — ammo (cat 23) and knife (cat 138) added so state
+	   advisories for ammunition and knives flow through the same
+	   advisory pipeline that CO/MN rifle advisories use. Both
+	   category IDs are top-level (parent_id = 0) so buildTypeMap()
+	   resolves them without any parent-walking. */
 	const TOP_LEVEL_TYPES = [
-		1  => 'handgun',
-		7  => 'rifle',
-		16 => 'shotgun',
+		1   => 'handgun',
+		7   => 'rifle',
+		16  => 'shotgun',
+		23  => 'ammo',
+		138 => 'knife',
 	];
 
+	/* Capacity-rule types — only firearm classes have magazines. Ammo
+	   and knife never carry a capacity rule so they are deliberately
+	   NOT listed here; the capacity pass in computeFlags() reads
+	   $rulesByType[$type] which is unset for non-firearm classes. */
 	const VALID_TYPES = [ 'handgun', 'rifle', 'shotgun', 'all' ];
 
 	/* Sample size returned by dryRun previews (per state). */
@@ -985,10 +1001,16 @@ class _Engine
 					catch ( \Throwable ) { /* per-row, non-fatal */ }
 				}
 
-				/* --- Phase 1: capacity-rule pass --- */
+				/* --- Phase 1: capacity-rule pass ---
+				   v1.6.47 — only firearm classes have magazine capacity
+				   rules. Ammo (cat 23) and knife (cat 138) rows get here
+				   too (added to TOP_LEVEL_TYPES for the advisory pass)
+				   and MUST be skipped, else an 'all'-typed capacity rule
+				   with a low max would wrongly flag any ammo pack whose
+				   "capacity" reads as a round count. */
 				$capRaw = isset( $p['capacity'] ) ? (string) $p['capacity'] : '';
 				$cap    = self::parseCapacity( $capRaw );
-				if ( $cap !== null )
+				if ( $cap !== null && in_array( $type, [ 'handgun', 'rifle', 'shotgun' ], true ) )
 				{
 					$applicable = array_merge( $rulesByType[ $type ] ?? [], $rulesByType['all'] );
 					foreach ( $applicable as $r )

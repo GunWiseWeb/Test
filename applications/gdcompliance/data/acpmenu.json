@@ -84,6 +84,18 @@
 			"do": "",
 			"restriction": "compliance_manage"
 		},
+		"ammunition": {
+			"tab": "gdcompliance",
+			"controller": "ammunition",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
+		"knives": {
+			"tab": "gdcompliance",
+			"controller": "knives",
+			"do": "",
+			"restriction": "compliance_manage"
+		},
 		"meltingpoint": {
 			"tab": "gdcompliance",
 			"controller": "meltingpoint",

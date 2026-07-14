@@ -16,6 +16,8 @@
 <word key="menu__gdcompliance_compliance_lowers" js="0"><![CDATA[Lowers & Receivers]]></word>
 <word key="menu__gdcompliance_compliance_magazines" js="0"><![CDATA[Magazines]]></word>
 <word key="menu__gdcompliance_compliance_advisories" js="0"><![CDATA[Advisories]]></word>
+<word key="menu__gdcompliance_compliance_ammunition" js="0"><![CDATA[Ammunition]]></word>
+<word key="menu__gdcompliance_compliance_knives" js="0"><![CDATA[Knives]]></word>
 <word key="menu__gdcompliance_compliance_meltingpoint" js="0"><![CDATA[Melting-Point]]></word>
 <word key="menu__gdcompliance_compliance_rof" js="0"><![CDATA[Rate-of-Fire Devices]]></word>
 <word key="gdcompliance_acp_rof_title" js="0"><![CDATA[Rate-of-Fire Devices]]></word>
@@ -51,6 +53,16 @@
 <word key="gdcompliance_acp_adv_flagged_title" js="0"><![CDATA[Flagged products]]></word>
 <word key="gdcompliance_acp_adv_flagged_intro" js="0"><![CDATA[Every product currently carrying an advisory flag. Click a state to filter and reach per-(UPC, state) override — a force_clear suppresses the advisory notice for that specific product in that state.]]></word>
 <word key="gdcompliance_acp_adv_override" js="0"><![CDATA[Set override]]></word>
+<word key="gdcompliance_acp_ammo_title" js="0"><![CDATA[Ammunition State Advisories]]></word>
+<word key="gdcompliance_acp_ammo_intro" js="0"><![CDATA[State-specific ammunition rules — FOID card / eligibility permit / vendor licensing / no-ship jurisdictions. Not sale bans (unless a jurisdiction blocks shipment outright). Each row's reason is customer-visible in a yellow advisory block on the ammo product page and always ends with "verify current law before purchasing" — informational, not legal advice.]]></word>
+<word key="gdcompliance_acp_ammo_flagged_title" js="0"><![CDATA[Flagged ammunition products]]></word>
+<word key="gdcompliance_acp_ammo_flagged_intro" js="0"><![CDATA[Every product currently carrying an advisory flag (all classes). Click a state to filter and reach per-(UPC, state) override — a force_clear suppresses the advisory for that specific product in that state.]]></word>
+<word key="gdcompliance_acp_ammo_override" js="0"><![CDATA[Set override]]></word>
+<word key="gdcompliance_acp_knife_title" js="0"><![CDATA[Knife State Advisories]]></word>
+<word key="gdcompliance_acp_knife_intro" js="0"><![CDATA[State-specific knife rules — switchblade / automatic / balisong restrictions. Each row's reason is customer-visible in a yellow advisory block on the knife product page and always ends with "verify current law before purchasing" — informational, not legal advice.]]></word>
+<word key="gdcompliance_acp_knife_flagged_title" js="0"><![CDATA[Flagged knife products]]></word>
+<word key="gdcompliance_acp_knife_flagged_intro" js="0"><![CDATA[Every product currently carrying an advisory flag (all classes). Click a state to filter and reach per-(UPC, state) override — a force_clear suppresses the advisory for that specific product in that state.]]></word>
+<word key="gdcompliance_acp_knife_override" js="0"><![CDATA[Set override]]></word>
 <word key="gdcompliance_acp_lowers_title" js="0"><![CDATA[Lowers & Receivers]]></word>
 <word key="gdcompliance_acp_lowers_intro" js="0"><![CDATA[AR/AK-pattern LOWER RECEIVERS are the serialized firearm — treated as an assault-weapon component in the rifle-class AWB states. cat154 flags by default; cat69 is title-gated; bolt/lever/rimfire lowers route to review; parts and uppers are excluded. Add curated overrides below to force-flag or force-clear specific patterns.]]></word>
 <word key="gdcompliance_acp_lowers_test" js="0"><![CDATA[Test a UPC against the classifier]]></word>
