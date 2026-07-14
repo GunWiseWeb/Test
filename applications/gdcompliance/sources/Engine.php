@@ -530,7 +530,7 @@ class _Engine
 										'firearm_type'    => 'awb_lower',
 										'parsed_capacity' => null,
 										'rule_id'         => 0,
-										'reason'          => substr( $reason, 0, 255 ),
+										'reason'          => substr( $reason, 0, 500 ),
 										'citation'        => substr( (string) $cite, 0, 255 ),
 										'computed_at'     => $now,
 									];
@@ -553,6 +553,7 @@ class _Engine
 									'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
 									'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
 									'suggested_status' => 'lower_review',
+									'resolved'         => 0,
 									'created_at'       => $now,
 								];
 								$result['awb']['lower_review'] = ( $result['awb']['lower_review'] ?? 0 ) + 1;
@@ -659,7 +660,7 @@ class _Engine
 										'firearm_type'    => 'magazine',
 										'parsed_capacity' => $magCap,
 										'rule_id'         => (int) $lim['rule_id'],
-										'reason'          => substr( $reason, 0, 255 ),
+										'reason'          => substr( $reason, 0, 500 ),
 										'citation'        => substr( (string) $lim['citation'], 0, 255 ),
 										'computed_at'     => $now,
 									];
@@ -737,7 +738,7 @@ class _Engine
 									'firearm_type'    => 'rate_of_fire',
 									'parsed_capacity' => null,
 									'rule_id'         => 0,
-									'reason'          => substr( $rofReason, 0, 255 ),
+									'reason'          => substr( $rofReason, 0, 500 ),
 									'citation'        => substr( $rofCite,   0, 255 ),
 									'computed_at'     => $now,
 								];
@@ -842,6 +843,7 @@ class _Engine
 									'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
 									'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
 									'suggested_status' => 'awb_review_' . strtolower( $awbState ),
+									'resolved'         => 0,
 									'created_at'       => $now,
 								];
 								$result['awb']['review'] = ( $result['awb']['review'] ?? 0 ) + 1;
@@ -856,7 +858,7 @@ class _Engine
 								'firearm_type'    => $awbFtype,
 								'parsed_capacity' => null,
 								'rule_id'         => 0,
-								'reason'          => substr( $reason, 0, 255 ),
+								'reason'          => substr( $reason, 0, 500 ),
 								'citation'        => substr( $cite, 0, 255 ),
 								'computed_at'     => $now,
 							];
@@ -876,6 +878,7 @@ class _Engine
 									'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
 									'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
 									'suggested_status' => 'awb_tier2_' . strtolower( $awbState ),
+									'resolved'         => 0,
 									'created_at'       => $now,
 								];
 							}
@@ -896,31 +899,45 @@ class _Engine
 				   to the same rifles the feature test already flagged
 				   for AWB-restrict states (no conflict — CA restricts,
 				   CO/MN advise; different states, different meaning). */
-				try
+				/* v1.6.48 — ammo + knife are handled by the dedicated
+				   bulk pass AFTER the main loop (see "AMMO/KNIFE
+				   ADVISORY PASS" below), so skip them here to avoid
+				   emitting duplicate flags. Firearm advisories (CO/MN
+				   rifle etc.) still run the per-row path. */
+				if ( $type === 'ammo' || $type === 'knife' )
 				{
-					$adv = \IPS\gdcompliance\Advisories::matchesFor( $p, $type );
-					foreach ( $adv as $a )
-					{
-						$aState = strtoupper( (string) ( $a['state']    ?? '' ) );
-						$aReason = trim( (string) ( $a['reason']   ?? '' ) );
-						$aCite   = trim( (string) ( $a['citation'] ?? '' ) );
-						if ( $aState === '' || $aReason === '' ) { continue; }
-						$flags[] = [
-							'upc'             => substr( $upc, 0, 50 ),
-							'state_code'      => $aState,
-							'firearm_type'    => 'advisory',
-							'parsed_capacity' => null,
-							'rule_id'         => 0,
-							'reason'          => substr( $aReason, 0, 255 ),
-							'citation'        => substr( $aCite,   0, 255 ),
-							'computed_at'     => $now,
-						];
-						$result['per_state'][ $aState ] = ( $result['per_state'][ $aState ] ?? 0 ) + 1;
-						$result['per_state_type'][ $aState ]['advisory'] = ( $result['per_state_type'][ $aState ]['advisory'] ?? 0 ) + 1;
-						$result['advisory'][ $aState ] = ( $result['advisory'][ $aState ] ?? 0 ) + 1;
-					}
+					/* fall through to the passes below (melting-point,
+					   capacity, roster) — they all self-gate on $type
+					   and will no-op for these classes. */
 				}
-				catch ( \Throwable ) { /* per-row, non-fatal */ }
+				else
+				{
+					try
+					{
+						$adv = \IPS\gdcompliance\Advisories::matchesFor( $p, $type );
+						foreach ( $adv as $a )
+						{
+							$aState = strtoupper( (string) ( $a['state']    ?? '' ) );
+							$aReason = trim( (string) ( $a['reason']   ?? '' ) );
+							$aCite   = trim( (string) ( $a['citation'] ?? '' ) );
+							if ( $aState === '' || $aReason === '' ) { continue; }
+							$flags[] = [
+								'upc'             => substr( $upc, 0, 50 ),
+								'state_code'      => $aState,
+								'firearm_type'    => 'advisory',
+								'parsed_capacity' => null,
+								'rule_id'         => 0,
+								'reason'          => substr( $aReason, 0, 500 ),
+								'citation'        => substr( $aCite,   0, 255 ),
+								'computed_at'     => $now,
+							];
+							$result['per_state'][ $aState ] = ( $result['per_state'][ $aState ] ?? 0 ) + 1;
+							$result['per_state_type'][ $aState ]['advisory'] = ( $result['per_state_type'][ $aState ]['advisory'] ?? 0 ) + 1;
+							$result['advisory'][ $aState ] = ( $result['advisory'][ $aState ] ?? 0 ) + 1;
+						}
+					}
+					catch ( \Throwable ) { /* per-row, non-fatal */ }
+				}
 
 				/* --- v1.6.19 Phase 6c: melting-point HANDGUN ban ---
 				   HI/IL/MD/MA/MN/NY Saturday-Night-Special bans on
@@ -955,6 +972,7 @@ class _Engine
 								'model_title'      => substr( (string) ( $p['title'] ?? $p['model'] ?? '' ), 0, 255 ),
 								'caliber'          => substr( (string) ( $p['caliber'] ?? '' ), 0, 60 ),
 								'suggested_status' => 'melting_review',
+								'resolved'         => 0,
 								'created_at'       => $now,
 							];
 							$result['melting_point']['review'] = ( $result['melting_point']['review'] ?? 0 ) + 1;
@@ -988,7 +1006,7 @@ class _Engine
 									'firearm_type'    => 'melting_point',
 									'parsed_capacity' => null,
 									'rule_id'         => 0,
-									'reason'          => substr( $mpReason, 0, 255 ),
+									'reason'          => substr( $mpReason, 0, 500 ),
 									'citation'        => substr( $mpCite,   0, 255 ),
 									'computed_at'     => $now,
 								];
@@ -1043,7 +1061,7 @@ class _Engine
 								'firearm_type'    => $type,
 								'parsed_capacity' => $cap,
 								'rule_id'         => (int) $r['id'],
-								'reason'          => substr( $reason, 0, 255 ),
+								'reason'          => substr( $reason, 0, 500 ),
 								'citation'        => substr( (string) ( $r['source_note'] ?? '' ), 0, 255 ),
 								'computed_at'     => $now,
 							];
@@ -1135,6 +1153,117 @@ class _Engine
 			try { \IPS\Log::log( 'Engine::computeFlags ' . $__msg, 'gdcompliance_perf' ); } catch ( \Throwable ) {}
 			@error_log( $__msg );
 		} catch ( \Throwable ) {}
+
+		/* -----------------------------------------------------------
+		 * AMMO/KNIFE ADVISORY PASS (v1.6.48)
+		 *
+		 * Runs AFTER the main firearm loop and BEFORE staging so the
+		 * flag rows get persisted via the same crash-safe swap. The
+		 * per-row advisory pass in the main loop skips ammo/knife
+		 * (see the $type === 'ammo' || $type === 'knife' guard above)
+		 * so no duplicates are emitted.
+		 *
+		 * Why a separate pass:
+		 *   * Ammo/knife advisories are class-level — every product
+		 *     of the class gets a flag row for every enabled state,
+		 *     with no per-product attribute gates. That's a simple
+		 *     cross-join, not a per-product classifier walk.
+		 *   * Computing the state list once (Advisories::matchesFor
+		 *     with an empty $p) and then iterating catalog products
+		 *     is O(products + states) instead of O(products × pass-
+		 *     level PHP overhead).
+		 *   * Streaming the catalog rows (upc-only SELECT) keeps
+		 *     memory flat — no full catalog load.
+		 *
+		 * Category IDs verified top-level:
+		 *   ammo:  23 (Ammunition) and the sub-cats 24-30. The
+		 *     buildTypeMap walks parent_id to the top-level so
+		 *     these all classify as 'ammo' — but for THIS pass we
+		 *     select on category_id directly to avoid loading the
+		 *     whole typeMap for a simple pass.
+		 *   knife: 138 (Knives) top-level + 150 (Knife Accessories).
+		 */
+		try
+		{
+			$ammoCats  = [ 23, 24, 25, 26, 27, 28, 29, 30 ];
+			$knifeCats = [ 138, 150 ];
+
+			foreach ( [ 'ammo' => $ammoCats, 'knife' => $knifeCats ] as $advClass => $advCats )
+			{
+				/* One class-level lookup — matchesFor's ammo/knife
+				   branch is product-attribute-independent, so an empty
+				   $p returns the same result as any real product. */
+				$adRows = [];
+				try
+				{
+					$adRows = \IPS\gdcompliance\Advisories::matchesFor( [], $advClass );
+				}
+				catch ( \Throwable $eAdv )
+				{
+					try { \IPS\Log::log( 'Engine::computeFlags ' . $advClass . ' matchesFor: ' . $eAdv->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+					continue;
+				}
+				if ( empty( $adRows ) ) { continue; }
+
+				/* Stream the matching products — upc column only, no
+				   descriptions, so memory stays flat even with 5k+
+				   ammo SKUs and 2k+ knife SKUs. */
+				$catList = implode( ',', array_map( 'intval', $advCats ) );
+				$productsScanned = 0;
+				$flagsBefore     = count( $flags );
+
+				try
+				{
+					foreach ( \IPS\Db::i()->select( 'upc', 'gd_catalog',
+						[ 'category_id IN (' . $catList . ')' ]
+					) as $prow )
+					{
+						$upcA = (string) ( is_array( $prow ) ? ( $prow['upc'] ?? '' ) : $prow );
+						if ( $upcA === '' ) { continue; }
+						$productsScanned++;
+						foreach ( $adRows as $a )
+						{
+							$aState  = strtoupper( (string) ( $a['state']    ?? '' ) );
+							$aReason = trim( (string) ( $a['reason']   ?? '' ) );
+							$aCite   = trim( (string) ( $a['citation'] ?? '' ) );
+							if ( $aState === '' || $aReason === '' ) { continue; }
+							$flags[] = [
+								'upc'             => substr( $upcA, 0, 50 ),
+								'state_code'      => $aState,
+								'firearm_type'    => 'advisory',
+								'parsed_capacity' => null,
+								'rule_id'         => 0,
+								'reason'          => substr( $aReason, 0, 500 ),
+								'citation'        => substr( $aCite,   0, 255 ),
+								'computed_at'     => $now,
+							];
+							$result['per_state'][ $aState ] = ( $result['per_state'][ $aState ] ?? 0 ) + 1;
+							$result['per_state_type'][ $aState ]['advisory'] = ( $result['per_state_type'][ $aState ]['advisory'] ?? 0 ) + 1;
+							$result['advisory'][ $aState ] = ( $result['advisory'][ $aState ] ?? 0 ) + 1;
+						}
+					}
+				}
+				catch ( \Throwable $eCat )
+				{
+					try { \IPS\Log::log( 'Engine::computeFlags ' . $advClass . ' catalog scan: ' . $eCat->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+				}
+
+				try
+				{
+					\IPS\Log::log(
+						'Engine::computeFlags ' . $advClass . ' pass scanned=' . $productsScanned
+						. ' states=' . count( $adRows )
+						. ' flags_added=' . ( count( $flags ) - $flagsBefore ),
+						'gdcompliance_perf'
+					);
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable $eAK )
+		{
+			try { \IPS\Log::log( 'Engine::computeFlags ammo/knife pass: ' . $eAK->getMessage(), 'gdcompliance' ); } catch ( \Throwable ) {}
+		}
 
 		$result['flags'] = count( $flags );
 
