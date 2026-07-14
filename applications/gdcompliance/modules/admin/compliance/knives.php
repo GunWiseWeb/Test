@@ -62,7 +62,7 @@ class _knives extends \IPS\Dispatcher\Controller
 			foreach ( \IPS\Db::i()->select(
 				'state_code, COUNT(*) AS c',
 				'gd_compliance_flags',
-				[ 'firearm_type=?', 'advisory' ],
+				[ 'firearm_type=? AND upc IN ( SELECT upc FROM ' . \IPS\Db::i()->prefix . 'gd_catalog WHERE category_id IN (138,150) )', 'advisory' ],
 				null,
 				null,
 				'state_code'
@@ -78,7 +78,7 @@ class _knives extends \IPS\Dispatcher\Controller
 		try
 		{
 			$distinctAdvisoryUpcs = (int) \IPS\Db::i()->select( 'COUNT(DISTINCT upc)', 'gd_compliance_flags',
-				[ 'firearm_type=?', 'advisory' ] )->first();
+				[ 'firearm_type=? AND upc IN ( SELECT upc FROM ' . \IPS\Db::i()->prefix . 'gd_catalog WHERE category_id IN (138,150) )', 'advisory' ] )->first();
 		}
 		catch ( \Throwable ) {}
 
@@ -201,12 +201,21 @@ class _knives extends \IPS\Dispatcher\Controller
 		}
 		$stateTabs .= '</div>';
 
-		/* --- Sections B+C+D — flagged-products list, per-row override, pager --- */
+		/* --- Sections B+C+D — flagged-products list, per-row override, pager --- *
+		 * v1.6.49 — restrict this section to THIS page's product
+		 * category so the Knives / Ammunition pages don't cross-
+		 * pollute with firearm advisory rows. Subselect is
+		 * ANSI_QUOTES-safe (no double-quoted literals) and the
+		 * COUNT(*) query doesn't join gd_catalog, so this stays
+		 * count-friendly. Per-page raised 50 -> 100 to cut total
+		 * page count on 2k+/5k+ ammo/knife scans. */
 		$page = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
-		$per  = 50;
+		$per  = 100;
 		$off  = ( $page - 1 ) * $per;
 
-		$flagWhere = [ "f.firearm_type=?" ];
+		$catSubSelect = 'f.upc IN ( SELECT upc FROM ' . \IPS\Db::i()->prefix . 'gd_catalog WHERE category_id IN (138,150) )';
+
+		$flagWhere = [ 'f.firearm_type=?', $catSubSelect ];
 		$flagArgs  = [ 'advisory' ];
 		if ( $stateFilter !== '' )
 		{
@@ -302,19 +311,41 @@ class _knives extends \IPS\Dispatcher\Controller
 
 		if ( $flagCount > $per )
 		{
+			/* v1.6.49 — rich pager: First / Prev / jump-to-page form
+			   / Next / Last. Preserves the active state filter across
+			   every link + the jump-form submit. The jump form GETs
+			   back to this controller with page + state so no JS
+			   handler needed. */
 			$totalPages = (int) ceil( $flagCount / $per );
-			$prevHref   = (string) $baseUrl->setQueryString( array_filter( [
-				'state' => $stateFilter !== '' ? $stateFilter : null,
-				'page'  => $page > 1 ? $page - 1 : null,
-			] ) );
-			$nextHref   = (string) $baseUrl->setQueryString( array_filter( [
-				'state' => $stateFilter !== '' ? $stateFilter : null,
-				'page'  => $page < $totalPages ? $page + 1 : null,
-			] ) );
-			$flaggedTable .= '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;font-size:13px;color:#64748b">'
+			$mkHref = function( $p ) use ( $baseUrl, $stateFilter, $totalPages ) {
+				$p = max( 1, min( (int) $p, $totalPages ) );
+				return (string) $baseUrl->setQueryString( array_filter( [
+					'state' => $stateFilter !== '' ? $stateFilter : null,
+					'page'  => $p > 1 ? $p : null,
+				] ) );
+			};
+			$firstHref = $mkHref( 1 );
+			$prevHref  = $mkHref( $page - 1 );
+			$nextHref  = $mkHref( $page + 1 );
+			$lastHref  = $mkHref( $totalPages );
+
+			$jumpAction = (string) $baseUrl;
+
+			$flaggedTable .= '<div style="display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:12px;font-size:13px;color:#64748b">'
+				. ( $page > 1 ? '<a class="ipsButton ipsButton--soft ipsButton--verySmall" href="' . $h( $firstHref ) . '" title="First page">&laquo; First</a>' : '' )
 				. ( $page > 1 ? '<a class="ipsButton ipsButton--soft ipsButton--verySmall" href="' . $h( $prevHref ) . '">&larr; Prev</a>' : '' )
-				. '<span style="padding:4px 8px">Page ' . $page . ' / ' . $totalPages . '</span>'
+				. '<span style="padding:4px 8px">Page ' . $page . ' of ' . $totalPages . ' &middot; ' . number_format( $flagCount ) . ' rows</span>'
 				. ( $page < $totalPages ? '<a class="ipsButton ipsButton--soft ipsButton--verySmall" href="' . $h( $nextHref ) . '">Next &rarr;</a>' : '' )
+				. ( $page < $totalPages ? '<a class="ipsButton ipsButton--soft ipsButton--verySmall" href="' . $h( $lastHref ) . '" title="Last page">Last &raquo;</a>' : '' )
+				. '<form method="get" action="' . $h( $jumpAction ) . '" style="display:inline-flex;gap:4px;align-items:center;margin-left:12px">'
+				. '<input type="hidden" name="app" value="gdcompliance">'
+				. '<input type="hidden" name="module" value="compliance">'
+				. '<input type="hidden" name="controller" value="' . $h( \IPS\Request::i()->controller ) . '">'
+				. ( $stateFilter !== '' ? '<input type="hidden" name="state" value="' . $h( $stateFilter ) . '">' : '' )
+				. '<label style="font-size:12px;color:#64748b">Jump to page</label>'
+				. '<input type="number" name="page" min="1" max="' . $totalPages . '" value="' . $page . '" style="width:80px;padding:3px 6px;font-size:12px">'
+				. '<button type="submit" class="ipsButton ipsButton--primary ipsButton--verySmall">Go</button>'
+				. '</form>'
 				. '</div>';
 		}
 
