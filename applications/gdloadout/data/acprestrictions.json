@@ -1,6 +1,7 @@
 {
 	"manage": {
-		"limits": { "limits_manage": "limits_manage" },
+		"loadouts": { "loadouts_manage": "loadouts_manage" },
+		"limits":   { "limits_manage": "limits_manage" },
 		"featured": { "featured_manage": "featured_manage" },
 		"settings": { "settings_manage": "settings_manage" }
 	}

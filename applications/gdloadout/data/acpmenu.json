@@ -1,5 +1,11 @@
 {
 	"manage": {
+		"loadouts": {
+			"tab": "gdloadout",
+			"controller": "loadouts",
+			"do": "",
+			"restriction": "loadouts_manage"
+		},
 		"limits": {
 			"tab": "gdloadout",
 			"controller": "limits",

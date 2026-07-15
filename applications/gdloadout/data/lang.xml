@@ -96,6 +96,32 @@
 <word key="menu__gdloadout" js="0"><![CDATA[Loadouts]]></word>
 <word key="menu__gdloadout_manage_limits" js="0"><![CDATA[Group Limits]]></word>
 <word key="menu__gdloadout_manage_featured" js="0"><![CDATA[Featured Loadouts]]></word>
+<word key="menu__gdloadout_manage_loadouts" js="0"><![CDATA[All Loadouts]]></word>
+<word key="r__loadouts_manage" js="0"><![CDATA[Manage all loadouts (site-wide)]]></word>
+<word key="gdloadout_acp_loadouts_title" js="0"><![CDATA[All Loadouts]]></word>
+<word key="gdloadout_acp_loadouts_intro" js="0"><![CDATA[Site-wide loadout management. Every gd_loadouts row regardless of owner, so orphaned (owner deleted) and guest-owned loadouts can be found and purged. Delete cascades through every child table (items, votes, comments, follows, suggestions, forum posts).]]></word>
+<word key="gdloadout_acp_loadouts_total" js="0"><![CDATA[loadouts total]]></word>
+<word key="gdloadout_acp_loadouts_orphans" js="0"><![CDATA[orphaned (deleted owner)]]></word>
+<word key="gdloadout_acp_loadouts_orphans_only" js="0"><![CDATA[Orphaned only]]></word>
+<word key="gdloadout_acp_loadouts_search_ph" js="0"><![CDATA[Search by name or slug…]]></word>
+<word key="gdloadout_acp_loadouts_filter" js="0"><![CDATA[Filter]]></word>
+<word key="gdloadout_acp_loadouts_clear" js="0"><![CDATA[Clear]]></word>
+<word key="gdloadout_acp_loadouts_none" js="0"><![CDATA[No loadouts match your filters.]]></word>
+<word key="gdloadout_acp_loadouts_col_id" js="0"><![CDATA[ID]]></word>
+<word key="gdloadout_acp_loadouts_col_name" js="0"><![CDATA[Name]]></word>
+<word key="gdloadout_acp_loadouts_col_owner" js="0"><![CDATA[Owner]]></word>
+<word key="gdloadout_acp_loadouts_col_visibility" js="0"><![CDATA[Visibility]]></word>
+<word key="gdloadout_acp_loadouts_col_items" js="0"><![CDATA[Items]]></word>
+<word key="gdloadout_acp_loadouts_col_upvotes" js="0"><![CDATA[Upvotes]]></word>
+<word key="gdloadout_acp_loadouts_col_created" js="0"><![CDATA[Created]]></word>
+<word key="gdloadout_acp_loadouts_delete" js="0"><![CDATA[Delete]]></word>
+<word key="gdloadout_acp_loadouts_delete_confirm" js="0"><![CDATA[Delete this loadout and every child row (items, votes, comments, follows, suggestions, forum posts)? This cannot be undone.]]></word>
+<word key="gdloadout_acp_loadouts_deleted" js="0"><![CDATA[Loadout deleted.]]></word>
+<word key="gdloadout_acp_loadouts_guest" js="0"><![CDATA[Guest / no owner]]></word>
+<word key="gdloadout_acp_loadouts_deleted_member" js="0"><![CDATA[Deleted member]]></word>
+<word key="gdloadout_acp_loadouts_page" js="0"><![CDATA[Page]]></word>
+<word key="gdloadout_acp_loadouts_jump" js="0"><![CDATA[Jump to page]]></word>
+<word key="gdloadout_acp_loadouts_go" js="0"><![CDATA[Go]]></word>
 <word key="r__limits_manage" js="0"><![CDATA[Manage group limits]]></word>
 <word key="r__featured_manage" js="0"><![CDATA[Manage featured loadouts]]></word>
 <word key="r__settings_manage" js="0"><![CDATA[Manage settings]]></word>

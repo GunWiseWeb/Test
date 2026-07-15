@@ -10,6 +10,79 @@ if ( !\defined( '\IPS\SUITE_UNIQUE_KEY' ) )
 
 class _Loadout
 {
+	/**
+	 * v1.0.74 — Cascade-delete a loadout AND every child row across
+	 * all tables that reference it. Single source of truth for
+	 * loadout deletion so the frontend delete(), the new ACP
+	 * delete, and the member-delete hook cannot drift out of sync
+	 * again (frontend was missing gd_loadout_comments and
+	 * gd_loadout_suggestions, leaving orphaned child rows).
+	 *
+	 * Per-table try/catch so a missing table on a partial upgrade
+	 * (rare) or a locked row cannot abort the cascade — every
+	 * table gets its chance. Never throws.
+	 *
+	 * @param int $loadoutId  the gd_loadouts.id to purge
+	 */
+	public static function deleteCascade( int $loadoutId ): void
+	{
+		if ( $loadoutId <= 0 ) { return; }
+
+		$childTables = [
+			'gd_loadout_items',
+			'gd_loadout_votes',
+			'gd_loadout_comments',
+			'gd_loadout_follows',
+			'gd_loadout_suggestions',
+			'gd_loadout_forum_posts',
+		];
+		foreach ( $childTables as $t )
+		{
+			try
+			{
+				\IPS\Db::i()->delete( $t, [ 'loadout_id=?', $loadoutId ] );
+			}
+			catch ( \Throwable $e )
+			{
+				try { \IPS\Log::log( 'Loadout::deleteCascade ' . $t . ' id=' . $loadoutId . ': ' . $e->getMessage(), 'gdloadout' ); } catch ( \Throwable ) {}
+			}
+		}
+
+		try
+		{
+			\IPS\Db::i()->delete( 'gd_loadouts', [ 'id=?', $loadoutId ] );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'Loadout::deleteCascade gd_loadouts id=' . $loadoutId . ': ' . $e->getMessage(), 'gdloadout' ); } catch ( \Throwable ) {}
+		}
+	}
+
+	/**
+	 * v1.0.74 — Cascade-delete every loadout owned by a member.
+	 * Called from the MemberSync onDelete hook so a deleted user
+	 * doesn't leave orphaned loadouts behind. Guarded so any
+	 * failure logs but never blocks the member-deletion flow.
+	 *
+	 * @param int $memberId  the deleted member's id
+	 */
+	public static function deleteAllForMember( int $memberId ): void
+	{
+		if ( $memberId <= 0 ) { return; }
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'id', 'gd_loadouts', [ 'member_id=?', $memberId ] ) as $row )
+			{
+				$lid = (int) ( is_array( $row ) ? ( $row['id'] ?? 0 ) : $row );
+				if ( $lid > 0 ) { self::deleteCascade( $lid ); }
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'Loadout::deleteAllForMember member=' . $memberId . ': ' . $e->getMessage(), 'gdloadout' ); } catch ( \Throwable ) {}
+		}
+	}
+
 	public static function slugify( string $name ): string
 	{
 		$slug = mb_strtolower( trim( $name ) );

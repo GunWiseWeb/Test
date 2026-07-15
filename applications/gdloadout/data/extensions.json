@@ -11,6 +11,9 @@
         },
         "UserMenu": {
             "Loadouts": "IPS\\gdloadout\\extensions\\core\\UserMenu\\Loadouts"
+        },
+        "MemberSync": {
+            "Loadouts": "IPS\\gdloadout\\extensions\\core\\MemberSync\\Loadouts"
         }
     }
 }

@@ -1277,11 +1277,12 @@ class _builder extends \IPS\Dispatcher\Controller
 		try { Db::i()->select( 'id', 'gd_loadouts', [ 'id=? AND member_id=?', $id, (int) $member->member_id ] )->first(); }
 		catch ( \Throwable ) { Output::i()->json( [ 'error' => Member::loggedIn()->language()->addToStack( 'gdloadout_err_not_found' ) ], 404 ); return; }
 
-		Db::i()->delete( 'gd_loadout_items', [ 'loadout_id=?', $id ] );
-		Db::i()->delete( 'gd_loadout_votes', [ 'loadout_id=?', $id ] );
-		Db::i()->delete( 'gd_loadout_follows', [ 'loadout_id=?', $id ] );
-		Db::i()->delete( 'gd_loadout_forum_posts', [ 'loadout_id=?', $id ] );
-		Db::i()->delete( 'gd_loadouts', [ 'id=?', $id ] );
+		/* v1.0.74 — was 5 direct deletes that missed gd_loadout_comments
+		   and gd_loadout_suggestions, leaving orphaned child rows. The
+		   cascade helper on \IPS\gdloadout\Loadout\Loadout is now the
+		   single source of truth for loadout deletion (frontend, ACP,
+		   member-delete hook all route through it). */
+		\IPS\gdloadout\Loadout\Loadout::deleteCascade( $id );
 		Output::i()->json( [ 'ok' => true ] );
 	}
 
