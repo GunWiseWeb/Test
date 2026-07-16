@@ -533,11 +533,52 @@ class _Lowers
 			}
 		}
 
-		/* ----- Layer 7: default REVIEW (Option B — v1.6.13). No AR/AK
-		         signal from brand OR platform keyword. Ambiguous cat154
-		         lowers wait for human confirmation in the Lowers review
-		         tab rather than false-flagging non-AR .22 pistol lowers
-		         etc. Reason hint surfaces in the tester + review view. */
+		/* ----- Layer 6.5 (v1.6.50) — confirmed cat154 lower default → FLAG.
+		 * Restores the header-documented intent (lines 10-14): "cat154
+		 * lowers flag unless there's a clear signal they're a non-AWB
+		 * action (bolt/lever/pump/rimfire hunting rifle)."
+		 *
+		 * v1.6.13 flipped the ambiguous-default to review to keep
+		 * Tandemkross MK-series .22 pistol lowers off the awb_lower
+		 * list. Those are already caught by the rimfire→review path
+		 * at Layer 3b (their caliber says .22 LR); the exclusion sweep
+		 * catches non-lowers. So a cat154 row that:
+		 *   - is truly a lower receiver (title contains one of the
+		 *     LOWER_TITLE_GATE_KEYWORDS: "lower receiver", "stripped
+		 *     lower", "assembled lower", "complete lower")
+		 *   - passed Layer 2 exclusions (not a part / upper / handguard)
+		 *   - passed Layer 3 non-AWB action / rimfire / bolt-model
+		 * is a serialized AR-pattern-relevant lower even without an
+		 * explicit brand or platform keyword. Genuine stripped lowers
+		 * (STT STT-FORGED-LOWER, BRO STRIPPED LOWER ARMOR BLK, etc.)
+		 * were wrongly stuck in review. This restores flag-by-default
+		 * for confirmed cat154 lower receivers while cat69 (frames &
+		 * receivers junk) stays conservative and requires a positive
+		 * signal to flag. */
+		if ( $cat === self::CATEGORY_LOWER )
+		{
+			foreach ( self::LOWER_TITLE_GATE_KEYWORDS as $lkw )
+			{
+				if ( strpos( $titleLC, $lkw ) !== false )
+				{
+					$out = [
+						'verdict'     => 'flag',
+						'pattern'     => 'AR/AK-pattern lower (default)',
+						'source'      => 'auto-default',
+						'reason_hint' => 'confirmed cat154 lower (' . $lkw . ') with no non-AWB / rimfire signal',
+					];
+					return static::$cache[ $upc ] = $out;
+				}
+			}
+		}
+
+		/* ----- Layer 7: default REVIEW. Reached when no AR/AK signal
+		         (brand OR platform) AND the row wasn't a title-confirmed
+		         cat154 lower (Layer 6.5). Cat69 frames&receivers stays
+		         here — they need a positive signal since the category is
+		         noisy. Truly-ambiguous cat154 rows (rare — no title-gate
+		         keyword) also wait for human review. Reason hint surfaces
+		         in the tester + review view. */
 		$out = [
 			'verdict'     => 'review',
 			'pattern'     => null,
