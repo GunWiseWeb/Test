@@ -865,47 +865,40 @@ class _builder extends \IPS\Dispatcher\Controller
 		$html .= '<span id="gdlc-status" style="font-size:.85em;color:#64748b"></span>';
 		$html .= '</div>';
 
-		/* Summary */
-		if ( $summary['total'] === 0 )
-		{
-			$html .= '<div class="gdlc-sum gdlc-sum--info">' . $L( 'gdloadout_compliance_empty' ) . '</div>';
-		}
-		elseif ( $state === '' )
-		{
-			$html .= '<div class="gdlc-sum gdlc-sum--info">' . $L( 'gdloadout_compliance_pick_state' ) . '</div>';
-		}
-		elseif ( $summary['restricted'] > 0 )
-		{
-			$msg = str_replace(
-				[ '{x}', '{total}', '{state}' ],
-				[ (string) $summary['restricted'], (string) $summary['total'], $esc( $stateName ) ],
-				(string) $lang->addToStack( 'gdloadout_compliance_summary_restricted' )
-			);
-			$html .= '<div class="gdlc-sum gdlc-sum--danger">' . $msg . '</div>';
-		}
-		elseif ( $summary['advisory'] > 0 )
-		{
-			$msg = str_replace(
-				[ '{y}', '{state}' ],
-				[ (string) $summary['advisory'], $esc( $stateName ) ],
-				(string) $lang->addToStack( 'gdloadout_compliance_summary_advisory' )
-			);
-			$html .= '<div class="gdlc-sum gdlc-sum--warn">' . $msg . '</div>';
-		}
-		else
-		{
-			$msg = str_replace(
-				'{state}', $esc( $stateName ),
-				(string) $lang->addToStack( 'gdloadout_compliance_summary_clear' )
-			);
-			$html .= '<div class="gdlc-sum gdlc-sum--ok">' . $msg . '</div>';
-		}
+		/* v1.0.75 — server-side .gdlc-sum summary REMOVED.
+		 *
+		 * The old PHP if/elseif chain here emitted a
+		 * .gdlc-sum--{info|danger|warn|ok} banner using the
+		 * gdloadout_compliance_summary_* lang keys with {state}
+		 * placeholders. On page load the server-side render
+		 * produced a stale or empty-state banner (in the "clear"
+		 * branch the {state} token wasn't always replaced),
+		 * while builder.js simultaneously wrote a CORRECT
+		 * per-state banner into #gdlc-summary. Users saw two
+		 * contradictory messages, one of which showed a literal
+		 * "{state}".
+		 *
+		 * The JS (interface/builder.js ~540-580) is the single
+		 * source of truth for the compliance banner: it updates
+		 * live on the state dropdown, escapes stateName
+		 * correctly, and handles empty-build / no-state /
+		 * restricted / advisory / clear branches with its own
+		 * .gdlo-banner--{danger|warn|info|ok} styles. It writes
+		 * into #gdlc-summary, so we keep that mount point (see
+		 * below) and drop the server-side banner entirely.
+		 *
+		 * The $summary parameter still arrives from the caller
+		 * — it is now unused inside this method but the caller
+		 * signature is intentionally left alone so any other
+		 * downstream consumers keep working. The
+		 * gdloadout_compliance_summary_* lang keys can stay in
+		 * lang.xml / lang.php — no one reads them anymore, but
+		 * they're harmless. */
 
-		/* v1.0.64 — per-item cards removed; badges now live on the
-		   filled slot cards in the JS builder. Empty div left as
-		   an anchor for the client-side compact summary (updated
-		   by builder.js's updateAllSummaries()); the server-side
-		   summary above stays as an initial-render fallback. */
+		/* JS mount point — builder.js writes the live compliance
+		   banner into this div and refreshes it on every state
+		   dropdown change. Do NOT remove — the JS host is
+		   required. */
 		$html .= '<div id="gdlc-summary" style="margin-top:10px"></div>';
 		/* v1.0.73 — Feature B2 loadout-level dealer panel placeholder;
 		   filled + updated in builder.js. */
