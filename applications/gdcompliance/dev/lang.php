@@ -82,6 +82,28 @@ $lang = array(
 	'gdcompliance_acp_knife_flagged_intro'    => 'Every product currently carrying an advisory flag (all classes). Click a state to filter and reach per-(UPC, state) override — a force_clear suppresses the advisory for that specific product in that state.',
 	'gdcompliance_acp_knife_override'         => 'Set override',
 
+	/* v1.6.51 — Manual Flag tool (Lowers ACP) */
+	'gdcompliance_acp_lowers_mflag_launch_title' => 'Manually flag a product (per state)',
+	'gdcompliance_acp_lowers_mflag_launch_intro' => 'Flag a product that the classifier missed (or that hasn\'t been through a recompute yet) for one or more specific states. Writes to gd_compliance_overrides AND to gd_compliance_flags immediately via Override::save(applyImmediately=true) — recompute-safe. Also supports "Manual Clear" for false positives.',
+	'gdcompliance_acp_lowers_mflag_launch_btn'   => 'Open Manual Flag tool',
+	'gdcompliance_acp_lowers_mflag_title'        => 'Manually flag a product',
+	'gdcompliance_acp_lowers_mflag_intro'        => 'Enter a UPC, pick the states, review the auto-filled reasons, and click Apply. Uses the SAME sprintf() formatting that Engine::computeFlags() uses for awb_lower rows — the manual flag is byte-identical to an auto-flag in the flags table (except for the "[manual admin flag]" provenance tail). Every override persists in gd_compliance_overrides, survives recomputes (Override::applyAll runs after every computeFlags), and immediately writes/removes the matching gd_compliance_flags row.',
+	'gdcompliance_acp_lowers_mflag_upc_label'    => 'UPC',
+	'gdcompliance_acp_lowers_mflag_lookup'       => 'Look up',
+	'gdcompliance_acp_lowers_mflag_not_found'    => 'No product found in gd_catalog for this UPC.',
+	'gdcompliance_acp_lowers_mflag_product'      => 'Product',
+	'gdcompliance_acp_lowers_mflag_col_brand'    => 'Brand',
+	'gdcompliance_acp_lowers_mflag_col_title'    => 'Title',
+	'gdcompliance_acp_lowers_mflag_col_model'    => 'Model',
+	'gdcompliance_acp_lowers_mflag_col_category' => 'Category',
+	'gdcompliance_acp_lowers_mflag_pick_states'  => 'Pick states — the auto-filled reason for each is editable',
+	'gdcompliance_acp_lowers_mflag_action_flag'  => 'Flag (force_restrict)',
+	'gdcompliance_acp_lowers_mflag_action_clear' => 'Clear (force_clear)',
+	'gdcompliance_acp_lowers_mflag_select_all'   => 'Select all',
+	'gdcompliance_acp_lowers_mflag_select_none'  => 'Select none',
+	'gdcompliance_acp_lowers_mflag_apply_now'    => 'Apply to selected states',
+	'gdcompliance_acp_lowers_mflag_apply_note'   => 'Applies instantly — no recompute needed. Writes to gd_compliance_overrides + gd_compliance_flags. Clears any pending review-queue row for this UPC.',
+
 	/* v1.6.10 — Lowers ACP */
 	'gdcompliance_acp_lowers_title'           => 'Lowers & Receivers',
 	'gdcompliance_acp_lowers_intro'           => 'AR/AK-pattern LOWER RECEIVERS are the serialized firearm — treated as an assault-weapon component in the rifle-class AWB states. cat154 flags by default; cat69 is title-gated; bolt/lever/rimfire lowers route to review; parts and uppers are excluded. Add curated overrides below to force-flag or force-clear specific patterns.',

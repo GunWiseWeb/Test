@@ -46,7 +46,7 @@ class _Override
 	 *
 	 * @return array{action:string,ok:bool,error:?string}
 	 */
-	public static function save( string $upc, string $stateCode, string $action, ?string $reason, ?int $memberId = null, bool $applyImmediately = true ): array
+	public static function save( string $upc, string $stateCode, string $action, ?string $reason, ?int $memberId = null, bool $applyImmediately = true, ?string $firearmType = null ): array
 	{
 		$upc       = trim( $upc );
 		$stateCode = strtoupper( trim( $stateCode ) );
@@ -56,13 +56,18 @@ class _Override
 		if ( !preg_match( '/^[A-Z]{2}$/', $stateCode ) )            { return [ 'action' => 'skip', 'ok' => false, 'error' => 'invalid state_code' ]; }
 		if ( !in_array( $action, self::VALID_ACTIONS, true ) )      { return [ 'action' => 'skip', 'ok' => false, 'error' => 'invalid action' ]; }
 
+		/* v1.6.51 — reason widened to 500 to match gd_compliance_flags.
+		   firearm_type recorded on the override row so applyOne() writes
+		   a flag with the auto-compute's own firearm_type (awb_lower /
+		   awb_rifle / etc.) rather than a generic 'manual' label. */
 		$row = [
-			'upc'        => substr( $upc, 0, 50 ),
-			'state_code' => $stateCode,
-			'action'     => $action,
-			'reason'     => $reason !== null ? substr( $reason, 0, 255 ) : null,
-			'created_by' => $memberId,
-			'created_at' => time(),
+			'upc'          => substr( $upc, 0, 50 ),
+			'state_code'   => $stateCode,
+			'action'       => $action,
+			'reason'       => $reason !== null ? substr( $reason, 0, 500 ) : null,
+			'firearm_type' => $firearmType !== null ? substr( $firearmType, 0, 20 ) : null,
+			'created_by'   => $memberId,
+			'created_at'   => time(),
 		];
 
 		$existingId = null;
@@ -126,9 +131,15 @@ class _Override
 		try
 		{
 			\IPS\Db::i()->delete( 'gd_compliance_overrides', [ 'upc=? AND state_code=?', $upc, $stateCode ] );
-			/* Any Manual-override flag row we wrote — clear it so the state
-			   reverts. A later full recompute will restore rule-based flags. */
-			\IPS\Db::i()->delete( 'gd_compliance_flags', [ 'upc=? AND state_code=? AND rule_id=0 AND reason LIKE ?', $upc, $stateCode, 'Manual override:%' ] );
+			/* v1.6.51 — the flag row for this (upc, state) is the
+			   override's own product; delete it here. A later full
+			   recompute will restore rule-based flags if applicable.
+			   Prior versions filtered by reason LIKE 'Manual
+			   override:%' but v1.6.51 dropped that prefix so applyOne
+			   writes reason verbatim; the LIKE would no-op. Deleting
+			   the (upc, state) flag is safe because overrides are the
+			   exclusive owner of that combo while active. */
+			\IPS\Db::i()->delete( 'gd_compliance_flags', [ 'upc=? AND state_code=?', $upc, $stateCode ] );
 		}
 		catch ( \Throwable $e )
 		{
@@ -189,16 +200,27 @@ class _Override
 
 			/* force_restrict — ensure a flag exists. Wipe any prior rule-
 			   based rows for the same upc+state first so we don't stack
-			   duplicates on repeated applications; then insert one Manual
-			   override row that clearly identifies its provenance. */
+			   duplicates on repeated applications; then insert one row
+			   whose firearm_type matches whatever auto-compute would
+			   have produced (awb_lower / awb_rifle / magazine /
+			   advisory / etc., recorded on the override) so manual +
+			   auto flags are indistinguishable in the flags table. Falls
+			   back to 'manual' when the override row predates v1.6.51.
+			   Reason is written verbatim (no "Manual override:" prefix)
+			   so byte-identical formatting to auto-flags carries through. */
+			$ftype = strtolower( trim( (string) ( $override['firearm_type'] ?? '' ) ) );
+			if ( $ftype === '' ) { $ftype = 'manual'; }
+
+			$writeReason = $reason !== '' ? $reason : 'force_restrict';
+
 			\IPS\Db::i()->delete( 'gd_compliance_flags', [ 'upc=? AND state_code=?', $upc, $state ] );
 			\IPS\Db::i()->insert( 'gd_compliance_flags', [
 				'upc'             => $upc,
 				'state_code'      => $state,
-				'firearm_type'    => 'manual',
+				'firearm_type'    => substr( $ftype, 0, 20 ),
 				'parsed_capacity' => null,
 				'rule_id'         => 0,
-				'reason'          => substr( 'Manual override: ' . ( $reason !== '' ? $reason : 'force_restrict' ), 0, 255 ),
+				'reason'          => substr( $writeReason, 0, 500 ),
 				'computed_at'     => time(),
 			] );
 			return true;

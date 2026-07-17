@@ -63,6 +63,26 @@
 <word key="gdcompliance_acp_knife_flagged_title" js="0"><![CDATA[Flagged knife products]]></word>
 <word key="gdcompliance_acp_knife_flagged_intro" js="0"><![CDATA[Every product currently carrying an advisory flag (all classes). Click a state to filter and reach per-(UPC, state) override — a force_clear suppresses the advisory for that specific product in that state.]]></word>
 <word key="gdcompliance_acp_knife_override" js="0"><![CDATA[Set override]]></word>
+<word key="gdcompliance_acp_lowers_mflag_launch_title" js="0"><![CDATA[Manually flag a product (per state)]]></word>
+<word key="gdcompliance_acp_lowers_mflag_launch_intro" js="0"><![CDATA[Flag a product that the classifier missed (or that hasn't been through a recompute yet) for one or more specific states. Writes to gd_compliance_overrides AND to gd_compliance_flags immediately via Override::save(applyImmediately=true) — recompute-safe. Also supports "Manual Clear" for false positives.]]></word>
+<word key="gdcompliance_acp_lowers_mflag_launch_btn" js="0"><![CDATA[Open Manual Flag tool]]></word>
+<word key="gdcompliance_acp_lowers_mflag_title" js="0"><![CDATA[Manually flag a product]]></word>
+<word key="gdcompliance_acp_lowers_mflag_intro" js="0"><![CDATA[Enter a UPC, pick the states, review the auto-filled reasons, and click Apply. Uses the SAME sprintf() formatting that Engine::computeFlags() uses for awb_lower rows — the manual flag is byte-identical to an auto-flag in the flags table (except for the "[manual admin flag]" provenance tail). Every override persists in gd_compliance_overrides, survives recomputes (Override::applyAll runs after every computeFlags), and immediately writes/removes the matching gd_compliance_flags row.]]></word>
+<word key="gdcompliance_acp_lowers_mflag_upc_label" js="0"><![CDATA[UPC]]></word>
+<word key="gdcompliance_acp_lowers_mflag_lookup" js="0"><![CDATA[Look up]]></word>
+<word key="gdcompliance_acp_lowers_mflag_not_found" js="0"><![CDATA[No product found in gd_catalog for this UPC.]]></word>
+<word key="gdcompliance_acp_lowers_mflag_product" js="0"><![CDATA[Product]]></word>
+<word key="gdcompliance_acp_lowers_mflag_col_brand" js="0"><![CDATA[Brand]]></word>
+<word key="gdcompliance_acp_lowers_mflag_col_title" js="0"><![CDATA[Title]]></word>
+<word key="gdcompliance_acp_lowers_mflag_col_model" js="0"><![CDATA[Model]]></word>
+<word key="gdcompliance_acp_lowers_mflag_col_category" js="0"><![CDATA[Category]]></word>
+<word key="gdcompliance_acp_lowers_mflag_pick_states" js="0"><![CDATA[Pick states — the auto-filled reason for each is editable]]></word>
+<word key="gdcompliance_acp_lowers_mflag_action_flag" js="0"><![CDATA[Flag (force_restrict)]]></word>
+<word key="gdcompliance_acp_lowers_mflag_action_clear" js="0"><![CDATA[Clear (force_clear)]]></word>
+<word key="gdcompliance_acp_lowers_mflag_select_all" js="0"><![CDATA[Select all]]></word>
+<word key="gdcompliance_acp_lowers_mflag_select_none" js="0"><![CDATA[Select none]]></word>
+<word key="gdcompliance_acp_lowers_mflag_apply_now" js="0"><![CDATA[Apply to selected states]]></word>
+<word key="gdcompliance_acp_lowers_mflag_apply_note" js="0"><![CDATA[Applies instantly — no recompute needed. Writes to gd_compliance_overrides + gd_compliance_flags. Clears any pending review-queue row for this UPC.]]></word>
 <word key="gdcompliance_acp_lowers_title" js="0"><![CDATA[Lowers & Receivers]]></word>
 <word key="gdcompliance_acp_lowers_intro" js="0"><![CDATA[AR/AK-pattern LOWER RECEIVERS are the serialized firearm — treated as an assault-weapon component in the rifle-class AWB states. cat154 flags by default; cat69 is title-gated; bolt/lever/rimfire lowers route to review; parts and uppers are excluded. Add curated overrides below to force-flag or force-clear specific patterns.]]></word>
 <word key="gdcompliance_acp_lowers_test" js="0"><![CDATA[Test a UPC against the classifier]]></word>
