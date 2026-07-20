@@ -217,6 +217,18 @@
 <word key="gdcompliance_acp_lookup_intro" js="0"><![CDATA[Find a catalog product by UPC or title. See computed flags AND overrides per state, and set force-restrict / force-clear overrides directly from the detail view.]]></word>
 <word key="gdcompliance_acp_lookup_search" js="0"><![CDATA[UPC or title]]></word>
 <word key="gdcompliance_acp_search_go" js="0"><![CDATA[Search]]></word>
+<word key="gdcompliance_acp_lookup_mflag_title" js="0"><![CDATA[Manually flag / clear this product (per state, per category)]]></word>
+<word key="gdcompliance_acp_lookup_mflag_intro" js="0"><![CDATA[Pick states and compliance categories. Reasons are auto-filled using the same sprintf() formatting Engine::computeFlags() uses — the manual flag is byte-identical to an auto-flag in gd_compliance_flags. Every override persists in gd_compliance_overrides, survives recomputes (Override::applyAll runs after every computeFlags), and immediately writes/removes the matching gd_compliance_flags row via applyOne().]]></word>
+<word key="gdcompliance_acp_lookup_mflag_applies" js="0"><![CDATA[Categories applicable to this product]]></word>
+<word key="gdcompliance_acp_lookup_mflag_type" js="0"><![CDATA[firearm type]]></word>
+<word key="gdcompliance_acp_lookup_mflag_none" js="0"><![CDATA[No compliance categories apply to this product's type / category.]]></word>
+<word key="gdcompliance_acp_lookup_mflag_no_rules" js="0"><![CDATA[No enabled rules for the applicable categories in any state.]]></word>
+<word key="gdcompliance_acp_lookup_mflag_action_flag" js="0"><![CDATA[Flag (force_restrict)]]></word>
+<word key="gdcompliance_acp_lookup_mflag_action_clear" js="0"><![CDATA[Clear (force_clear)]]></word>
+<word key="gdcompliance_acp_lookup_mflag_select_all" js="0"><![CDATA[Select all]]></word>
+<word key="gdcompliance_acp_lookup_mflag_select_none" js="0"><![CDATA[Select none]]></word>
+<word key="gdcompliance_acp_lookup_mflag_apply_now" js="0"><![CDATA[Apply to selected (state, category) pairs]]></word>
+<word key="gdcompliance_acp_lookup_mflag_apply_note" js="0"><![CDATA[Applies instantly — no recompute needed. Writes to gd_compliance_overrides + gd_compliance_flags. Clears any pending review-queue row for this UPC.]]></word>
 <word key="gdcompliance_acp_compute_overrides" js="0"><![CDATA[Overrides applied]]></word>
 <word key="module__gdcompliance_compliance" js="0"><![CDATA[Compliance]]></word>
 <word key="frontnavigation_gdcompliance_compliance" js="0"><![CDATA[Compliance]]></word>

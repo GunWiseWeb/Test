@@ -299,6 +299,22 @@ $lang = array(
 	'gdcompliance_acp_search_go'               => 'Search',
 	'gdcompliance_acp_lookup_no_flags'         => 'No restrictions computed for this UPC',
 
+	/* v1.6.52 — consolidated Manual Flag tool on the Product Lookup page.
+	   The v1.6.51 lowers-page variant is retired in favour of this
+	   category-narrowing tool that works for ANY product type. */
+	'gdcompliance_acp_lookup_mflag_title'      => 'Manually flag / clear this product (per state, per category)',
+	'gdcompliance_acp_lookup_mflag_intro'      => 'Pick states and compliance categories. Reasons are auto-filled using the same sprintf() formatting Engine::computeFlags() uses — the manual flag is byte-identical to an auto-flag in gd_compliance_flags. Every override persists in gd_compliance_overrides, survives recomputes (Override::applyAll runs after every computeFlags), and immediately writes/removes the matching gd_compliance_flags row via applyOne().',
+	'gdcompliance_acp_lookup_mflag_applies'    => 'Categories applicable to this product',
+	'gdcompliance_acp_lookup_mflag_type'       => 'firearm type',
+	'gdcompliance_acp_lookup_mflag_none'       => 'No compliance categories apply to this product\'s type / category.',
+	'gdcompliance_acp_lookup_mflag_no_rules'   => 'No enabled rules for the applicable categories in any state.',
+	'gdcompliance_acp_lookup_mflag_action_flag'  => 'Flag (force_restrict)',
+	'gdcompliance_acp_lookup_mflag_action_clear' => 'Clear (force_clear)',
+	'gdcompliance_acp_lookup_mflag_select_all'   => 'Select all',
+	'gdcompliance_acp_lookup_mflag_select_none'  => 'Select none',
+	'gdcompliance_acp_lookup_mflag_apply_now'    => 'Apply to selected (state, category) pairs',
+	'gdcompliance_acp_lookup_mflag_apply_note'   => 'Applies instantly — no recompute needed. Writes to gd_compliance_overrides + gd_compliance_flags. Clears any pending review-queue row for this UPC.',
+
 	/* v1.4.1 — Restrictions Browser */
 	'gdcompliance_acp_browser_title'           => 'Restrictions Browser',
 	'gdcompliance_acp_browser_intro'           => 'Search / filter every product currently flagged in gd_compliance_flags. Filter by state, reason type (capacity / roster / manual override), or free-text (UPC or product title). This is the "what products are actually flagged right now" view.',
