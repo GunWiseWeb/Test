@@ -31,6 +31,11 @@ class _settings extends \IPS\Dispatcher\Controller
 		] ) );
 		$form->add( new \IPS\Helpers\Form\Number( 'gdrebates_parse_cap', \IPS\Settings::i()->gdrebates_parse_cap ?: 20, TRUE ) );
 		$form->add( new \IPS\Helpers\Form\YesNo( 'gdrebates_parse_active', \IPS\Settings::i()->gdrebates_parse_active, FALSE ) );
+		/* v1.0.9 — master on/off toggle for showing expired rebates on
+		   the front /rebates/ page. Default is ON so the page always
+		   shows something even during a quiet period. Expired rebates
+		   render grayed out with an "Expired" tag and sort last. */
+		$form->add( new \IPS\Helpers\Form\YesNo( 'gdrebates_show_expired', \IPS\Settings::i()->gdrebates_show_expired, FALSE ) );
 
 		if ( $values = $form->values() )
 		{

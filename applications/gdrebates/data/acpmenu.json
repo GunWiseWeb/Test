@@ -1,8 +1,9 @@
 {
 	"rebates": {
-		"sources":  { "tab": "gdrebates", "controller": "sources",  "do": "", "restriction": "sources_manage" },
-		"logos":    { "tab": "gdrebates", "controller": "logos",    "do": "", "restriction": "logos_manage" },
-		"queue":    { "tab": "gdrebates", "controller": "queue",    "do": "", "restriction": "queue_manage" },
-		"settings": { "tab": "gdrebates", "controller": "settings", "do": "", "restriction": "settings_manage" }
+		"sources":   { "tab": "gdrebates", "controller": "sources",   "do": "", "restriction": "sources_manage" },
+		"manualadd": { "tab": "gdrebates", "controller": "manualadd", "do": "", "restriction": "manualadd_manage" },
+		"logos":     { "tab": "gdrebates", "controller": "logos",     "do": "", "restriction": "logos_manage" },
+		"queue":     { "tab": "gdrebates", "controller": "queue",     "do": "", "restriction": "queue_manage" },
+		"settings":  { "tab": "gdrebates", "controller": "settings",  "do": "", "restriction": "settings_manage" }
 	}
 }

@@ -73,6 +73,43 @@ $lang = [
        (falls back to source_url). Keeps every card with a prominent
        action button. */
     'gdrebates_view_offer'            => 'View Offer',
+
+    /* v1.0.9 — model chips (Part 2) */
+    'gdrebates_chip_more'             => 'more',
+
+    /* v1.0.9 — expiration countdown + expired state (Part 3) */
+    'gdrebates_last_day'              => 'Last day!',
+    'gdrebates_days_left'             => '%s days left',
+    'gdrebates_expired'               => 'Expired',
+    'gdrebates_show_expired'          => 'Show expired rebates on the front page',
+    'gdrebates_show_expired_desc'     => 'When on, expired rebates stay visible on /rebates/ (grayed out with an "Expired" tag, sorted last). When off, expired rebates are hidden from the front page entirely.',
+
+    /* v1.0.9 — Manual Add Rebate ACP form (Part 1) */
+    'menu__gdrebates_rebates_manualadd' => 'Add Rebate',
+    'r__manualadd_manage'             => 'Manually add rebates',
+    'gdrebates_manual_h_required'     => 'Required',
+    'gdrebates_manual_h_amount'       => 'Amount',
+    'gdrebates_manual_h_dates'        => 'Dates (optional)',
+    'gdrebates_manual_h_models'       => 'Eligible models',
+    'gdrebates_manual_h_urls'         => 'URLs (optional)',
+    'gdrebates_manual_manufacturer'   => 'Manufacturer',
+    'gdrebates_manual_title'          => 'Rebate title',
+    'gdrebates_manual_rebate_type'    => 'Type',
+    'gdrebates_manual_amount'         => 'Dollar amount (numeric — leave blank for FREE/other)',
+    'gdrebates_manual_amount_na'      => 'Not applicable',
+    'gdrebates_manual_amount_text'    => 'Amount label (shown on the pill)',
+    'gdrebates_manual_start_date'     => 'Start date',
+    'gdrebates_manual_end_date'       => 'End date',
+    'gdrebates_manual_submit_by'      => 'Submit by',
+    'gdrebates_manual_eligible_models' => 'Eligible models — comma-space separated ("Model A, Model B") to match the parser format that drives the chip list',
+    'gdrebates_manual_redemption_url' => 'Redemption URL',
+    'gdrebates_manual_source_url'     => 'Source page URL',
+    'gdrebates_manual_image_url'      => 'Image URL',
+    'gdrebates_manual_pdf_url'        => 'PDF URL',
+    'gdrebates_manual_save'           => 'Add rebate (goes live immediately)',
+    'gdrebates_manual_saved'          => 'Rebate added and published. <a href="%s" target="_blank" rel="noopener">View on /rebates/</a>',
+    'gdrebates_manual_err_required'   => 'Manufacturer and title are required.',
+    'gdrebates_manual_err_dupe'       => 'A rebate with the same manufacturer + title + end date already exists (matched by dedupe hash). Change the title to disambiguate.',
     'gdrebates_none'                  => 'No active rebates right now. Check back soon.',
     'gdrebates_no_match'              => 'No rebates match those filters.',
     'menu__gdrebates_rebates_logos'    => 'Manufacturer Logos',

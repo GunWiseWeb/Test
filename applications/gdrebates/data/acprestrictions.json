@@ -1,8 +1,9 @@
 {
 	"rebates": {
-		"sources":  { "sources_manage": "sources_manage" },
-		"logos":    { "logos_manage": "logos_manage" },
-		"queue":    { "queue_manage": "queue_manage" },
-		"settings": { "settings_manage": "settings_manage" }
+		"sources":   { "sources_manage": "sources_manage" },
+		"manualadd": { "manualadd_manage": "manualadd_manage" },
+		"logos":     { "logos_manage": "logos_manage" },
+		"queue":     { "queue_manage": "queue_manage" },
+		"settings":  { "settings_manage": "settings_manage" }
 	}
 }
