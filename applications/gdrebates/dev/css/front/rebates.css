@@ -3,11 +3,29 @@
 .gdrb-filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;}
 .gdrb-sel{flex:1 1 160px;min-width:140px;padding:9px 12px;border:1px solid #d3d9e0;border-radius:8px;background:#fff;font-size:14px;color:#16181d;}
 .gdrb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
-.gdrb-card{display:flex;flex-direction:column;border:1px solid #e6e9ee;border-radius:12px;background:#fff;padding:14px;box-shadow:0 1px 2px rgba(16,24,40,.04);}
-.gdrb-card__head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;}
-.gdrb-card__mfr{font-size:12px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#1f3a63;}
-.gdrb-card__logo{max-height:28px;max-width:130px;width:auto;object-fit:contain;display:block;}
-.gdrb-card__amt{flex:0 0 auto;font-size:15px;font-weight:800;color:#fff;background:#d97706;border-radius:6px;padding:3px 9px;white-space:nowrap;}
+/* v1.0.8 — overflow:hidden as safety net so nothing (long amount
+   pill, unbroken model list, etc.) can visually escape the card. */
+.gdrb-card{display:flex;flex-direction:column;border:1px solid #e6e9ee;border-radius:12px;background:#fff;padding:14px;box-shadow:0 1px 2px rgba(16,24,40,.04);min-width:0;overflow:hidden;}
+/* v1.0.8 — flex-wrap:wrap on the head lets the amount pill drop to
+   its own line when the manufacturer name + a long amount would
+   otherwise overflow the ~280px grid column. Without it, the mfr
+   span was being crushed toward zero width and the browser wrapped
+   its text one character per line (the "vertical Springfield
+   Armory" bug). */
+.gdrb-card__head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;min-width:0;}
+/* v1.0.8 — mfr text NEVER wraps mid-word / mid-character. Ellipsis
+   if it must share space with the logo/amount at very narrow
+   widths, but with flex-wrap on the parent this is rarely hit. */
+.gdrb-card__mfr{flex:1 1 auto;min-width:0;font-size:12px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#1f3a63;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gdrb-card__logo{flex:0 0 auto;max-height:28px;max-width:130px;width:auto;object-fit:contain;display:block;}
+/* v1.0.8 — long amount text (e.g. "FREE XD-M(R) Elite 10mm
+   (XDME94510BHCOSP)") was overflowing the card because the pill
+   was flex:0 0 auto + white-space:nowrap. Now it can shrink
+   (flex:0 1 auto), wrap inside itself (white-space:normal +
+   overflow-wrap:break-word), and is capped at 100% of the card
+   width. Combined with the .gdrb-card__head flex-wrap the pill
+   also drops to its own line for the worst-case width. */
+.gdrb-card__amt{flex:0 1 auto;max-width:100%;font-size:15px;font-weight:800;color:#fff;background:#d97706;border-radius:6px;padding:3px 9px;white-space:normal;overflow-wrap:break-word;word-break:break-word;line-height:1.25;}
 .gdrb-card__title{font-size:15px;font-weight:700;color:#16181d;line-height:1.3;margin-bottom:6px;}
 /* v1.0.7 — clamp long eligible_models lists to ~3 lines so a
    rebate with a dozen SKU variants doesn't blow the card height
