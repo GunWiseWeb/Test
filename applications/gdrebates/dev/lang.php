@@ -43,7 +43,16 @@ $lang = [
     'gdrebates_rb_submit_by'           => 'Submit by',
     'gdrebates_rb_redemption_url'      => 'Redemption URL',
     'gdrebates_rb_status'              => 'Status',
+    /* v1.0.11 — full rebate_type enum audit. The authoritative list
+       lives in modules/admin/rebates/manualadd.php TYPES (9 entries);
+       the parser's sanitizeType() collapses uncommon types to 'other'.
+       Prior versions were missing gdrebates_type_percent and
+       gdrebates_type_gift_card, which rendered as the raw key on
+       any card with those types. All 9 keys are now present here
+       and re-seeded on upgrade so existing installs get them too. */
     'gdrebates_type_cash'              => 'Cash back',
+    'gdrebates_type_percent'           => 'Percent off',
+    'gdrebates_type_gift_card'         => 'Gift card',
     'gdrebates_type_prepaid_card'      => 'Prepaid card',
     'gdrebates_type_store_credit'      => 'Store credit',
     'gdrebates_type_free_item'         => 'Free item',
@@ -76,6 +85,8 @@ $lang = [
 
     /* v1.0.9 — model chips (Part 2) */
     'gdrebates_chip_more'             => 'more',
+    /* v1.0.11 — collapse label for the now-bidirectional chip toggle. */
+    'gdrebates_show_fewer'            => 'Show fewer',
     /* v1.0.10 — front-page checkbox filter, only rendered when
        the ACP show-expired setting is ON (i.e. expired rebates
        can appear at all). */

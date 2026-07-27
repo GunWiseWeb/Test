@@ -1,52 +1,44 @@
 <?php
 /**
- * @brief  GD Rebates — upgrade 1.0.10
+ * @brief  GD Rebates — upgrade 1.0.11
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  *
- * WHAT SHIPS IN 1.0.10 — two front-page fixes.
+ * WHAT SHIPS IN 1.0.11 — two front-page fixes.
  *
- *   Fix 1: resilient manufacturer-logo matching.
- *     modules/front/rebates/browse.php now resolves each rebate's
- *     _logo through three tiers instead of one:
- *       1. exact case-insensitive match against gd_rebate_logos
- *          (existing behavior)
- *       2. strip a trailing NUMERIC-anchored short token —
- *          " 1", " 2", " #1", " (2026)", " #Spring2026" — from
- *          the rebate's manufacturer, retry. Regex REQUIRES the
- *          trailing token to begin with a digit or "#" so it
- *          never eats a legitimate word like "Wesson", "Sauer",
- *          "Armory". Verified against a 12-case fixture.
- *       3. prefix match — any known logo whose key + " "
- *          prefixes this rebate's manufacturer (catches
- *          "H&K - Spring" -> H&K where the regex tier wouldn't
- *          fire).
- *     Rebates with manufacturer "H&K 1" and "H&K 2" (Derrick's
- *     convention for two simultaneous promos from one brand)
- *     now resolve to the "H&K" logo instead of falling back to
- *     text.
+ *   Fix 1: "+N more" chip toggle is now bidirectional.
+ *     dev/html/front/rebates/browse.phtml — the "+N more" button
+ *     no longer removes itself on first click. It toggles a
+ *     .gdrb-chips--expanded class on the container (CSS in
+ *     dev/css/front/rebates.css un-hides .gdrb-chip--hidden when
+ *     the container has that class) and swaps its own text
+ *     between two data-attribute labels (data-more-label,
+ *     data-fewer-label — both emitted at render time from lang
+ *     keys so JS never needs a lang lookup). Repeatable expand /
+ *     collapse with no page reload.
  *
- *   Fix 2: front-page "Hide expired" checkbox.
- *     dev/html/front/rebates/browse.phtml gains a checkbox in
- *     the filter bar, rendered ONLY when the ACP
- *     gdrebates_show_expired setting is ON (i.e. expired
- *     rebates can appear at all — if OFF the checkbox would be
- *     meaningless and is not rendered). Client-side filter JS
- *     composes it with the existing type/mfr/amount filters
- *     via the same apply() function.
- *     Template signature gains $showExpired (bool); the
- *     controller passes it.
+ *   Fix 2: full gdrebates_type_* enum audit + seed.
+ *     The authoritative rebate_type enum lives in
+ *     modules/admin/rebates/manualadd.php (9 entries: cash,
+ *     percent, gift_card, prepaid_card, store_credit, free_item,
+ *     free_shipping, bundle, other). Prior versions were missing
+ *     gdrebates_type_percent and gdrebates_type_gift_card in
+ *     dev/lang.php + data/lang.xml, so those two rendered as raw
+ *     keys on their cards. All 9 keys are now present in both
+ *     files and this upgrade re-seeds every one of them into
+ *     core_sys_lang_words for every installed lang_id (rule #43
+ *     6-col shape, rule #44 per-row try/catch) — including the
+ *     two previously-missing ones so existing installs get them.
  *
- * No PHP controller changes beyond browse.php. No schema. New
- * lang key gdrebates_hide_expired seeded per lang_id (rule #43
- * 6-col shape, rule #44 per-row try/catch).
+ *   Also seeds the new gdrebates_show_fewer collapse label for
+ *   Fix 1's toggle.
  *
  * NO CanonicalTemplates::ensure() call.
- * Rule #79: upg_10009 removed, exactly one upg dir per app.
+ * Rule #79: upg_10010 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdrebates\setup\upg_10010;
+namespace IPS\gdrebates\setup\upg_10011;
 
 use function defined;
 use function function_exists;
@@ -70,8 +62,26 @@ class _upgrade
 	protected function seedLangStrings(): void
 	{
 		$strings = [
-			'gdrebates_hide_expired' => 'Hide expired',
+			/* v1.0.11 Fix 1 */
+			'gdrebates_show_fewer'         => 'Show fewer',
+
+			/* v1.0.11 Fix 2 — every rebate_type key, including the
+			   two that were missing (percent, gift_card). All 9 are
+			   re-seeded so existing installs get the missing ones
+			   AND any admin edits to the present ones are overwritten
+			   to the shipped defaults — acceptable trade for closing
+			   the audit gap. */
+			'gdrebates_type_cash'          => 'Cash back',
+			'gdrebates_type_percent'       => 'Percent off',
+			'gdrebates_type_gift_card'     => 'Gift card',
+			'gdrebates_type_prepaid_card'  => 'Prepaid card',
+			'gdrebates_type_store_credit'  => 'Store credit',
+			'gdrebates_type_free_item'     => 'Free item',
+			'gdrebates_type_free_shipping' => 'Free shipping',
+			'gdrebates_type_bundle'        => 'Bundle',
+			'gdrebates_type_other'         => 'Other',
 		];
+
 		try
 		{
 			foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
@@ -91,14 +101,14 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10010 lang ' . $key . ': ' . $e->getMessage(), 'gdrebates_upg_10010' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10011 lang ' . $key . ': ' . $e->getMessage(), 'gdrebates_upg_10011' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10010 lang loop: ' . $e->getMessage(), 'gdrebates_upg_10010' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10011 lang loop: ' . $e->getMessage(), 'gdrebates_upg_10011' ); } catch ( \Throwable ) {}
 		}
 	}
 

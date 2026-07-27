@@ -48,6 +48,11 @@
 .gdrb-chips{display:flex;flex-wrap:wrap;gap:4px 6px;margin:0 0 10px;}
 .gdrb-chip{display:inline-block;max-width:100%;padding:2px 8px;border-radius:999px;background:#eef2f8;color:#1f3a63;font-size:11px;font-weight:600;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .gdrb-chip--hidden{display:none;}
+/* v1.0.11 — bidirectional chip toggle. Adding .gdrb-chips--expanded
+   on the container flips every .gdrb-chip--hidden back to visible
+   without touching individual chip classes (state lives on the
+   container so the JS can swap it repeatedly). */
+.gdrb-chips--expanded .gdrb-chip--hidden{display:inline-block;}
 .gdrb-chip--more{border:0;cursor:pointer;background:#dfe7f0;color:#1f3a63;font:inherit;font-size:11px;font-weight:700;}
 .gdrb-chip--more:hover{background:#c9d5e5;}
 

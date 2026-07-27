@@ -50,7 +50,7 @@
 			{{if count( $r['_models_list'] )}}
 			<div class='gdrb-chips' data-model-count='{expression="count( $r['_models_list'] )"}'>
 				{{foreach $r['_models_list'] as $mi => $mv}}<span class='gdrb-chip{{if $mi >= 5}} gdrb-chip--hidden{{endif}}'>{$mv}</span>{{endforeach}}
-				{{if count( $r['_models_list'] ) > 5}}<button type='button' class='gdrb-chip gdrb-chip--more' data-hidden-count='{expression="count( $r['_models_list'] ) - 5"}'>+{expression="count( $r['_models_list'] ) - 5"} {lang="gdrebates_chip_more"}</button>{{endif}}
+				{{if count( $r['_models_list'] ) > 5}}<button type='button' class='gdrb-chip gdrb-chip--more' data-hidden-count='{expression="count( $r['_models_list'] ) - 5"}' data-more-label='+{expression="count( $r['_models_list'] ) - 5"} {lang="gdrebates_chip_more"}' data-fewer-label='{lang="gdrebates_show_fewer"}'>+{expression="count( $r['_models_list'] ) - 5"} {lang="gdrebates_chip_more"}</button>{{endif}}
 			</div>
 			{{endif}}
 			<div class='gdrb-card__meta'>
@@ -99,16 +99,22 @@
 	var fHideExpired = document.getElementById('gdrb-f-hide-expired');
 	var noRes = document.getElementById('gdrb-noresults');
 
-	/* v1.0.9 — chip "+N more" expand handler. Reveals every hidden
-	   chip in the same .gdrb-chips container and removes the button. */
+	/* v1.0.11 — chip "+N more" is now a proper bidirectional toggle.
+	   Clicks flip a .gdrb-chips--expanded class on the container
+	   (CSS reveals the .gdrb-chip--hidden items when the container
+	   has that class) and swap the button label between the two
+	   data-attribute strings the template emits — no lang lookup
+	   in JS, no page reload, repeatable. */
 	grid.addEventListener('click', function(ev){
 		var btn = ev.target;
 		if(!btn || !btn.classList || !btn.classList.contains('gdrb-chip--more')){ return; }
 		ev.preventDefault();
 		var container = btn.closest('.gdrb-chips');
 		if(!container){ return; }
-		container.querySelectorAll('.gdrb-chip--hidden').forEach(function(c){ c.classList.remove('gdrb-chip--hidden'); });
-		btn.remove();
+		var nowExpanded = container.classList.toggle('gdrb-chips--expanded');
+		btn.textContent = nowExpanded
+			? ( btn.getAttribute('data-fewer-label') || 'Show fewer' )
+			: ( btn.getAttribute('data-more-label')  || '+more' );
 	});
 
 	function bucket(a){

@@ -42,6 +42,8 @@
     <word key="gdrebates_rb_redemption_url"><![CDATA[Redemption URL]]></word>
     <word key="gdrebates_rb_status"><![CDATA[Status]]></word>
     <word key="gdrebates_type_cash"><![CDATA[Cash back]]></word>
+    <word key="gdrebates_type_percent"><![CDATA[Percent off]]></word>
+    <word key="gdrebates_type_gift_card"><![CDATA[Gift card]]></word>
     <word key="gdrebates_type_prepaid_card"><![CDATA[Prepaid card]]></word>
     <word key="gdrebates_type_store_credit"><![CDATA[Store credit]]></word>
     <word key="gdrebates_type_free_item"><![CDATA[Free item]]></word>
@@ -69,6 +71,7 @@
     <word key="gdrebates_details"><![CDATA[Details]]></word>
     <word key="gdrebates_view_offer"><![CDATA[View Offer]]></word>
     <word key="gdrebates_chip_more"><![CDATA[more]]></word>
+    <word key="gdrebates_show_fewer"><![CDATA[Show fewer]]></word>
     <word key="gdrebates_hide_expired"><![CDATA[Hide expired]]></word>
     <word key="gdrebates_last_day"><![CDATA[Last day!]]></word>
     <word key="gdrebates_days_left"><![CDATA[%s days left]]></word>
