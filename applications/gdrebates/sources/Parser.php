@@ -79,7 +79,31 @@ class _Parser
 
 	protected function callAnthropic( string $html ): ?array
 	{
-		$html = mb_substr( strip_tags( $html ), 0, 80000 );
+		/* v1.0.6 — the old strip_tags($html) removed TAGS but left the
+		   CONTENTS of <script>/<style> blocks as raw text (minified
+		   JS/CSS), which bloated the character count with useless
+		   content and pushed the real rebate copy past the 80,000-char
+		   truncation. Verified: Springfield Armory "Gear Up 2026 Model
+		   2020" page — the word "rebate" sat at position ~97,256 in
+		   the cleaned text, so Claude never saw it and correctly
+		   returned an empty array ("Parsed 0 rebate(s)").
+
+		   Strip script/style/comment BLOCKS entirely (tags AND
+		   contents) BEFORE strip_tags, then collapse whitespace so
+		   the character budget is spent on real content. Budget
+		   raised to 350,000 chars (~90-100K tokens) — comfortably
+		   within Claude Sonnet's context window with headroom for
+		   the prompt + response, and enough to cover 3x this ~100K-
+		   char cleaned example. A future page that still exceeds
+		   the budget just truncates (existing behavior); the parser
+		   run will still show it in last_message. */
+		$clean = preg_replace( '#<script\b[^>]*>.*?</script>#is', '', $html );
+		$clean = preg_replace( '#<style\b[^>]*>.*?</style>#is',   '', (string) $clean );
+		$clean = preg_replace( '#<!--.*?-->#s',                    '', (string) $clean );
+		$clean = strip_tags( (string) $clean );
+		$clean = preg_replace( '/[ \t]+/',   ' ',    (string) $clean );
+		$clean = preg_replace( '/\n{3,}/',   "\n\n", (string) $clean );
+		$html  = mb_substr( trim( (string) $clean ), 0, 350000 );
 
 		$prompt = "Extract every firearm rebate from this page. Return a JSON array of objects with keys: "
 			. "title (string), rebate_type (cash|percent|gift_card|other), amount (number or null), "

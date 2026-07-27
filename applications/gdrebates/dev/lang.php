@@ -4,6 +4,10 @@ $lang = [
     'menutab__gdrebates'               => 'GD Rebates',
     'menutab__gdrebates_icon'          => 'tags',
     'menu__gdrebates_rebates'          => 'Rebates',
+    /* v1.0.6 — breadcrumb key for the front & admin `rebates` modules.
+       Missing key was rendering as raw "module__gdrebates_rebates" on
+       /rebates/ pages. */
+    'module__gdrebates_rebates'        => 'Rebates',
     'menu__gdrebates_rebates_sources'  => 'Rebate Sources',
     'menu__gdrebates_rebates_settings' => 'Settings',
     'r__sources_manage'                => 'Manage rebate sources',
