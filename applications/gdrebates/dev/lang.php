@@ -76,6 +76,10 @@ $lang = [
 
     /* v1.0.9 — model chips (Part 2) */
     'gdrebates_chip_more'             => 'more',
+    /* v1.0.10 — front-page checkbox filter, only rendered when
+       the ACP show-expired setting is ON (i.e. expired rebates
+       can appear at all). */
+    'gdrebates_hide_expired'          => 'Hide expired',
 
     /* v1.0.9 — expiration countdown + expired state (Part 3) */
     'gdrebates_last_day'              => 'Last day!',

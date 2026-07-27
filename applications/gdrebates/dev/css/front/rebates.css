@@ -2,6 +2,11 @@
 .gdrb-title{font-size:24px;font-weight:800;color:#1a2b4a;margin:0 0 16px;}
 .gdrb-filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;}
 .gdrb-sel{flex:1 1 160px;min-width:140px;padding:9px 12px;border:1px solid #d3d9e0;border-radius:8px;background:#fff;font-size:14px;color:#16181d;}
+/* v1.0.10 — Hide-expired checkbox, conditionally rendered when
+   ACP show-expired is ON. Sits alongside the select filters
+   without stealing their flex-grow. */
+.gdrb-hide-expired{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border:1px solid #d3d9e0;border-radius:8px;background:#fff;font-size:13px;color:#16181d;cursor:pointer;user-select:none;}
+.gdrb-hide-expired input{margin:0;cursor:pointer;}
 .gdrb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
 /* v1.0.8 — overflow:hidden as safety net so nothing (long amount
    pill, unbroken model list, etc.) can visually escape the card. */

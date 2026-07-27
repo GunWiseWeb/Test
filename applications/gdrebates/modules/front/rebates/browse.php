@@ -59,7 +59,47 @@ class _browse extends \IPS\Dispatcher\Controller
 
 		foreach ( $rebates as &$rr )
 		{
-			$rr['_logo'] = $logos[ mb_strtolower( trim( (string) $rr['manufacturer'] ) ) ] ?? '';
+			/* v1.0.10 — resilient logo match. Rebate manufacturer can
+			   carry a trailing distinguishing suffix ("H&K 1", "H&K 2"
+			   for two simultaneous promos from one brand) that isn't
+			   in gd_rebate_logos. Three tiers:
+			     1) exact case-insensitive match (current behavior)
+			     2) strip a trailing NUMERIC-anchored short token —
+			        e.g. " 1", " 2", " #1", " (2026)", " #Spring2026" —
+			        then retry. The regex REQUIRES the trailing token
+			        to begin with a digit or "#" so it never eats a
+			        legitimate word like "Wesson", "Sauer", "Armory".
+			     3) prefix match — any known logo whose key + " "
+			        prefixes this rebate's manufacturer (catches
+			        "H&K - Spring" -> H&K logo where the regex tier
+			        wouldn't fire). */
+			$logoMfr = trim( (string) ( $rr['manufacturer'] ?? '' ) );
+			$logoKey = mb_strtolower( $logoMfr );
+			$logo    = $logos[ $logoKey ] ?? '';
+
+			if ( $logo === '' && $logoMfr !== '' )
+			{
+				$stripped = preg_replace( '/\s+[\(\[]?[#\d][\w#-]{0,15}[\)\]]?\s*$/u', '', $logoMfr );
+				$baseKey  = mb_strtolower( trim( (string) $stripped ) );
+				if ( $baseKey !== '' && $baseKey !== $logoKey )
+				{
+					$logo = $logos[ $baseKey ] ?? '';
+				}
+			}
+
+			if ( $logo === '' && $logoKey !== '' )
+			{
+				foreach ( $logos as $knownKey => $knownUrl )
+				{
+					if ( $knownKey !== '' && str_starts_with( $logoKey, $knownKey . ' ' ) )
+					{
+						$logo = $knownUrl;
+						break;
+					}
+				}
+			}
+
+			$rr['_logo'] = $logo;
 
 			/* v1.0.9 Part 2 — split eligible_models into a chip list.
 			   Parser emits ", " (comma+space) between distinct model
@@ -105,7 +145,10 @@ class _browse extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title = \IPS\Member::loggedIn()->language()->addToStack( 'gdrebates_page_title' );
 		\IPS\Output::i()->breadcrumb[] = [ NULL, \IPS\Member::loggedIn()->language()->addToStack( 'gdrebates_page_title' ) ];
-		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'rebates', 'gdrebates', 'front' )->browse( $rebates, $mfrs );
+		/* v1.0.10 — pass the ACP show-expired flag so the template
+		   only renders the "Hide expired" checkbox when expired
+		   rebates can actually appear in the DOM. */
+		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'rebates', 'gdrebates', 'front' )->browse( $rebates, $mfrs, $showExpired );
 	}
 }
 class browse extends _browse {}

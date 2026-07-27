@@ -1,4 +1,4 @@
-<ips:template parameters="$rebates, $manufacturers" />
+<ips:template parameters="$rebates, $manufacturers, $showExpired" />
 <div class='gdrb-wrap'>
 	<h1 class='gdrb-title'>{lang="gdrebates_page_title"}</h1>
 
@@ -30,6 +30,12 @@
 			<option value='amount'>{lang="gdrebates_sort_amount"}</option>
 			<option value='newest'>{lang="gdrebates_sort_newest"}</option>
 		</select>
+		{{if $showExpired}}
+		<label class='gdrb-hide-expired'>
+			<input type='checkbox' id='gdrb-f-hide-expired'>
+			<span>{lang="gdrebates_hide_expired"}</span>
+		</label>
+		{{endif}}
 	</div>
 
 	{{if count( $rebates )}}
@@ -87,6 +93,10 @@
 	var fType = document.getElementById('gdrb-f-type');
 	var fAmt = document.getElementById('gdrb-f-amt');
 	var fSort = document.getElementById('gdrb-f-sort');
+	/* v1.0.10 — Hide-expired checkbox (only present in DOM when the
+	   ACP show-expired setting is ON; querySelector returns null
+	   otherwise and the apply() gate below no-ops). */
+	var fHideExpired = document.getElementById('gdrb-f-hide-expired');
 	var noRes = document.getElementById('gdrb-noresults');
 
 	/* v1.0.9 — chip "+N more" expand handler. Reveals every hidden
@@ -133,18 +143,24 @@
 	}
 	function apply(){
 		var mfr=fMfr.value, type=fType.value, amt=fAmt.value, shown=0;
+		/* v1.0.10 — hide-expired composes with the other filters:
+		   a card must pass mfr/type/amt AND (if hide-expired is on)
+		   the not-expired check. Missing checkbox (setting OFF) =>
+		   hideExpired false, no effect. */
+		var hideExpired = !!( fHideExpired && fHideExpired.checked );
 		cards.forEach(function(c){
 			var ok=true;
 			if(mfr && c.getAttribute('data-mfr')!==mfr){ ok=false; }
 			if(type && c.getAttribute('data-type')!==type){ ok=false; }
 			if(amt && bucket(c.getAttribute('data-amount'))!==amt){ ok=false; }
+			if(hideExpired && c.getAttribute('data-expired')==='1'){ ok=false; }
 			c.style.display = ok ? '' : 'none';
 			if(ok){ shown++; }
 		});
 		if(noRes){ noRes.style.display = shown ? 'none' : ''; }
 		sortVisible();
 	}
-	[fMfr,fType,fAmt,fSort].forEach(function(el){ if(el){ el.addEventListener('change', apply); } });
+	[fMfr,fType,fAmt,fSort,fHideExpired].forEach(function(el){ if(el){ el.addEventListener('change', apply); } });
 	sortVisible();
 })();
 </script>
