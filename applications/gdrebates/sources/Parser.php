@@ -62,17 +62,47 @@ class _Parser
 
 	protected function fetchPage( string $url ): ?string
 	{
+		/* v1.0.12 — realistic Chrome-on-Windows header set replaces
+		   the earlier "GunRack-Rebates/1.0" User-Agent. That obvious-
+		   scraper UA got 403'd by any site with even the mildest
+		   User-Agent sniffing (Beretta, Ruger discount portals,
+		   several manufacturer promo landing pages).
+
+		   This helps with basic UA sniffing / simple WAF rules only.
+		   It will NOT bypass JS-challenge bot protection like
+		   Cloudflare / Incapsula / PerimeterX — those require
+		   actual JavaScript execution (a headless browser) to solve,
+		   which is out of scope for this cheap header-only change.
+
+		   Also switched the silent-catch to log to core_log category
+		   'gdrebates' so future fetch failures surface without a
+		   manual CLI reproduction (earlier bug hunts wasted time on
+		   this). */
 		try
 		{
 			$response = \IPS\Http\Url::external( $url )
 				->request( 30 )
-				->setHeaders( [ 'User-Agent' => 'GunRack-Rebates/1.0' ] )
+				->setHeaders( [
+					'User-Agent'                => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+					'Accept'                    => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+					'Accept-Language'           => 'en-US,en;q=0.9',
+					'Accept-Encoding'           => 'gzip, deflate, br',
+					'sec-ch-ua'                 => '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"',
+					'sec-ch-ua-mobile'          => '?0',
+					'sec-ch-ua-platform'        => '"Windows"',
+					'Sec-Fetch-Dest'            => 'document',
+					'Sec-Fetch-Mode'            => 'navigate',
+					'Sec-Fetch-Site'            => 'none',
+					'Sec-Fetch-User'            => '?1',
+					'Upgrade-Insecure-Requests' => '1',
+				] )
 				->get();
 
 			return (string) $response;
 		}
 		catch ( \Throwable $e )
 		{
+			try { \IPS\Log::log( 'gdrebates fetchPage ' . $url . ': ' . $e->getMessage(), 'gdrebates' ); } catch ( \Throwable ) {}
 			return NULL;
 		}
 	}
