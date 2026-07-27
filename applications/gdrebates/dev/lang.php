@@ -69,6 +69,10 @@ $lang = [
     'gdrebates_ends'                  => 'Ends',
     'gdrebates_submit'                => 'Submit Rebate',
     'gdrebates_details'               => 'Details',
+    /* v1.0.7 — primary CTA label when a rebate has no redemption_url
+       (falls back to source_url). Keeps every card with a prominent
+       action button. */
+    'gdrebates_view_offer'            => 'View Offer',
     'gdrebates_none'                  => 'No active rebates right now. Check back soon.',
     'gdrebates_no_match'              => 'No rebates match those filters.',
     'menu__gdrebates_rebates_logos'    => 'Manufacturer Logos',
