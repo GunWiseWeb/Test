@@ -258,4 +258,12 @@ $lang = [
     'gddeals_lb_avg_delta'            => 'Avg delta',
     'gddeals_lb_posts'                => 'posts',
     'gddeals_lb_nav'                  => 'Top Deals & Dealers',
+
+    /* v1.0.52 — approval queue page-size knob. Companion hook
+       (applications/gddeals/hooks/ApprovalPageSize.php) reads this
+       to bump core's hardcoded $table->limit = 5; in Mod CP
+       Unapproved::manage(). */
+    'gddeals_settings_moderation'         => 'Moderation',
+    'gddeals_approval_queue_perpage'      => 'Approval queue page size',
+    'gddeals_approval_queue_perpage_desc' => 'How many items to show per page on /modcp/approval/. Core IPS hardcodes 5, which makes a large backlog impractical to work through. Range 5&ndash;200 (default 50). Requires the ApprovalPageSize hook to be active (installed automatically when this app is installed/upgraded).',
 ];

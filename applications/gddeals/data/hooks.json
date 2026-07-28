@@ -1,0 +1,6 @@
+{
+	"ApprovalPageSize": {
+		"type": "C",
+		"class": "\\IPS\\Helpers\\Table\\Content"
+	}
+}

@@ -26,6 +26,21 @@ class _settings extends \IPS\Dispatcher\Controller
 		$form->addHeader( 'gddeals_settings_display' );
 		$form->add( new \IPS\Helpers\Form\YesNo( 'gddeals_show_coupon_strip', \IPS\Settings::i()->gddeals_show_coupon_strip ?? 1 ) );
 
+		/* v1.0.52 — approval queue page size (Mod CP → Approval).
+		   Core IPS hardcodes 5/page in Unapproved::manage(); the
+		   companion hook (applications/gddeals/hooks/ApprovalPageSize.php)
+		   reads this setting and bumps the limit accordingly. Kept
+		   in a Moderation header even though gddeals settings.php
+		   is mostly colors — this is where Derrick already knows to
+		   look for gddeals knobs. */
+		$form->addHeader( 'gddeals_settings_moderation' );
+		$form->add( new \IPS\Helpers\Form\Number(
+			'gddeals_approval_queue_perpage',
+			(int) ( \IPS\Settings::i()->gddeals_approval_queue_perpage ?: 50 ),
+			TRUE,
+			[ 'min' => 5, 'max' => 200 ]
+		) );
+
 		$form->addHeader( 'gddeals_colhdr_brand' );
 		$form->add( new \IPS\Helpers\Form\Color( 'gddeals_c_primary', \IPS\Settings::i()->gddeals_c_primary ) );
 		$form->add( new \IPS\Helpers\Form\Color( 'gddeals_c_primary_hover', \IPS\Settings::i()->gddeals_c_primary_hover ) );

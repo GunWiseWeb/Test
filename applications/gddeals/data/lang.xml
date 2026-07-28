@@ -259,5 +259,8 @@
     <word key="gddeals_lb_avg_delta"><![CDATA[Avg delta]]></word>
     <word key="gddeals_lb_posts"><![CDATA[posts]]></word>
     <word key="gddeals_lb_nav"><![CDATA[Top Deals & Dealers]]></word>
+    <word key="gddeals_settings_moderation"><![CDATA[Moderation]]></word>
+    <word key="gddeals_approval_queue_perpage"><![CDATA[Approval queue page size]]></word>
+    <word key="gddeals_approval_queue_perpage_desc"><![CDATA[How many items to show per page on /modcp/approval/. Core IPS hardcodes 5, which makes a large backlog impractical to work through. Range 5&ndash;200 (default 50). Requires the ApprovalPageSize hook to be active (installed automatically when this app is installed/upgraded).]]></word>
   </app>
 </language>
