@@ -111,5 +111,12 @@
     <word key="gdrebates_logo_url"><![CDATA[Logo image URL]]></word>
     <word key="gdrebates_logo_add"><![CDATA[Add Logo]]></word>
     <word key="gdrebates_logo_edit"><![CDATA[Edit Logo]]></word>
+    <word key="gdrebates_rb_featured"><![CDATA[Featured]]></word>
+    <word key="gdrebates_rb_sort_order"><![CDATA[Sort order]]></word>
+    <word key="gdrebates_feature"><![CDATA[Feature]]></word>
+    <word key="gdrebates_unfeature"><![CDATA[Unfeature]]></word>
+    <word key="gdrebates_move_up"><![CDATA[Move up]]></word>
+    <word key="gdrebates_move_down"><![CDATA[Move down]]></word>
+    <word key="gdrebates_featured"><![CDATA[Featured]]></word>
   </app>
 </language>

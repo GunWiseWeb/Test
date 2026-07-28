@@ -41,7 +41,7 @@
 	{{if count( $rebates )}}
 	<div class='gdrb-grid' id='gdrb-grid'>
 		{{foreach $rebates as $r}}
-		<div class='gdrb-card{{if $r['_is_expired']}} gdrb-card--expired{{endif}}' data-mfr="{$r['manufacturer']}" data-type="{$r['rebate_type']}" data-amount="{$r['amount']}" data-end="{$r['end_date']}" data-created="{$r['created']}" data-expired="{{if $r['_is_expired']}}1{{else}}0{{endif}}">
+		<div class='gdrb-card{{if $r['_is_expired']}} gdrb-card--expired{{endif}}{{if $r['featured']}} gdrb-card--featured{{endif}}' data-mfr="{$r['manufacturer']}" data-type="{$r['rebate_type']}" data-amount="{$r['amount']}" data-end="{$r['end_date']}" data-created="{$r['created']}" data-expired="{{if $r['_is_expired']}}1{{else}}0{{endif}}" data-featured="{{if $r['featured']}}1{{else}}0{{endif}}" data-sort-order="{$r['sort_order']}">
 			<div class='gdrb-card__head'>
 				{{if $r['_logo']}}<img class='gdrb-card__logo' src='{$r['_logo']}' alt='{$r['manufacturer']}' loading='lazy'>{{else}}<span class='gdrb-card__mfr'>{$r['manufacturer']}</span>{{endif}}
 				{{if $r['amount_text']}}<span class='gdrb-card__amt'>{$r['amount_text']}</span>{{endif}}
@@ -54,6 +54,7 @@
 			</div>
 			{{endif}}
 			<div class='gdrb-card__meta'>
+				{{if $r['featured'] && !$r['_is_expired']}}<span class='gdrb-card__featured-tag' title='{lang="gdrebates_featured"}'>&#9733; {lang="gdrebates_featured"}</span>{{endif}}
 				<span class='gdrb-card__type gdrb-type--{$r['rebate_type']}'>{expression="\IPS\Member::loggedIn()->language()->addToStack( 'gdrebates_type_' . $r['rebate_type'] )"}</span>
 				{{if $r['_is_expired']}}
 					<span class='gdrb-card__expired-tag'>{lang="gdrebates_expired"}</span>
@@ -136,8 +137,25 @@
 			var bExp = b.getAttribute('data-expired')==='1' ? 1 : 0;
 			if(aExp !== bExp){ return aExp - bExp; }
 
+			/* v1.0.13 — within the active (non-expired) section,
+			   featured cards float above non-featured regardless of
+			   the picked sort mode. Featured expired cards do NOT
+			   float — the expired-last rule above already tucked them
+			   under, and staying expired-then-featured keeps the
+			   grid readable. */
+			if(aExp===0){
+				var aFeat = a.getAttribute('data-featured')==='1' ? 1 : 0;
+				var bFeat = b.getAttribute('data-featured')==='1' ? 1 : 0;
+				if(aFeat !== bFeat){ return bFeat - aFeat; }
+			}
+
 			if(mode==='amount'){ return (parseFloat(b.getAttribute('data-amount'))||0)-(parseFloat(a.getAttribute('data-amount'))||0); }
 			if(mode==='newest'){ return (parseInt(b.getAttribute('data-created'))||0)-(parseInt(a.getAttribute('data-created'))||0); }
+			/* Default 'ending' mode — respect manual sort_order among
+			   ties (same expired/featured group), then end_date. */
+			var aSo = parseInt(a.getAttribute('data-sort-order'))||0;
+			var bSo = parseInt(b.getAttribute('data-sort-order'))||0;
+			if(aSo !== bSo){ return aSo - bSo; }
 			var ea = parseInt(a.getAttribute('data-end'))||0;
 			var eb = parseInt(b.getAttribute('data-end'))||0;
 			if(ea===0 && eb===0){ return 0; }

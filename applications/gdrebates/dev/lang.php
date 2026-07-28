@@ -133,4 +133,14 @@ $lang = [
     'gdrebates_logo_url'               => 'Logo image URL',
     'gdrebates_logo_add'               => 'Add Logo',
     'gdrebates_logo_edit'              => 'Edit Logo',
+
+    /* v1.0.13 — ACP queue: expired tab uses existing gdrebates_status_expired,
+       plus new columns/actions for featured toggle + up/down reorder. */
+    'gdrebates_rb_featured'            => 'Featured',
+    'gdrebates_rb_sort_order'          => 'Sort order',
+    'gdrebates_feature'                => 'Feature',
+    'gdrebates_unfeature'              => 'Unfeature',
+    'gdrebates_move_up'                => 'Move up',
+    'gdrebates_move_down'              => 'Move down',
+    'gdrebates_featured'               => 'Featured',
 ];

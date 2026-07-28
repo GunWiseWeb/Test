@@ -73,6 +73,12 @@
 .gdrb-card--expired{opacity:.55;filter:grayscale(.3);}
 .gdrb-card--expired .gdrb-card__amt{background:#94a3b8;}
 .gdrb-card__expired-tag{font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;border-radius:5px;padding:2px 7px;background:#e5e7eb;color:#4b5563;}
+/* v1.0.13 — featured rebate. Warm border + soft top glow to lift
+   the card visually without changing the layout. Muted when the
+   featured card is ALSO expired (opacity from --expired dominates).
+   The featured-tag pill sits in the meta row next to the type badge. */
+.gdrb-card--featured{border-color:#f59e0b;box-shadow:0 1px 4px rgba(217,119,6,.18),0 -2px 0 #f59e0b inset;}
+.gdrb-card__featured-tag{font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;border-radius:5px;padding:2px 7px;background:#fde68a;color:#8a5a00;}
 .gdrb-card__meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:auto;padding-top:10px;}
 .gdrb-card__type{font-size:11px;font-weight:700;border-radius:5px;padding:2px 7px;background:#eef2f8;color:#1f3a63;}
 .gdrb-type--free_item,.gdrb-type--free_shipping{background:#e7f4ec;color:#1a7f37;}

@@ -31,14 +31,19 @@ class _browse extends \IPS\Dispatcher\Controller
 			$where[] = [ '( end_date IS NULL OR end_date >= ? )', $now ];
 		}
 
-		/* Sort at the DB layer so active/non-expired first (soonest
-		   end_date at the top; null end_date at the very bottom of
-		   the active section), expired last. The template's inline
-		   JS respects this ordering when the user hasn't changed
-		   the sort dropdown. */
+		/* v1.0.13 — DB-level sort order:
+		     1) expired ALWAYS last (regardless of featured/sort_order)
+		     2) featured=1 above featured=0 within the active section
+		     3) manual sort_order ASC (Derrick's drag-order / up-down
+		        arrows in the ACP)
+		     4) end_date null-last, then end_date ASC (existing fallback)
+		   The template's inline JS respects the same ordering when
+		   the user hasn't changed the client-side sort dropdown. */
 		$orderBy = '('
 			. ' CASE WHEN end_date IS NOT NULL AND end_date < ' . (int) $now . ' THEN 1 ELSE 0 END'
 			. ' ) ASC,'
+			. ' featured DESC,'
+			. ' sort_order ASC,'
 			. ' CASE WHEN end_date IS NULL THEN 1 ELSE 0 END ASC,'
 			. ' end_date ASC';
 
