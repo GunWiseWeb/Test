@@ -265,5 +265,5 @@ $lang = [
        Unapproved::manage(). */
     'gddeals_settings_moderation'         => 'Moderation',
     'gddeals_approval_queue_perpage'      => 'Approval queue page size',
-    'gddeals_approval_queue_perpage_desc' => 'How many items to show per page on /modcp/approval/. Core IPS hardcodes 5, which makes a large backlog impractical to work through. Range 5&ndash;200 (default 50). Requires the ApprovalPageSize hook to be active (installed automatically when this app is installed/upgraded).',
+    'gddeals_approval_queue_perpage_desc' => 'How many items to show per page on /modcp/approval/. Core IPS hardcodes this to 5, which makes a large backlog impractical to work through. Range 5&ndash;200 (default 50). <br><br>This setting is read by a <b>direct edit to IPS core file</b> <code>applications/core/extensions/core/ModCp/Unapproved.php</code> (line ~115) &mdash; IPS 5 does not support a reliable app-bundled hook mechanism for this kind of override. <br><br><b>IMPORTANT:</b> a future IPS core update may overwrite that edit and reset the limit to 5; if so, the edit must be manually re-applied (see that file&rsquo;s inline comment for the exact change). Changing THIS setting alone will not restore functionality if the core edit has been overwritten.',
 ];
