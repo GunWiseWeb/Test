@@ -1,4 +1,4 @@
-<ips:template parameters="$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl, $prefill" />
+<ips:template parameters="$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl, $prefill, $fetchDetailsUrl, $canFetch, $flashMessage" />
 <div class="ipsBox" style="max-width:900px">
 	<div class="ipsBox__header" style="display:flex;justify-content:space-between;align-items:center">
 		<h1 class="ipsType_pageTitle">{lang="gddealer_unmatched_review_title"}</h1>
@@ -6,11 +6,33 @@
 	</div>
 	<div class="ipsBox__content">
 
+		{{if $flashMessage}}
+		<div style="background:#d1e7dd;border:1px solid #badbcc;color:#0f5132;border-radius:6px;padding:10px 12px;margin-bottom:16px;font-size:0.9em">
+			{$flashMessage}
+		</div>
+		{{endif}}
+
 		<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:12px;margin-bottom:20px;font-size:0.9em">
 			<strong>UPC:</strong> <code>{$row['upc']}</code> &nbsp;|&nbsp;
 			<strong>{lang="gddealer_unmatched_dealer"}:</strong> {$dealerName} &nbsp;|&nbsp;
 			<strong>{lang="gddealer_unmatched_first_seen"}:</strong> {$row['first_seen']} &nbsp;|&nbsp;
 			<strong>{lang="gddealer_unmatched_count"}:</strong> {$row['occurrence_count']}
+			{{if $prefill['listing_url']}}
+			<div style="margin-top:6px">
+				<strong>{lang="gddealer_unmatched_listing_url"}:</strong>
+				<a href="{$prefill['listing_url']}" target="_blank" rel="noopener">{$prefill['listing_url']}</a>
+			</div>
+			{{endif}}
+			{{if $canFetch}}
+			<div style="margin-top:10px">
+				<form method="post" action="{$fetchDetailsUrl}" style="display:inline">
+					<input type="hidden" name="csrfKey" value="{expression="\IPS\Session::i()->csrfKey"}">
+					<button type="submit" class="ipsButton ipsButton--primary ipsButton--small">
+						&#9889; {lang="gddealer_unmatched_fetch_details"}
+					</button>
+				</form>
+			</div>
+			{{endif}}
 		</div>
 
 		{{if count($snapshot) > 0}}

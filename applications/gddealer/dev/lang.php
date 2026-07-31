@@ -657,4 +657,13 @@ $lang = [
     'gddealer_dir_show_state_filter'                               => 'Show state filter',
     'gddealer_dir_show_rating_filter'                              => 'Show rating filter',
     'gddealer_dir_show_sort'                                       => 'Show sort dropdown',
+
+    /* v1.0.333 — unmatched-UPC review: surface listing_url + AI-assist
+       "Fetch details from dealer's listing" button. */
+    'gddealer_unmatched_listing_url'                               => 'Dealer listing URL',
+    'gddealer_unmatched_fetch_details'                             => "Fetch details from dealer's listing",
+    'gddealer_unmatched_fetch_success'                             => 'Fetched %s additional field(s) from the dealer listing.',
+    'gddealer_unmatched_fetch_no_url'                              => "This UPC's snapshot doesn't include a listing_url (older row, or the dealer feed omitted it). Nothing to fetch.",
+    'gddealer_unmatched_fetch_no_key'                              => 'No Anthropic API key configured (gdrebates_api_key setting is empty). Set it in ACP → Rebates → Settings and try again.',
+    'gddealer_unmatched_fetch_fail'                                => 'Could not fetch or extract details &mdash; check the gddealer log for the exact error and try filling the fields manually.',
 ];

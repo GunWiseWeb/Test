@@ -680,5 +680,11 @@
     <word key="gddealer_dir_show_state_filter"><![CDATA[Show state filter]]></word>
     <word key="gddealer_dir_show_rating_filter"><![CDATA[Show rating filter]]></word>
     <word key="gddealer_dir_show_sort"><![CDATA[Show sort dropdown]]></word>
+    <word key="gddealer_unmatched_listing_url"><![CDATA[Dealer listing URL]]></word>
+    <word key="gddealer_unmatched_fetch_details"><![CDATA[Fetch details from dealer's listing]]></word>
+    <word key="gddealer_unmatched_fetch_success"><![CDATA[Fetched %s additional field(s) from the dealer listing.]]></word>
+    <word key="gddealer_unmatched_fetch_no_url"><![CDATA[This UPC's snapshot doesn't include a listing_url (older row, or the dealer feed omitted it). Nothing to fetch.]]></word>
+    <word key="gddealer_unmatched_fetch_no_key"><![CDATA[No Anthropic API key configured (gdrebates_api_key setting is empty). Set it in ACP → Rebates → Settings and try again.]]></word>
+    <word key="gddealer_unmatched_fetch_fail"><![CDATA[Could not fetch or extract details &mdash; check the gddealer log for the exact error and try filling the fields manually.]]></word>
   </app>
 </language>

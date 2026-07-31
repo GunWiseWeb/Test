@@ -512,6 +512,15 @@ class Importer
 		$imageUrl = $probe( $canonical, [ 'image_url', 'image' ] ) ?? $rawProbe( $raw, [ 'imageurl', 'image', 'imagelink', 'imagelink1', 'photo', 'picture' ] );
 		if ( $imageUrl !== null ) { $snapshot['image_url'] = $imageUrl; }
 
+		/* v1.0.333 — carry the dealer's own product-page link into the
+		   snapshot so the ACP Unmatched → Review screen can (a) show it
+		   as a clickable reference and (b) use it as the source URL for
+		   the "Fetch details from dealer's listing" AI-assist button.
+		   Same $canonical source as $listing->listing_url below (createListing).
+		   Kept alongside the other snapshot field captures. */
+		$listingUrl = $probe( $canonical, [ 'listing_url', 'product_url', 'url' ] ) ?? $rawProbe( $raw, [ 'listingurl', 'producturl', 'productlink', 'link', 'url' ] );
+		if ( $listingUrl !== null ) { $snapshot['listing_url'] = $listingUrl; }
+
 		$description = $probe( $canonical, [ 'description' ] ) ?? $rawProbe( $raw, [ 'description', 'desc', 'longdescription', 'productdescription', 'shortdescription' ] );
 		if ( $description !== null ) { $snapshot['description'] = $description; }
 
