@@ -1,5 +1,6 @@
 /* GD Bills — all selectors scoped under .gd-bills (no global leaks). */
-.gd-bills { max-width: 1200px; margin: 0 auto; padding: 16px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #16181d; }
+/* matches site Theme Editor content width setting (1446px) */
+.gd-bills { max-width: 1446px; margin: 0 auto; padding: 16px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #16181d; }
 .gd-bills * { box-sizing: border-box; }
 
 .gd-bills__hero { margin: 0 0 18px; }
