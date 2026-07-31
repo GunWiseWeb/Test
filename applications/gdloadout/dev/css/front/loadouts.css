@@ -141,7 +141,8 @@
 .gdlo-view-empty{text-align:center;padding:40px;color:#94a3b8}
 
 /* ===== Wizard Stepper ===== */
-.gdlo-wiz{width:100%;max-width:1400px;margin:0 auto;padding:24px;box-sizing:border-box;color:#1e293b}
+/* matches site Theme Editor content width setting (1446px) */
+.gdlo-wiz{width:100%;max-width:1446px;margin:0 auto;padding:24px;box-sizing:border-box;color:#1e293b}
 .gdlo-stepper{display:flex;gap:4px;margin-bottom:28px;border-bottom:2px solid #e2e8f0;padding-bottom:0}
 .gdlo-step{display:flex;align-items:center;gap:8px;padding:12px 20px;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;color:#94a3b8;font-size:.92em;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
 .gdlo-step:hover{color:#475569}
@@ -394,7 +395,8 @@
 }
 
 /* ---- Beta notice (top of loadouts hub) ---- */
-.gr-beta-notice { position: relative; max-width: 1400px; margin: 16px auto; padding: 16px 20px;
+/* matches site Theme Editor content width setting (1446px) */
+.gr-beta-notice { position: relative; max-width: 1446px; margin: 16px auto; padding: 16px 20px;
     background: linear-gradient(135deg, #FEF3C7 0%, #FEF9E7 100%);
     border: 1px solid #FCD34D; border-left: 4px solid #F59E0B; border-radius: 10px;
     display: flex; align-items: flex-start; gap: 16px; color: #78350F; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }

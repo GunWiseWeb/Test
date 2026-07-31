@@ -1,5 +1,6 @@
 :root{--gd-primary:#1f3a63;--gd-primary_hover:#16305a;--gd-dealer:#1a7f37;--gd-dealer_hover:#15692e;--gd-discount:#d97706;--gd-heading:#1a2b4a;--gd-text:#16181d;--gd-text_muted:#6b7480;--gd-text_faint:#8a93a0;--gd-text_strike:#9aa3ad;--gd-border:#e6e9ee;--gd-border_hover:#d3d9e0;--gd-border_light:#dfe4ea;--gd-surface:#ffffff;--gd-surface_alt:#f1f3f5;--gd-promo_bg:#fff4e5;--gd-promo_text:#8a5a00;--gd-ship_bg:#e7f4ec;--gd-expired:#c0392b;--gd-expired_bg:#fdecea;}
-.gd-deals-wrap{max-width:1200px;margin:0 auto;padding:4px 0;}
+/* matches site Theme Editor content width setting (1446px) */
+.gd-deals-wrap{max-width:1446px;margin:0 auto;padding:4px 0;}
 .gd-deals-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap;}
 .gd-deals-header h1{font-size:1.7rem;font-weight:800;margin:0;letter-spacing:-.01em;}
 .gd-post-btn{display:inline-flex;align-items:center;gap:6px;background:var(--gd-primary,#1f3a63);color:#fff;font-weight:700;font-size:.92rem;padding:9px 18px;border-radius:8px;text-decoration:none;transition:.15s;}
@@ -40,7 +41,11 @@
 .gd-card-imgwrap{aspect-ratio:16/10;overflow:hidden;background:var(--gd-surface,#fff);}
 .gd-card-img{width:100%;height:100%;object-fit:contain;display:block;}
 
-/* deal view page */
+/* deal view page — INTENTIONALLY narrower than the listing/browse
+   .gd-deals-wrap (1446px). Single-deal detail is long-form,
+   article-style content; a narrower column keeps line length in
+   the readable 60-80ch range. Do NOT bump this to 1446px alongside
+   the browse/listing wrappers — this is a deliberate exception. */
 .gd-deal-view{max-width:980px;}
 .gd-pending-banner{background:var(--gd-promo_bg,#fff4e5);border:1px solid var(--gd-promo_bg,#ffd9a8);color:var(--gd-promo_text,#8a5a00);padding:12px 16px;border-radius:10px;margin-bottom:18px;font-weight:600;}
 .gd-deal-layout{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:28px;align-items:start;}
