@@ -262,5 +262,23 @@
     <word key="gddeals_settings_moderation"><![CDATA[Moderation]]></word>
     <word key="gddeals_approval_queue_perpage"><![CDATA[Approval queue page size]]></word>
     <word key="gddeals_approval_queue_perpage_desc"><![CDATA[How many items to show per page on /modcp/approval/. Core IPS hardcodes this to 5, which makes a large backlog impractical to work through. Range 5&ndash;200 (default 50). <br><br>This setting is read by a <b>direct edit to IPS core file</b> <code>applications/core/extensions/core/ModCp/Unapproved.php</code> (line ~115) &mdash; IPS 5 does not support a reliable app-bundled hook mechanism for this kind of override. <br><br><b>IMPORTANT:</b> a future IPS core update may overwrite that edit and reset the limit to 5; if so, the edit must be manually re-applied (see that file&rsquo;s inline comment for the exact change). Changing THIS setting alone will not restore functionality if the core edit has been overwritten.]]></word>
+    <word key="menu__gddeals_deals_coupons"><![CDATA[Coupons]]></word>
+    <word key="gddeals_settings_coupons"><![CDATA[Coupons]]></word>
+    <word key="gddeals_coupon_auto_expire"><![CDATA[Auto-expire coupons past their end date]]></word>
+    <word key="gddeals_coupon_auto_expire_desc"><![CDATA[When ON, a background task (runs every 15 min) flips <code>expired=1</code> on any coupon whose <code>expires_at</code> is in the past. Front-end widgets ALSO defensively check <code>expires_at</code> directly, so turning this OFF still hides date-expired coupons from customers &mdash; this toggle only disables the batch flag update, not query-time visibility.]]></word>
+    <word key="gddeals_cp_title"><![CDATA[Title]]></word>
+    <word key="gddeals_cp_retailer_name"><![CDATA[Retailer]]></word>
+    <word key="gddeals_cp_promo_code"><![CDATA[Code]]></word>
+    <word key="gddeals_cp_discount_pct"><![CDATA[Discount]]></word>
+    <word key="gddeals_cp_expires_at"><![CDATA[Expires]]></word>
+    <word key="gddeals_cp_show_source"><![CDATA[Source]]></word>
+    <word key="gddeals_cp_featured"><![CDATA[Featured]]></word>
+    <word key="gddeals_cp_expire"><![CDATA[Mark expired]]></word>
+    <word key="gddeals_cp_unexpire"><![CDATA[Un-expire]]></word>
+    <word key="gddeals_cp_tab_active"><![CDATA[Active]]></word>
+    <word key="gddeals_cp_tab_expired"><![CDATA[Expired]]></word>
+    <word key="gddeals_cp_tab_pending"><![CDATA[Pending]]></word>
+    <word key="gddeals_cp_tab_all"><![CDATA[All]]></word>
+    <word key="task__gddeals_ExpireCoupons"><![CDATA[Expire coupons past their end date]]></word>
   </app>
 </language>

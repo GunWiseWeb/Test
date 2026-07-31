@@ -6,6 +6,12 @@
             "do": "",
             "restriction": "categories_manage"
         },
+        "coupons": {
+            "tab": "gddeals",
+            "controller": "coupons",
+            "do": "",
+            "restriction": "settings_manage"
+        },
         "settings": {
             "tab": "gddeals",
             "controller": "settings",

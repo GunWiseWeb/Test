@@ -26,13 +26,32 @@ class _settings extends \IPS\Dispatcher\Controller
 		$form->addHeader( 'gddeals_settings_display' );
 		$form->add( new \IPS\Helpers\Form\YesNo( 'gddeals_show_coupon_strip', \IPS\Settings::i()->gddeals_show_coupon_strip ?? 1 ) );
 
-		/* v1.0.52 — approval queue page size (Mod CP → Approval).
-		   Core IPS hardcodes 5/page in Unapproved::manage(); the
-		   companion hook (applications/gddeals/hooks/ApprovalPageSize.php)
-		   reads this setting and bumps the limit accordingly. Kept
-		   in a Moderation header even though gddeals settings.php
-		   is mostly colors — this is where Derrick already knows to
-		   look for gddeals knobs. */
+		/* v1.0.55 — coupons section. gddeals_coupon_auto_expire gates
+		   the tasks/ExpireCoupons.php scheduled task, which sets
+		   expired=1 on any post_type='coupon' row whose expires_at is
+		   in the past. Widget + front-page filters ALSO defensively
+		   check expires_at directly (belt-and-suspenders) so turning
+		   this off still hides date-expired coupons from customers —
+		   this toggle only disables the batch flag-update, not the
+		   query-time visibility rules. */
+		$form->addHeader( 'gddeals_settings_coupons' );
+		$form->add( new \IPS\Helpers\Form\YesNo(
+			'gddeals_coupon_auto_expire',
+			(int) ( \IPS\Settings::i()->gddeals_coupon_auto_expire ?? 1 )
+		) );
+
+		/* v1.0.52+ — approval queue page size (Mod CP → Approval).
+		   Core IPS hardcodes 5/page in Unapproved::manage(). IPS 5 does
+		   NOT support a reliable app-bundled hook mechanism for this kind
+		   of override (classic IPS 4 hooks were removed in v5), so this
+		   setting is read via a DIRECT EDIT to core file
+		   applications/core/extensions/core/ModCp/Unapproved.php (~line 115).
+		   That edit is NOT part of this app's tarball/versioning and WILL
+		   BE LOST if that core file is overwritten by a future IPS core
+		   update — see the inline comment in Unapproved.php for the exact
+		   block to re-apply if that happens. Kept in a Moderation header
+		   here even though gddeals settings.php is mostly colors — this is
+		   where Derrick already knows to look for gddeals knobs. */
 		$form->addHeader( 'gddeals_settings_moderation' );
 		$form->add( new \IPS\Helpers\Form\Number(
 			'gddeals_approval_queue_perpage',

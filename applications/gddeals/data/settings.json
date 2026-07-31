@@ -62,5 +62,6 @@
 	{"key":"gddeals_lb_show_best_value","default":"1","report":"full"},
 	{"key":"gddeals_lb_show_top_members","default":"1","report":"full"},
 	{"key":"gddeals_lb_members_exclude_auto","default":"1","report":"full"},
-	{"key":"gddeals_approval_queue_perpage","default":"50","report":"full"}
+	{"key":"gddeals_approval_queue_perpage","default":"50","report":"full"},
+	{"key":"gddeals_coupon_auto_expire","default":"1","report":"full"}
 ]

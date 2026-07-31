@@ -39,8 +39,22 @@ class gdRecentCoupons extends PermissionCache implements Customizable
 		$limit = (int) ( $this->configuration['toshow'] ?? 5 );
 		if ( $limit < 1 ) { $limit = 5; }
 
+		/* v1.0.55 — filter out expired coupons at query time.
+		   Rationale: gd_deal_posts.expired is unreliable for coupons
+		   until the auto-expire task (also new in 1.0.55) has run,
+		   so we belt-and-suspenders on BOTH the expired flag AND a
+		   raw expires_at date check. A coupon shows only when:
+		     * post_type = 'coupon'
+		     * expired flag is 0 (or NULL — legacy rows)
+		     * expires_at is unset (NULL / 0 — perpetual) OR still in
+		       the future
+		   Mirrors the pattern used in modules/front/deals/browse.php
+		   and modules/front/coupons/browse.php. */
+		$now = time();
 		$where = array(
 			array( "gd_deal_posts.post_type = 'coupon'" ),
+			array( '( gd_deal_posts.expired = 0 OR gd_deal_posts.expired IS NULL )' ),
+			array( '( gd_deal_posts.expires_at IS NULL OR gd_deal_posts.expires_at = 0 OR gd_deal_posts.expires_at > ? )', $now ),
 		);
 		$order = "( gd_deal_posts.source_badge = 'dealer' ) DESC, gd_deal_posts.posted_at DESC";
 
