@@ -230,14 +230,21 @@ class _stockactions extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Exception ) {}
 
+		/* v1.0.332 — on the "Add new" branch $existing is null, so the
+		   prior null-comparison access on the new_assignee key threw
+		   E_WARNING. isset() is null-safe against a null root and
+		   returns false cleanly, matching the pattern used by every
+		   other field in this array. The `enabled` line also gets a
+		   defensive `?? true` inside the edit branch so an $existing
+		   row missing the column can't crash the form. */
 		$formData = [
 			'id'            => $id,
 			'title'         => (string) ( $existing['title'] ?? '' ),
 			'new_status'    => (string) ( $existing['new_status'] ?? '' ),
 			'new_priority'  => (string) ( $existing['new_priority'] ?? '' ),
-			'new_assignee'  => $existing['new_assignee'] !== null ? (string) $existing['new_assignee'] : '',
+			'new_assignee'  => isset( $existing['new_assignee'] ) ? (string) $existing['new_assignee'] : '',
 			'department_id' => (int) ( $existing['department_id'] ?? 0 ),
-			'enabled'       => $isEdit ? (bool) $existing['enabled'] : true,
+			'enabled'       => $isEdit ? (bool) ( $existing['enabled'] ?? true ) : true,
 		];
 
 		$editorHtml = (string) $editor;
