@@ -145,6 +145,31 @@ class FieldMapper
             }
             if ( !array_key_exists( $dealerField, $record ) )
             {
+                /* v1.0.334 — auto-recovery for the URL canonical only:
+                 * if the dealer's field_mapping says the raw URL field is
+                 * called (e.g.) "url" but the real feed actually uses
+                 * "link" / "permalink" / "product_page_url" / etc., fall
+                 * through to the CanonicalFields URL alias list and take
+                 * the first matching raw key. Scoped to `url` so it can't
+                 * mis-populate a different canonical if the two fields
+                 * happen to share an alias name.
+                 *
+                 * Why URL only: URL naming conventions vary wildly across
+                 * feed formats (Google Merchant, LitCommerce, Shopify,
+                 * BigCommerce, custom XML), whereas title/brand/upc
+                 * naming is far more standardized. Broadening this to all
+                 * canonicals would risk silent mis-mappings. */
+                if ( $canonical !== 'url' )
+                {
+                    continue;
+                }
+                $recovered = self::_findUrlByAlias( $record );
+                if ( $recovered === null )
+                {
+                    continue;
+                }
+                $storageKey = $storageMap[ 'url' ] ?? 'url';
+                $out[ $storageKey ] = $recovered;
                 continue;
             }
 
@@ -264,6 +289,52 @@ class FieldMapper
         }
 
         return $r;
+    }
+
+    /**
+     * v1.0.334 — walk the raw record's keys looking for one that matches
+     * any known URL-alias (per CanonicalFields::suggestionDictionary()).
+     * Uses the same normalization CanonicalFields uses for its own key
+     * matching (lowercase, strip non-alphanumerics), so `Product URL`,
+     * `product-url`, `productUrl`, and `product_url` all collapse to
+     * the same probe key. Returns the raw scalar value (trimmed) of
+     * the first non-empty match, or null if no URL-like field is found.
+     *
+     * Only called from apply()'s auto-recovery branch for the `url`
+     * canonical — never invoked for other canonicals, so it can't
+     * accidentally mis-populate title/brand/etc.
+     *
+     * @param array<string, mixed> $record
+     * @return string|null
+     */
+    protected static function _findUrlByAlias( array $record ): ?string
+    {
+        /* Build the normalized set of URL alias keys ONCE per call. */
+        $urlKeys = [];
+        try
+        {
+            foreach ( CanonicalFields::suggestionDictionary() as $variant => $canonical )
+            {
+                if ( $canonical !== 'url' ) { continue; }
+                $urlKeys[ CanonicalFields::normalizeKey( $variant ) ] = true;
+            }
+        }
+        catch ( \Throwable ) { return null; }
+
+        if ( empty( $urlKeys ) ) { return null; }
+
+        foreach ( $record as $rawKey => $rawVal )
+        {
+            if ( !is_scalar( $rawVal ) ) { continue; }
+            $val = trim( (string) $rawVal );
+            if ( $val === '' ) { continue; }
+            $normKey = CanonicalFields::normalizeKey( (string) $rawKey );
+            if ( isset( $urlKeys[ $normKey ] ) )
+            {
+                return $val;
+            }
+        }
+        return null;
     }
 
     protected static function truthy( $v ): bool

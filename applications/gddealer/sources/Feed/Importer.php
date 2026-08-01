@@ -512,14 +512,72 @@ class Importer
 		$imageUrl = $probe( $canonical, [ 'image_url', 'image' ] ) ?? $rawProbe( $raw, [ 'imageurl', 'image', 'imagelink', 'imagelink1', 'photo', 'picture' ] );
 		if ( $imageUrl !== null ) { $snapshot['image_url'] = $imageUrl; }
 
-		/* v1.0.333 — carry the dealer's own product-page link into the
+		/* v1.0.334 — carry the dealer's own product-page link into the
 		   snapshot so the ACP Unmatched → Review screen can (a) show it
 		   as a clickable reference and (b) use it as the source URL for
 		   the "Fetch details from dealer's listing" AI-assist button.
-		   Same $canonical source as $listing->listing_url below (createListing).
-		   Kept alongside the other snapshot field captures. */
-		$listingUrl = $probe( $canonical, [ 'listing_url', 'product_url', 'url' ] ) ?? $rawProbe( $raw, [ 'listingurl', 'producturl', 'productlink', 'link', 'url' ] );
+
+		   v1.0.334 root-cause fix: v1.0.333's fixed rawProbe candidate
+		   list (link, url, product_url, product_link, listing_url) was
+		   too narrow — real LitCommerce feeds seen in production use
+		   URL tag names outside that list (permalink, product_page,
+		   web_link, page_url, href, item_link, etc.), so the fallback
+		   silently missed them and $snapshot stayed URL-less. Fix:
+		   pull the WHOLE authoritative URL-variant alias list from
+		   CanonicalFields::suggestionDictionary() — the same list the
+		   mapping wizard uses to suggest a canonical for a raw field
+		   — so any URL naming convention we've catalogued as a `url`
+		   canonical variant is auto-picked up by the snapshot too.
+
+		   Companion FieldMapper::apply() change auto-recovers the
+		   dealer's own storage-keyed $canonical['listing_url'] when
+		   their field_mapping references a raw field name that isn't
+		   actually in the parsed record (typical dealer-wizard
+		   misconfig, or feed schema drift). */
+		$urlAliases = [ 'listing_url', 'product_url', 'url' ];
+		try
+		{
+			foreach ( CanonicalFields::suggestionDictionary() as $variant => $canonicalName )
+			{
+				if ( $canonicalName === 'url' && !in_array( $variant, $urlAliases, true ) )
+				{
+					$urlAliases[] = $variant;
+				}
+			}
+		}
+		catch ( \Throwable ) { /* fall through with the base list */ }
+		$listingUrl = $probe( $canonical, [ 'listing_url', 'product_url', 'url' ] ) ?? $rawProbe( $raw, $urlAliases );
 		if ( $listingUrl !== null ) { $snapshot['listing_url'] = $listingUrl; }
+
+		/* v1.0.334 — diagnostic: if we captured a real product (title
+		   present) but STILL couldn't find any URL-like field, log the
+		   raw record's normalized key list ONCE so we can extend the
+		   URL alias list to cover this dealer's specific naming. Rate-
+		   limited by IPS's core_log dedup on message; not spam-guarded
+		   here otherwise. Only fires on the "we should have found a URL
+		   but didn't" edge case — no perf impact for well-formed feeds. */
+		if ( $listingUrl === null && !empty( $snapshot['title'] ) && !empty( $raw ) )
+		{
+			try
+			{
+				$keys = [];
+				foreach ( $raw as $k => $v )
+				{
+					if ( !is_scalar( $v ) ) { continue; }
+					$val = trim( (string) $v );
+					if ( $val === '' ) { continue; }
+					/* Prioritise short-scalar keys that LOOK URL-shaped — any
+					   value starting with http/https — so the log entry is
+					   directly actionable ("this key holds a URL"). */
+					$keys[] = $k . ( ( stripos( $val, 'http://' ) === 0 || stripos( $val, 'https://' ) === 0 ) ? '[URL]' : '' );
+				}
+				\IPS\Log::log(
+					'gddealer extractSnapshot: no listing_url found. raw keys: ' . implode( ',', $keys ),
+					'gddealer_snapshot_no_url'
+				);
+			}
+			catch ( \Throwable ) {}
+		}
 
 		$description = $probe( $canonical, [ 'description' ] ) ?? $rawProbe( $raw, [ 'description', 'desc', 'longdescription', 'productdescription', 'shortdescription' ] );
 		if ( $description !== null ) { $snapshot['description'] = $description; }

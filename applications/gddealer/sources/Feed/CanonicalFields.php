@@ -252,7 +252,12 @@ class CanonicalFields
             'conditionType' => 'condition',
             'state' => 'condition',
 
-            /* url */
+            /* url — v1.0.334 expanded to cover LitCommerce, Shopify,
+               WordPress/WooCommerce, and BigCommerce naming conventions
+               seen in production dealer feeds. Every entry here also
+               powers the snapshot's URL fallback + FieldMapper::apply()'s
+               URL auto-recovery, so adding a variant here is the single
+               place to teach the whole pipeline about a new URL tag. */
             'url' => 'url',
             'productUrl' => 'url',
             'listingUrl' => 'url',
@@ -261,9 +266,21 @@ class CanonicalFields
             'webLink' => 'url',
             'pageUrl' => 'url',
             'productPage' => 'url',
+            'productPageUrl' => 'url',
             'detailUrl' => 'url',
             'href' => 'url',
             'externalUrl' => 'url',
+            'permalink' => 'url',
+            'itemUrl' => 'url',
+            'itemLink' => 'url',
+            'pageLink' => 'url',
+            'catalogUrl' => 'url',
+            'merchantUrl' => 'url',
+            'storefrontUrl' => 'url',
+            'sourceUrl' => 'url',
+            'canonicalUrl' => 'url',
+            'shopUrl' => 'url',
+            'webUrl' => 'url',
 
             /* image_url */
             'image' => 'image_url',
