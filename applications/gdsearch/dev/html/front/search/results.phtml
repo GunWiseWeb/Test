@@ -1,4 +1,4 @@
-<ips:template parameters="$query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands, $barrelBands, $hiddenFacets" />
+<ips:template parameters="$query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands, $barrelBands, $hiddenFacets, $handgunTypeLabels=[]" />
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
 .gdsr-wrap { width:100%; margin:0; padding:16px; box-sizing:border-box; font-family:'Inter',system-ui,-apple-system,sans-serif }
@@ -131,6 +131,22 @@
 						<div class="gdsr-facet-list">
 							{{foreach $aggs['calibers']['buckets'] as $b}}
 							<label class="gdsr-facet-opt"><input type="checkbox" name="caliber[]" value="{$b['key']}" {{if is_array($filters['caliber']) and in_array($b['key'], $filters['caliber'])}}checked{{endif}} onchange="this.form.submit()"><span>{$b['key']}</span><em>{$b['doc_count']}</em></label>
+							{{endforeach}}
+						</div>
+						<button type="button" class="gdsr-facet-more" data-more>Show More</button>
+						<div class="gdsr-facet-empty">No matches</div>
+					</div>
+				</details>
+				{{endif}}
+
+				{{if isset($aggs['handgun_types']['buckets']) and count($aggs['handgun_types']['buckets'])}}
+				<details class="gdsr-facet-box gdsr-facet" {{if is_array($filters['handgun_type']) and count($filters['handgun_type'])}}open{{endif}}>
+					<summary>{lang="gdsearch_facet_handgun_type"}{{if is_array($filters['handgun_type']) and count($filters['handgun_type'])}}<span class="gdsr-facet-cnt">{expression="count($filters['handgun_type'])"}</span>{{endif}}<button type="button" class="gdsr-facet-sort" data-sort="count" title="Sort" aria-label="Sort">&#8645;</button></summary>
+					<div class="gdsr-facet-body">
+						<input type="text" class="gdsr-facet-search" placeholder="Search…" aria-label="Search options">
+						<div class="gdsr-facet-list">
+							{{foreach $aggs['handgun_types']['buckets'] as $b}}
+							<label class="gdsr-facet-opt"><input type="checkbox" name="handgun_type[]" value="{$b['key']}" {{if is_array($filters['handgun_type']) and in_array($b['key'], $filters['handgun_type'])}}checked{{endif}} onchange="this.form.submit()"><span>{expression="$handgunTypeLabels[$b['key']] ?? $b['key']"}</span><em>{$b['doc_count']}</em></label>
 							{{endforeach}}
 						</div>
 						<button type="button" class="gdsr-facet-more" data-more>Show More</button>

@@ -76,6 +76,11 @@ class _results extends \IPS\Dispatcher\Controller
             'brand'          => $arr( \IPS\Request::i()->brand ?? [] ),
             'caliber'        => $arr( \IPS\Request::i()->caliber ?? [] ),
             'action'         => $arr( \IPS\Request::i()->action ?? [] ),
+            /* v1.0.85 — plain-language "Type" facet for Handguns
+               (Pistol/Revolver/Derringer/Single-Shot Pistol/Flare
+               Pistol). Derived from CATEGORY subcategories, not
+               the unreliable gd_catalog.gun_type column. */
+            'handgun_type'   => $arr( \IPS\Request::i()->handgun_type ?? [] ),
             'casing'         => $arr( \IPS\Request::i()->casing ?? [] ),
             'bullet_type'    => $arr( \IPS\Request::i()->bullet_type ?? [] ),
             'capacity'       => $arr( \IPS\Request::i()->capacity ?? [] ),
@@ -144,7 +149,7 @@ class _results extends \IPS\Dispatcher\Controller
 
             /* Scoped facet aggs return buckets one level deeper under 'values' — lift them up to the
                flat shape the blank-strip loop and template expect. */
-            foreach ( [ 'calibers', 'actions', 'capacities', 'casings', 'bullet_types',
+            foreach ( [ 'calibers', 'actions', 'handgun_types', 'capacities', 'casings', 'bullet_types',
                 'holster_types', 'holster_colors', 'holster_materials', 'holster_hands',
                 'apparel_patterns', 'apparel_sizes', 'apparel_materials',
                 'blade_shapes', 'blade_lengths', 'blade_materials', 'blade_edges', 'knife_handles',
@@ -161,7 +166,7 @@ class _results extends \IPS\Dispatcher\Controller
             $error = $e->getMessage();
         }
 
-        foreach ( [ 'categories', 'brands', 'calibers', 'actions', 'capacities', 'casings', 'bullet_types',
+        foreach ( [ 'categories', 'brands', 'calibers', 'actions', 'handgun_types', 'capacities', 'casings', 'bullet_types',
             'holster_types', 'holster_colors', 'holster_materials', 'holster_hands',
             'apparel_patterns', 'apparel_sizes', 'apparel_materials',
             'blade_shapes', 'blade_lengths', 'blade_materials', 'blade_edges', 'knife_handles',
@@ -186,6 +191,7 @@ class _results extends \IPS\Dispatcher\Controller
             foreach ( (array) $filters['brand'] as $v )       { $paginationQs .= '&brand[]='       . urlencode( $v ); }
             foreach ( (array) $filters['caliber'] as $v )     { $paginationQs .= '&caliber[]='     . urlencode( $v ); }
             foreach ( (array) $filters['action'] as $v )      { $paginationQs .= '&action[]='      . urlencode( $v ); }
+            foreach ( (array) $filters['handgun_type'] as $v ){ $paginationQs .= '&handgun_type[]=' . urlencode( $v ); }
             foreach ( (array) $filters['casing'] as $v )      { $paginationQs .= '&casing[]='      . urlencode( $v ); }
             foreach ( (array) $filters['bullet_type'] as $v ) { $paginationQs .= '&bullet_type[]=' . urlencode( $v ); }
             foreach ( (array) $filters['capacity'] as $v )    { $paginationQs .= '&capacity[]='    . urlencode( $v ); }
@@ -282,8 +288,22 @@ class _results extends \IPS\Dispatcher\Controller
             try { foreach ( \IPS\Db::i()->select( 'facet_key', 'gd_facet_settings', [ 'hidden=?', 1 ] ) as $k ) { $hiddenFacets[ (string) $k ] = TRUE; } } catch ( \Throwable ) {}
         }
 
+        /* v1.0.85 — display labels for the handgun_type facet.
+           Bucket keys come from the OpenSearch index as the raw
+           subcategory names (plural, matching gd_categories.name):
+           Pistols/Revolvers/Derringers/Single-Shot Pistols/Flare
+           Pistols. Shopper-facing labels are singular. Template
+           renders $handgunTypeLabels[$b['key']] ?? $b['key']. */
+        $handgunTypeLabels = [
+            'Pistols'            => 'Pistol',
+            'Revolvers'          => 'Revolver',
+            'Derringers'         => 'Derringer',
+            'Single-Shot Pistols' => 'Single-Shot Pistol',
+            'Flare Pistols'      => 'Flare Pistol',
+        ];
+
         \IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'search', 'gdsearch', 'front' )->results(
-            $query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands, $barrelBands, $hiddenFacets
+            $query, $results, $total, $pagination, $filters, $sort, $aggs, $categories, $error, $grainBands, $velocityBands, $barrelBands, $hiddenFacets, $handgunTypeLabels
         );
     }
 

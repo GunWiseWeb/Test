@@ -108,6 +108,14 @@ class Searcher
             ], 'minimum_should_match' => 1 ] ];
         }
         $facet( 'subcategory.keyword', $filters['subcategory'] ?? '' );
+        /* v1.0.85 — plain-language "Type" facet for Handguns. Filter
+           translates to the same subcategory.keyword field (Pistols /
+           Revolvers / Derringers / Single-Shot Pistols / Flare Pistols)
+           but through its own request param so it doesn't step on the
+           generic subcategory filter. Values come from the DB category
+           tree, NOT from gd_catalog.gun_type (which is uncurated —
+           calibers and marketing phrases mixed in with real types). */
+        $facet( 'subcategory.keyword', $filters['handgun_type']  ?? '' );
         $facet( 'brand.keyword',       $filters['brand']       ?? '' );
         $facet( 'caliber.keyword',     $filters['caliber']     ?? '' );
         $facet( 'action_type.keyword', $filters['action']      ?? '' );
@@ -228,6 +236,18 @@ class Searcher
                 'actions' => [
                     'filter' => [ 'terms' => [ 'category.keyword' => [ 'Handguns', 'Rifles', 'Shotguns', 'NFA Items', 'Air Guns', 'Muzzleloading' ] ] ],
                     'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'action_type.keyword', 'size' => 30 ] ] ],
+                ],
+                /* v1.0.85 — plain-language "Type" facet for Handguns.
+                   Buckets are subcategory names (Pistols / Revolvers /
+                   Derringers / Single-Shot Pistols / Flare Pistols)
+                   scoped to only the Handguns top-level, so this agg
+                   is empty (and template hides the facet) on every
+                   other category. Complements — does NOT replace —
+                   the existing "Action" facet, which stays as the
+                   detailed technical filter (SAO/DA/SA/etc). */
+                'handgun_types' => [
+                    'filter' => [ 'term' => [ 'category.keyword' => 'Handguns' ] ],
+                    'aggs'   => [ 'values' => [ 'terms' => [ 'field' => 'subcategory.keyword', 'size' => 10 ] ] ],
                 ],
                 'capacities' => [
                     'filter' => [ 'terms' => [ 'category.keyword' => [ 'Handguns', 'Rifles', 'Shotguns', 'NFA Items', 'Air Guns', 'Muzzleloading', 'Magazines' ] ] ],

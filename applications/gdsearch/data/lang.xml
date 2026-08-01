@@ -117,4 +117,5 @@
     <word key="gdsearch_save" js="0" export="1">save</word>
     <word key="gdsearch_view_deals" js="0" export="1">View deals</word>
     <word key="menu__gdsearch_search" js="0" export="1">Catalog</word>
+    <word key="gdsearch_facet_handgun_type" js="0" export="1">Type</word>
 </language>

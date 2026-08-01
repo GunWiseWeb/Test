@@ -20,7 +20,7 @@ $gdsearchSeedFacetSettings = function (): void
 			'indexes' => [ [ 'type' => 'primary', 'name' => 'PRIMARY', 'columns' => [ 'facet_key' ] ] ],
 		] );
 	}
-	$keys = [ 'brands','calibers','actions','capacities','barrel_present','casings','bullet_types','grain','velocity',
+	$keys = [ 'brands','calibers','actions','handgun_types','capacities','barrel_present','casings','bullet_types','grain','velocity',
 		'holster_types','holster_colors','holster_materials','holster_hands','apparel_patterns','apparel_sizes','apparel_materials',
 		'blade_shapes','blade_lengths','blade_materials','blade_edges','knife_handles','hunt_call_types','hunt_games','optics_mags','optics_objs' ];
 	foreach ( $keys as $k )

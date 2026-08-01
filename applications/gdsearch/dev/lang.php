@@ -118,4 +118,10 @@ $lang = [
     'gdsearch_across'     => "across",
     'gdsearch_save'       => "save",
     'gdsearch_view_deals' => "View deals",
+
+    /* v1.0.85 — plain-language "Type" facet for Handguns
+       (Pistol/Revolver/Derringer/Single-Shot Pistol/Flare Pistol).
+       Category-derived, not from the messy gd_catalog.gun_type
+       column. Complements the existing Action facet. */
+    'gdsearch_facet_handgun_type' => 'Type',
 ];
