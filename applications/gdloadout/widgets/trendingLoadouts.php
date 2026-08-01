@@ -39,6 +39,12 @@ class _trendingLoadouts extends Widget
 		}
 		catch ( \Throwable ) {}
 
+		/* v1.0.77 — return '' when nothing to show, matching the
+		   gdRecentCoupons convention. The widget disappears entirely
+		   rather than rendering an empty container, which is what
+		   IPS's native widgets do site-wide. */
+		if ( empty( $loadouts ) ) { return ''; }
+
 		return Theme::i()->getTemplate( 'widgets', 'gdloadout', 'front' )->trendingLoadouts( $loadouts );
 	}
 }

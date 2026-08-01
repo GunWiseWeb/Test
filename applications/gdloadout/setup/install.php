@@ -601,6 +601,10 @@ TEMPLATE_EOT,
 ];
 
 // Template: trendingLoadouts (widget)
+// v1.0.77 — rebuilt on IPS native widget markup (ipsWidget__header/
+// ipsData ipsData--table) to match the site's other widgets.
+// Empty state handled by widget PHP returning '' — this template
+// body renders only when $loadouts is non-empty.
 $templates[] = [
 	'template_set_id' => 1,
 	'template_app' => 'gdloadout',
@@ -609,21 +613,34 @@ $templates[] = [
 	'template_name' => 'trendingLoadouts',
 	'template_data' => '$loadouts',
 	'template_content' => <<<'TEMPLATE_EOT'
-<div class="gdlo-widget">
-    <h3 class="gdlo-widget-title"><i class="fa-solid fa-fire"></i> {lang="gdloadout_trending"}</h3>
-    {{if count($loadouts) > 0}}
-    <div class="gdlo-widget-list">
-        {{foreach $loadouts as $loadout}}
-        <a href="{$loadout['view_url']}" class="gdlo-widget-item"><span class="gdlo-widget-item-name">{$loadout['name']}</span><span class="gdlo-widget-item-meta"><span class="gdlo-widget-item-author">{$loadout['owner_name']}</span><span class="gdlo-widget-item-votes"><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span></span></a>
-        {{endforeach}}
-    </div>
-    {{else}}
-    <p class="gdlo-widget-empty">{lang="gdloadout_no_trending"}</p>
-    {{endif}}
+{{if !empty($loadouts)}}
+<header class='ipsWidget__header'>
+	<h3><i class="fa-solid fa-fire"></i> {lang="gdloadout_trending"}</h3>
+</header>
+<div class='ipsWidget__content'>
+	<i-data>
+		<ol class='ipsData ipsData--table ipsData--gd-loadouts'>
+			{{foreach $loadouts as $loadout}}
+			<li class='ipsData__item'>
+				<a href='{$loadout['view_url']}' class='ipsLinkPanel' tabindex="-1" aria-hidden="true"><span>{$loadout['name']}</span></a>
+				<div class='ipsData__content'>
+					<div class='ipsData__main'>
+						<h4 class='ipsData__title'><a href='{$loadout['view_url']}'>{$loadout['name']}</a></h4>
+						<p class='ipsData__meta'>{$loadout['owner_name']}</p>
+					</div>
+					<div class='ipsData__extra'>
+						<span class='gd-widget__off'><i class="fa-solid fa-heart"></i> {$loadout['upvotes']}</span>
+					</div>
+				</div>
+			</li>
+			{{endforeach}}
+		</ol>
+	</i-data>
 </div>
+{{endif}}
 TEMPLATE_EOT,
 	'template_updated' => time(),
-	'template_version' => '1.0.20',
+	'template_version' => '1.0.77',
 	'template_master_key' => '',
 	'template_has_hookpoints' => 0,
 ];
