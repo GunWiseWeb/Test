@@ -1,4 +1,4 @@
-<ips:template parameters="$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl, $prefill, $fetchDetailsUrl, $canFetch, $flashMessage" />
+<ips:template parameters="$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl, $prefill, $fetchDetailsUrl, $canFetch, $flashMessage, $categoriesByParent=[]" />
 <div class="ipsBox" style="max-width:900px">
 	<div class="ipsBox__header" style="display:flex;justify-content:space-between;align-items:center">
 		<h1 class="ipsType_pageTitle">{lang="gddealer_unmatched_review_title"}</h1>
@@ -70,9 +70,22 @@
 					<label class="ipsFieldRow__label">{lang="gddealer_unmatched_category"} *</label>
 					<select name="category_id" class="ipsInput ipsInput--select" style="width:100%" required>
 						<option value="">-- Select Category --</option>
-						{{foreach $categories as $catId => $catName}}
-						<option value="{$catId}">{$catName}</option>
-						{{endforeach}}
+						{{if isset($categoriesByParent[0]) && !empty($categoriesByParent[0])}}
+							{{foreach $categoriesByParent[0] as $topCat}}
+							<optgroup label="{$topCat['name']}">
+								<option value="{$topCat['id']}">{$topCat['name']} (general)</option>
+								{{if isset($categoriesByParent[$topCat['id']])}}
+									{{foreach $categoriesByParent[$topCat['id']] as $subCat}}
+									<option value="{$subCat['id']}">&nbsp;&nbsp;{$subCat['name']}</option>
+									{{endforeach}}
+								{{endif}}
+							</optgroup>
+							{{endforeach}}
+						{{else}}
+							{{foreach $categories as $catId => $catName}}
+							<option value="{$catId}">{$catName}</option>
+							{{endforeach}}
+						{{endif}}
 					</select>
 				</div>
 				<div>

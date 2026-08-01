@@ -144,10 +144,23 @@ class _unmatched extends \IPS\Dispatcher\Controller
 			$dealerName = (string) $d;
 		} catch ( \Throwable ) {}
 
-		$categories = [];
+		/* v1.0.335 — keep parent_id in the categories structure so the
+		   template can render a grouped/indented dropdown via
+		   <optgroup>. Previously discarded parent_id, dumping every
+		   category (including subcategories like Revolvers, Pistols)
+		   into a single flat A-Z list where an admin couldn't visually
+		   distinguish "Revolvers (Handguns subcategory)" from a random
+		   unrelated category — leading to wrong-category assignments
+		   that now matter because gdsearch facets filter on exact
+		   category_id (Revolvers=3 vs Handguns=1 are different IDs). */
+		$categories        = [];
+		$categoriesByParent = [];
 		try {
 			foreach ( \IPS\Db::i()->select( 'id, name, parent_id', 'gd_categories', [], 'name ASC' ) as $cat ) {
-				$categories[ (int) $cat['id'] ] = (string) $cat['name'];
+				$id       = (int) $cat['id'];
+				$parentId = (int) $cat['parent_id'];
+				$categories[ $id ]                = (string) $cat['name'];
+				$categoriesByParent[ $parentId ][] = [ 'id' => $id, 'name' => (string) $cat['name'] ];
 			}
 		} catch ( \Throwable ) {}
 
@@ -188,7 +201,7 @@ class _unmatched extends \IPS\Dispatcher\Controller
 
 		\IPS\Output::i()->title = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_unmatched_review_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'admin' )->unmatchedUpcReview(
-			$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl, $prefill, $fetchDetailsUrl, $canFetch, $flashMessage
+			$row, $snapshot, $dealerName, $categories, $submitUrl, $backUrl, $prefill, $fetchDetailsUrl, $canFetch, $flashMessage, $categoriesByParent
 		);
 	}
 
