@@ -14,7 +14,7 @@ class _facets extends \IPS\Dispatcher\Controller
 	{
 		$groups = [
 			'Brand'    => [ 'brands' => 'Brand' ],
-			'Firearm'  => [ 'calibers'=>'Caliber','actions'=>'Action','capacities'=>'Capacity','barrel_present'=>'Barrel Length' ],
+			'Firearm'  => [ 'calibers'=>'Caliber','actions'=>'Action','handgun_types'=>'Handgun Type','capacities'=>'Capacity','barrel_present'=>'Barrel Length' ],
 			'Ammo'     => [ 'casings'=>'Casing','bullet_types'=>'Bullet Type','grain'=>'Grain','velocity'=>'Velocity' ],
 			'Holsters' => [ 'holster_types'=>'Holster Type','holster_colors'=>'Holster Color','holster_materials'=>'Holster Material','holster_hands'=>'Holster Hand' ],
 			'Apparel'  => [ 'apparel_patterns'=>'Apparel Pattern','apparel_sizes'=>'Apparel Size','apparel_materials'=>'Apparel Material' ],
