@@ -1,0 +1,111 @@
+<ips:template parameters="$reviewCount, $reviewRows, $overrideCount, $overrideRows, $logCount, $dryrunUrl, $runUrl, $overrideUrl, $csrfKey, $labels, $flash" />
+<div class="ipsBox">
+	<div class="ipsBox__header"><h1 class="ipsType_pageTitle">{lang="gdcatalog_platform_title"}</h1></div>
+	<div class="ipsBox__content">
+
+		{{if $flash}}
+		<div class="ipsMessage ipsMessage--information" style="white-space:pre-wrap;font-family:monospace;font-size:0.85em">{$flash}</div>
+		{{endif}}
+
+		<div style="background:#eef2f8;border:1px solid #d3d9e0;border-radius:6px;padding:14px;margin-bottom:18px">
+			<h3 style="margin-top:0">{lang="gdcatalog_platform_run_header"}</h3>
+			<p style="margin:6px 0 12px">{lang="gdcatalog_platform_run_help"}</p>
+			<form method="post" action="{$dryrunUrl}" style="display:inline">
+				<input type="hidden" name="csrfKey" value="{$csrfKey}">
+				<button type="submit" class="ipsButton ipsButton--primary">&#9203; {lang="gdcatalog_platform_dryrun_btn"}</button>
+			</form>
+			&nbsp;
+			<form method="post" action="{$runUrl}" style="display:inline" onsubmit="return confirm('Run LIVE reclassification now? Every reclassification will be logged to gd_catalog_platform_reclass_log. Continue?');">
+				<input type="hidden" name="csrfKey" value="{$csrfKey}">
+				<button type="submit" class="ipsButton ipsButton--negative">&#128293; {lang="gdcatalog_platform_run_btn"}</button>
+			</form>
+			<p style="margin:12px 0 0;font-size:0.85em;color:#6b7480">{lang="gdcatalog_platform_log_count"}: {$logCount}</p>
+		</div>
+
+		<h2 style="margin-top:24px">{lang="gdcatalog_platform_review_header"} ({$reviewCount})</h2>
+		{{if count($reviewRows)}}
+		<table class="ipsTable" style="width:100%;margin-bottom:24px">
+			<thead>
+				<tr>
+					<th>UPC</th>
+					<th>Title</th>
+					<th>Brand</th>
+					<th>Reason</th>
+					<th style="width:340px">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $reviewRows as $rr}}
+				<tr>
+					<td style="font-family:monospace">{$rr['upc']}</td>
+					<td>{$rr['title_snapshot']}</td>
+					<td>{$rr['brand_snapshot']}</td>
+					<td style="font-size:0.85em;color:#6b7480">{$rr['reason_hint']}</td>
+					<td>
+						<form method="post" action="{expression="(string) \IPS\Http\Url::internal('app=gdcatalog&module=catalog&controller=platformreview&do=reassign&id='.$rr['id'])->csrf()"}" style="display:inline">
+							<input type="hidden" name="csrfKey" value="{$csrfKey}">
+							<button type="submit" name="target" value="7"  class="ipsButton ipsButton--small ipsButton--positive">&rarr; Rifles</button>
+							<button type="submit" name="target" value="16" class="ipsButton ipsButton--small ipsButton--positive">&rarr; Shotguns</button>
+							<button type="submit" name="target" value="1"  class="ipsButton ipsButton--small ipsButton--soft">Keep Handgun</button>
+						</form>
+						<form method="post" action="{expression="(string) \IPS\Http\Url::internal('app=gdcatalog&module=catalog&controller=platformreview&do=confirm&id='.$rr['id'])->csrf()"}" style="display:inline">
+							<input type="hidden" name="csrfKey" value="{$csrfKey}">
+							<button type="submit" class="ipsButton ipsButton--small ipsButton--secondary">Confirm</button>
+						</form>
+					</td>
+				</tr>
+				{{endforeach}}
+			</tbody>
+		</table>
+		{{else}}
+		<p style="color:#6b7480;margin-bottom:24px">{lang="gdcatalog_platform_review_empty"}</p>
+		{{endif}}
+
+		<h2 style="margin-top:24px">{lang="gdcatalog_platform_overrides_header"} ({$overrideCount})</h2>
+		<p style="font-size:0.9em;color:#6b7480">{lang="gdcatalog_platform_overrides_help"}</p>
+		<form method="post" action="{$overrideUrl}" style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:12px;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:end">
+			<input type="hidden" name="csrfKey" value="{$csrfKey}">
+			<div style="flex:1;min-width:180px">
+				<label style="display:block;font-size:0.85em">Pattern (title/model/UPC substring)</label>
+				<input type="text" name="pattern" required style="width:100%" placeholder='e.g. "Bergara Rifles" or "88 Cruiser"'>
+			</div>
+			<div style="min-width:150px">
+				<label style="display:block;font-size:0.85em">Target category</label>
+				<select name="target_category_id" required style="width:100%">
+					<option value="1">1 &mdash; Handguns</option>
+					<option value="7" selected>7 &mdash; Rifles</option>
+					<option value="16">16 &mdash; Shotguns</option>
+				</select>
+			</div>
+			<div style="flex:1;min-width:180px">
+				<label style="display:block;font-size:0.85em">Note (optional)</label>
+				<input type="text" name="note" style="width:100%">
+			</div>
+			<button type="submit" class="ipsButton ipsButton--primary">Add Override</button>
+		</form>
+
+		{{if count($overrideRows)}}
+		<table class="ipsTable" style="width:100%">
+			<thead>
+				<tr>
+					<th>Pattern</th>
+					<th>Target</th>
+					<th>Note</th>
+					<th>Added</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{foreach $overrideRows as $ov}}
+				<tr>
+					<td style="font-family:monospace">{$ov['pattern']}</td>
+					<td>{expression="isset($labels[(int)$ov['target_category_id']]) ? $labels[(int)$ov['target_category_id']] : (int)$ov['target_category_id']"}</td>
+					<td style="font-size:0.85em">{$ov['note']}</td>
+					<td style="font-size:0.85em;color:#6b7480">{expression="$ov['created_at'] ? date('Y-m-d', (int)$ov['created_at']) : ''"}</td>
+				</tr>
+				{{endforeach}}
+			</tbody>
+		</table>
+		{{endif}}
+
+	</div>
+</div>

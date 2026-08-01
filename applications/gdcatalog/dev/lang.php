@@ -348,4 +348,18 @@ $lang = array(
 	'gdcatalog_upload_no_file_stored'          => "No uploaded file found. Upload a feed file first.",
 	'gdcatalog_manual_import_complete'         => "Manual feed import completed successfully.",
 	'gdcatalog_manual_import_failed'           => "Manual feed import failed. Check the error log for details.",
+
+	/* v1.0.113 — Platform Classifier ACP page (category-1 handguns
+	   misclassification cleanup). */
+	'menu__gdcatalog_catalog_platformreview'   => 'Platform Review',
+	'gdcatalog_platform_title'                 => 'Platform Classifier — Category 1 (Handguns) cleanup',
+	'gdcatalog_platform_run_header'            => 'Run classifier on category 1 (Handguns)',
+	'gdcatalog_platform_run_help'              => 'DRY RUN reports the counts (would-reclassify to Rifles / Shotguns, would-stay Handguns, would-route to review) without writing anything. LIVE RUN commits the reclassifications and populates the review queue below for ambiguous rows. Every live reclassification is logged to <code>gd_catalog_platform_reclass_log</code> for audit / rollback.',
+	'gdcatalog_platform_dryrun_btn'            => 'Dry Run (report only)',
+	'gdcatalog_platform_run_btn'               => 'Live Run (commit reclassifications)',
+	'gdcatalog_platform_log_count'             => 'Reclassifications logged all-time',
+	'gdcatalog_platform_review_header'         => 'Review Queue (ambiguous rows)',
+	'gdcatalog_platform_review_empty'          => 'Review queue is empty. Run the classifier first, or every row has been resolved.',
+	'gdcatalog_platform_overrides_header'      => 'Curated Overrides',
+	'gdcatalog_platform_overrides_help'        => 'Add a pattern (title/model/UPC substring, case-insensitive) that ALWAYS wins over auto-classification. Use this for permanent corrections when the classifier gets a specific brand/model repeatedly wrong.',
 );

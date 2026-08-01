@@ -36,6 +36,12 @@
 			"do": "",
 			"restriction": "catalog_manage"
 		},
+		"platformreview": {
+			"tab": "gdcatalog",
+			"controller": "platformreview",
+			"do": "",
+			"restriction": "catalog_manage"
+		},
 		"settings": {
 			"tab": "gdcatalog",
 			"controller": "settings",

@@ -2778,5 +2778,54 @@
                 ]
             }
         }
+    },
+    "gd_catalog_platform_overrides": {
+        "name": "gd_catalog_platform_overrides",
+        "columns": {
+            "id":                  { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "pattern":             { "name": "pattern", "type": "VARCHAR", "length": 191, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "title/model/UPC substring, case-insensitive" },
+            "target_category_id":  { "name": "target_category_id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "1=Handguns, 7=Rifles, 16=Shotguns" },
+            "note":                { "name": "note", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "created_at":          { "name": "created_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY":    { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+            "uq_pattern": { "type": "unique",  "name": "uq_pattern", "length": [ 191 ], "columns": [ "pattern" ] }
+        }
+    },
+    "gd_catalog_platform_review": {
+        "name": "gd_catalog_platform_review",
+        "columns": {
+            "id":                     { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "upc":                    { "name": "upc", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "current_category_id":    { "name": "current_category_id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "suggested_category_id":  { "name": "suggested_category_id", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "reason_hint":            { "name": "reason_hint", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "title_snapshot":         { "name": "title_snapshot", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "brand_snapshot":         { "name": "brand_snapshot", "type": "VARCHAR", "length": 120, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "resolved":               { "name": "resolved", "type": "TINYINT", "length": 1, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "created_at":             { "name": "created_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY":    { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+            "uq_upc":     { "type": "unique",  "name": "uq_upc", "length": [ null ], "columns": [ "upc" ] },
+            "idx_resolved": { "type": "key",   "name": "idx_resolved", "length": [ null ], "columns": [ "resolved" ] }
+        }
+    },
+    "gd_catalog_platform_reclass_log": {
+        "name": "gd_catalog_platform_reclass_log",
+        "columns": {
+            "id":              { "name": "id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": null, "auto_increment": true, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "upc":             { "name": "upc", "type": "VARCHAR", "length": 50, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "old_category_id": { "name": "old_category_id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "new_category_id": { "name": "new_category_id", "type": "INT", "length": 10, "decimals": null, "allow_null": false, "default": 0, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" },
+            "source":          { "name": "source", "type": "VARCHAR", "length": 40, "decimals": null, "allow_null": false, "default": "", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "curated|handgun-override|shotgun-gauge|rifle-caliber|rifle-action|rifle-brand|admin-review" },
+            "signal":          { "name": "signal", "type": "VARCHAR", "length": 255, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "created_at":      { "name": "created_at", "type": "INT", "length": 10, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": true, "zerofill": false, "values": [], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY":  { "type": "primary", "name": "PRIMARY", "length": [ null ], "columns": [ "id" ] },
+            "idx_upc":  { "type": "key",     "name": "idx_upc", "length": [ null ], "columns": [ "upc" ] }
+        }
     }
 }

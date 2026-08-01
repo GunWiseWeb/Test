@@ -286,5 +286,16 @@
     <word key="gdcatalog_bulk_move_to" js="0"><![CDATA[Move to]]></word>
     <word key="gdcatalog_bulk_choose_category" js="0"><![CDATA[— Choose category —]]></word>
     <word key="gdcatalog_bulk_apply" js="0"><![CDATA[Apply]]></word>
+    <word key="menu__gdcatalog_catalog_platformreview" js="0"><![CDATA[Platform Review]]></word>
+    <word key="gdcatalog_platform_title" js="0"><![CDATA[Platform Classifier — Category 1 (Handguns) cleanup]]></word>
+    <word key="gdcatalog_platform_run_header" js="0"><![CDATA[Run classifier on category 1 (Handguns)]]></word>
+    <word key="gdcatalog_platform_run_help" js="0"><![CDATA[DRY RUN reports the counts without writing anything. LIVE RUN commits the reclassifications and populates the review queue for ambiguous rows. Every live reclassification is logged to <code>gd_catalog_platform_reclass_log</code> for audit / rollback.]]></word>
+    <word key="gdcatalog_platform_dryrun_btn" js="0"><![CDATA[Dry Run (report only)]]></word>
+    <word key="gdcatalog_platform_run_btn" js="0"><![CDATA[Live Run (commit reclassifications)]]></word>
+    <word key="gdcatalog_platform_log_count" js="0"><![CDATA[Reclassifications logged all-time]]></word>
+    <word key="gdcatalog_platform_review_header" js="0"><![CDATA[Review Queue (ambiguous rows)]]></word>
+    <word key="gdcatalog_platform_review_empty" js="0"><![CDATA[Review queue is empty. Run the classifier first, or every row has been resolved.]]></word>
+    <word key="gdcatalog_platform_overrides_header" js="0"><![CDATA[Curated Overrides]]></word>
+    <word key="gdcatalog_platform_overrides_help" js="0"><![CDATA[Add a pattern (title/model/UPC substring, case-insensitive) that ALWAYS wins over auto-classification.]]></word>
   </app>
 </language>
