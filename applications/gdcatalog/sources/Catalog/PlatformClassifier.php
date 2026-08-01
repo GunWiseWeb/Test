@@ -85,14 +85,43 @@ class _PlatformClassifier
 		/* Handgun-specific model families / trademarks */
 		'\bmp15 pistol\b',   /* explicit-pistol variant of M&P15 rifle line */
 		'\bm&p15 pistol\b',
+
+		/* v1.0.114 — known pistol product lines that share ambiguous
+		   dual-use calibers (5.7x28, 7.62x39) with rifles, which the
+		   generic caliber logic misclassified in the v1.0.113 dry run.
+		   These are permanent auto-classify-as-handgun signals. */
+		'\bp50\b',              /* Kel-Tec P50 (5.7x28mm AR-pattern pistol) */
+		'\bkp50\b',
+		'\bpdx\b',              /* Maxim Defense PDX pistol line (7.62x39, 5.56 etc.) */
+		'\bzpap\s*92\b',        /* Zastava ZPAP 92 (AK-pattern PISTOL — as opposed to ZPAPM70 rifle) */
+		'\bdraco\b',            /* Century Arms Draco family — AK-pattern pistols */
+		'\bmini[\s-]?draco\b',
+		'\bkrinkov\s*pistol\b',
 	];
 
 	/**
-	 * Rifle-only (or near-rifle-only) calibers. Presence alone is a
-	 * strong signal but NOT decisive on its own — must be combined
-	 * with rifle-action-language OR long barrel OR rifle-brand.
-	 * .223/5.56 and .300 BLK are DELIBERATELY excluded because they
-	 * commonly appear on AR-pistols too.
+	 * Rifle-EXCLUSIVE calibers only — calibers that have essentially
+	 * ZERO commercial pistol variants on a US firearms marketplace.
+	 * Presence alone is decisive-alone for a RIFLE reclassification
+	 * (subject to short-barrel guard below).
+	 *
+	 * v1.0.114 pruning: DUAL-USE calibers (calibers that commonly
+	 * appear on BOTH rifles and pistols/AR-pistols) removed from
+	 * this list to prevent the v1.0.113 dry-run misclassifications:
+	 *   * 5.7x28  — Kel-Tec P50, FN Five-seveN (pistol)
+	 *   * 7.62x39 — Zastava ZPAP 92, Century Draco (AK pistols)
+	 *   * 7.62x51 — AR-10 pistol variants exist
+	 *   * 6mm ARC — AR-15 pistol variants exist
+	 *   * .30 Carbine — some pistol platforms
+	 *   * .17 HMR / .22 WMR / .22 Mag — dual-use with derringers /
+	 *     revolvers (Bond Arms, S&W AirWeights, NAA)
+	 * .223/5.56 and .300 BLK were already excluded for the same reason.
+	 *
+	 * Any of these dual-use calibers reaching a product in cat 1
+	 * with no other decisive signal must route to REVIEW, not
+	 * auto-classify. Confirmed model-line pistol families (Kel-Tec
+	 * P50, Maxim PDX, Zastava ZPAP 92, Draco) are handled by the
+	 * Layer-2 handgun override patterns above.
 	 *
 	 * @var string[]
 	 */
@@ -105,7 +134,6 @@ class _PlatformClassifier
 		'\.243\s*win',
 		'\.30-06',
 		'30-06',
-		'\.30\s*carbine',
 		'\.308\s*win',
 		'\.270\s*win',
 		'\.270\s*wsm',
@@ -122,23 +150,16 @@ class _PlatformClassifier
 		'\.450\s*bushmaster',
 		'\.458\s*socom',
 		'\.50\s*bmg',
-		'\.17\s*hmr',
 		'\.17\s*wsm',
-		'\.22\s*wmr',
-		'\.22\s*mag',
 		'\.22\s*hornet',
 		'\.22-250',
 		'22-250',
 		'\.204\s*ruger',
 		'\.223\s*wssm',
-		'6mm\s*arc',
 		'6mm\s*creedmoor',
 		'7mm\s*rem\s*mag',
 		'7mm-08',
-		'7\.62x39',
-		'7\.62x51',
 		'7\.62x54',
-		'5\.7x28',
 		'\.257\s*weatherby',
 	];
 
@@ -197,6 +218,16 @@ class _PlatformClassifier
 		$model   = strtolower( trim( (string) ( $product['model']   ?? '' ) ) );
 		$upc     = trim( (string) ( $product['upc'] ?? '' ) );
 		$barrel  = (float) ( $product['barrel_length'] ?? 0 );
+
+		/* v1.0.114 — fall back to parsing the barrel length from the
+		   title when the structured column is empty/zero (which is
+		   the default state on these cat-1 rows per the ticket).
+		   Regex accepts 9.60" / 5.50" / 10" / etc., optionally
+		   followed by "Barrel"/"bbl". */
+		if ( $barrel <= 0 && preg_match( '/(\d+(?:\.\d+)?)\s*"\s*(?:barrel|bbl)?/i', $title, $bm ) )
+		{
+			$barrel = (float) $bm[1];
+		}
 
 		/* Haystack combines all title-ish scalars so pattern matching
 		   catches signals wherever they live in the row. */
@@ -260,6 +291,21 @@ class _PlatformClassifier
 		{
 			return self::verdict( 'reclassify', self::CAT_RIFLE, 'rifle-brand', $rifleBrandHit, 'brand contains "Rifles"' );
 		}
+
+		/* v1.0.114 defence-in-depth notes:
+		     — Dual-use calibers (5.7x28, 7.62x39, 7.62x51, 6mm ARC,
+		       .30 Carbine, .17 HMR, .22 WMR/Mag) have been REMOVED
+		       from RIFLE_CALIBER_PATTERNS above, so a caliber hit
+		       here implies the caliber has essentially no commercial
+		       pistol variants — safe to treat as decisive-alone
+		       even with a short barrel (Savage 110 10.5" bolt-
+		       carbine in 6.5 Creedmoor stays auto-classified rifle).
+		     — Model-line pistol families that share the removed
+		       dual-use calibers (Kel-Tec P50, Maxim PDX, Zastava
+		       ZPAP 92, Draco) are caught by Layer 2's HANDGUN
+		       overrides BEFORE reaching here, so they never
+		       accidentally rifle-classify even if their caliber
+		       ever leaks back onto the rifle list. */
 		if ( $rifleCaliberHit !== null )
 		{
 			$extras = [];

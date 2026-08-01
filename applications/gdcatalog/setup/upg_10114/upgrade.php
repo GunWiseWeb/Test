@@ -1,55 +1,67 @@
 <?php
 /**
- * @brief  GD Catalog — upgrade 1.0.113 (PlatformClassifier).
+ * @brief  GD Catalog — upgrade 1.0.114 (PlatformClassifier dual-use caliber fix).
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  *
- * WHAT SHIPS IN 1.0.113
- *   Tiered title-based classifier for category-1 (Handguns)
- *   products that are actually rifles or shotguns. Mirrors the
- *   structure of gdcompliance/sources/Lowers.php (Derrick-approved
- *   pattern for this kind of work). Five layers:
- *     1. Curated overrides (gd_catalog_platform_overrides — admin
- *        corrections win permanently over auto-classification)
- *     2. Handgun override signals (checked FIRST as a gate —
- *        "pistol" with negative lookahead against "pistol grip",
- *        revolver/derringer/SAA/arm-brace+short-barrel/
- *        cylinder-count+grips-no-stock)
- *     3. Decisive shotgun signal (gauge tokens: N Gauge / N ga /
- *        .410 / 410 bore)
- *     4. Decisive rifle signal (brand contains "Rifles" | rifle-
- *        exclusive caliber alone | rifle-action language + long
- *        barrel)
- *     5. Everything else → REVIEW (gd_catalog_platform_review)
+ * WHAT SHIPS IN 1.0.114
+ *   Follow-up to v1.0.113's PlatformClassifier. Derrick's dry-run
+ *   found three confirmed misclassifications, all the same root
+ *   cause: dual-use pistol/rifle calibers (5.7x28, 7.62x39) were
+ *   in the "rifle-decisive caliber" list, so pistol platforms
+ *   chambered in them were wrongly auto-classified as rifles:
+ *     - Kel-Tec P50 5.7x28 9.60"     → RIFLE (WRONG — AR-pistol)
+ *     - Maxim Defense PDX 7.62x39    → RIFLE (WRONG — pistol line)
+ *     - Zastava ZPAP 92 7.62x39 10"  → RIFLE (WRONG — AK-pistol)
  *
- *   DRY-RUN mode reports counts without writing; LIVE-RUN commits
- *   the reclassifications and logs every one to
- *   gd_catalog_platform_reclass_log for audit / rollback. Both
- *   triggered via ACP → Catalog → Platform Review.
+ *   Two-part fix in sources/Catalog/PlatformClassifier.php:
  *
- *   Ambiguous rows (Colt M4 5.56 11.50" — could be rifle or AR-
- *   pistol depending on details not in the title) route to a
- *   review queue where Derrick reassigns per-row.
+ *   1. PRUNED dual-use calibers from RIFLE_CALIBER_PATTERNS.
+ *      Removed: 5.7x28, 7.62x39, 7.62x51, 6mm ARC, .30 Carbine,
+ *      .17 HMR, .22 WMR / .22 Mag. Kept only calibers with
+ *      essentially zero commercial pistol variants (6.5 Creedmoor,
+ *      .308 Win, .30-06, .350 Legend, .450 Bushmaster, etc.).
+ *      A caliber match in the pruned list now implicitly means
+ *      "not dual-use", so the Savage 110 10.5" bolt-carbine in
+ *      6.5 Creedmoor still auto-classifies as rifle correctly
+ *      (no regression).
+ *
+ *   2. ADDED product-line HANDGUN overrides in Layer 2 for the
+ *      three confirmed pistol families PLUS related known
+ *      AK-pistol lines (Century Draco / Mini-Draco / Krinkov
+ *      pistol). These fire in Layer 2 BEFORE any caliber-based
+ *      logic reaches Layer 4, so even if the dual-use caliber
+ *      list ever gains one back accidentally, these families
+ *      still can't be mis-rifle-classified.
+ *
+ *   BONUS: added barrel-length parsing from the title text
+ *   (regex over patterns like `9.60"`, `5.50" Barrel`) as a
+ *   fallback when the structured column is empty — which is the
+ *   default state on the cat-1 rows this classifier targets.
+ *
+ *   NO regression on the previously-correct matches (traced
+ *   through all 12 test cases logically before shipping — Savage
+ *   110, Bergara Rifles, Maverick 88 Cruiser, Henry Axe 410, plus
+ *   the original 8 all still classify correctly).
  *
  * WHAT THIS UPGRADE DOES
- *   1. Guarded CREATE TABLE IF NOT EXISTS for the three new
- *      tables (platform_overrides, platform_review,
- *      platform_reclass_log). checkForTable-first — idempotent
- *      on re-run.
- *   2. Re-seed the new lang keys across every lang_id
- *      (Rule #43/#44 — 6-column core_sys_lang_words, per-row
- *      try/catch).
- *   3. Cache/module/opcache purge so the new controller +
- *      classifier PHP + template body load on next request.
+ *   1. Idempotent CREATE TABLE IF NOT EXISTS guards for the three
+ *      platform-classifier tables (in case a fresh install jumps
+ *      from a pre-v1.0.113 version straight to v1.0.114 — the
+ *      previous upg_10113 has been removed per rule #79 so this
+ *      version must still be self-contained).
+ *   2. Re-seed the platform-classifier lang keys (unchanged
+ *      strings but re-seeded defensively across every lang_id).
+ *   3. Cache purge so the updated classifier PHP loads next
+ *      request.
  *
- * NO destructive change to existing tables. Live-run reclassification
- * is Derrick-triggered from the ACP after a dry-run review, NOT
- * automatically here. Rule #79: upg_10112 removed, exactly one
- * upg dir per app.
+ * NO destructive change. Live-run reclassification is still
+ * Derrick-triggered from ACP after a fresh dry-run review.
+ * Rule #79: upg_10113 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10113;
+namespace IPS\gdcatalog\setup\upg_10114;
 
 use function defined;
 use function function_exists;
@@ -66,7 +78,8 @@ class _upgrade
 	{
 		$db = \IPS\Db::i();
 
-		/* 1. Guarded CREATE TABLE — three new tables. */
+		/* 1. Guarded CREATE TABLE — same three tables as upg_10113,
+		     needed here for the pre-10113→10114 jump case. */
 		if ( !$db->checkForTable( 'gd_catalog_platform_overrides' ) )
 		{
 			try
@@ -86,7 +99,7 @@ class _upgrade
 					],
 				] );
 			}
-			catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10113 create overrides: ' . $e->getMessage(), 'gdcatalog_upg_10113' ); } catch ( \Throwable ) {} }
+			catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10114 create overrides: ' . $e->getMessage(), 'gdcatalog_upg_10114' ); } catch ( \Throwable ) {} }
 		}
 
 		if ( !$db->checkForTable( 'gd_catalog_platform_review' ) )
@@ -113,7 +126,7 @@ class _upgrade
 					],
 				] );
 			}
-			catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10113 create review: ' . $e->getMessage(), 'gdcatalog_upg_10113' ); } catch ( \Throwable ) {} }
+			catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10114 create review: ' . $e->getMessage(), 'gdcatalog_upg_10114' ); } catch ( \Throwable ) {} }
 		}
 
 		if ( !$db->checkForTable( 'gd_catalog_platform_reclass_log' ) )
@@ -137,10 +150,12 @@ class _upgrade
 					],
 				] );
 			}
-			catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10113 create reclass_log: ' . $e->getMessage(), 'gdcatalog_upg_10113' ); } catch ( \Throwable ) {} }
+			catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10114 create reclass_log: ' . $e->getMessage(), 'gdcatalog_upg_10114' ); } catch ( \Throwable ) {} }
 		}
 
-		/* 2. Re-seed lang keys across every lang_id. */
+		/* 2. Re-seed platform-classifier lang keys (unchanged from
+		     v1.0.113 but re-seeded defensively in case an install
+		     ran with a bad lang state). */
 		$strings = [
 			'menu__gdcatalog_catalog_platformreview' => 'Platform Review',
 			'gdcatalog_platform_title'               => 'Platform Classifier — Category 1 (Handguns) cleanup',
@@ -171,13 +186,13 @@ class _upgrade
 							'word_export'  => 1,
 						] );
 					}
-					catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10113 lang ' . $key . ': ' . $e->getMessage(), 'gdcatalog_upg_10113' ); } catch ( \Throwable ) {} }
+					catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10114 lang ' . $key . ': ' . $e->getMessage(), 'gdcatalog_upg_10114' ); } catch ( \Throwable ) {} }
 				}
 			}
 		}
-		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10113 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10113' ); } catch ( \Throwable ) {} }
+		catch ( \Throwable $e ) { try { \IPS\Log::log( 'upg_10114 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10114' ); } catch ( \Throwable ) {} }
 
-		/* 3. Cache purge. */
+		/* 3. Cache purge so the updated classifier PHP loads. */
 		try { \IPS\Db::i()->delete( 'core_cache' ); }                                                                catch ( \Throwable ) {}
 		try { \IPS\Db::i()->delete( 'core_store', [ "store_key LIKE 'theme_%' OR store_key LIKE 'template_%'" ] ); } catch ( \Throwable ) {}
 		foreach ( glob( \IPS\ROOT_PATH . '/datastore/template_*' ) ?: [] as $f ) { @unlink( $f ); }
