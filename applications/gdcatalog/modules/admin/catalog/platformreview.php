@@ -43,16 +43,33 @@ class _platformreview extends \IPS\Dispatcher\Controller
 	{
 		$flash = (string) ( \IPS\Request::i()->flash ?? '' );
 
+		/* v1.0.115 — real pagination on the review queue. The v1.0.113
+		   hardcoded LIMIT of 100 was hiding 655/755 items on Derrick's
+		   live queue. Read the page param, compute offset dynamically,
+		   pass page metadata to the template so it can show the
+		   standard "Page X of Y" + Prev/Next + jump-to-page controls. */
+		$per  = 50;
+		$page = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
+
 		$reviewCount = 0;
 		$reviewRows  = [];
 		try
 		{
 			$reviewCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog_platform_review', [ 'resolved=?', 0 ] )->first();
+		}
+		catch ( \Throwable ) {}
+
+		$totalPages = $reviewCount > 0 ? (int) ceil( $reviewCount / $per ) : 1;
+		if ( $page > $totalPages ) { $page = $totalPages; }
+		$offset = ( $page - 1 ) * $per;
+
+		try
+		{
 			foreach ( \IPS\Db::i()->select(
 				'*', 'gd_catalog_platform_review',
 				[ 'resolved=?', 0 ],
 				'created_at DESC',
-				[ 0, 100 ]
+				[ $offset, $per ]
 			) as $r )
 			{
 				$reviewRows[] = $r;
@@ -60,6 +77,9 @@ class _platformreview extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
+		/* Overrides list stays a fixed 50-cap — it's admin-curated,
+		   unlikely to grow past that in normal use. Bump to a full
+		   pager later if it does. */
 		$overrideCount = 0;
 		$overrideRows  = [];
 		try
@@ -82,10 +102,19 @@ class _platformreview extends \IPS\Dispatcher\Controller
 
 		$labels = [ 1 => 'Handguns', 7 => 'Rifles', 16 => 'Shotguns' ];
 
+		/* v1.0.115 — base URL for pagination links (preserves the
+		   flash query string across navigations if one is set). */
+		$pageBaseUrl = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=platformreview' );
+		if ( $flash !== '' )
+		{
+			$pageBaseUrl .= ( str_contains( $pageBaseUrl, '?' ) ? '&' : '?' ) . 'flash=' . urlencode( $flash );
+		}
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gdcatalog_platform_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->platformReview(
 			$reviewCount, $reviewRows, $overrideCount, $overrideRows, $logCount,
-			$dryrunUrl, $runUrl, $overrideUrl, $csrfKey, $labels, $flash
+			$dryrunUrl, $runUrl, $overrideUrl, $csrfKey, $labels, $flash,
+			$page, $totalPages, $per, $pageBaseUrl
 		);
 	}
 

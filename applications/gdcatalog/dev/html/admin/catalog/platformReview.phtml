@@ -1,4 +1,4 @@
-<ips:template parameters="$reviewCount, $reviewRows, $overrideCount, $overrideRows, $logCount, $dryrunUrl, $runUrl, $overrideUrl, $csrfKey, $labels, $flash" />
+<ips:template parameters="$reviewCount, $reviewRows, $overrideCount, $overrideRows, $logCount, $dryrunUrl, $runUrl, $overrideUrl, $csrfKey, $labels, $flash, $page=1, $totalPages=1, $per=50, $pageBaseUrl=''" />
 <div class="ipsBox">
 	<div class="ipsBox__header"><h1 class="ipsType_pageTitle">{lang="gdcatalog_platform_title"}</h1></div>
 	<div class="ipsBox__content">
@@ -23,6 +23,40 @@
 		</div>
 
 		<h2 style="margin-top:24px">{lang="gdcatalog_platform_review_header"} ({$reviewCount})</h2>
+
+		{{if $totalPages > 1}}
+		<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:0.9em">
+			<div>
+				<strong>Page {$page} of {$totalPages}</strong>
+				&nbsp;&mdash;&nbsp; showing rows
+				{expression="( ( $page - 1 ) * $per ) + 1"}&ndash;{expression="min( $page * $per, $reviewCount )"}
+				of {$reviewCount}
+				&nbsp;({$per}/page)
+			</div>
+			<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+				{{if $page > 1}}
+				<a href="{$pageBaseUrl}{expression="( str_contains( $pageBaseUrl, '?' ) ? '&' : '?' )"}page={expression="$page - 1"}" class="ipsButton ipsButton--small ipsButton--soft">&larr; Prev</a>
+				{{else}}
+				<span class="ipsButton ipsButton--small ipsButton--soft" style="opacity:.4;pointer-events:none">&larr; Prev</span>
+				{{endif}}
+				<form method="get" action="{expression="strtok($pageBaseUrl, '?')"}" style="display:inline-flex;gap:4px;align-items:center;margin:0">
+					<input type="hidden" name="app" value="gdcatalog">
+					<input type="hidden" name="module" value="catalog">
+					<input type="hidden" name="controller" value="platformreview">
+					{{if $flash}}<input type="hidden" name="flash" value="{$flash}">{{endif}}
+					Jump to
+					<input type="number" name="page" value="{$page}" min="1" max="{$totalPages}" style="width:70px" required>
+					<button type="submit" class="ipsButton ipsButton--small ipsButton--soft">Go</button>
+				</form>
+				{{if $page < $totalPages}}
+				<a href="{$pageBaseUrl}{expression="( str_contains( $pageBaseUrl, '?' ) ? '&' : '?' )"}page={expression="$page + 1"}" class="ipsButton ipsButton--small ipsButton--soft">Next &rarr;</a>
+				{{else}}
+				<span class="ipsButton ipsButton--small ipsButton--soft" style="opacity:.4;pointer-events:none">Next &rarr;</span>
+				{{endif}}
+			</div>
+		</div>
+		{{endif}}
+
 		{{if count($reviewRows)}}
 		<table class="ipsTable" style="width:100%;margin-bottom:24px">
 			<thead>
@@ -57,6 +91,21 @@
 				{{endforeach}}
 			</tbody>
 		</table>
+
+		{{if $totalPages > 1}}
+		<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#f8f9fa;border:1px solid #e0e0e0;border-radius:6px;padding:10px 14px;margin-bottom:24px;font-size:0.9em">
+			<div><strong>Page {$page} of {$totalPages}</strong></div>
+			<div style="display:flex;gap:6px;align-items:center">
+				{{if $page > 1}}
+				<a href="{$pageBaseUrl}{expression="( str_contains( $pageBaseUrl, '?' ) ? '&' : '?' )"}page={expression="$page - 1"}" class="ipsButton ipsButton--small ipsButton--soft">&larr; Prev</a>
+				{{endif}}
+				{{if $page < $totalPages}}
+				<a href="{$pageBaseUrl}{expression="( str_contains( $pageBaseUrl, '?' ) ? '&' : '?' )"}page={expression="$page + 1"}" class="ipsButton ipsButton--small ipsButton--soft">Next &rarr;</a>
+				{{endif}}
+			</div>
+		</div>
+		{{endif}}
+
 		{{else}}
 		<p style="color:#6b7480;margin-bottom:24px">{lang="gdcatalog_platform_review_empty"}</p>
 		{{endif}}
