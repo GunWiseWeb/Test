@@ -1786,18 +1786,28 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			}
 		}
 
-		/* v1.0.336 — Traffic Sources breakdown from gd_click_log.referrer.
-		   Raw referrers stored at click time; categorized at DISPLAY time
-		   so we can improve buckets later without needing to recapture
-		   historical data. Buckets: Direct, Internal, Search Engine,
-		   Social, External {domain}. Column may not exist yet on
-		   pre-v1.0.336 installs — try/catch swallows the "Unknown column"
-		   error and $trafficSources stays empty (template renders the
-		   "not enough data yet" empty state). */
+		/* v1.0.336 / v1.0.337 — Traffic Sources breakdown from
+		   gd_click_log.referrer. Raw referrers stored at click time;
+		   categorized at DISPLAY time so buckets can improve later
+		   without recapturing history. Buckets: Direct, Internal,
+		   Search Engine, Social, External {domain}. Column may not
+		   exist yet on pre-v1.0.336 installs — try/catch swallows the
+		   "Unknown column" error and $trafficSources stays empty
+		   (template renders the "not enough data yet" empty state).
+
+		   v1.0.337 — also compute a "details" sub-list per bucket
+		   (top hostnames for External/Search/Social; top URL paths
+		   for Internal) so Derrick can see the actual sources behind
+		   each bucket, not just the aggregate count. Details rendered
+		   as an always-visible sub-line under each bar (simpler than
+		   click-to-expand, matches ticket's "acceptable simpler
+		   alternative"). Cap 5 details per bucket. */
 		$trafficSources = [];
 		$trafficTotal   = 0;
 		try {
-			$buckets = [];
+			$buckets     = [];
+			$bucketDetails = [];   /* label => [ ['label' => str, 'clicks' => int], ... ] */
+
 			foreach ( \IPS\Db::i()->select(
 				'referrer, COUNT(*) AS clicks',
 				'gd_click_log',
@@ -1806,21 +1816,42 @@ class _dashboard extends \IPS\Dispatcher\Controller
 				null,
 				'referrer'
 			) as $row ) {
-				$label = self::_categorizeReferrer( (string) ( $row['referrer'] ?? '' ) );
-				$c = (int) $row['clicks'];
+				$raw   = (string) ( $row['referrer'] ?? '' );
+				$label = self::_categorizeReferrer( $raw );
+				$c     = (int) $row['clicks'];
 				$buckets[ $label ] = ( $buckets[ $label ] ?? 0 ) + $c;
-				$trafficTotal    += $c;
+				$trafficTotal     += $c;
+
+				/* Direct bucket has no meaningful detail — the
+				   referrer is empty by definition. Skip its
+				   sub-aggregation entirely. */
+				if ( $label === 'Direct / No Referrer' ) { continue; }
+
+				$detailKey = self::_detailLabelForReferrer( $raw, $label );
+				if ( $detailKey === null ) { continue; }
+				if ( !isset( $bucketDetails[ $label ] ) ) { $bucketDetails[ $label ] = []; }
+				$bucketDetails[ $label ][ $detailKey ] = ( $bucketDetails[ $label ][ $detailKey ] ?? 0 ) + $c;
 			}
+
 			arsort( $buckets );
 			foreach ( $buckets as $label => $clicks ) {
+				$details = [];
+				if ( isset( $bucketDetails[ $label ] ) ) {
+					arsort( $bucketDetails[ $label ] );
+					$topN = array_slice( $bucketDetails[ $label ], 0, 5, true );
+					foreach ( $topN as $dLabel => $dCount ) {
+						$details[] = [ 'label' => (string) $dLabel, 'clicks' => (int) $dCount ];
+					}
+				}
 				$trafficSources[] = [
-					'label'  => $label,
-					'clicks' => $clicks,
-					'pct'    => $trafficTotal > 0 ? round( ( $clicks / $trafficTotal ) * 100, 1 ) : 0,
+					'label'   => $label,
+					'clicks'  => $clicks,
+					'pct'     => $trafficTotal > 0 ? round( ( $clicks / $trafficTotal ) * 100, 1 ) : 0,
+					'details' => $details,
 				];
 			}
-			/* Cap the visible list at 12 rows — for a chatty dealer with
-			   dozens of external-domain buckets, the tail is noise. */
+			/* Cap 12 rows — for a chatty dealer with dozens of external-
+			   domain buckets, the tail is noise. */
 			if ( count( $trafficSources ) > 12 ) {
 				$trafficSources = array_slice( $trafficSources, 0, 12 );
 			}
@@ -3565,6 +3596,43 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		}
 
 		return 'External — ' . $host;
+	}
+
+	/**
+	 * v1.0.337 — return the DETAIL sub-label for a specific referrer
+	 * within its bucket, for the always-visible sub-list under each
+	 * Traffic Sources row:
+	 *
+	 *   Internal          → path only (e.g. "/catalog/search")
+	 *   External/Search/Social  → hostname (e.g. "reddit.com")
+	 *   Direct            → null (caller skips Direct entirely)
+	 *
+	 * Malformed / hostname-less referrers return null (caller skips).
+	 */
+	protected static function _detailLabelForReferrer( string $referrer, string $bucketLabel ): ?string
+	{
+		$referrer = trim( $referrer );
+		if ( $referrer === '' ) { return null; }
+
+		$parsed = @parse_url( $referrer );
+		if ( !is_array( $parsed ) || empty( $parsed['host'] ) ) { return null; }
+
+		$host = strtolower( (string) $parsed['host'] );
+		if ( strncmp( $host, 'www.', 4 ) === 0 ) { $host = substr( $host, 4 ); }
+		if ( $host === '' ) { return null; }
+
+		if ( $bucketLabel === 'Internal (Gunrack)' )
+		{
+			$path = (string) ( $parsed['path'] ?? '/' );
+			if ( $path === '' ) { $path = '/'; }
+			/* Strip a trailing slash for consistency (except the bare
+			   root path itself), and truncate any query-string in the
+			   raw URL that leaked through parse_url edge cases. */
+			if ( strlen( $path ) > 1 && substr( $path, -1 ) === '/' ) { $path = rtrim( $path, '/' ); }
+			return mb_substr( $path, 0, 120 );
+		}
+
+		return $host;
 	}
 }
 

@@ -249,15 +249,23 @@
         <p style="margin:0;color:var(--gd-text-subtle);font-size:13px">No referrer data yet for this range. Referrer capture began v1.0.336 &mdash; historical clicks from before that upgrade have no referrer recorded.</p>
     </div>
     {{else}}
-    <div class="gdGeoList">
+    <div class="gdSourceList">
         {{foreach $data['traffic_sources'] as $t}}
-        <div class="gdGeoRow">
-            <span class="gdGeoRow__state">{$t['label']}</span>
-            <div class="gdGeoRow__bar">
-                <div class="gdGeoRow__fill" style="width: {$t['pct']}%"></div>
+        <div class="gdSourceRow">
+            <div class="gdSourceRow__head">
+                <span class="gdSourceRow__label">{$t['label']}</span>
+                <span class="gdSourceRow__stats">{expression="number_format($t['clicks'])"} clicks ({$t['pct']}%)</span>
             </div>
-            <span class="gdGeoRow__clicks">{expression="number_format($t['clicks'])"} clicks</span>
-            <span class="gdGeoRow__pct">({$t['pct']}%)</span>
+            <div class="gdSourceRow__bar">
+                <div class="gdSourceRow__fill" style="width: {$t['pct']}%"></div>
+            </div>
+            {{if isset($t['details']) && count($t['details'])}}
+            <ul class="gdSourceRow__details">
+                {{foreach $t['details'] as $d}}
+                <li><span class="gdSourceRow__detailLabel">{$d['label']}</span> <span class="gdSourceRow__detailCount">{expression="number_format($d['clicks'])"}</span></li>
+                {{endforeach}}
+            </ul>
+            {{endif}}
         </div>
         {{endforeach}}
     </div>
