@@ -3709,6 +3709,20 @@
 				"values": [],
 				"comment": ""
 			},
+			"referrer": {
+				"name": "referrer",
+				"type": "VARCHAR",
+				"length": 500,
+				"decimals": null,
+				"allow_null": true,
+				"default": null,
+				"auto_increment": false,
+				"binary": false,
+				"unsigned": false,
+				"zerofill": false,
+				"values": [],
+				"comment": "HTTP referrer at click time (v1.0.336), NULL when absent"
+			},
 			"clicked_at": {
 				"name": "clicked_at",
 				"type": "DATETIME",

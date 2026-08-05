@@ -236,3 +236,30 @@
     {{endif}}
 </div>
 {{endif}}
+
+<div class="gdPanel">
+    <div class="gdPanel__head">
+        <div>
+            <div class="gdPanel__title">Traffic Sources</div>
+            <div class="gdPanel__sub">Where visitors were BEFORE they clicked one of your listings. Captured per-click from HTTP referrer.</div>
+        </div>
+    </div>
+    {{if !isset($data['traffic_sources']) || count($data['traffic_sources']) === 0}}
+    <div class="gdEmptyState" style="padding:24px 0">
+        <p style="margin:0;color:var(--gd-text-subtle);font-size:13px">No referrer data yet for this range. Referrer capture began v1.0.336 &mdash; historical clicks from before that upgrade have no referrer recorded.</p>
+    </div>
+    {{else}}
+    <div class="gdGeoList">
+        {{foreach $data['traffic_sources'] as $t}}
+        <div class="gdGeoRow">
+            <span class="gdGeoRow__state">{$t['label']}</span>
+            <div class="gdGeoRow__bar">
+                <div class="gdGeoRow__fill" style="width: {$t['pct']}%"></div>
+            </div>
+            <span class="gdGeoRow__clicks">{expression="number_format($t['clicks'])"} clicks</span>
+            <span class="gdGeoRow__pct">({$t['pct']}%)</span>
+        </div>
+        {{endforeach}}
+    </div>
+    {{endif}}
+</div>

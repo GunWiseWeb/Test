@@ -181,12 +181,20 @@ class _click extends \IPS\Dispatcher\Controller
 
 				if ( !$alreadyLogged )
 				{
-					/* Insert the click row. user_agent may not exist yet on installs
-					   that haven't run the v1.0.330 ALTER (guarded upgrade step) —
-					   in that case the try/catch swallows the "Unknown column"
-					   error and we retry without user_agent so a schema-lag
-					   install doesn't stop logging entirely. */
-					$uaShort = $ua !== '' ? mb_substr( $ua, 0, 255 ) : NULL;
+					/* Insert the click row. user_agent (v1.0.330) and referrer
+					   (v1.0.336) may not exist yet on installs that haven't run
+					   the guarded ALTERs — three-tier fallback below drops the
+					   newer column(s) on each retry so a schema-lag install
+					   doesn't stop logging entirely.
+
+					   v1.0.336 — capture $_SERVER['HTTP_REFERER'] into
+					   gd_click_log.referrer so traffic-source analysis doesn't
+					   depend on ephemeral Apache access logs (server only
+					   retains ~1 day). NULL when absent (direct hits, apps,
+					   privacy-mode browsers) — that's expected, not an error. */
+					$uaShort  = $ua !== '' ? mb_substr( $ua, 0, 255 ) : NULL;
+					$referrer = trim( (string) ( $_SERVER['HTTP_REFERER'] ?? '' ) );
+					$referrer = $referrer !== '' ? mb_substr( $referrer, 0, 500 ) : NULL;
 					try {
 						\IPS\Db::i()->insert( 'gd_click_log', [
 							'dealer_id'  => $dealerId,
@@ -195,10 +203,12 @@ class _click extends \IPS\Dispatcher\Controller
 							'ip_hash'    => $ipHash,
 							'user_state' => $userState,
 							'user_agent' => $uaShort,
+							'referrer'   => $referrer,
 							'clicked_at' => date( 'Y-m-d H:i:s' ),
 						] );
 					}
 					catch ( \Throwable ) {
+						/* Fallback 1: drop referrer (schema pre-v1.0.336). */
 						try {
 							\IPS\Db::i()->insert( 'gd_click_log', [
 								'dealer_id'  => $dealerId,
@@ -206,11 +216,25 @@ class _click extends \IPS\Dispatcher\Controller
 								'member_id'  => $memberId,
 								'ip_hash'    => $ipHash,
 								'user_state' => $userState,
+								'user_agent' => $uaShort,
 								'clicked_at' => date( 'Y-m-d H:i:s' ),
 							] );
 						}
-						catch ( \Throwable $e2 ) {
-							try { \IPS\Log::log( $e2, 'gddealer_click' ); } catch ( \Throwable ) {}
+						catch ( \Throwable ) {
+							/* Fallback 2: drop user_agent too (schema pre-v1.0.330). */
+							try {
+								\IPS\Db::i()->insert( 'gd_click_log', [
+									'dealer_id'  => $dealerId,
+									'upc'        => $upc,
+									'member_id'  => $memberId,
+									'ip_hash'    => $ipHash,
+									'user_state' => $userState,
+									'clicked_at' => date( 'Y-m-d H:i:s' ),
+								] );
+							}
+							catch ( \Throwable $e2 ) {
+								try { \IPS\Log::log( $e2, 'gddealer_click' ); } catch ( \Throwable ) {}
+							}
 						}
 					}
 

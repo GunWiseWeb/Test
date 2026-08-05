@@ -666,4 +666,9 @@ $lang = [
     'gddealer_unmatched_fetch_no_url'                              => "This UPC's snapshot doesn't include a listing_url (older row, or the dealer feed omitted it). Nothing to fetch.",
     'gddealer_unmatched_fetch_no_key'                              => 'No Anthropic API key configured (gdrebates_api_key setting is empty). Set it in ACP → Rebates → Settings and try again.',
     'gddealer_unmatched_fetch_fail'                                => 'Could not fetch or extract details &mdash; check the gddealer log for the exact error and try filling the fields manually.',
+
+    /* v1.0.336 — click referrer capture + Traffic Sources dashboard section. */
+    'gddealer_traffic_sources_title'                               => 'Traffic Sources',
+    'gddealer_traffic_sources_help'                                => 'Where visitors were BEFORE they clicked one of your listings. Captured per-click from HTTP referrer.',
+    'gddealer_traffic_sources_empty'                               => 'No referrer data yet for this range. Referrer capture began v1.0.336 &mdash; historical clicks from before that upgrade have no referrer recorded.',
 ];

@@ -1786,6 +1786,47 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			}
 		}
 
+		/* v1.0.336 — Traffic Sources breakdown from gd_click_log.referrer.
+		   Raw referrers stored at click time; categorized at DISPLAY time
+		   so we can improve buckets later without needing to recapture
+		   historical data. Buckets: Direct, Internal, Search Engine,
+		   Social, External {domain}. Column may not exist yet on
+		   pre-v1.0.336 installs — try/catch swallows the "Unknown column"
+		   error and $trafficSources stays empty (template renders the
+		   "not enough data yet" empty state). */
+		$trafficSources = [];
+		$trafficTotal   = 0;
+		try {
+			$buckets = [];
+			foreach ( \IPS\Db::i()->select(
+				'referrer, COUNT(*) AS clicks',
+				'gd_click_log',
+				[ 'dealer_id=? AND clicked_at >= ? AND clicked_at <= ?', $dealerId, $startDate . ' 00:00:00', $endDate . ' 23:59:59' ],
+				null,
+				null,
+				'referrer'
+			) as $row ) {
+				$label = self::_categorizeReferrer( (string) ( $row['referrer'] ?? '' ) );
+				$c = (int) $row['clicks'];
+				$buckets[ $label ] = ( $buckets[ $label ] ?? 0 ) + $c;
+				$trafficTotal    += $c;
+			}
+			arsort( $buckets );
+			foreach ( $buckets as $label => $clicks ) {
+				$trafficSources[] = [
+					'label'  => $label,
+					'clicks' => $clicks,
+					'pct'    => $trafficTotal > 0 ? round( ( $clicks / $trafficTotal ) * 100, 1 ) : 0,
+				];
+			}
+			/* Cap the visible list at 12 rows — for a chatty dealer with
+			   dozens of external-domain buckets, the tail is noise. */
+			if ( count( $trafficSources ) > 12 ) {
+				$trafficSources = array_slice( $trafficSources, 0, 12 );
+			}
+		}
+		catch ( \Throwable ) { /* referrer column absent (pre-v1.0.336) or query failure — leave empty */ }
+
 		$rangeUrls = [];
 		foreach ( [ '7', '30', '90', 'ytd' ] as $r ) {
 			$rangeUrls[ $r ] = (string) \IPS\Http\Url::internal(
@@ -1817,6 +1858,8 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			'top_listings'      => $topListings,
 			'geo_distribution'  => $geoDistribution,
 			'geo_total'         => $geoTotal,
+			'traffic_sources'   => $trafficSources,
+			'traffic_total'     => $trafficTotal,
 			'cap'               => [
 				'chart' => $canChart,
 				'top'   => $canTopListings,
@@ -3474,6 +3517,54 @@ class _dashboard extends \IPS\Dispatcher\Controller
 			. 'title="' . $h( (string) $lang->addToStack( 'gddealer_api_dashboard_title' ) ) . '"></iframe>';
 
 		$this->output( 'api', $body );
+	}
+
+	/**
+	 * v1.0.336 — categorize a raw HTTP referrer into a readable bucket
+	 * for the analytics dashboard's Traffic Sources section. Runs at
+	 * DISPLAY time (not capture time), so buckets can be improved later
+	 * without needing to recapture historical data. Buckets:
+	 *   empty/null    → "Direct / No Referrer"
+	 *   gunrack.deals → "Internal (Gunrack)"
+	 *   google/bing/duckduckgo/yahoo/ecosia → "Search Engine"
+	 *   facebook/instagram/twitter/x.com/reddit/tiktok/youtube/pinterest → "Social Media"
+	 *   any other host → "External — {domain}"  (hostname only,
+	 *                    path/query dropped)
+	 */
+	protected static function _categorizeReferrer( string $referrer ): string
+	{
+		$referrer = trim( $referrer );
+		if ( $referrer === '' ) { return 'Direct / No Referrer'; }
+
+		$host = '';
+		$parsed = @parse_url( $referrer );
+		if ( is_array( $parsed ) && !empty( $parsed['host'] ) ) {
+			$host = strtolower( (string) $parsed['host'] );
+			if ( strncmp( $host, 'www.', 4 ) === 0 ) { $host = substr( $host, 4 ); }
+		}
+
+		if ( $host === '' ) { return 'Direct / No Referrer'; }
+
+		/* Internal own-domain */
+		if ( $host === 'gunrack.deals' || str_ends_with( $host, '.gunrack.deals' ) ) {
+			return 'Internal (Gunrack)';
+		}
+
+		/* Search engines — match the leading label to be forgiving of
+		   country TLDs (google.co.uk, bing.de, etc.). */
+		$searchEngines = [ 'google.', 'bing.', 'duckduckgo.', 'yahoo.', 'ecosia.', 'brave.', 'yandex.', 'baidu.' ];
+		foreach ( $searchEngines as $needle ) {
+			if ( strpos( $host, $needle ) !== FALSE ) { return 'Search Engine'; }
+		}
+
+		/* Social — match domain fragments, not full-host, so
+		   m.facebook.com / l.instagram.com / t.co all resolve. */
+		$social = [ 'facebook.', 'instagram.', 'twitter.', 'x.com', 't.co', 'reddit.', 'tiktok.', 'youtube.', 'youtu.be', 'pinterest.', 'linkedin.', 'threads.net' ];
+		foreach ( $social as $needle ) {
+			if ( strpos( $host, $needle ) !== FALSE ) { return 'Social Media'; }
+		}
+
+		return 'External — ' . $host;
 	}
 }
 

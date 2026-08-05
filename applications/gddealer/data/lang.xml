@@ -686,5 +686,8 @@
     <word key="gddealer_unmatched_fetch_no_url"><![CDATA[This UPC's snapshot doesn't include a listing_url (older row, or the dealer feed omitted it). Nothing to fetch.]]></word>
     <word key="gddealer_unmatched_fetch_no_key"><![CDATA[No Anthropic API key configured (gdrebates_api_key setting is empty). Set it in ACP → Rebates → Settings and try again.]]></word>
     <word key="gddealer_unmatched_fetch_fail"><![CDATA[Could not fetch or extract details &mdash; check the gddealer log for the exact error and try filling the fields manually.]]></word>
+    <word key="gddealer_traffic_sources_title"><![CDATA[Traffic Sources]]></word>
+    <word key="gddealer_traffic_sources_help"><![CDATA[Where visitors were BEFORE they clicked one of your listings. Captured per-click from HTTP referrer.]]></word>
+    <word key="gddealer_traffic_sources_empty"><![CDATA[No referrer data yet for this range. Referrer capture began v1.0.336 &mdash; historical clicks from before that upgrade have no referrer recorded.]]></word>
   </app>
 </language>
