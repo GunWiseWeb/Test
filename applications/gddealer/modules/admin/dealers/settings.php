@@ -71,6 +71,17 @@ class _settings extends \IPS\Dispatcher\Controller
 				],
 			] ) );
 
+		/* v1.0.338 — per-run cap on the DealerImportFeeds task so a
+		   cluster of simultaneously-due dealers doesn't take minutes
+		   to work through in one 1-min tick. Task processes at most
+		   this many dealers per invocation (most-overdue first);
+		   subsequent ticks pick up the rest. Range 1-50 — going
+		   higher than 50 would risk task-timeout on huge dealer
+		   counts anyway. */
+		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_import_max_per_run',
+			(int) ( \IPS\Settings::i()->gddealer_import_max_per_run ?: 5 ),
+			TRUE, [ 'min' => 1, 'max' => 50 ] ) );
+
 		$form->add( new \IPS\Helpers\Form\Number( 'gddealer_out_of_stock_grace_hours',
 			(int) \IPS\Settings::i()->gddealer_out_of_stock_grace_hours, TRUE ) );
 

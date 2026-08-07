@@ -689,5 +689,7 @@
     <word key="gddealer_traffic_sources_title"><![CDATA[Traffic Sources]]></word>
     <word key="gddealer_traffic_sources_help"><![CDATA[Where visitors were BEFORE they clicked one of your listings. Captured per-click from HTTP referrer.]]></word>
     <word key="gddealer_traffic_sources_empty"><![CDATA[No referrer data yet for this range. Referrer capture began v1.0.336 &mdash; historical clicks from before that upgrade have no referrer recorded.]]></word>
+    <word key="gddealer_import_max_per_run"><![CDATA[Max feed imports per task run]]></word>
+    <word key="gddealer_import_max_per_run_desc"><![CDATA[The DealerImportFeeds task processes at most this many due dealers per invocation (most-overdue first). Subsequent 1-min cron ticks pick up the rest. Range 1&ndash;50. Default 5 &mdash; raise if the "still due" backlog in the task log is consistently &gt; 0 across many runs.]]></word>
   </app>
 </language>

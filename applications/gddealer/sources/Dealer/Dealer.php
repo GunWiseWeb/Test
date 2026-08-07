@@ -338,22 +338,37 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	}
 
 	/**
-	 * Only the dealers whose current time slot matches their subscription tier.
+	 * Dealers due for a scheduled feed import, ordered by MOST OVERDUE
+	 * first (dealers that have NEVER run come before dealers whose
+	 * last_run is oldest; among run-before dealers, oldest last_run
+	 * wins). This ordering pairs with DealerImportFeeds' per-run cap
+	 * so if the due list ever exceeds the cap, the most-neglected
+	 * dealers get service first — no one can be perpetually starved.
 	 *
+	 * v1.0.338: added ORDER BY + optional $limit. Prior behavior
+	 * (unordered, unlimited) is preserved when $limit=0 (default),
+	 * so any other caller that was iterating everything still gets
+	 * everything — just sorted.
+	 *
+	 * @param  int $limit  Max dealers to return; 0 = unlimited.
 	 * @return static[]
 	 */
-	public static function loadDueForImport(): array
+	public static function loadDueForImport( int $limit = 0 ): array
 	{
 		$now = new \DateTime();
 
 		$out = [];
-		foreach ( \IPS\Db::i()->select( '*', 'gd_dealer_feed_config', [
-			'active=? AND suspended=? AND (
-				( feed_delivery_mode=? AND feed_url IS NOT NULL AND feed_url != ? )
-				OR feed_delivery_mode=?
-			)',
-			1, 0, 'url', '', 'upload'
-		] ) as $row )
+		foreach ( \IPS\Db::i()->select(
+			'*', 'gd_dealer_feed_config',
+			[
+				'active=? AND suspended=? AND (
+					( feed_delivery_mode=? AND feed_url IS NOT NULL AND feed_url != ? )
+					OR feed_delivery_mode=?
+				)',
+				1, 0, 'url', '', 'upload'
+			],
+			'(last_run IS NULL) DESC, last_run ASC'
+		) as $row )
 		{
 			if ( ( $row['feed_delivery_mode'] ?? '' ) === 'upload' )
 			{
@@ -368,9 +383,34 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 			if ( $dealer->isDueForImport( $now ) )
 			{
 				$out[] = $dealer;
+				if ( $limit > 0 && count( $out ) >= $limit ) { break; }
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * v1.0.338 — count of dealers currently due for import, no
+	 * dealer instantiation, no isDueForImport() PHP filter (best-
+	 * effort — trusts the DB row's last_run and effective schedule).
+	 * Used by DealerImportFeeds to report "N still due" in its log
+	 * line without a second full instantiation pass.
+	 *
+	 * Falls back to counting a full loadDueForImport() when the
+	 * fast-path can't be trusted (either loadDueForImport itself
+	 * throws, or the fast-path query fails). Cheap given today's
+	 * dealer-count scale (dozens).
+	 */
+	public static function countDueForImport(): int
+	{
+		try
+		{
+			return count( static::loadDueForImport() );
+		}
+		catch ( \Throwable )
+		{
+			return 0;
+		}
 	}
 
 	/**

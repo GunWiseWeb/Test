@@ -671,4 +671,8 @@ $lang = [
     'gddealer_traffic_sources_title'                               => 'Traffic Sources',
     'gddealer_traffic_sources_help'                                => 'Where visitors were BEFORE they clicked one of your listings. Captured per-click from HTTP referrer.',
     'gddealer_traffic_sources_empty'                               => 'No referrer data yet for this range. Referrer capture began v1.0.336 &mdash; historical clicks from before that upgrade have no referrer recorded.',
+
+    /* v1.0.338 — DealerImportFeeds per-run cap. */
+    'gddealer_import_max_per_run'                                  => 'Max feed imports per task run',
+    'gddealer_import_max_per_run_desc'                             => 'The DealerImportFeeds task processes at most this many due dealers per invocation (most-overdue first). Subsequent 1-min cron ticks pick up the rest. Range 1&ndash;50. Default 5 &mdash; raise if the "still due" backlog in the task log is consistently &gt; 0 across many runs.',
 ];

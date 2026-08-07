@@ -156,5 +156,6 @@
 	{ "key": "gddealer_dir_show_search", "default": "1" },
 	{ "key": "gddealer_dir_show_state_filter", "default": "1" },
 	{ "key": "gddealer_dir_show_rating_filter", "default": "1" },
-	{ "key": "gddealer_dir_show_sort", "default": "1" }
+	{ "key": "gddealer_dir_show_sort", "default": "1" },
+	{ "key": "gddealer_import_max_per_run", "default": "5" }
 ]
