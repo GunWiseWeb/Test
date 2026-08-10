@@ -286,4 +286,5 @@ $lang = [
     'gddeals_cp_tab_pending'              => 'Pending',
     'gddeals_cp_tab_all'                  => 'All',
     'task__gddeals_ExpireCoupons'         => 'Expire coupons past their end date',
+    'gddeals_back_to_deals'               => 'Back to Deals',
 ];

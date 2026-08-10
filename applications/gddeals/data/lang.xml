@@ -280,5 +280,6 @@
     <word key="gddeals_cp_tab_pending"><![CDATA[Pending]]></word>
     <word key="gddeals_cp_tab_all"><![CDATA[All]]></word>
     <word key="task__gddeals_ExpireCoupons"><![CDATA[Expire coupons past their end date]]></word>
+    <word key="gddeals_back_to_deals"><![CDATA[Back to Deals]]></word>
   </app>
 </language>

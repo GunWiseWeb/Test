@@ -129,6 +129,17 @@ class _browse extends \IPS\Dispatcher\Controller
 			}
 		}
 
+		/* Back-state params carried into each deal card URL so the
+		   detail page can build a "← Back to Deals" link that returns
+		   the visitor to their EXACT prior browse state. Prefixed with
+		   `b` because view.php already consumes ?page= for comment
+		   pagination — using plain `page` here would collide. */
+		$backState = [];
+		if ( $page > 1 )        { $backState['bp']    = $page; }
+		if ( $catId )           { $backState['bcat']  = $catId; }
+		if ( $sort !== 'newest' ) { $backState['bsort'] = $sort; }
+		if ( $qf )              { $backState['bqf']   = $qf; }
+
 		$cards = [];
 		foreach ( $dealList as $deal )
 		{
@@ -141,8 +152,13 @@ class _browse extends \IPS\Dispatcher\Controller
 					'front'
 				);
 			}
+			$cardUrl = $deal->url();
+			if ( !empty( $backState ) )
+			{
+				$cardUrl = $cardUrl->setQueryString( $backState );
+			}
 			$cards[] = [
-				'url'        => (string) $deal->url(),
+				'url'        => (string) $cardUrl,
 				'title'      => $deal->title,
 				'category'   => $deal->container()->_title,
 				'retailer'   => $deal->retailer_name,

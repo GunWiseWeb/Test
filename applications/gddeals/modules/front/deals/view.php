@@ -87,6 +87,30 @@ class _view extends \IPS\Content\Controller
 			catch ( \Throwable ) {}
 		}
 
+		/* Build "← Back to Deals" URL from b*-prefixed back-state
+		   params carried in from the browse page. Always populates
+		   $d['back_url']; falls back to plain /deals/ when nothing
+		   present. `bp`/`bcat`/`bsort`/`bqf` avoid a collision with
+		   this controller's own ?page= (comment pagination). */
+		$bp    = max( 1, (int) ( \IPS\Request::i()->bp ?? 0 ) );
+		$bcat  = (int) ( \IPS\Request::i()->bcat ?? 0 );
+		$bsort = (string) ( \IPS\Request::i()->bsort ?? '' );
+		$bqf   = (string) ( \IPS\Request::i()->bqf ?? '' );
+		if ( !in_array( $bsort, [ 'newest', 'discount', 'expiring', 'hottest' ], TRUE ) )
+		{
+			$bsort = '';
+		}
+		if ( !in_array( $bqf, [ 'under500', 'today', '' ], TRUE ) )
+		{
+			$bqf = '';
+		}
+		$backUrl = \IPS\Http\Url::internal( 'app=gddeals&module=deals&controller=browse', 'front' );
+		if ( $bcat )              { $backUrl = $backUrl->setQueryString( 'category', $bcat ); }
+		if ( $bsort )             { $backUrl = $backUrl->setQueryString( 'sort',     $bsort ); }
+		if ( $bqf )               { $backUrl = $backUrl->setQueryString( 'qf',       $bqf ); }
+		if ( $bp > 1 )            { $backUrl = $backUrl->setQueryString( 'page',     $bp ); }
+		$d['back_url'] = (string) $backUrl;
+
 		$d['can_approve']   = ( $deal->hidden() !== 0 AND $deal->canUnhide( $me ) );
 		$d['can_hide']      = ( $deal->hidden() === 0 AND $deal->canHide( $me ) );
 		$d['can_delete']    = $deal->canDelete( $me );

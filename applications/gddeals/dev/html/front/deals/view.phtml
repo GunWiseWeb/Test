@@ -11,6 +11,9 @@
 			{{if $d['can_delete']}}<a class="gd-mod-btn gd-mod-delete" href="{$d['url_delete']}" onclick="return confirm('Delete this deal? This cannot be undone.')">{lang="gddeals_mod_delete"}</a>{{endif}}
 		</div>
 	{{endif}}
+	<div class="gd-deal-backnav">
+		<a class="gd-deal-back" href="{$d['back_url']}">&larr; {lang="gddeals_back_to_deals"}</a>
+	</div>
 	<div class="gd-deal-layout">
 		<div class="gd-deal-media">
 			{{if $d['image']}}

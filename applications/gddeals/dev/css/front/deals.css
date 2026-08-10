@@ -208,3 +208,8 @@ a.gd-cpn-dealer:hover{text-decoration:underline;}
 
 .gd-deals-wrap .gd-card-imgwrap { position: relative; }
 .gd-deals-wrap .gd-card-discountBadge { position: absolute; top: 8px; left: 8px; background: var(--gd-danger, #c0263c); color: #fff; font-size: 0.78rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.22); letter-spacing: 0.02em; }
+
+/* ---- v1.0.57: "← Back to Deals" nav link on deal detail page ---- */
+.gd-deal-view .gd-deal-backnav { margin: 0 0 12px 0; }
+.gd-deal-view .gd-deal-back { display: inline-block; font-size: 0.9rem; font-weight: 600; color: var(--gd-text_muted, #6b7480); text-decoration: none; padding: 4px 0; letter-spacing: 0.01em; }
+.gd-deal-view .gd-deal-back:hover { color: var(--gd-accent, #6d28d9); text-decoration: underline; }
