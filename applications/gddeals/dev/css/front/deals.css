@@ -213,3 +213,30 @@ a.gd-cpn-dealer:hover{text-decoration:underline;}
 .gd-deal-view .gd-deal-backnav { margin: 0 0 12px 0; }
 .gd-deal-view .gd-deal-back { display: inline-block; font-size: 0.9rem; font-weight: 600; color: var(--gd-text_muted, #6b7480); text-decoration: none; padding: 4px 0; letter-spacing: 0.01em; }
 .gd-deal-view .gd-deal-back:hover { color: var(--gd-accent, #6d28d9); text-decoration: underline; }
+
+/* ---- v1.0.59: scoped mobile responsive fix for the /deals/ browse
+   pagination. Core ships no baseline .ipsPagination CSS in this
+   stack — the numbered page-links list (up to ~13 <li>s when
+   ipsPagination--numerous) overflows off-viewport on narrow phones
+   with no wrap/scroll affordance. Scoped strictly to
+   .gd-deals-wrap so nothing else on the site is affected. On very
+   narrow screens hide the individual numbered links and lean on
+   Prev/Next + the built-in page-jump dropdown, which together
+   remain sufficient to reach any page. ---- */
+@media (max-width: 600px) {
+	.gd-deals-wrap .ipsPagination {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 6px;
+		margin-top: 24px;
+		list-style: none;
+		padding: 0;
+	}
+	.gd-deals-wrap .ipsPagination li {
+		flex: 0 0 auto;
+	}
+	.gd-deals-wrap .ipsPagination.ipsPagination--numerous .ipsPagination__page:not(.ipsPagination__active) {
+		display: none;
+	}
+}
