@@ -30,7 +30,7 @@ class _browse extends \IPS\Dispatcher\Controller
 		$sort    = \IPS\Request::i()->sort ?? 'newest';
 		$qf      = \IPS\Request::i()->qf ?? '';
 		$page    = max( 1, (int) ( \IPS\Request::i()->page ?? 1 ) );
-		$perPage = 24;
+		$perPage = 25;
 		$offset  = ( $page - 1 ) * $perPage;
 
 		if ( !in_array( $sort, [ 'newest', 'discount', 'expiring', 'hottest' ], TRUE ) )
