@@ -326,33 +326,60 @@ class _settings extends \IPS\Dispatcher\Controller
 		$form->addHeader( 'gddealer_settings_emails' );
 		$form->addMessage( 'gddealer_settings_emails_help' );
 
-		$getEmailTemplate = function( string $key, string $field ) {
+		/* IPS 5 email storage — investigated and verified against the
+		   real core_email_templates schema, DealerEmails.php extension,
+		   emails.xml, and every buildFromTemplate() call site.
+		   Real body column is template_content_html; there is NO
+		   per-row subject column. IPS resolves the subject at send
+		   time from language key {templateName}_email_subject
+		   (confirmed by the working FFL flow: template name
+		   gddealer_ffl_verified pairs with lang key
+		   gddealer_ffl_verified_email_subject, and the send code
+		   never passes an explicit subject arg — IPS auto-resolves).
+		   All three admin-editable dealer emails send via
+		   \IPS\Email::buildFromTemplate() with no subject arg, so
+		   writing the correct lang key here IS what changes what
+		   dealers actually receive. */
+		$getEmailSubject = function( string $tpl ): string {
 			try {
-				return (string) \IPS\Db::i()->select( $field, 'core_email_templates',
-					[ 'template_app=? AND template_name=?', 'gddealer', $key ]
+				$defaultLangId = (int) \IPS\Db::i()->select( 'lang_id', 'core_sys_lang', [ 'lang_default=?', 1 ] )->first();
+			}
+			catch ( \Throwable ) { $defaultLangId = 0; }
+			try {
+				return (string) \IPS\Db::i()->select( 'word_default', 'core_sys_lang_words',
+					[ 'word_key=? AND lang_id=?', $tpl . '_email_subject', $defaultLangId ]
 				)->first();
-			} catch ( \Exception ) { return ''; }
+			}
+			catch ( \Throwable ) { return ''; }
+		};
+		$getEmailBody = function( string $tpl ): string {
+			try {
+				return (string) \IPS\Db::i()->select( 'template_content_html', 'core_email_templates',
+					[ 'template_app=? AND template_name=?', 'gddealer', $tpl ]
+				)->first();
+			}
+			catch ( \Throwable ) { return ''; }
 		};
 
 		$form->add( new \IPS\Helpers\Form\Text( 'gddealer_email_welcome_subject',
-			$getEmailTemplate( 'dealerWelcome', 'template_subject' ), FALSE, [],
+			$getEmailSubject( 'dealerWelcome' ), FALSE, [],
 			NULL, NULL, NULL, 'gddealer_email_welcome_subject' ) );
 		$form->add( new \IPS\Helpers\Form\TextArea( 'gddealer_email_welcome_body',
-			$getEmailTemplate( 'dealerWelcome', 'template_body' ), FALSE, [ 'rows' => 8 ],
+			$getEmailBody( 'dealerWelcome' ), FALSE, [ 'rows' => 8 ],
 			NULL, NULL, NULL, 'gddealer_email_welcome_body' ) );
 
 		$form->add( new \IPS\Helpers\Form\Text( 'gddealer_email_expiring_subject',
-			$getEmailTemplate( 'trialExpiringSoon', 'template_subject' ), FALSE, [],
+			$getEmailSubject( 'trialExpiringSoon' ), FALSE, [],
 			NULL, NULL, NULL, 'gddealer_email_expiring_subject' ) );
 		$form->add( new \IPS\Helpers\Form\TextArea( 'gddealer_email_expiring_body',
-			$getEmailTemplate( 'trialExpiringSoon', 'template_body' ), FALSE, [ 'rows' => 8 ],
+			$getEmailBody( 'trialExpiringSoon' ), FALSE, [ 'rows' => 8 ],
 			NULL, NULL, NULL, 'gddealer_email_expiring_body' ) );
 
 		$form->add( new \IPS\Helpers\Form\Text( 'gddealer_email_expired_subject',
-			$getEmailTemplate( 'trialExpired', 'template_subject' ), FALSE, [],
+			$getEmailSubject( 'trialExpired' ), FALSE, [],
 			NULL, NULL, NULL, 'gddealer_email_expired_subject' ) );
 		$form->add( new \IPS\Helpers\Form\TextArea( 'gddealer_email_expired_body',
-			$getEmailTemplate( 'trialExpired', 'template_body' ), FALSE, [ 'rows' => 8 ],
+			$getEmailBody( 'trialExpired' ), FALSE, [ 'rows' => 8 ],
 			NULL, NULL, NULL, 'gddealer_email_expired_body' ) );
 
 		if ( $values = $form->values() )
@@ -446,18 +473,102 @@ class _settings extends \IPS\Dispatcher\Controller
 				}
 			}
 
-			$updateEmail = function( string $key, string $subject, string $body ) {
-				try {
-					\IPS\Db::i()->update( 'core_email_templates',
-						[ 'template_subject' => $subject, 'template_body' => $body ],
-						[ 'template_app=? AND template_name=?', 'gddealer', $key ]
-					);
-				} catch ( \Exception ) {}
+			/* Writes to the REAL IPS 5 storage locations investigated
+			   above. Subject → core_sys_lang_words for every lang_id
+			   under key {tpl}_email_subject. Body → core_email_templates
+			   .template_content_html (+ mirrored plaintext with tags
+			   stripped so plaintext MIME parts stay usable). Template
+			   row is upserted so a missing row (emails.xml parse-fail
+			   installs, rule #18) doesn't silently no-op the update.
+			   Silent catch(\Exception){} REMOVED — every write path
+			   logs on failure so ACP save issues surface in
+			   core_error_logs going forward. */
+			$updateEmail = function( string $tpl, string $subject, string $body ): void {
+				$subject = (string) $subject;
+				$body    = (string) $body;
+
+				/* Body — core_email_templates */
+				try
+				{
+					$exists = FALSE;
+					try
+					{
+						$exists = (bool) \IPS\Db::i()->select( 'template_id', 'core_email_templates',
+							[ 'template_app=? AND template_name=?', 'gddealer', $tpl ]
+						)->first();
+					}
+					catch ( \UnderflowException ) { $exists = FALSE; }
+
+					$plaintext = trim( html_entity_decode( strip_tags( str_replace( [ '<br>', '<br/>', '<br />', '</p>' ], "\n", $body ) ), ENT_QUOTES | ENT_HTML5 ) );
+
+					if ( $exists )
+					{
+						\IPS\Db::i()->update( 'core_email_templates',
+							[
+								'template_content_html'      => $body,
+								'template_content_plaintext' => $plaintext,
+								'template_edited'            => 1,
+							],
+							[ 'template_app=? AND template_name=?', 'gddealer', $tpl ]
+						);
+					}
+					else
+					{
+						\IPS\Db::i()->insert( 'core_email_templates', [
+							'template_app'               => 'gddealer',
+							'template_name'              => $tpl,
+							'template_content_html'      => $body,
+							'template_content_plaintext' => $plaintext,
+							'template_data'              => '',
+							'template_edited'            => 1,
+						] );
+					}
+				}
+				catch ( \Throwable $e )
+				{
+					try { \IPS\Log::log( 'gddealer email body save (' . $tpl . '): ' . $e->getMessage(), 'gddealer' ); } catch ( \Throwable ) {}
+				}
+
+				/* Subject — {tpl}_email_subject for every lang_id
+				   (Rule #43/#44 — 6-col core_sys_lang_words replace,
+				   per-row try/catch so one bad row doesn't abort). */
+				try
+				{
+					foreach ( \IPS\Db::i()->select( 'lang_id', 'core_sys_lang' ) as $langId )
+					{
+						try
+						{
+							\IPS\Db::i()->replace( 'core_sys_lang_words', [
+								'lang_id'      => (int) $langId,
+								'word_app'     => 'gddealer',
+								'word_key'     => $tpl . '_email_subject',
+								'word_default' => $subject,
+								'word_js'      => 0,
+								'word_export'  => 1,
+							] );
+						}
+						catch ( \Throwable $e )
+						{
+							try { \IPS\Log::log( 'gddealer email subject save (' . $tpl . ' lang ' . (int) $langId . '): ' . $e->getMessage(), 'gddealer' ); } catch ( \Throwable ) {}
+						}
+					}
+				}
+				catch ( \Throwable $e )
+				{
+					try { \IPS\Log::log( 'gddealer email subject save (' . $tpl . ' lang loop): ' . $e->getMessage(), 'gddealer' ); } catch ( \Throwable ) {}
+				}
 			};
 
-			$updateEmail( 'dealerWelcome',     $values['gddealer_email_welcome_subject'],  $values['gddealer_email_welcome_body'] );
-			$updateEmail( 'trialExpiringSoon', $values['gddealer_email_expiring_subject'], $values['gddealer_email_expiring_body'] );
-			$updateEmail( 'trialExpired',      $values['gddealer_email_expired_subject'],  $values['gddealer_email_expired_body'] );
+			$updateEmail( 'dealerWelcome',     (string) $values['gddealer_email_welcome_subject'],  (string) $values['gddealer_email_welcome_body'] );
+			$updateEmail( 'trialExpiringSoon', (string) $values['gddealer_email_expiring_subject'], (string) $values['gddealer_email_expiring_body'] );
+			$updateEmail( 'trialExpired',      (string) $values['gddealer_email_expired_subject'],  (string) $values['gddealer_email_expired_body'] );
+
+			/* Language cache MUST be invalidated so the freshly-saved
+			   subject lang key is used on the next email send instead
+			   of a stale cached value. Applies to buildFromTemplate()
+			   subject lookup and any UI display of the same key. */
+			try { \IPS\Data\Store::i()->clearAll(); } catch ( \Throwable ) {}
+			try { \IPS\Data\Cache::i()->clearAll(); } catch ( \Throwable ) {}
 
 			\IPS\Output::i()->redirect(
 				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=settings' ),
