@@ -208,7 +208,7 @@ class _leaderboard extends \IPS\Dispatcher\Controller
 
 		$prefix = \IPS\Db::i()->prefix;
 		$sql = "SELECT
-				d.dealer_id, d.dealer_name, d.dealer_slug,
+				d.dealer_id, MAX(d.dealer_name) AS dealer_name, MAX(d.dealer_slug) AS dealer_slug,
 				COALESCE(AVG((r.rating_pricing + r.rating_shipping + r.rating_service) / 3), 0) AS avg_rating,
 				COUNT(DISTINCT r.id) AS review_count,
 				COUNT(DISTINCT l.id) AS listing_count,
@@ -254,7 +254,7 @@ class _leaderboard extends \IPS\Dispatcher\Controller
 		}
 
 		$sql = "SELECT
-				d.dealer_id, d.dealer_name, d.dealer_slug,
+				d.dealer_id, MAX(d.dealer_name) AS dealer_name, MAX(d.dealer_slug) AS dealer_slug,
 				SUM( CASE WHEN s.rank_position = 1 THEN 1 ELSE 0 END ) AS times_cheapest,
 				COUNT(s.id) AS ranked_items,
 				AVG(s.price_delta_pct) AS avg_delta_pct
