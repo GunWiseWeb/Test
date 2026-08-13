@@ -15,5 +15,10 @@ class _Application extends \IPS\Application
 	{
 		return 'tags';
 	}
+
+	public function installOther()
+	{
+		require_once \IPS\ROOT_PATH . '/applications/gdrebates/setup/install.php';
+	}
 }
 class Application extends _Application {}

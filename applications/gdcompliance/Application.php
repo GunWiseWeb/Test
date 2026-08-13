@@ -15,6 +15,11 @@ class _Application extends \IPS\Application
 	{
 		return 'shield-alt';
 	}
+
+	public function installOther()
+	{
+		require_once \IPS\ROOT_PATH . '/applications/gdcompliance/setup/install.php';
+	}
 }
 
 class Application extends _Application {}

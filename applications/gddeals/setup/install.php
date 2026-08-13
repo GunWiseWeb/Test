@@ -115,7 +115,79 @@ foreach ( array_keys( $categories ) as $catId )
 	}
 }
 
+/* ── Seed core_theme_templates from every .phtml file under dev/html ──
+   Production doesn't read dev/html at runtime; every template
+   needs a real row in core_theme_templates or IN_DEV=false pages
+   throw ErrorException: template_store_missing (0). No IPS-native
+   sync-dev-to-prod call exists in this stack (rule #4 forbids the
+   theme.xml route), so this app reads its own dev/html tree here.
+   DELETE-then-INSERT keyed on (app, location, group, name,
+   set_id=1) avoids duplicate rows and doesn't require a unique
+   constraint that may or may not be present on 5.0.18.
+   Rule #45 columns only — never write template_user_ columns. */
+try
+{
+	$__gdRoot = \IPS\ROOT_PATH . '/applications/gddeals/dev/html';
+	if ( is_dir( $__gdRoot ) )
+	{
+		$__gdIt = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $__gdRoot, \FilesystemIterator::SKIP_DOTS ) );
+		foreach ( $__gdIt as $__gdF )
+		{
+			if ( !$__gdF->isFile() || strtolower( $__gdF->getExtension() ) !== 'phtml' ) { continue; }
+			$__gdRel = trim( str_replace( $__gdRoot, '', $__gdF->getPathname() ), "/\\" );
+			$__gdParts = preg_split( '#[/\\\\]#', $__gdRel );
+			if ( count( $__gdParts ) < 3 ) { continue; }
+			$__gdLoc   = (string) $__gdParts[0];
+			$__gdGrp   = (string) $__gdParts[1];
+			$__gdName  = pathinfo( (string) end( $__gdParts ), PATHINFO_FILENAME );
+			$__gdRaw   = (string) @file_get_contents( $__gdF->getPathname() );
+			if ( $__gdRaw === '' ) { continue; }
+			$__gdParams = '';
+			if ( preg_match( '#<ips:template\s+parameters="([^"]*)"\s*/>#', $__gdRaw, $__gdM ) )
+			{
+				$__gdParams = (string) $__gdM[1];
+			}
+			$__gdContent = preg_replace( '#^\s*<ips:template[^>]*/>\s*\r?\n?#', '', $__gdRaw, 1 );
+			try
+			{
+				\IPS\Db::i()->delete( 'core_theme_templates', [
+					'template_app=? AND template_location=? AND template_group=? AND template_name=? AND template_set_id=?',
+					'gddeals', $__gdLoc, $__gdGrp, $__gdName, 1
+				] );
+			}
+			catch ( \Throwable ) {}
+			try
+			{
+				\IPS\Db::i()->insert( 'core_theme_templates', [
+					'template_set_id'         => 1,
+					'template_app'            => 'gddeals',
+					'template_location'       => $__gdLoc,
+					'template_group'          => $__gdGrp,
+					'template_name'           => $__gdName,
+					'template_data'           => $__gdParams,
+					'template_content'        => (string) $__gdContent,
+					'template_updated'        => time(),
+					'template_version'        => '1.0.61',
+					'template_master_key'     => '',
+					'template_has_hookpoints' => 0,
+				] );
+			}
+			catch ( \Throwable $__gdE )
+			{
+				try { \IPS\Log::log( 'gddeals tpl sync (' . $__gdName . '): ' . $__gdE->getMessage(), 'gddeals_tpl_sync' ); } catch ( \Throwable ) {}
+			}
+		}
+	}
+}
+catch ( \Throwable $__gdE )
+{
+	try { \IPS\Log::log( 'gddeals tpl sync loop: ' . $__gdE->getMessage(), 'gddeals_tpl_sync' ); } catch ( \Throwable ) {}
+}
+
 /* ── Clear caches ── */
 try { unset( \IPS\Data\Store::i()->extensions ); }   catch ( \Throwable ) {}
 try { unset( \IPS\Data\Store::i()->applications ); } catch ( \Throwable ) {}
+try { unset( \IPS\Data\Store::i()->themes ); }       catch ( \Throwable ) {}
+foreach ( glob( \IPS\ROOT_PATH . '/datastore/template_*' ) ?: [] as $__gdCf ) { @unlink( $__gdCf ); }
+try { \IPS\Data\Store::i()->clearAll(); }             catch ( \Throwable ) {}
 try { \IPS\Data\Cache::i()->clearAll(); }             catch ( \Throwable ) {}
