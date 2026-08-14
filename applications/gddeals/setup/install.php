@@ -158,7 +158,7 @@ try
 					'template_name'     => $__gdName,
 					'template_data'     => $__gdParams,
 					'template_updated'  => time(),
-					'template_version'  => '1.0.62',
+					'template_version'  => '1.0.63',
 					'template_content'  => (string) $__gdContent,
 				] );
 			}

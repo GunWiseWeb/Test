@@ -1,11 +1,11 @@
 <?php
 /**
- * @brief  GD Rebates — upgrade 1.0.16 (CORRECTED template seed — v1.0.15 broke globalTemplate).
+ * @brief  GD Rebates — upgrade 1.0.17 (CORRECTED template seed — v1.0.15 broke globalTemplate).
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  *
- * WHAT SHIPS IN 1.0.16 — CORRECTION OF 1.0.15
+ * WHAT SHIPS IN 1.0.17 — CORRECTION OF 1.0.15
  *   v1.0.15 seeded core_theme_templates rows with 11 columns,
  *   including template_master_key='' and template_has_hookpoints=0.
  *   template_master_key='' has SPECIFIC meaning in IPS theme
@@ -30,7 +30,7 @@
  * Rule #79: upg_10015 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdrebates\setup\upg_10016;
+namespace IPS\gdrebates\setup\upg_10017;
 
 use function defined;
 use function function_exists;
@@ -46,7 +46,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdrebates';
-		$version = '1.0.16';
+		$version = '1.0.17';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -88,13 +88,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10016 tpl (' . $name . '): ' . $e->getMessage(), 'gdrebates_upg_10016' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10017 tpl (' . $name . '): ' . $e->getMessage(), 'gdrebates_upg_10017' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10016 tpl loop: ' . $e->getMessage(), 'gdrebates_upg_10016' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10017 tpl loop: ' . $e->getMessage(), 'gdrebates_upg_10017' ); } catch ( \Throwable ) {}
 			}
 		}
 

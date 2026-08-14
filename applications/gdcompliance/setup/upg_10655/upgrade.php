@@ -1,47 +1,38 @@
 <?php
 /**
- * @brief  GD Deals — upgrade 1.0.62 (CORRECTED template seed — v1.0.61 broke globalTemplate).
+ * @brief  GD Compliance — upgrade 1.6.55 (CORRECTED template seed — v1.6.53 broke globalTemplate).
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  *
- * WHAT SHIPS IN 1.0.62 — CORRECTION OF 1.0.61
- *   v1.0.61 seeded core_theme_templates rows with 11 columns
+ * WHAT SHIPS IN 1.6.55 — CORRECTION OF 1.6.53
+ *   v1.6.53 seeded core_theme_templates rows with 11 columns,
  *   including template_master_key='' and template_has_hookpoints=0.
- *   Setting template_master_key='' has SPECIFIC meaning in IPS
- *   theme resolution — it flags the row as A MASTER TEMPLATE.
- *   When my inserted rows collided with the core theme's own
- *   master hierarchy, IPS's theme compilation crashed on the very
- *   next render, taking core/front/global/globalTemplate with it
- *   and blanking the whole site with "This theme may be out of
- *   date. Run the support tool in the AdminCP to restore the
- *   default theme." Derrick manually DELETEd the 4 apps' rows to
- *   recover the front page.
+ *   template_master_key='' has SPECIFIC meaning in IPS theme
+ *   resolution — it flags the row as A MASTER TEMPLATE. Those
+ *   inserted rows collided with the core theme's master hierarchy
+ *   and crashed core/front/global/globalTemplate. Derrick manually
+ *   DELETEd the 4 apps' rows to recover the front page.
  *
  *   The correct pattern is what gddealer's proven working seeds
- *   have used for 300+ versions: exactly 9 columns, no
- *   template_master_key, no template_has_hookpoints. Let IPS
- *   provide its own defaults for anything not explicitly set —
- *   the defaults ARE the "safe non-master, no-hookpoints" state.
- *   \IPS\Db::i()->replace() (INSERT ... ON DUPLICATE KEY UPDATE)
- *   is idiomatic to gddealer's overlays and does not require a
- *   separate DELETE.
- *
- *   This upgrade seeds the 8 gddeals templates using that exact
- *   9-column pattern. No other changes; no schema, no lang.
+ *   use: exactly 9 columns, no template_master_key, no
+ *   template_has_hookpoints. Let IPS provide defaults for anything
+ *   not set explicitly. \IPS\Db::i()->replace() is idiomatic.
  *
  * WHAT THIS UPGRADE DOES
- *   1. Reads every applications/gddeals/dev/html/{location}/
+ *   1. Reads every applications/gdcompliance/dev/html/{location}/
  *      {group}/{name}.phtml, extracts <ips:template
  *      parameters="…"/> first line into template_data, stores
  *      the remaining body as template_content, and replace()s.
  *   2. Full datastore / template-store / opcache purge.
  *
- * NO schema change. NO data/theme.xml touched.
- * Rule #79: upg_10061 removed, exactly one upg dir per app.
+ * NO schema change. NO data/theme.xml touched. Existing ruleset /
+ * AWB / PICA / lang / notification / permission rows are NOT
+ * touched — templates only.
+ * Rule #79: upg_10653 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gddeals\setup\upg_10062;
+namespace IPS\gdcompliance\setup\upg_10655;
 
 use function defined;
 use function function_exists;
@@ -56,8 +47,8 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		$app     = 'gddeals';
-		$version = '1.0.62';
+		$app     = 'gdcompliance';
+		$version = '1.6.55';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -99,17 +90,16 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10062 tpl (' . $name . '): ' . $e->getMessage(), 'gddeals_upg_10062' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10655 tpl (' . $name . '): ' . $e->getMessage(), 'gdcompliance_upg_10655' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10062 tpl loop: ' . $e->getMessage(), 'gddeals_upg_10062' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10655 tpl loop: ' . $e->getMessage(), 'gdcompliance_upg_10655' ); } catch ( \Throwable ) {}
 			}
 		}
 
-		/* Cache / datastore / opcache purge. */
 		try { \IPS\Db::i()->delete( 'core_cache' ); }                                                                catch ( \Throwable ) {}
 		try { \IPS\Db::i()->delete( 'core_store', [ "store_key LIKE 'theme_%' OR store_key LIKE 'template_%'" ] ); } catch ( \Throwable ) {}
 		foreach ( glob( \IPS\ROOT_PATH . '/datastore/template_*' ) ?: [] as $x ) { @unlink( $x ); }
@@ -126,9 +116,7 @@ class _upgrade
 		   the on-disk /datastore/template_*.php compiled classes on the
 		   next request. Without this, IPS trusts whatever compiled files
 		   are already on disk and our fresh core_theme_templates rows
-		   are effectively ignored. This is the missing step that made
-		   the v1.0.61 rollback not fully take. Also unlinks any surviving
-		   compiled artifacts and forces the master theme to recompile. */
+		   are effectively ignored. */
 		try { \IPS\Db::i()->update( 'core_themes', [ 'set_cache_key' => md5( microtime() . mt_rand() ) ] ); } catch ( \Throwable ) {}
 		try { \IPS\Theme::deleteCompiledTemplate(); } catch ( \Throwable ) {}
 		foreach ( glob( \IPS\ROOT_PATH . '/datastore/theme_*' ) ?: [] as $x ) { @unlink( $x ); }

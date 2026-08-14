@@ -1,38 +1,39 @@
 <?php
 /**
- * @brief  GD Compliance — upgrade 1.6.54 (CORRECTED template seed — v1.6.53 broke globalTemplate).
+ * @brief  GD Bills — upgrade 1.0.19 (CORRECTED template seed — v1.0.17 broke globalTemplate).
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  *
- * WHAT SHIPS IN 1.6.54 — CORRECTION OF 1.6.53
- *   v1.6.53 seeded core_theme_templates rows with 11 columns,
+ * WHAT SHIPS IN 1.0.19 — CORRECTION OF 1.0.17
+ *   v1.0.17 seeded core_theme_templates rows with 11 columns,
  *   including template_master_key='' and template_has_hookpoints=0.
  *   template_master_key='' has SPECIFIC meaning in IPS theme
  *   resolution — it flags the row as A MASTER TEMPLATE. Those
  *   inserted rows collided with the core theme's master hierarchy
- *   and crashed core/front/global/globalTemplate. Derrick manually
+ *   and crashed core/front/global/globalTemplate on the very next
+ *   render ("This theme may be out of date"). Derrick manually
  *   DELETEd the 4 apps' rows to recover the front page.
  *
  *   The correct pattern is what gddealer's proven working seeds
- *   use: exactly 9 columns, no template_master_key, no
- *   template_has_hookpoints. Let IPS provide defaults for anything
- *   not set explicitly. \IPS\Db::i()->replace() is idiomatic.
+ *   have used for 300+ versions: exactly 9 columns, no
+ *   template_master_key, no template_has_hookpoints. Let IPS
+ *   provide safe defaults for anything not set explicitly.
+ *   \IPS\Db::i()->replace() is idiomatic to gddealer's overlays
+ *   and doesn't require a separate DELETE step.
  *
  * WHAT THIS UPGRADE DOES
- *   1. Reads every applications/gdcompliance/dev/html/{location}/
+ *   1. Reads every applications/gdbills/dev/html/{location}/
  *      {group}/{name}.phtml, extracts <ips:template
  *      parameters="…"/> first line into template_data, stores
  *      the remaining body as template_content, and replace()s.
  *   2. Full datastore / template-store / opcache purge.
  *
- * NO schema change. NO data/theme.xml touched. Existing ruleset /
- * AWB / PICA / lang / notification / permission rows are NOT
- * touched — templates only.
- * Rule #79: upg_10653 removed, exactly one upg dir per app.
+ * NO schema change. NO data/theme.xml touched.
+ * Rule #79: upg_10017 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcompliance\setup\upg_10654;
+namespace IPS\gdbills\setup\upg_10019;
 
 use function defined;
 use function function_exists;
@@ -47,8 +48,8 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		$app     = 'gdcompliance';
-		$version = '1.6.54';
+		$app     = 'gdbills';
+		$version = '1.0.19';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -90,13 +91,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10654 tpl (' . $name . '): ' . $e->getMessage(), 'gdcompliance_upg_10654' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10019 tpl (' . $name . '): ' . $e->getMessage(), 'gdbills_upg_10019' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10654 tpl loop: ' . $e->getMessage(), 'gdcompliance_upg_10654' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10019 tpl loop: ' . $e->getMessage(), 'gdbills_upg_10019' ); } catch ( \Throwable ) {}
 			}
 		}
 

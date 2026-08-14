@@ -56,7 +56,7 @@ try
 					'template_name'     => $__gdName,
 					'template_data'     => $__gdParams,
 					'template_updated'  => time(),
-					'template_version'  => '1.6.54',
+					'template_version'  => '1.6.55',
 					'template_content'  => (string) $__gdContent,
 				] );
 			}
