@@ -1,41 +1,39 @@
 <?php
 /**
- * @brief  GD Rebates — upgrade 1.0.15 (SITE-WIDE OUTAGE FIX: seed core_theme_templates).
+ * @brief  GD Bills — upgrade 1.0.18 (CORRECTED template seed — v1.0.17 broke globalTemplate).
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  *
- * WHAT SHIPS IN 1.0.15
- *   Rebates browse page threw
- *   ErrorException: template_store_missing (0) with IN_DEV=false
- *   because core_theme_templates had ZERO gdrebates rows despite
- *   1 valid .phtml file in dev/html/. Root cause: no seeding
- *   code existed anywhere in setup/, AND no setup/install.php file
- *   existed AT ALL. Dev mode masked it via a dev/html live-read
- *   fallback path, which is why the outage only surfaced once
- *   IN_DEV flipped false.
+ * WHAT SHIPS IN 1.0.18 — CORRECTION OF 1.0.17
+ *   v1.0.17 seeded core_theme_templates rows with 11 columns,
+ *   including template_master_key='' and template_has_hookpoints=0.
+ *   template_master_key='' has SPECIFIC meaning in IPS theme
+ *   resolution — it flags the row as A MASTER TEMPLATE. Those
+ *   inserted rows collided with the core theme's master hierarchy
+ *   and crashed core/front/global/globalTemplate on the very next
+ *   render ("This theme may be out of date"). Derrick manually
+ *   DELETEd the 4 apps' rows to recover the front page.
  *
- *   Companion changes shipped in this version:
- *     - Application.php gains installOther() (was missing).
- *     - setup/install.php created for the first time — runs the
- *       template sync helper.
- *
- *   Delete-then-insert keyed on (app, location, group, name,
- *   set_id=1) avoids duplicates without depending on any unique
- *   constraint. Rule #45 safe columns only.
+ *   The correct pattern is what gddealer's proven working seeds
+ *   have used for 300+ versions: exactly 9 columns, no
+ *   template_master_key, no template_has_hookpoints. Let IPS
+ *   provide safe defaults for anything not set explicitly.
+ *   \IPS\Db::i()->replace() is idiomatic to gddealer's overlays
+ *   and doesn't require a separate DELETE step.
  *
  * WHAT THIS UPGRADE DOES
- *   1. Reads every applications/gdrebates/dev/html/{location}/
+ *   1. Reads every applications/gdbills/dev/html/{location}/
  *      {group}/{name}.phtml, extracts <ips:template
  *      parameters="…"/> first line into template_data, stores
- *      the remaining body as template_content, and inserts fresh.
+ *      the remaining body as template_content, and replace()s.
  *   2. Full datastore / template-store / opcache purge.
  *
  * NO schema change. NO data/theme.xml touched.
- * Rule #79: upg_10014 removed, exactly one upg dir per app.
+ * Rule #79: upg_10017 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdrebates\setup\upg_10015;
+namespace IPS\gdbills\setup\upg_10018;
 
 use function defined;
 use function function_exists;
@@ -50,8 +48,8 @@ class _upgrade
 {
 	public function step1(): bool
 	{
-		$app     = 'gdrebates';
-		$version = '1.0.15';
+		$app     = 'gdbills';
+		$version = '1.0.18';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -79,42 +77,30 @@ class _upgrade
 
 					try
 					{
-						\IPS\Db::i()->delete( 'core_theme_templates', [
-							'template_app=? AND template_location=? AND template_group=? AND template_name=? AND template_set_id=?',
-							$app, $location, $group, $name, 1
-						] );
-					}
-					catch ( \Throwable ) {}
-
-					try
-					{
-						\IPS\Db::i()->insert( 'core_theme_templates', [
-							'template_set_id'         => 1,
-							'template_app'            => $app,
-							'template_location'       => $location,
-							'template_group'          => $group,
-							'template_name'           => $name,
-							'template_data'           => $params,
-							'template_content'        => (string) $content,
-							'template_updated'        => time(),
-							'template_version'        => $version,
-							'template_master_key'     => '',
-							'template_has_hookpoints' => 0,
+						\IPS\Db::i()->replace( 'core_theme_templates', [
+							'template_set_id'   => 1,
+							'template_app'      => $app,
+							'template_location' => $location,
+							'template_group'    => $group,
+							'template_name'     => $name,
+							'template_data'     => $params,
+							'template_updated'  => time(),
+							'template_version'  => $version,
+							'template_content'  => (string) $content,
 						] );
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10015 tpl (' . $name . '): ' . $e->getMessage(), 'gdrebates_upg_10015' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10018 tpl (' . $name . '): ' . $e->getMessage(), 'gdbills_upg_10018' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10015 tpl loop: ' . $e->getMessage(), 'gdrebates_upg_10015' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10018 tpl loop: ' . $e->getMessage(), 'gdbills_upg_10018' ); } catch ( \Throwable ) {}
 			}
 		}
 
-		/* Cache / datastore / opcache purge. */
 		try { \IPS\Db::i()->delete( 'core_cache' ); }                                                                catch ( \Throwable ) {}
 		try { \IPS\Db::i()->delete( 'core_store', [ "store_key LIKE 'theme_%' OR store_key LIKE 'template_%'" ] ); } catch ( \Throwable ) {}
 		foreach ( glob( \IPS\ROOT_PATH . '/datastore/template_*' ) ?: [] as $x ) { @unlink( $x ); }

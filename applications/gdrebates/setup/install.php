@@ -43,26 +43,16 @@ try
 			$__gdContent = preg_replace( '#^\s*<ips:template[^>]*/>\s*\r?\n?#', '', $__gdRaw, 1 );
 			try
 			{
-				\IPS\Db::i()->delete( 'core_theme_templates', [
-					'template_app=? AND template_location=? AND template_group=? AND template_name=? AND template_set_id=?',
-					'gdrebates', $__gdLoc, $__gdGrp, $__gdName, 1
-				] );
-			}
-			catch ( \Throwable ) {}
-			try
-			{
-				\IPS\Db::i()->insert( 'core_theme_templates', [
-					'template_set_id'         => 1,
-					'template_app'            => 'gdrebates',
-					'template_location'       => $__gdLoc,
-					'template_group'          => $__gdGrp,
-					'template_name'           => $__gdName,
-					'template_data'           => $__gdParams,
-					'template_content'        => (string) $__gdContent,
-					'template_updated'        => time(),
-					'template_version'        => '1.0.15',
-					'template_master_key'     => '',
-					'template_has_hookpoints' => 0,
+				\IPS\Db::i()->replace( 'core_theme_templates', [
+					'template_set_id'   => 1,
+					'template_app'      => 'gdrebates',
+					'template_location' => $__gdLoc,
+					'template_group'    => $__gdGrp,
+					'template_name'     => $__gdName,
+					'template_data'     => $__gdParams,
+					'template_updated'  => time(),
+					'template_version'  => '1.0.16',
+					'template_content'  => (string) $__gdContent,
 				] );
 			}
 			catch ( \Throwable $__gdE )
