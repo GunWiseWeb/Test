@@ -158,7 +158,7 @@ try
 					'template_name'     => $__gdName,
 					'template_data'     => $__gdParams,
 					'template_updated'  => time(),
-					'template_version'  => '1.0.63',
+					'template_version'  => '1.0.64',
 					'template_content'  => (string) $__gdContent,
 				] );
 			}
@@ -172,6 +172,105 @@ try
 catch ( \Throwable $__gdE )
 {
 	try { \IPS\Log::log( 'gddeals tpl sync loop: ' . $__gdE->getMessage(), 'gddeals_tpl_sync' ); } catch ( \Throwable ) {}
+}
+
+/* ── CSS self-heal: import dev/css → core_theme_css → write compiled
+      file → inject set_css_map entry ──
+
+   Backstory: on prod the standard install pipeline left gddeals with
+   ZERO rows in core_theme_css AND no compiled file at
+   uploads/css_built_1/gddeals_front_deals.css AND a `null`-valued
+   set_css_map entry — so \IPS\Theme::i()->css('deals.css','gddeals','front')
+   returned an empty array and browse.php never linked the stylesheet.
+   Result: front-page rendered raw HTML with no gddeals styling.
+
+   Fix, three steps, all idempotent:
+
+   1. \IPS\Theme\Dev\Theme::importDevCss('gddeals', 0) — populates
+      core_theme_css from dev/css/*. Safe to re-run.
+   2. Write each CSS row's content to
+      uploads/css_built_1/<app>_<location>_<name>.css directly. IPS's
+      own compileCss() has been observed to silently skip rows in
+      this app's case, so we do it ourselves from the DB row content.
+   3. Compute the same md5 hash IPS uses (via
+      Theme::makeBuiltTemplateLookupHash) and inject
+      hash => 'css_built_1/<file>' into core_themes.set_css_map so
+      \IPS\Theme::i()->css() returns the URL on lookup. */
+try
+{
+	\IPS\Theme\Dev\Theme::importDevCss( 'gddeals', 0 );
+}
+catch ( \Throwable $__gdE )
+{
+	try { \IPS\Log::log( 'gddeals css importDevCss: ' . $__gdE->getMessage(), 'gddeals_css_sync' ); } catch ( \Throwable ) {}
+}
+
+try
+{
+	$__gdBuiltDir = \IPS\ROOT_PATH . '/uploads/css_built_1';
+	if ( !is_dir( $__gdBuiltDir ) ) { @mkdir( $__gdBuiltDir, 0755, TRUE ); }
+
+	$__gdHashMethod = NULL;
+	try
+	{
+		$__gdRc = new \ReflectionClass( '\IPS\Theme' );
+		if ( $__gdRc->hasMethod( 'makeBuiltTemplateLookupHash' ) )
+		{
+			$__gdHashMethod = $__gdRc->getMethod( 'makeBuiltTemplateLookupHash' );
+			$__gdHashMethod->setAccessible( TRUE );
+		}
+	}
+	catch ( \Throwable ) {}
+
+	$__gdMapRow = NULL;
+	try { $__gdMapRow = \IPS\Db::i()->select( 'set_id, set_css_map', 'core_themes', [ 'set_id=?', 1 ] )->first(); }
+	catch ( \Throwable ) {}
+	$__gdMap = ( $__gdMapRow && !empty( $__gdMapRow['set_css_map'] ) ) ? ( json_decode( $__gdMapRow['set_css_map'], TRUE ) ?: [] ) : [];
+
+	foreach ( \IPS\Db::i()->select( 'css_location, css_path, css_name, css_content', 'core_theme_css', [ 'css_app=?', 'gddeals' ] ) as $__gdCssRow )
+	{
+		$__gdLoc  = (string) $__gdCssRow['css_location'];
+		$__gdName = (string) $__gdCssRow['css_name'];
+		if ( $__gdLoc === '' || $__gdName === '' ) { continue; }
+
+		$__gdBuiltFile = 'gddeals_' . $__gdLoc . '_' . $__gdName;
+		$__gdDest      = $__gdBuiltDir . '/' . $__gdBuiltFile;
+		try
+		{
+			file_put_contents( $__gdDest, (string) $__gdCssRow['css_content'] );
+			@chmod( $__gdDest, 0644 );
+		}
+		catch ( \Throwable $__gdE )
+		{
+			try { \IPS\Log::log( 'gddeals css write (' . $__gdBuiltFile . '): ' . $__gdE->getMessage(), 'gddeals_css_sync' ); } catch ( \Throwable ) {}
+		}
+
+		if ( $__gdHashMethod && $__gdMapRow )
+		{
+			try
+			{
+				$__gdKey = $__gdHashMethod->invoke( NULL, 'gddeals', $__gdLoc, './' . $__gdName );
+				$__gdMap[ $__gdKey ] = 'css_built_1/' . $__gdBuiltFile;
+			}
+			catch ( \Throwable $__gdE )
+			{
+				try { \IPS\Log::log( 'gddeals css map hash (' . $__gdBuiltFile . '): ' . $__gdE->getMessage(), 'gddeals_css_sync' ); } catch ( \Throwable ) {}
+			}
+		}
+	}
+
+	if ( $__gdMapRow && $__gdHashMethod )
+	{
+		try { \IPS\Db::i()->update( 'core_themes', [ 'set_css_map' => json_encode( $__gdMap ) ], [ 'set_id=?', 1 ] ); }
+		catch ( \Throwable $__gdE )
+		{
+			try { \IPS\Log::log( 'gddeals css_map update: ' . $__gdE->getMessage(), 'gddeals_css_sync' ); } catch ( \Throwable ) {}
+		}
+	}
+}
+catch ( \Throwable $__gdE )
+{
+	try { \IPS\Log::log( 'gddeals css sync loop: ' . $__gdE->getMessage(), 'gddeals_css_sync' ); } catch ( \Throwable ) {}
 }
 
 /* ── Clear caches ── */
