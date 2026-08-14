@@ -109,6 +109,17 @@ class _upgrade
 		try { unset( \IPS\Data\Store::i()->themes ); }             catch ( \Throwable ) {}
 		try { \IPS\Data\Store::i()->clearAll(); }                  catch ( \Throwable ) {}
 		try { \IPS\Data\Cache::i()->clearAll(); }                  catch ( \Throwable ) {}
+
+		/* CRITICAL — rotate core_themes.set_cache_key so IPS regenerates
+		   the on-disk /datastore/template_*.php compiled classes on the
+		   next request. Without this, IPS trusts whatever compiled files
+		   are already on disk and our fresh core_theme_templates rows
+		   are effectively ignored. */
+		try { \IPS\Db::i()->update( 'core_themes', [ 'set_cache_key' => md5( microtime() . mt_rand() ) ] ); } catch ( \Throwable ) {}
+		try { \IPS\Theme::deleteCompiledTemplate(); } catch ( \Throwable ) {}
+		foreach ( glob( \IPS\ROOT_PATH . '/datastore/theme_*' ) ?: [] as $x ) { @unlink( $x ); }
+		try { \IPS\Theme::master()->recompileTemplates(); } catch ( \Throwable ) {}
+
 		if ( function_exists( 'opcache_reset' ) ) { @opcache_reset(); }
 
 		return TRUE;
