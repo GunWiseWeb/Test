@@ -890,3 +890,78 @@ try
 }
 catch ( \Throwable ) {}
 
+
+/* ── Template re-sync from dev/html/ (overrides the hardcoded
+      $templates array above so dev/html/ is always source of
+      truth) ──
+
+   The hardcoded $templates array at the top of this file was
+   snapshotted at some earlier point in the app's development.
+   Templates edited in dev/html/ since then (beta notice on hub,
+   any other edits) never reached prod because install.php's
+   hardcoded bodies stayed stale.
+
+   This block walks dev/html/{location}/{group}/{name}.phtml,
+   extracts the <ips:template parameters="..." /> first line into
+   template_data, and \IPS\Db::i()->replace()s the row using
+   only the 9 columns from gddealer's proven working seed pattern
+   (no template_master_key literal, no template_has_hookpoints).
+   Because it runs AFTER the hardcoded array loop, its writes win
+   on every install. Same helper is embedded in upg_XXXXX so
+   existing installs get the same fix without reinstalling. */
+try
+{
+	$__gdRoot = \IPS\ROOT_PATH . '/applications/gdloadout/dev/html';
+	if ( is_dir( $__gdRoot ) )
+	{
+		$__gdIt = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $__gdRoot, \FilesystemIterator::SKIP_DOTS ) );
+		foreach ( $__gdIt as $__gdF )
+		{
+			if ( !$__gdF->isFile() || strtolower( $__gdF->getExtension() ) !== 'phtml' ) { continue; }
+			$__gdRel = trim( str_replace( $__gdRoot, '', $__gdF->getPathname() ), "/\\" );
+			$__gdParts = preg_split( '#[/\\\\]#', $__gdRel );
+			if ( count( $__gdParts ) < 3 ) { continue; }
+			$__gdLoc  = (string) $__gdParts[0];
+			$__gdGrp  = (string) $__gdParts[1];
+			$__gdName = pathinfo( (string) end( $__gdParts ), PATHINFO_FILENAME );
+			$__gdRaw  = (string) @file_get_contents( $__gdF->getPathname() );
+			if ( $__gdRaw === '' ) { continue; }
+			$__gdParams = '';
+			if ( preg_match( '#<ips:template\s+parameters="([^"]*)"\s*/>#', $__gdRaw, $__gdM ) )
+			{
+				$__gdParams = (string) $__gdM[1];
+			}
+			$__gdContent = preg_replace( '#^\s*<ips:template[^>]*/>\s*\r?\n?#', '', $__gdRaw, 1 );
+			try
+			{
+				\IPS\Db::i()->replace( 'core_theme_templates', [
+					'template_set_id'   => 1,
+					'template_app'      => 'gdloadout',
+					'template_location' => $__gdLoc,
+					'template_group'    => $__gdGrp,
+					'template_name'     => $__gdName,
+					'template_data'     => $__gdParams,
+					'template_updated'  => time(),
+					'template_version'  => '1.0.78',
+					'template_content'  => (string) $__gdContent,
+				] );
+			}
+			catch ( \Throwable $__gdE )
+			{
+				try { \IPS\Log::log( 'gdloadout tpl sync (' . $__gdName . '): ' . $__gdE->getMessage(), 'gdloadout_tpl_sync' ); } catch ( \Throwable ) {}
+			}
+		}
+	}
+}
+catch ( \Throwable $__gdE )
+{
+	try { \IPS\Log::log( 'gdloadout tpl sync loop: ' . $__gdE->getMessage(), 'gdloadout_tpl_sync' ); } catch ( \Throwable ) {}
+}
+
+/* Bust theme caches so re-seeded rows are picked up. */
+try { \IPS\Db::i()->delete( 'core_store', [ "store_key LIKE 'theme_%' OR store_key LIKE 'template_%'" ] ); } catch ( \Throwable ) {}
+foreach ( glob( \IPS\ROOT_PATH . '/datastore/template_*' ) ?: [] as $__gdCf ) { @unlink( $__gdCf ); }
+try { \IPS\Db::i()->update( 'core_themes', [ 'set_cache_key' => md5( microtime() . mt_rand() ) ] ); } catch ( \Throwable ) {}
+try { unset( \IPS\Data\Store::i()->themes ); }                                                        catch ( \Throwable ) {}
+try { \IPS\Data\Store::i()->clearAll(); }                                                             catch ( \Throwable ) {}
+try { \IPS\Data\Cache::i()->clearAll(); }                                                             catch ( \Throwable ) {}
