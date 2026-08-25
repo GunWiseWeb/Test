@@ -997,6 +997,27 @@ class Importer
 				}
 			}
 
+			/* Phase 1 refactor seam — wrap the mapped canonical record
+			   + raw source payload + feed context in a source-neutral
+			   DTO. Immediately expose the canonical map back as an
+			   array so this phase makes zero behavioural change to
+			   the existing downstream pipeline (UPC extraction,
+			   category resolution, product create/update, conflict
+			   resolution, compliance, discontinuation, reindex).
+			   Later phases will progressively refactor the code below
+			   to consume $normalized directly rather than re-reading
+			   $mapped, at which point the toArray() call can be
+			   removed. Introducing the seam here — after mapping +
+			   type-casting + the enrichment _ATTR_* merge, before the
+			   generic-catalog processing begins — keeps this change
+			   independently deployable and reversible.
+			   See gdcatalog Import System Audit (2026-08-25) §6
+			   Phase 1. Deliberately does NOT touch Sports South
+			   coupling below (raw CATID lookup on :1050, accessory
+			   ITATR* lookup on :1063) — those move in later phases. */
+			$normalized = NormalizedRecord::fromMapped( $mapped, $rawRecord, $this->feed );
+			$mapped     = $normalized->toArray();
+
 			/* Extract UPC — skip if missing (Section 2.6) */
 			$rawUpc = $this->fieldMapper->extractUpc( $rawRecord );
 			if ( $rawUpc === null )
