@@ -25,6 +25,7 @@ use IPS\gdcatalog\Feed\Parser\XmlParser;
 use IPS\gdcatalog\Feed\Parser\JsonParser;
 use IPS\gdcatalog\Feed\Parser\CsvParser;
 use IPS\gdcatalog\Feed\Distributor\SportsSouthClient;
+use IPS\gdcatalog\Feed\SourceAdapter\SportsSouthAdapter;
 use IPS\gdcatalog\Feed\UpcValidator;
 use IPS\gdcatalog\Log\ImportLog;
 use IPS\gdcatalog\Compliance\FlagProcessor;
@@ -152,92 +153,16 @@ class Importer
 	const AMMO_CATEGORY_IDS = [ 23, 24, 25, 26, 27, 28, 29, 30 ];
 
 	/**
-	 * v1.0.11: Lazy-loaded brand lookup for Sports South enrichment.
-	 * Keyed by brdno (string) => brdnam.
+	 * v1.0.118 (Phase 2): Sports South enrichment lookup state
+	 * (previously four lazy-loaded properties + SPORTS_SOUTH_ATTR_LABEL_MAP
+	 * on this class) has been moved into SportsSouthAdapter. This
+	 * property holds the per-run adapter instance so lazy-loaded lookup
+	 * tables are shared across every record in one import run — same
+	 * lifetime behaviour as before, just relocated. See
+	 * SportsSouthAdapter and the enrichSportsSouthRecord delegating
+	 * wrapper below.
 	 */
-	protected ?array $sportsSouthBrandLookup = null;
-
-	/**
-	 * v1.0.11: Lazy-loaded category lookup for Sports South enrichment.
-	 * Keyed by catid (string) => catdes.
-	 */
-	protected ?array $sportsSouthCategoryLookup = null;
-
-	/**
-	 * v1.0.15: Lazy-loaded Sports South CATID -> gd_categories.id mapping.
-	 * Keyed by sportssouth catid (string) => gd_category_id (int).
-	 */
-	protected ?array $sportsSouthCategoryMap = null;
-
-	/**
-	 * v1.0.20: Lazy-loaded category attribute label map.
-	 * Keyed by sportssouth catid (string) => array of attr_slot => label
-	 * Example:
-	 *   $sportsSouthCategoryAttrs['94'] = [
-	 *     1 => 'Action Type',
-	 *     2 => 'Caliber',
-	 *     3 => 'Barrel Length',
-	 *     ...
-	 *   ]
-	 * Built from gd_sportssouth_categories.raw_data JSON.
-	 */
-	protected ?array $sportsSouthCategoryAttrs = null;
-
-	/**
-	 * v1.0.20: Class constant mapping Sports South attribute label
-	 * variants to canonical gd_catalog column names.
-	 * Keys are lowercased label substrings. Comparison uses
-	 * mb_strtolower($label) and looks for any of these strings as
-	 * substring matches. First match wins.
-	 */
-	protected const SPORTS_SOUTH_ATTR_LABEL_MAP = [
-		/* Order matters - first match wins.
-		 * More specific labels must come BEFORE less specific ones.
-		 *
-		 * v1.0.27: Added safety/grips/sight/slide/frame material/gun type/weight.
-		 * Note: 'type' must come LAST to avoid stealing 'frame type', 'barrel type', etc. */
-
-		/* Caliber */
-		'caliber'         => 'caliber',
-		'cartridge'       => 'caliber',
-		'gauge'           => 'caliber',
-
-		/* Action type - 'action type' must precede bare 'action' */
-		'action type'     => 'action_type',
-		'operating system' => 'action_type',
-		'action'          => 'action_type',
-
-		/* Lengths - 'barrel length' before bare 'overall length' before 'oal' */
-		'barrel length'   => 'barrel_length',
-		'bbl length'      => 'barrel_length',
-		'barrel len'      => 'barrel_length',
-		'overall length'  => 'overall_length',
-		'oal'             => 'overall_length',
-
-		/* Capacity */
-		'mag capacity'    => 'capacity',
-		'capacity'        => 'capacity',
-		'rounds'          => 'capacity',
-
-		/* Finish / materials - 'frame material' must precede bare 'finish' */
-		'frame material'  => 'frame_material',
-		'stock finish'    => 'finish',
-		'barrel finish'   => 'finish',
-		'frame finish'    => 'finish',
-		'finish'          => 'finish',
-
-		/* v1.0.27 fields */
-		'safety'              => 'safety_type',
-		'grips'               => 'stock_type',
-		'sight configuration' => 'sight_type',
-		'sight'               => 'sight_type',
-		'slide description'   => 'receiver_type',
-		'slide'               => 'receiver_type',
-		'weight'              => 'weight_oz',
-
-		/* MUST come last - bare 'type' catches anything else with 'type' in label */
-		'type'            => 'gun_type',
-	];
+	protected ?SportsSouthAdapter $sportsSouthAdapter = null;
 
 	protected Distributor $feed;
 	protected FieldMapper $fieldMapper;
@@ -614,360 +539,35 @@ class Importer
 	 * @param  array $record  Raw record from SportsSouthClient
 	 * @return array  Enriched record (still keyed by Sports South field names)
 	 */
+	protected function getSportsSouthAdapter(): SportsSouthAdapter
+	{
+		if ( $this->sportsSouthAdapter === null )
+		{
+			$this->sportsSouthAdapter = new SportsSouthAdapter( $this->feed );
+		}
+		return $this->sportsSouthAdapter;
+	}
+
+	/**
+	 * Phase 2 delegating wrapper (v1.0.118).
+	 *
+	 * The enrichment body — plus the four lazy-loaded lookup properties
+	 * and the SPORTS_SOUTH_ATTR_LABEL_MAP constant that back it — moved
+	 * verbatim to SportsSouthAdapter::enrich(). This wrapper is
+	 * preserved so any subclass of Importer that overrode this method,
+	 * and both existing internal call sites (Importer::runChunk :395
+	 * and Importer::fetchFeed :500), continue to work unchanged.
+	 *
+	 * The adapter instance is per-Importer-run (see
+	 * getSportsSouthAdapter above), so lazy-loaded lookup caches have
+	 * the same lifetime they had before this refactor.
+	 *
+	 * @param  array $record  Raw record from SportsSouthClient
+	 * @return array  Enriched record (identical shape to pre-Phase-2 output)
+	 */
 	protected function enrichSportsSouthRecord( array $record ): array
 	{
-		/* Lazy-load brand lookup once per import run */
-		if ( $this->sportsSouthBrandLookup === null )
-		{
-			$this->sportsSouthBrandLookup = [];
-			try
-			{
-				foreach ( \IPS\Db::i()->select( 'brdno, brdnam', 'gd_sportssouth_brands' ) as $brandRow )
-				{
-					$this->sportsSouthBrandLookup[ (string) $brandRow['brdno'] ] = (string) $brandRow['brdnam'];
-				}
-			}
-			catch ( \Throwable ) {}
-		}
-
-		/* Lazy-load category lookup once per import run */
-		if ( $this->sportsSouthCategoryLookup === null )
-		{
-			$this->sportsSouthCategoryLookup = [];
-			try
-			{
-				foreach ( \IPS\Db::i()->select( 'catid, catdes', 'gd_sportssouth_categories' ) as $catRow )
-				{
-					$this->sportsSouthCategoryLookup[ (string) $catRow['catid'] ] = (string) $catRow['catdes'];
-				}
-			}
-			catch ( \Throwable ) {}
-		}
-
-		/* Resolve brand: try IMFGNO first, fall back to ITBRDNO. If neither
-		 * resolves, leave the original IMFGNO value as brand string so admin
-		 * has something to work with on review.
-		 *
-		 * v1.0.27: ALSO track manufacturer separately. If IMFGNO and ITBRDNO
-		 * resolve to DIFFERENT names, treat IMFGNO as manufacturer (the actual
-		 * maker, e.g. "Miroku") and ITBRDNO as brand (consumer-facing, e.g.
-		 * "Browning"). If they're the same, only brand gets set. */
-		$mfgKey = (string) ( $record['IMFGNO']  ?? '' );
-		$brdKey = (string) ( $record['ITBRDNO'] ?? '' );
-
-		$mfgName = ( $mfgKey !== '' && isset( $this->sportsSouthBrandLookup[ $mfgKey ] ) )
-			? $this->sportsSouthBrandLookup[ $mfgKey ]
-			: $mfgKey;
-
-		$brdName = ( $brdKey !== '' && isset( $this->sportsSouthBrandLookup[ $brdKey ] ) )
-			? $this->sportsSouthBrandLookup[ $brdKey ]
-			: $brdKey;
-
-		/* Brand: prefer brdName, fall back to mfgName, fall back to empty */
-		$brandResolved = $brdName !== '' ? $brdName : $mfgName;
-		$record['_BRAND_NAME'] = $brandResolved;
-
-		/* Manufacturer: set only if it differs from the brand */
-		if ( $mfgName !== '' && $mfgName !== $brandResolved )
-		{
-			$record['_MANUFACTURER'] = $mfgName;
-		}
-
-		/* v1.0.27: MPN comes directly from MFGINO field (model number assigned
-		 * by manufacturer). Sports South puts this in MFGINO. */
-		$mfgPartNo = trim( (string) ( $record['MFGINO'] ?? '' ) );
-		if ( $mfgPartNo !== '' )
-		{
-			$record['_MPN'] = $mfgPartNo;
-		}
-
-		/* Lazy-load category map once per import run */
-		if ( $this->sportsSouthCategoryMap === null )
-		{
-			$this->sportsSouthCategoryMap = [];
-			try
-			{
-				foreach ( \IPS\Db::i()->select( 'sportssouth_catid, gd_category_id', 'gd_sportssouth_category_map' ) as $mapRow )
-				{
-					$gdCatId = (int) $mapRow['gd_category_id'];
-					if ( $gdCatId > 0 )
-					{
-						$this->sportsSouthCategoryMap[ (string) $mapRow['sportssouth_catid'] ] = $gdCatId;
-					}
-				}
-			}
-			catch ( \Throwable ) {}
-		}
-
-		/* Resolve category description (informational) */
-		$catKey = (string) ( $record['CATID'] ?? '' );
-		if ( $catKey !== '' && isset( $this->sportsSouthCategoryLookup[ $catKey ] ) )
-		{
-			$record['_CATEGORY_DESC'] = $this->sportsSouthCategoryLookup[ $catKey ];
-		}
-
-		/* v1.0.15: Resolve gd_categories.id from Sports South CATID via mapping table.
-		 * Inject _CATEGORY_ID for the FieldMapper to pick up. */
-		if ( $catKey !== '' && isset( $this->sportsSouthCategoryMap[ $catKey ] ) )
-		{
-			$record['_CATEGORY_ID'] = (string) $this->sportsSouthCategoryMap[ $catKey ];
-		}
-
-		/* v1.0.20: Extract caliber/action/finish/etc from ITATR slots.
-		 *
-		 * Sports South stores per-product attribute VALUES in ITATR1..N.
-		 * The LABEL for each slot is defined per-category in
-		 * gd_sportssouth_categories.raw_data (ATTR1..N).
-		 *
-		 * For example, category "RIFLES CENTERFIRE" might define:
-		 *   ATTR1 = 'Action Type'
-		 *   ATTR2 = 'Caliber'
-		 *   ATTR3 = 'Barrel Length'
-		 *
-		 * And a product in that category has:
-		 *   ITATR1 = 'Bolt Action'
-		 *   ITATR2 = '.308 Winchester'
-		 *   ITATR3 = '24"'
-		 *
-		 * We match labels (case-insensitive substring) to canonical
-		 * column names via SPORTS_SOUTH_ATTR_LABEL_MAP. Each matched
-		 * value gets injected as _CALIBER, _ACTION_TYPE, etc. */
-		if ( $this->sportsSouthCategoryAttrs === null )
-		{
-			$this->sportsSouthCategoryAttrs = [];
-			try
-			{
-				foreach ( \IPS\Db::i()->select( 'catid, raw_data', 'gd_sportssouth_categories' ) as $catRow )
-				{
-					$rawJson = (string) ( $catRow['raw_data'] ?? '' );
-					if ( $rawJson === '' )
-					{
-						continue;
-					}
-					$decoded = json_decode( $rawJson, true );
-					if ( !is_array( $decoded ) )
-					{
-						continue;
-					}
-
-					$attrMap = [];
-					/* ATTR0 through ATTR20 - capture all attribute label slots.
-					 * Slot number is parsed from the key (ATTR0, ATTR1, etc). */
-					foreach ( $decoded as $key => $value )
-					{
-						if ( preg_match( '/^ATTR(\d+)$/i', (string) $key, $m ) )
-						{
-							$slot = (int) $m[1];
-							$label = trim( (string) $value );
-							if ( $label !== '' )
-							{
-								$attrMap[ $slot ] = $label;
-							}
-						}
-					}
-
-					if ( !empty( $attrMap ) )
-					{
-						$this->sportsSouthCategoryAttrs[ (string) $catRow['catid'] ] = $attrMap;
-					}
-				}
-			}
-			catch ( \Throwable ) {}
-		}
-
-		/* Walk this product's category attribute labels and extract values */
-		if ( $catKey !== '' && isset( $this->sportsSouthCategoryAttrs[ $catKey ] ) )
-		{
-			$labelMap = $this->sportsSouthCategoryAttrs[ $catKey ];
-
-			foreach ( $labelMap as $slot => $label )
-			{
-				/* Build the ITATR key for this slot. Sports South uses ITATR0,
-				 * ITATR1, etc paralleling the ATTR0..N labels. */
-				$itatrKey = 'ITATR' . $slot;
-				$itatrValue = trim( (string) ( $record[ $itatrKey ] ?? '' ) );
-				if ( $itatrValue === '' )
-				{
-					continue;
-				}
-
-				/* Match label against the known label->column map.
-				 * Case-insensitive substring match. First match wins. */
-				$labelLower = mb_strtolower( $label );
-				$targetColumn = null;
-				foreach ( self::SPORTS_SOUTH_ATTR_LABEL_MAP as $needle => $col )
-				{
-					if ( str_contains( $labelLower, $needle ) )
-					{
-						$targetColumn = $col;
-						break;
-					}
-				}
-
-				if ( $targetColumn === null )
-				{
-					continue;
-				}
-
-				/* Apply per-column value parsing */
-				$parsedValue = $itatrValue;
-				if ( $targetColumn === 'barrel_length' )
-				{
-					/* Strip non-numeric chars except dot, take first match.
-					 * "16\"" -> 16, "20.5\"" -> 20.5, "16 in" -> 16 */
-					if ( preg_match( '/(\d+(?:\.\d+)?)/', $itatrValue, $m ) )
-					{
-						$parsedValue = $m[1];
-					}
-					else
-					{
-						continue;
-					}
-				}
-				elseif ( $targetColumn === 'capacity' )
-				{
-					/* Parse first integer. "30+1" -> 30, "5+1" -> 5, "10" -> 10 */
-					if ( preg_match( '/(\d+)/', $itatrValue, $m ) )
-					{
-						$parsedValue = $m[1];
-					}
-					else
-					{
-						continue;
-					}
-				}
-				elseif ( $targetColumn === 'overall_length' )
-				{
-					/* v1.0.27: Same parser as barrel_length. "47.5\"" -> 47.5 */
-					if ( preg_match( '/(\d+(?:\.\d+)?)/', $itatrValue, $m ) )
-					{
-						$parsedValue = $m[1];
-					}
-					else
-					{
-						continue;
-					}
-				}
-				elseif ( $targetColumn === 'weight_oz' )
-				{
-					/* v1.0.27: Parse weight, convert to oz if needed.
-					 * "22.4 oz" -> 22.4
-					 * "1.4 lbs" -> 22.4 (1.4 * 16)
-					 * "0.85 lb" -> 13.6
-					 * "20" -> 20 (assume oz when unit absent)
-					 *
-					 * Sports South ATTR9 for pistols is typically oz already
-					 * but rifles use lbs - support both. */
-					if ( preg_match( '/(\d+(?:\.\d+)?)\s*(oz|lbs?|pounds?)?/i', $itatrValue, $m ) )
-					{
-						$numericVal = (float) $m[1];
-						$unit = strtolower( trim( $m[2] ?? '' ) );
-
-						if ( $unit === 'lb' || $unit === 'lbs' || $unit === 'pound' || $unit === 'pounds' )
-						{
-							$numericVal *= 16.0;
-						}
-
-						$parsedValue = number_format( $numericVal, 2, '.', '' );
-					}
-					else
-					{
-						continue;
-					}
-				}
-
-				/* Inject as synthetic field. Uppercase for consistency
-				 * with _BRAND_NAME, _CATEGORY_ID patterns. */
-				$syntheticKey = '_' . strtoupper( $targetColumn );
-
-				/* First match wins - don't overwrite if already set.
-				 * (Some categories may have e.g. 'Stock Finish' AND
-				 * 'Barrel Finish' both mapping to finish.) */
-				if ( !isset( $record[ $syntheticKey ] ) )
-				{
-					$record[ $syntheticKey ] = $parsedValue;
-				}
-			}
-		}
-
-		/* Transform PICREF to full image URL. */
-		$picref = (string) ( $record['PICREF'] ?? '' );
-		$itemno = (string) ( $record['ITEMNO'] ?? '' );
-		if ( $picref !== '' || $itemno !== '' )
-		{
-			$record['PICREF'] = \IPS\gdcatalog\Feed\Distributor\SportsSouthClient::imageUrlForPicref( $picref, $itemno );
-		}
-
-		/* Extract ALL ITATR attributes using category-aware position map */
-		$ssCatId = (int) ( $record['CATID'] ?? 0 );
-		if ( $ssCatId > 0 )
-		{
-			for ( $i = 1; $i <= 20; $i++ )
-			{
-				$itatrKey = $i === 10 ? 'ITATR0' : 'ITATR' . $i;
-				$val = trim( (string) ( $record[ $itatrKey ] ?? '' ) );
-				if ( $val === '' )
-				{
-					continue;
-				}
-				$col = \IPS\gdcatalog\Feed\Distributor\SportsSouthAttributeMap::resolve( $ssCatId, $i );
-				if ( $col !== null )
-				{
-					if ( $col === 'features' && isset( $record['_ATTR_features'] ) && $record['_ATTR_features'] !== '' )
-					{
-						$record['_ATTR_features'] .= ', ' . $val;
-					}
-					else
-					{
-						$record[ '_ATTR_' . $col ] = $val;
-					}
-				}
-			}
-		}
-
-		/* Map top-level fields to canonical columns */
-		if ( !empty( $record['SERIES'] ) )  $record['_ATTR_features']       = trim( ( $record['_ATTR_features'] ?? '' ) . ' ' . $record['SERIES'] );
-		if ( !empty( $record['LENGTH'] ) )  $record['_ATTR_overall_length'] = (string) $record['LENGTH'];
-		if ( !empty( $record['WTPBX'] ) )   $record['_ATTR_weight_lbs']     = (string) $record['WTPBX'];
-		if ( !empty( $record['IMODEL'] ) )  $record['_ATTR_model']          = (string) $record['IMODEL'];
-		if ( !empty( $record['MFGINO'] ) )  $record['_ATTR_mpn']            = (string) $record['MFGINO'];
-
-		/* Fallback: parse title/description for missing attributes */
-		$titleParseInput = [];
-		foreach ( $record as $k => $v )
-		{
-			if ( str_starts_with( (string) $k, '_ATTR_' ) && $v !== '' )
-			{
-				$titleParseInput[ substr( $k, 6 ) ] = $v;
-			}
-		}
-		$sTitle = (string) ( $record['SHDESC'] ?? '' );
-		$sDesc  = (string) ( $record['IDESC'] ?? '' );
-		if ( $sTitle !== '' || $sDesc !== '' )
-		{
-			$canonicalCatId = isset( $record['_CATEGORY_ID'] ) ? (int) $record['_CATEGORY_ID'] : 0;
-			$parsed = TitleParser::parse( $sTitle, $sDesc, $canonicalCatId, $titleParseInput );
-			foreach ( $parsed as $col => $val )
-			{
-				if ( !isset( $record[ '_ATTR_' . $col ] ) || $record[ '_ATTR_' . $col ] === '' )
-				{
-					$record[ '_ATTR_' . $col ] = $val;
-				}
-			}
-		}
-
-		/* Shotgun gauge in the title is authoritative for caliber — override any attribute-derived
-		 * value (Sports South puts shot size in the Caliber attribute for shotshells). */
-		if ( $sTitle !== '' || $sDesc !== '' )
-		{
-			$forcedGauge = TitleParser::gaugeFromTitle( $sTitle . ' ' . $sDesc );
-			if ( $forcedGauge !== null )
-			{
-				$record['_ATTR_caliber'] = $forcedGauge;
-			}
-		}
-
-		return $record;
+		return $this->getSportsSouthAdapter()->normalize( $record )->getRaw();
 	}
 
 	/**

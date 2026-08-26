@@ -95,12 +95,20 @@ class _NormalizedRecord
 	/**
 	 * Static factory — reads better at call sites than `new`.
 	 *
+	 * Phase 2 fix: return type is `static` (late-static-binding), not
+	 * `self`. `self` binds to `_NormalizedRecord` — the class this
+	 * method is declared on — so callers with a declared return type
+	 * of `\IPS\gdcatalog\Feed\NormalizedRecord` hit a TypeError.
+	 * `static` resolves to whichever class the method was called on
+	 * (`NormalizedRecord` when invoked via the alias), which is the
+	 * intended dual-class wrapper contract per CLAUDE.md rule #1.
+	 *
 	 * @param array<string, mixed> $canonical
 	 * @param array<string, mixed> $raw
 	 */
-	public static function fromMapped( array $canonical, array $raw = [], ?Distributor $sourceFeed = null ): self
+	public static function fromMapped( array $canonical, array $raw = [], ?Distributor $sourceFeed = null ): static
 	{
-		return new self( $canonical, $raw, $sourceFeed );
+		return new static( $canonical, $raw, $sourceFeed );
 	}
 
 	/**
