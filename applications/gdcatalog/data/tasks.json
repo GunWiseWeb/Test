@@ -2,5 +2,6 @@
 	"ImportFeeds": "PT15M",
 	"AutoResolveConflicts": "PT1H",
 	"PruneConflictLog": "P1D",
-	"ValidateProductImages": "PT1H"
+	"ValidateProductImages": "PT1H",
+	"ReconcileImportJobs": "PT1H"
 }

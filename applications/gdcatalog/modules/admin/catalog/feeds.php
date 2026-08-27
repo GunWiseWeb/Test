@@ -1127,21 +1127,96 @@ class _feeds extends \IPS\Dispatcher\Controller
 			Output::i()->output = $html;
 		}
 	}
+	/**
+	 * v1.0.125 (Phase 9): Reset Status now reconciles the full source
+	 * state, not just the Distributor row. Previously admins had to
+	 * hit Reset Status AND then wait for stale rows to expire; the
+	 * old body only cleared last_run_status='running' and left
+	 * orphan gd_import_jobs rows behind. New behaviour:
+	 *
+	 *   healthy active job (queued/running, not stale)
+	 *     → refuse; direct admin to Cancel Import instead so a
+	 *       genuine in-flight worker is not silently killed.
+	 *   stale active job (updated_at > STALE_THRESHOLD_SECONDS ago)
+	 *     → reconcile via ImportJob::reconcile — marks failed
+	 *       with an audit note, resets feed, finalises log,
+	 *       deletes staged file unless it is still resumable.
+	 *   completed / cancelled / failed job (latest row)
+	 *     → reconcile brings feed + log + stage into agreement
+	 *       without discarding the job history.
+	 *   no job rows for this feed
+	 *     → fall back to the legacy behaviour: just clear
+	 *       Distributor.last_run_status.
+	 *
+	 * Preserves the do=resetFeedStatus route name and CSRF-on-POST
+	 * behaviour. No source-endpoint network calls.
+	 */
 	protected function resetFeedStatus(): void
 	{
 		\IPS\Session::i()->csrfCheck();
 
-		$feedId = (int) Request::i()->id;
+		$feedId  = (int) Request::i()->id;
+		$backUrl = \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+
+		$active = \IPS\gdcatalog\Feed\ImportJob::activeForFeed( $feedId );
+		if ( $active !== null && !$active->isStale() )
+		{
+			Output::i()->redirect( $backUrl, 'A healthy import job is still running for this source. Use "Cancel Import" if you want to stop it, or wait for it to finish.' );
+			return;
+		}
+
+		$reconciled = false;
+		$actedOnJob = '';
+		if ( $active !== null )
+		{
+			try
+			{
+				if ( $active->reconcile() )
+				{
+					$reconciled = true;
+					$actedOnJob = 'stale job id=' . (int) $active->id;
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+		else
+		{
+			try
+			{
+				$latestRow = \IPS\Db::i()->select(
+					'*', 'gd_import_jobs',
+					[ 'feed_id=?', $feedId ],
+					'id DESC', 1
+				)->first();
+				if ( $latestRow )
+				{
+					$latest = \IPS\gdcatalog\Feed\ImportJob::constructFromData( $latestRow );
+					if ( $latest->reconcile() )
+					{
+						$reconciled = true;
+						$actedOnJob = 'latest job id=' . (int) $latest->id;
+					}
+				}
+			}
+			catch ( \Throwable ) {}
+		}
+
 		try
 		{
 			$feed = Distributor::load( $feedId );
-			$feed->resetRunningStatus();
+			if ( (string) ( $feed->last_run_status ?? '' ) === 'running' )
+			{
+				$feed->resetRunningStatus();
+				$reconciled = true;
+			}
 		}
 		catch ( \Throwable ) {}
 
+		try { \IPS\Log::log( 'Reset Status feed_id=' . $feedId . ' reconciled=' . ( $reconciled ? '1' : '0' ) . ' ' . $actedOnJob, 'gdcatalog_reconcile' ); } catch ( \Throwable ) {}
+
 		Output::i()->redirect(
-			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
-			'Feed status reset.'
+			$backUrl,
+			$reconciled ? 'Source state reconciled.' : 'Nothing to reset — source state was already consistent.'
 		);
 	}
 
@@ -1598,27 +1673,14 @@ class _feeds extends \IPS\Dispatcher\Controller
 			}
 			$job->markCancelled();
 
-			/* v1.0.124 (Phase 8): reset the Distributor's
-			 * last_run_status so the source list stops showing it as
-			 * "running" (the queue worker will notice status=cancelled
-			 * on its next batch and exit; without this reset the feed
-			 * badge would stay orange until admin manually clicked
-			 * Reset Status). resetRunningStatus() only clears
-			 * `last_run_status='running'`; historical last_run_status
-			 * of a prior completed/failed import is preserved. */
-			try
-			{
-				$feed = Distributor::load( $id );
-				$feed->resetRunningStatus();
-			}
-			catch ( \Throwable ) {}
-
-			/* v1.0.124 (Phase 8): delete the staged records file
-			 * immediately. Safe because the queue worker checks
-			 * job.status at the top of every run() batch and exits
-			 * via QueueOutOfRangeException on cancelled — so no
-			 * in-flight batch is reading the file. */
-			try { $job->deleteStagedFile(); } catch ( \Throwable ) {}
+			/* v1.0.125 (Phase 9): reconcile ImportLog + Distributor
+			 * + staged file in one call. reconcile() on a cancelled
+			 * job calls resetRunningStatus, closes the ImportLog
+			 * via fail("Cancelled by administrator after N records
+			 * processed."), and deletes the staged file. Idempotent
+			 * — the queue worker will notice status=cancelled on its
+			 * next batch and exit via QueueOutOfRangeException. */
+			try { $job->reconcile(); } catch ( \Throwable ) {}
 
 			Output::i()->redirect( $backUrl, 'Import cancelled. It will stop before the next batch begins.' );
 		}
