@@ -91,16 +91,42 @@ class _SportsSouthImport extends QueueAbstract
 		}
 		catch ( \Throwable ) {}
 
-		$data['chunks_processed']   = 0;
-		$data['products_processed'] = 0;
-		$data['products_created']   = 0;
-		$data['products_updated']   = 0;
-		$data['products_errored']   = 0;
-		$data['started_at']         = time();
+		$data['chunks_processed']       = 0;
+		$data['products_processed']     = 0;
+		$data['products_created']       = 0;
+		$data['products_updated']       = 0;
+		$data['products_errored']       = 0;
+		$data['started_at']             = time();
+		$data['ss_completed_naturally'] = false;
+
+		/* v1.0.126 (Phase 10): purge any leftover seen-UPCs file +
+		 * completion flag from a previous aborted run so the fresh
+		 * queue starts with a clean accumulator. Without this, a
+		 * re-queued import would inherit stale UPCs and skew the
+		 * postComplete discontinuation coverage guard. */
+		try
+		{
+			$upcsPath = self::seenUpcsPath( $feedId );
+			if ( is_file( $upcsPath ) ) { @unlink( $upcsPath ); }
+			unset( \IPS\Data\Store::i()->{'gdcatalog_ss_completed_naturally_' . $feedId} );
+		}
+		catch ( \Throwable ) {}
 
 		try { Log::log( 'SportsSouthImport queue: enqueued for feed_id=' . $feedId, 'gdcatalog_queue' ); } catch ( \Throwable ) {}
 
 		return $data;
+	}
+
+	/**
+	 * v1.0.126 (Phase 10): seen-UPC file path for one feed's
+	 * currently-queued full import. One line per UPC (append-safe,
+	 * dedup at postComplete). Lives in uploads/ so it survives PHP
+	 * restarts across queue ticks. Deleted after discontinuation
+	 * runs (natural completion) or on abort/failed completion.
+	 */
+	protected static function seenUpcsPath( int $feedId ): string
+	{
+		return \IPS\ROOT_PATH . '/uploads/gdcatalog_ss_seen_upcs_' . $feedId . '.jsonl';
 	}
 
 	/**
@@ -157,8 +183,51 @@ class _SportsSouthImport extends QueueAbstract
 		/* Empty response = end of catalog. */
 		if ( empty( $products ) )
 		{
+			/* v1.0.126 (Phase 10): mark the completion cause so
+			 * postComplete can distinguish a natural end-of-catalog
+			 * from an abort. BOTH the mutable $data flag AND the
+			 * core_store flag are set: $data is the fast path, and
+			 * the store flag survives the "$data resets during
+			 * OutOfRangeException" case documented on preQueueData:89.
+			 * Only when this flag is truthy will postComplete run
+			 * discontinuation. */
+			$data['ss_completed_naturally'] = true;
+			try { \IPS\Data\Store::i()->{'gdcatalog_ss_completed_naturally_' . $feedId} = 1; } catch ( \Throwable ) {}
+
 			try { Log::log( 'SportsSouthImport queue run: feed_id=' . $feedId . ' reached end at offset=' . $offset . '. Total chunks=' . $data['chunks_processed'] . ' total products=' . $data['products_processed'], 'gdcatalog_queue' ); } catch ( \Throwable ) {}
 			throw new QueueOutOfRangeException;
+		}
+
+		/* v1.0.126 (Phase 10): accumulate seen UPCs from THIS chunk's
+		 * raw payload BEFORE runChunk, so a chunk-processing throw
+		 * still counts the UPCs as "observed in source". Uses the
+		 * same FieldMapper + UpcValidator pipeline
+		 * processNormalizedRecord uses per record — no second UPC
+		 * parser. Written as one line per UPC (append-only) to
+		 * avoid ballooning the queue row with a 58k-entry array;
+		 * postComplete reads and dedupes into an array<string, true>
+		 * before handing off to processDiscontinuationsForSeenUpcs. */
+		try
+		{
+			$fm       = new \IPS\gdcatalog\Feed\FieldMapper( $feed->field_mapping );
+			$upcsPath = self::seenUpcsPath( $feedId );
+			$fh       = @fopen( $upcsPath, 'a' );
+			if ( $fh )
+			{
+				foreach ( $products as $raw )
+				{
+					$rawUpc = $fm->extractUpc( is_array( $raw ) ? $raw : [] );
+					if ( $rawUpc === null ) { continue; }
+					$upc = \IPS\gdcatalog\Feed\UpcValidator::normalize( $rawUpc );
+					if ( $upc === null || $upc === '' ) { continue; }
+					fwrite( $fh, $upc . "\n" );
+				}
+				fclose( $fh );
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { Log::log( 'SportsSouthImport queue run: seen-UPC append failed feed_id=' . $feedId . ': ' . $e->getMessage(), 'gdcatalog_queue' ); } catch ( \Throwable ) {}
 		}
 
 		/* Process this chunk through the existing Importer pipeline.
@@ -318,6 +387,7 @@ class _SportsSouthImport extends QueueAbstract
 		$updated = (int) ( $data['products_updated'] ?? 0 );
 		$errored = (int) ( $data['products_errored'] ?? 0 );
 
+		$feed = null;
 		try
 		{
 			$feed = Distributor::load( $feedId );
@@ -325,23 +395,121 @@ class _SportsSouthImport extends QueueAbstract
 		}
 		catch ( \Throwable ) {}
 
+		/* v1.0.126 (Phase 10): run the existing discontinuation
+		 * algorithm ONCE, ONLY on a natural end-of-catalog completion.
+		 * The natural-completion flag is set on the empty-response
+		 * branch of run() (both in $data and core_store — the store
+		 * copy survives the "$data reset after OutOfRangeException"
+		 * path). If either signal is truthy AND we have a valid feed,
+		 * hand the accumulated seen-UPC set to
+		 * Importer::processDiscontinuationsForSeenUpcs — the same
+		 * public helper GenericImport uses, which delegates to
+		 * processDiscontinuations's existing 80% coverage guard +
+		 * hard floor of 100 + miss-counter threshold. Rules and
+		 * thresholds are unchanged: the guard was already able to
+		 * distinguish a full SS import (~99% coverage) from a
+		 * partial import (<1.7%); this phase simply plumbs the
+		 * seenUpcs argument through. Failed / cancelled / aborted
+		 * queue runs never set the natural flag → discontinuation
+		 * is skipped and the accumulated file is still cleaned up. */
+		$naturally = !empty( $data['ss_completed_naturally'] );
+		if ( !$naturally )
+		{
+			try
+			{
+				$flag = \IPS\Data\Store::i()->{'gdcatalog_ss_completed_naturally_' . $feedId} ?? null;
+				$naturally = ( (int) $flag ) === 1;
+			}
+			catch ( \Throwable ) {}
+		}
+
+		if ( $naturally && $feed !== null )
+		{
+			$seen = self::readSeenUpcs( $feedId );
+			if ( !empty( $seen ) )
+			{
+				try
+				{
+					Importer::processDiscontinuationsForSeenUpcs( $feed, $seen );
+					try { Log::log( sprintf( 'SportsSouthImport postComplete: discontinuation ran feed_id=%d seen=%d', $feedId, count( $seen ) ), 'gdcatalog_queue' ); } catch ( \Throwable ) {}
+				}
+				catch ( \Throwable $e )
+				{
+					try { Log::log( 'SportsSouthImport postComplete discontinuation FAILED feed_id=' . $feedId . ': ' . $e->getMessage(), 'gdcatalog_queue' ); } catch ( \Throwable ) {}
+				}
+			}
+			else
+			{
+				try { Log::log( 'SportsSouthImport postComplete: natural completion but zero seen UPCs feed_id=' . $feedId . ' — discontinuation skipped', 'gdcatalog_queue' ); } catch ( \Throwable ) {}
+			}
+		}
+		else if ( !$naturally )
+		{
+			try { Log::log( 'SportsSouthImport postComplete: NOT a natural completion feed_id=' . $feedId . ' — discontinuation skipped', 'gdcatalog_queue' ); } catch ( \Throwable ) {}
+		}
+
+		/* v1.0.126 (Phase 10): cleanup regardless of outcome. The
+		 * seen-UPC file has no value beyond this postComplete — either
+		 * discontinuation just consumed it, or the run aborted and
+		 * the partial set must not survive to skew a future run's
+		 * coverage guard. */
+		try
+		{
+			$upcsPath = self::seenUpcsPath( $feedId );
+			if ( is_file( $upcsPath ) ) { @unlink( $upcsPath ); }
+			unset( \IPS\Data\Store::i()->{'gdcatalog_ss_completed_naturally_' . $feedId} );
+		}
+		catch ( \Throwable ) {}
+
 		try
 		{
 			Log::log(
 				sprintf(
-					'SportsSouthImport queue postComplete: feed_id=%d chunks=%d total=%d created=%d updated=%d errored=%d duration=%ds',
+					'SportsSouthImport queue postComplete: feed_id=%d chunks=%d total=%d created=%d updated=%d errored=%d duration=%ds naturally=%s',
 					$feedId,
 					$chunks,
 					$total,
 					$created,
 					$updated,
 					$errored,
-					time() - (int) ( $data['started_at'] ?? time() )
+					time() - (int) ( $data['started_at'] ?? time() ),
+					$naturally ? '1' : '0'
 				),
 				'gdcatalog_queue'
 			);
 		}
 		catch ( \Throwable ) {}
+	}
+
+	/**
+	 * v1.0.126 (Phase 10): read the append-only seen-UPCs file into
+	 * a deduped array<string, true>, matching the shape
+	 * Importer::processDiscontinuationsForSeenUpcs expects (which is
+	 * the same shape processNormalizedRecord's per-record
+	 * $this->seenUpcs uses). Streaming line-by-line so a very
+	 * large SS catalog (~58k) does not need the whole file in memory
+	 * as an array before dedupe.
+	 */
+	protected static function readSeenUpcs( int $feedId ): array
+	{
+		$path = self::seenUpcsPath( $feedId );
+		if ( !is_file( $path ) ) { return []; }
+		$seen = [];
+		$fh   = @fopen( $path, 'r' );
+		if ( !$fh ) { return []; }
+		try
+		{
+			while ( ( $line = fgets( $fh ) ) !== false )
+			{
+				$upc = trim( $line );
+				if ( $upc !== '' ) { $seen[ $upc ] = true; }
+			}
+		}
+		finally
+		{
+			@fclose( $fh );
+		}
+		return $seen;
 	}
 }
 
