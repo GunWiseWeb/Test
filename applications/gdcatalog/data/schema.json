@@ -2661,6 +2661,23 @@
             }
         }
     },
+    "gd_image_dimensions": {
+        "name": "gd_image_dimensions",
+        "columns": {
+            "url_hash":    { "name": "url_hash",    "type": "CHAR",       "length": 64,  "decimals": null, "allow_null": false, "default": null,      "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "SHA-256 hex of the URL — primary key" },
+            "url":         { "name": "url",         "type": "TEXT",       "length": 0,   "decimals": null, "allow_null": false, "default": null,      "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
+            "width":       { "name": "width",       "type": "INT",        "length": 10,  "decimals": null, "allow_null": true,  "default": null,      "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+            "height":      { "name": "height",      "type": "INT",        "length": 10,  "decimals": null, "allow_null": true,  "default": null,      "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+            "status":      { "name": "status",      "type": "VARCHAR",    "length": 10,  "decimals": null, "allow_null": false, "default": "pending", "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "pending | ready | failed" },
+            "checked_at":  { "name": "checked_at",  "type": "INT",        "length": 10,  "decimals": null, "allow_null": true,  "default": null,      "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "unix ts of last cache write" },
+            "last_error":  { "name": "last_error",  "type": "TEXT",       "length": 0,   "decimals": null, "allow_null": true,  "default": null,      "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY":       { "type": "primary", "name": "PRIMARY",       "columns": [ "url_hash" ],   "length": [ null ] },
+            "idx_status":    { "type": "key",     "name": "idx_status",    "columns": [ "status" ],     "length": [ null ] },
+            "idx_checked":   { "type": "key",     "name": "idx_checked",   "columns": [ "checked_at" ], "length": [ null ] }
+        }
+    },
     "gd_import_jobs": {
         "name": "gd_import_jobs",
         "columns": {

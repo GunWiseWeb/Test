@@ -8,7 +8,8 @@
             "BackfillAttributes": "IPS\\gdcatalog\\extensions\\core\\Queue\\BackfillAttributes",
             "RebuildSearchIndex": "IPS\\gdcatalog\\extensions\\core\\Queue\\RebuildSearchIndex",
             "FetchDescriptions": "IPS\\gdcatalog\\extensions\\core\\Queue\\FetchDescriptions",
-            "GenericImport": "IPS\\gdcatalog\\extensions\\core\\Queue\\GenericImport"
+            "GenericImport": "IPS\\gdcatalog\\extensions\\core\\Queue\\GenericImport",
+            "FetchImageDimensions": "IPS\\gdcatalog\\extensions\\core\\Queue\\FetchImageDimensions"
         }
     }
 }

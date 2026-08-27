@@ -215,32 +215,206 @@ class ConflictResolver
 		{
 			$this->product->$field = $incoming;
 			$this->fieldWins++;
+			/* v1.0.127 (Phase 11): warm the dimension cache for the
+			 * new incoming image so a future incoming replacement is
+			 * comparable without a synchronous HTTP wait. Import path
+			 * itself performs zero HTTP — enqueue writes a pending
+			 * cache row + queue item and returns immediately. */
+			try { ImageDimensionCache::enqueue( (string) $incoming ); } catch ( \Throwable ) {}
 			return [ 'changed' => true, 'conflict' => false ];
 		}
 
 		$conflict = $this->valuesDiffer( $current, $incoming, $field );
 
-		$incomingRes = $this->getImageResolution( (string) $incoming );
-		$currentRes  = $this->getImageResolution( (string) $current );
+		/* v1.0.127 (Phase 11): cache-only lookup (URL-hint fast path
+		 * inside pixelsFor(), then gd_image_dimensions). Never
+		 * performs HTTP — the pre-Phase-11 sync HTTP fetch used to
+		 * stall imports here for up to 10s per image. */
+		$incomingPx = ImageDimensionCache::pixelsFor( (string) $incoming );
+		$currentPx  = ImageDimensionCache::pixelsFor( (string) $current );
 
-		if ( $incomingRes > $currentRes )
+		/* Both known → compare using existing semantics and apply
+		 * winner. Preserves EXACT pre-Phase-11 tie behaviour: only
+		 * `incomingPx > $currentPx` swaps; equal keeps current. */
+		if ( $incomingPx !== null && $currentPx !== null )
 		{
-			if ( $conflict )
+			if ( $incomingPx > $currentPx )
 			{
-				ConflictLog::record(
-					$this->product->upc, $field,
-					$this->feed->distributor, (string) $incoming . " ({$incomingRes}px)",
-					$this->findCurrentOwner( $field ) ?? 'unknown',
-					(string) $current . " ({$currentRes}px)",
-					Product::RULE_HIGHEST_RES
-				);
+				if ( $conflict )
+				{
+					ConflictLog::record(
+						$this->product->upc, $field,
+						$this->feed->distributor, (string) $incoming . " ({$incomingPx}px)",
+						$this->findCurrentOwner( $field ) ?? 'unknown',
+						(string) $current . " ({$currentPx}px)",
+						Product::RULE_HIGHEST_RES
+					);
+				}
+				$this->product->$field = $incoming;
+				$this->fieldWins++;
+				return [ 'changed' => true, 'conflict' => $conflict ];
 			}
-			$this->product->$field = $incoming;
-			$this->fieldWins++;
-			return [ 'changed' => true, 'conflict' => $conflict ];
+			return [ 'changed' => false, 'conflict' => $conflict ];
 		}
 
+		/* v1.0.127 (Phase 11): at least one URL has no cached
+		 * dimensions yet. Do NOT pick a winner heuristically —
+		 * enqueue the missing lookup(s) and defer the decision via
+		 * a gd_feed_conflicts row. The FetchImageDimensions queue
+		 * extension will call ConflictResolver::reevaluateForUrl()
+		 * once dimensions arrive, at which point the same
+		 * comparison runs against the now-populated cache. */
+		if ( $incomingPx === null ) { try { ImageDimensionCache::enqueue( (string) $incoming ); } catch ( \Throwable ) {} }
+		if ( $currentPx  === null ) { try { ImageDimensionCache::enqueue( (string) $current );  } catch ( \Throwable ) {} }
+		if ( $conflict )
+		{
+			$this->writeDeferredImageConflict( $field, (string) $current, (string) $incoming );
+		}
 		return [ 'changed' => false, 'conflict' => $conflict ];
+	}
+
+	/**
+	 * v1.0.127 (Phase 11): write a gd_feed_conflicts row that
+	 * remembers a highest_res comparison whose dimensions are not
+	 * yet known. resolution_note carries the marker
+	 * 'awaiting_image_dimensions' so
+	 * ConflictResolver::reevaluateForUrl can find these rows once
+	 * FetchImageDimensions fills the cache. Idempotent — the same
+	 * conflict pair does not create duplicate rows.
+	 */
+	protected function writeDeferredImageConflict( string $field, string $current, string $incoming ): void
+	{
+		try
+		{
+			$existing = (int) \IPS\Db::i()->select(
+				'COUNT(*)', 'gd_feed_conflicts',
+				[
+					'upc=? AND field_name=? AND current_value=? AND incoming_value=? AND status=? AND resolution_note=?',
+					$this->product->upc, $field, $current, $incoming, 'pending', 'awaiting_image_dimensions',
+				]
+			)->first();
+			if ( $existing > 0 ) { return; }
+		}
+		catch ( \Throwable ) { return; }
+
+		try
+		{
+			\IPS\Db::i()->insert( 'gd_feed_conflicts', [
+				'upc'              => $this->product->upc,
+				'listing_id'       => null,
+				'distributor_id'   => (int) $this->feed->id,
+				'field_name'       => $field,
+				'current_value'    => $current,
+				'incoming_value'   => $incoming,
+				'import_id'        => (int) ( $this->log->id ?? 0 ),
+				'detected_at'      => date( 'Y-m-d H:i:s' ),
+				'status'           => 'pending',
+				'auto_resolve_at'  => date( 'Y-m-d H:i:s', time() + ( (int) ( \IPS\Settings::i()->gdcatalog_auto_resolve_hours ?? 48 ) * 3600 ) ),
+				'resolved_by'      => null,
+				'resolved_at'      => null,
+				'resolution_note'  => 'awaiting_image_dimensions',
+			] );
+		}
+		catch ( \Throwable ) {}
+	}
+
+	/**
+	 * v1.0.127 (Phase 11): re-evaluate every pending
+	 * highest_res conflict that references $url. Called by
+	 * FetchImageDimensions after a successful dimension probe.
+	 * Reuses the same comparison + tie semantics resolveHighestRes
+	 * applies; failed / null dimensions leave the conflict
+	 * pending. When a winner is decided the product's image_url is
+	 * updated and queued for reindex through the existing
+	 * gd_reindex_queue path (no OpenSearch HTTP here).
+	 *
+	 * @return int Number of conflicts resolved (won by incoming or
+	 *             confirmed current). Rows that still have missing
+	 *             dimensions after this call are left pending for a
+	 *             later re-eval.
+	 */
+	public static function reevaluateForUrl( string $url ): int
+	{
+		if ( $url === '' ) { return 0; }
+
+		$resolved = 0;
+		try
+		{
+			$rows = \IPS\Db::i()->select(
+				'*', 'gd_feed_conflicts',
+				[
+					'status=? AND field_name=? AND resolution_note=? AND (current_value=? OR incoming_value=?)',
+					'pending', 'image_url', 'awaiting_image_dimensions', $url, $url,
+				]
+			);
+			foreach ( $rows as $row )
+			{
+				try
+				{
+					$current  = (string) $row['current_value'];
+					$incoming = (string) $row['incoming_value'];
+					$incomingPx = ImageDimensionCache::pixelsFor( $incoming );
+					$currentPx  = ImageDimensionCache::pixelsFor( $current );
+					if ( $incomingPx === null || $currentPx === null )
+					{
+						continue;
+					}
+
+					$upc = (string) $row['upc'];
+					$product = null;
+					try { $product = Product::load( $upc ); } catch ( \Throwable ) { continue; }
+
+					if ( $incomingPx > $currentPx )
+					{
+						$product->image_url = $incoming;
+						$product->save();
+						try
+						{
+							ConflictLog::record(
+								$upc, 'image_url',
+								/* incoming source */ 'deferred',
+								$incoming . " ({$incomingPx}px)",
+								/* current source */ 'deferred',
+								$current  . " ({$currentPx}px)",
+								Product::RULE_HIGHEST_RES
+							);
+						}
+						catch ( \Throwable ) {}
+						try
+						{
+							\IPS\Db::i()->replace( 'gd_reindex_queue', [
+								'upc'       => $upc,
+								'queued_at' => date( 'Y-m-d H:i:s' ),
+							] );
+						}
+						catch ( \Throwable ) {}
+						\IPS\Db::i()->update( 'gd_feed_conflicts',
+							[
+								'status'           => 'auto_accepted',
+								'resolved_at'      => date( 'Y-m-d H:i:s' ),
+								'resolution_note'  => sprintf( 'auto: incoming won %dpx > %dpx', $incomingPx, $currentPx ),
+							],
+							[ 'id=?', (int) $row['id'] ]
+						);
+					}
+					else
+					{
+						\IPS\Db::i()->update( 'gd_feed_conflicts',
+							[
+								'status'           => 'kept',
+								'resolved_at'      => date( 'Y-m-d H:i:s' ),
+								'resolution_note'  => sprintf( 'auto: current kept %dpx >= %dpx', $currentPx, $incomingPx ),
+							],
+							[ 'id=?', (int) $row['id'] ]
+						);
+					}
+					$resolved++;
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable ) {}
+		return $resolved;
 	}
 
 	/* ================================================================
@@ -581,44 +755,24 @@ class ConflictResolver
 	 * @param  string $url
 	 * @return int    Total pixels (width * height)
 	 */
+	/**
+	 * v1.0.127 (Phase 11): the pre-Phase-11 body performed a
+	 * synchronous HTTP GET for the image and read
+	 * getimagesize() on the response body — up to 10 seconds per
+	 * image per import record, which stalled batches at scale.
+	 * The HTTP fallback has been retired. This method now returns
+	 * ONLY the URL-hint parse (fast, no I/O). The full lookup path
+	 * — including the persistent cache and the deferred re-eval —
+	 * lives on ImageDimensionCache::pixelsFor and is used directly
+	 * by resolveHighestRes; getImageResolution stays only for
+	 * API compatibility with any external caller.
+	 *
+	 * @return int Pixel count from URL hint, or 0 when no hint is
+	 *             present. NEVER performs HTTP.
+	 */
 	protected function getImageResolution( string $url ): int
 	{
-		/* Check for dimension hints in URL (e.g. _800x600.jpg) */
-		if ( preg_match( '/[_\-x](\d{2,5})x(\d{2,5})\./i', $url, $m ) )
-		{
-			return (int) $m[1] * (int) $m[2];
-		}
-
-		/* Try fetching headers / image size remotely */
-		try
-		{
-			$tmpFile = tempnam( sys_get_temp_dir(), 'gd_img_' );
-			$response = \IPS\Http\Url::external( $url )
-				->request( 10 )
-				->get();
-
-			if ( $response->httpResponseCode === 200 )
-			{
-				file_put_contents( $tmpFile, (string) $response );
-				$size = @getimagesize( $tmpFile );
-				unlink( $tmpFile );
-
-				if ( $size !== false )
-				{
-					return $size[0] * $size[1];
-				}
-			}
-			else
-			{
-				@unlink( $tmpFile );
-			}
-		}
-		catch ( \Throwable )
-		{
-			@unlink( $tmpFile ?? '' );
-		}
-
-		return 0;
+		return ImageDimensionCache::pixelsFromHint( $url );
 	}
 
 	/**
