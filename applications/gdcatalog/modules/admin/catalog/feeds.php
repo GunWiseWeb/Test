@@ -62,6 +62,26 @@ class _feeds extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
+		/* v1.0.123 (Phase 7): latest import job per feed, for the
+		 * background-job status column. Reads the newest gd_import_jobs
+		 * row for each feed (queued/running takes precedence over
+		 * completed/failed via the ORDER BY). Purely local DB read
+		 * — no source-endpoint HTTP is issued. */
+		$latestJobs = [];
+		try
+		{
+			$jobRows = \IPS\Db::i()->select(
+				'j.*',
+				[ 'gd_import_jobs', 'j' ],
+				'j.id IN ( SELECT MAX(id) FROM gd_import_jobs GROUP BY feed_id )'
+			);
+			foreach ( $jobRows as $row )
+			{
+				$latestJobs[ (int) $row['feed_id'] ] = $row;
+			}
+		}
+		catch ( \Throwable ) {}
+
 		$feeds = [];
 		$activeCount = 0;
 		$urlCount    = 0;
@@ -202,6 +222,58 @@ class _feeds extends \IPS\Dispatcher\Controller
 				'run_url'             => $runUrl,
 				'can_run'             => $canRun,
 			];
+
+			/* v1.0.123 (Phase 7): background-job status + resume /
+			 * cancel URLs. Only generic sources (non-SS) route
+			 * through the new GenericImport queue; SS still uses its
+			 * own SportsSouthImport queue with its own progress UI. */
+			$latestJobRow = $latestJobs[ (int) $feed->id ] ?? null;
+			$jobStatus    = $latestJobRow ? (string) $latestJobRow['status'] : '';
+			$jobActive    = in_array( $jobStatus, [ 'queued', 'running' ], true );
+			$jobFailed    = ( $jobStatus === 'failed' );
+			$jobProgress  = [];
+			if ( $latestJobRow && $latestJobRow['cursor_data'] )
+			{
+				$cur = json_decode( (string) $latestJobRow['cursor_data'], true );
+				if ( is_array( $cur ) )
+				{
+					$jobProgress = [
+						'processed' => (int) ( $cur['records_processed'] ?? 0 ),
+						'created'   => (int) ( $cur['records_created']   ?? 0 ),
+						'updated'   => (int) ( $cur['records_updated']   ?? 0 ),
+						'skipped'   => (int) ( $cur['records_skipped']   ?? 0 ),
+						'errored'   => (int) ( $cur['records_errored']   ?? 0 ),
+						'total'     => (int) ( $cur['total_records']     ?? 0 ),
+					];
+				}
+			}
+			$retryUrl  = ( !$isSportsSouth && !$isManualUpload && $jobFailed )
+				? (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=feeds&do=retryImport&id=' . (int) $feed->id
+				  )->csrf()
+				: '';
+			$cancelUrl = ( !$isSportsSouth && !$isManualUpload && $jobActive )
+				? (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=feeds&do=cancelImport&id=' . (int) $feed->id
+				  )->csrf()
+				: '';
+
+			/* Splice job info onto the last-added feed entry. */
+			$lastIdx = count( $feeds ) - 1;
+			$feeds[ $lastIdx ]['job_status']       = $jobStatus;
+			$feeds[ $lastIdx ]['job_active']       = $jobActive;
+			$feeds[ $lastIdx ]['job_failed']       = $jobFailed;
+			$feeds[ $lastIdx ]['job_progress']     = $jobProgress;
+			$feeds[ $lastIdx ]['job_last_error']   = (string) ( $latestJobRow['last_error'] ?? '' );
+			$feeds[ $lastIdx ]['job_updated_at']   = (int) ( $latestJobRow['updated_at']    ?? 0 );
+			$feeds[ $lastIdx ]['retry_import_url'] = $retryUrl;
+			$feeds[ $lastIdx ]['cancel_import_url']= $cancelUrl;
+			/* Hide the sync-run button while a job is active so
+			 * admins do not double-queue by mistake. */
+			if ( !$isSportsSouth && !$isManualUpload && $jobActive )
+			{
+				$feeds[ $lastIdx ]['can_run'] = false;
+			}
 		}
 
 		$feedCounts = [
@@ -1361,29 +1433,123 @@ class _feeds extends \IPS\Dispatcher\Controller
 			{
 				throw new \RuntimeException( 'Manual-upload sources run via the "Run Import" button on the upload row.' );
 			}
-			if ( $feed->isRunning() )
+
+			/* v1.0.123 (Phase 7): Run Import now creates a
+			 * gd_import_jobs row and enqueues the GenericImport
+			 * queue extension. The browser returns immediately;
+			 * IPS's queue runner processes bounded 500-record
+			 * batches until the source is exhausted. ImportJob
+			 * carries the cursor + seen-UPC accumulator; discontinu-
+			 * ation runs once from postComplete against the full
+			 * accumulated set. */
+			if ( \IPS\gdcatalog\Feed\ImportJob::activeForFeed( (int) $feed->id ) !== null )
 			{
-				throw new \RuntimeException( 'Source is already running. Use "Reset Status" if the previous run is stuck.' );
+				throw new \RuntimeException( 'This source already has an active import job. Wait for it to finish or cancel it first.' );
+			}
+			$job = \IPS\gdcatalog\Feed\ImportJob::enqueueFor( (int) $feed->id );
+			if ( $job === null )
+			{
+				throw new \RuntimeException( 'Could not create import job (a duplicate may have just been queued).' );
+			}
+			try
+			{
+				\IPS\Task\Queue::queue( 'gdcatalog', 'GenericImport', [
+					'feed_id' => (int) $feed->id,
+					'job_id'  => (int) $job->id,
+				] );
+			}
+			catch ( \Throwable $qe )
+			{
+				$job->markFailed( 'Queue::queue() rejected: ' . $qe->getMessage() );
+				throw new \RuntimeException( 'Failed to enqueue import: ' . $qe->getMessage() );
 			}
 
-			$log = \IPS\gdcatalog\Feed\Importer::run( $feed );
+			try { \IPS\Log::log( 'Run Import queued feed_id=' . (int) $feed->id . ' job_id=' . (int) $job->id, 'gdcatalog_run_import' ); } catch ( \Throwable ) {}
 
-			Output::i()->redirect(
-				$backUrl,
-				sprintf(
-					'Import complete: %d created, %d updated, %d skipped, %d errored (%d conflicts).',
-					(int) ( $log->records_created  ?? 0 ),
-					(int) ( $log->records_updated  ?? 0 ),
-					(int) ( $log->records_skipped  ?? 0 ),
-					(int) ( $log->records_errored  ?? 0 ),
-					(int) ( $log->conflicts_logged ?? 0 )
-				)
-			);
+			Output::i()->redirect( $backUrl, 'Import queued. It will run in the background.' );
 		}
 		catch ( \Throwable $e )
 		{
 			try { \IPS\Log::log( 'Run Import FAILED id=' . $id . ': ' . $e->getMessage(), 'gdcatalog_run_import' ); } catch ( \Throwable ) {}
-			Output::i()->redirect( $backUrl, 'Import failed: ' . $e->getMessage() );
+			Output::i()->redirect( $backUrl, 'Import queue failed: ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * v1.0.123 (Phase 7): resume a failed generic import. Only
+	 * failed jobs are eligible — running / queued / cancelled /
+	 * completed jobs are rejected. Re-queues from scratch (fresh
+	 * fetch/parse) — the source may have moved since the original
+	 * attempt, so re-fetching is safer than resuming mid-cursor.
+	 * Idempotency of catalog writes is preserved by UPC matching.
+	 *
+	 * URL: ?app=gdcatalog&module=catalog&controller=feeds&do=retryImport&id=<feed_id> (CSRF-protected)
+	 */
+	protected function retryImport(): void
+	{
+		\IPS\Dispatcher::i()->checkAcpPermission( 'feeds_manage' );
+		\IPS\Session::i()->csrfCheck();
+
+		$backUrl = \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+		$id      = (int) Request::i()->id;
+
+		try
+		{
+			if ( $id <= 0 ) { throw new \RuntimeException( 'Missing source ID.' ); }
+			$feed = Distributor::load( $id );
+
+			if ( \IPS\gdcatalog\Feed\ImportJob::activeForFeed( (int) $feed->id ) !== null )
+			{
+				throw new \RuntimeException( 'This source already has an active import job — nothing to retry.' );
+			}
+			$job = \IPS\gdcatalog\Feed\ImportJob::enqueueFor( (int) $feed->id );
+			if ( $job === null ) { throw new \RuntimeException( 'Could not create retry job.' ); }
+
+			\IPS\Task\Queue::queue( 'gdcatalog', 'GenericImport', [
+				'feed_id' => (int) $feed->id,
+				'job_id'  => (int) $job->id,
+			] );
+
+			Output::i()->redirect( $backUrl, 'Import retry queued.' );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'Retry Import FAILED id=' . $id . ': ' . $e->getMessage(), 'gdcatalog_run_import' ); } catch ( \Throwable ) {}
+			Output::i()->redirect( $backUrl, 'Retry failed: ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * v1.0.123 (Phase 7): cancel an in-flight or queued generic
+	 * import job. Marks the job cancelled so the next run() batch
+	 * short-circuits. Does not touch products already written this
+	 * job — UPC-based updates are idempotent.
+	 *
+	 * URL: ?app=gdcatalog&module=catalog&controller=feeds&do=cancelImport&id=<feed_id> (CSRF-protected)
+	 */
+	protected function cancelImport(): void
+	{
+		\IPS\Dispatcher::i()->checkAcpPermission( 'feeds_manage' );
+		\IPS\Session::i()->csrfCheck();
+
+		$backUrl = \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+		$id      = (int) Request::i()->id;
+
+		try
+		{
+			if ( $id <= 0 ) { throw new \RuntimeException( 'Missing source ID.' ); }
+			$job = \IPS\gdcatalog\Feed\ImportJob::activeForFeed( $id );
+			if ( $job === null )
+			{
+				throw new \RuntimeException( 'No active job for this source.' );
+			}
+			$job->markCancelled();
+			Output::i()->redirect( $backUrl, 'Import cancelled. It will stop after the current batch finishes.' );
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'Cancel Import FAILED id=' . $id . ': ' . $e->getMessage(), 'gdcatalog_run_import' ); } catch ( \Throwable ) {}
+			Output::i()->redirect( $backUrl, 'Cancel failed: ' . $e->getMessage() );
 		}
 	}
 }

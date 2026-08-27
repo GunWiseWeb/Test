@@ -2661,6 +2661,25 @@
             }
         }
     },
+    "gd_import_jobs": {
+        "name": "gd_import_jobs",
+        "columns": {
+            "id":               { "name": "id",               "type": "INT",         "length": 10,  "decimals": null, "allow_null": false, "default": null,      "auto_increment": true,  "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "" },
+            "feed_id":          { "name": "feed_id",          "type": "INT",         "length": 10,  "decimals": null, "allow_null": false, "default": null,      "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "gd_distributor_feeds.id" },
+            "status":           { "name": "status",           "type": "VARCHAR",     "length": 20,  "decimals": null, "allow_null": false, "default": "queued",  "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "queued | running | completed | failed | cancelled" },
+            "cursor_data":      { "name": "cursor_data",      "type": "MEDIUMTEXT",  "length": 0,   "decimals": null, "allow_null": true,  "default": null,      "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "JSON: staged_file_path, offset, batch_size, seen_upcs, counters" },
+            "import_log_id":    { "name": "import_log_id",    "type": "INT",         "length": 10,  "decimals": null, "allow_null": true,  "default": null,      "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "gd_import_log row created for this job" },
+            "started_at":       { "name": "started_at",       "type": "INT",         "length": 10,  "decimals": null, "allow_null": true,  "default": null,      "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "unix ts" },
+            "updated_at":       { "name": "updated_at",       "type": "INT",         "length": 10,  "decimals": null, "allow_null": true,  "default": null,      "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "unix ts of last run() batch" },
+            "completed_at":     { "name": "completed_at",     "type": "INT",         "length": 10,  "decimals": null, "allow_null": true,  "default": null,      "auto_increment": false, "binary": false, "unsigned": true,  "zerofill": false, "values": [], "comment": "unix ts of postComplete" },
+            "last_error":       { "name": "last_error",       "type": "TEXT",        "length": 0,   "decimals": null, "allow_null": true,  "default": null,      "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" }
+        },
+        "indexes": {
+            "PRIMARY":          { "type": "primary", "name": "PRIMARY",          "columns": [ "id" ],              "length": [ null ] },
+            "idx_feed_status":  { "type": "key",     "name": "idx_feed_status",  "columns": [ "feed_id", "status" ], "length": [ null, null ] },
+            "idx_status":       { "type": "key",     "name": "idx_status",       "columns": [ "status" ],          "length": [ null ] }
+        }
+    },
     "gd_sportssouth_brands": {
         "name": "gd_sportssouth_brands",
         "columns": {

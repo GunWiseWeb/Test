@@ -121,12 +121,44 @@
 						{{else}}
 						<a href="{$feed['lock_catalog_url']}" class="ipsButton ipsButton--soft ipsButton--small" data-confirm>Lock</a>
 						{{endif}}
+						{{if $feed['cancel_import_url']}}
+						<a href="{$feed['cancel_import_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="Cancel this background import? Products already written this run will remain in place.">Cancel Import</a>
+						{{endif}}
+						{{if $feed['retry_import_url']}}
+						<a href="{$feed['retry_import_url']}" class="ipsButton ipsButton--warning ipsButton--small" data-confirm data-confirmMessage="Re-queue a background import for this source?">Retry Import</a>
+						{{endif}}
 						{{if $feed['reset_url']}}
 						<a href="{$feed['reset_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="Reset this source's running status? Only do this if the import is stuck.">Reset Status</a>
 						{{endif}}
 						<a href="{$feed['delete_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="Delete this source and all associated data?">Delete</a>
 					</td>
 				</tr>
+				{{if $feed['job_active']}}
+				<tr>
+					<td colspan="11" style="padding:4px 16px 8px 60px;background:#eef8ff;font-size:0.85em;color:#134e6e">
+						<strong>Background import {$feed['job_status']}</strong>
+						{{if isset($feed['job_progress']['total']) && $feed['job_progress']['total'] > 0}}
+							&mdash; {expression="number_format( (int) ( $feed['job_progress']['processed'] ?? 0 ) )"} / {expression="number_format( (int) ( $feed['job_progress']['total'] ?? 0 ) )"} records
+							| Created {expression="number_format( (int) ( $feed['job_progress']['created'] ?? 0 ) )"}
+							| Updated {expression="number_format( (int) ( $feed['job_progress']['updated'] ?? 0 ) )"}
+							| Skipped {expression="number_format( (int) ( $feed['job_progress']['skipped'] ?? 0 ) )"}
+							| Errors {expression="number_format( (int) ( $feed['job_progress']['errored'] ?? 0 ) )"}
+						{{endif}}
+						{{if $feed['job_updated_at']}}
+						| Last activity: {expression="\IPS\DateTime::ts( (int) $feed['job_updated_at'] )->relative()"}
+						{{endif}}
+					</td>
+				</tr>
+				{{elseif $feed['job_failed']}}
+				<tr>
+					<td colspan="11" style="padding:4px 16px 8px 60px;background:#fdf2f2;font-size:0.85em;color:#7f1d1d">
+						<strong>Background import failed</strong>
+						{{if $feed['job_last_error']}}
+						&mdash; {$feed['job_last_error']}
+						{{endif}}
+					</td>
+				</tr>
+				{{endif}}
 				{{if $feed['last_import_log']}}
 				<tr>
 					<td colspan="11" style="padding:4px 16px 8px 60px;background:#f9fafb;font-size:0.85em;color:#555">

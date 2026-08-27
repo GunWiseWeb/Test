@@ -211,6 +211,48 @@ class Importer
 	}
 
 	/**
+	 * v1.0.123 (Phase 7): one-time fetch + parse for the resumable
+	 * GenericImport queue extension's preQueueData step. Splits the
+	 * pre-Phase-7 fetch → parse → foreach-processRecord sequence at
+	 * the parse boundary so a background queue can stage the parsed
+	 * records once and iterate them across multiple bounded run()
+	 * invocations without re-fetching the source per batch. Used
+	 * only from GenericImport::preQueueData — synchronous imports
+	 * (Importer::run) continue to fetch + parse + process in one
+	 * pass, unchanged.
+	 *
+	 * @return array<int, array<string, mixed>> All parsed raw records
+	 */
+	public static function fetchAndParse( Distributor $feed ): array
+	{
+		$importer = new static( $feed );
+		return $importer->parseFeed( $importer->fetchFeed() );
+	}
+
+	/**
+	 * v1.0.123 (Phase 7): resumable-import bridge into the existing
+	 * discontinuation algorithm. Same rules, same thresholds, same
+	 * 80%-coverage safety guard as processDiscontinuations() — only
+	 * the source of $seenUpcs differs: this variant takes them from
+	 * an argument (an array<string, true> the queue extension has
+	 * accumulated across every batch), instead of $this->seenUpcs
+	 * (populated within a single Importer instance's run). Never
+	 * calls processRecord/processNormalizedRecord/FieldMapper; only
+	 * scans gd_catalog for products the source used to carry that
+	 * were absent from this import cycle. Safe to call from the
+	 * queue's postComplete once ALL batches have finished.
+	 *
+	 * @param  array<string, true> $seenUpcs UPCs seen during the full job
+	 * @return void
+	 */
+	public static function processDiscontinuationsForSeenUpcs( Distributor $feed, array $seenUpcs ): void
+	{
+		$importer = new static( $feed );
+		$importer->seenUpcs = $seenUpcs;
+		$importer->processDiscontinuations();
+	}
+
+	/**
 	 * Constructor.
 	 *
 	 * @param  Distributor $feed
