@@ -43,6 +43,7 @@
 
 namespace IPS\gdcatalog\tasks;
 
+use IPS\gdcatalog\Feed\Distributor;
 use IPS\gdcatalog\Feed\ImportJob;
 use function defined;
 
@@ -141,20 +142,131 @@ class _ReconcileImportJobs extends \IPS\Task
 			$errors[] = 'stage cleanup: ' . $e->getMessage();
 		}
 
+		/* -------- Part 3 (Phase 12): clean abandoned Sports South seen-UPCs files. --------
+		 *
+		 * SportsSouthImport writes uploads/gdcatalog_ss_seen_upcs_<feed_id>.jsonl
+		 * during a full queued import (Phase 10). preQueueData purges the file
+		 * on the next enqueue for the same feed, and postComplete deletes it
+		 * after discontinuation runs. Files can still leak when:
+		 *   - the feed is deleted mid-run
+		 *   - the queue tick dies between chunks and no new SS import for the
+		 *     same feed is ever queued
+		 *   - the feed's auth_type is changed away from sportssouth
+		 *
+		 * Ownership decision (per file):
+		 *   feed missing            → delete (owner gone)
+		 *   feed auth_type != SS    → delete (owner changed type)
+		 *   feed running            → keep  (active queue owns it)
+		 *   completion-flag set +
+		 *     file recent           → keep  (postComplete may be about to consume)
+		 *   file age > threshold    → delete + clear stale completion flag
+		 *   file recent (else)      → keep  (probably active, err on the safe side)
+		 *
+		 * All decisions are local — no network calls. Directly hitting SS's
+		 * own queue rows is fragile (IPS queue data is a serialised PHP blob),
+		 * so we rely on the trio: Distributor row + Distributor::isRunning()
+		 * + core_store completion flag + file mtime. Threshold matches
+		 * ImportJob::STALE_THRESHOLD_SECONDS for consistency with the
+		 * generic-job cleanup above. */
+		$ssStagesFreed = 0;
+		$ssPattern     = $uploadsDir . '/gdcatalog_ss_seen_upcs_*.jsonl';
+		$staleCutoffTs = time() - ImportJob::STALE_THRESHOLD_SECONDS;
+		try
+		{
+			$paths = glob( $ssPattern ) ?: [];
+			foreach ( $paths as $path )
+			{
+				if ( !is_file( $path ) ) { continue; }
+				$name = basename( $path );
+				if ( !preg_match( '/^gdcatalog_ss_seen_upcs_(\d+)\.jsonl$/', $name, $m ) )
+				{
+					/* Malformed filename — ignore (do not delete something we
+					 * cannot map to a feed_id). */
+					continue;
+				}
+				$feedId = (int) $m[1];
+
+				$feed = null;
+				try { $feed = Distributor::load( $feedId ); } catch ( \Throwable ) {}
+
+				if ( $feed === null )
+				{
+					/* Feed row is gone — nothing owns this file. */
+					if ( @unlink( $path ) ) { $ssStagesFreed++; }
+					try { unset( \IPS\Data\Store::i()->{'gdcatalog_ss_completed_naturally_' . $feedId} ); } catch ( \Throwable ) {}
+					continue;
+				}
+
+				if ( (string) ( $feed->auth_type ?? '' ) !== 'sportssouth' )
+				{
+					/* Feed still exists but is no longer a Sports South feed —
+					 * the SS queue will never re-run for it. Safe to delete. */
+					if ( @unlink( $path ) ) { $ssStagesFreed++; }
+					try { unset( \IPS\Data\Store::i()->{'gdcatalog_ss_completed_naturally_' . $feedId} ); } catch ( \Throwable ) {}
+					continue;
+				}
+
+				/* If the Distributor is actively running, an SS queue worker
+				 * is presumed to own this file — never touch. */
+				try
+				{
+					if ( $feed->isRunning() ) { continue; }
+				}
+				catch ( \Throwable ) {}
+
+				/* Completion flag present + file recent: the SS queue is
+				 * either in postComplete right now, or was seconds ago.
+				 * Do not race with it — keep. */
+				$flagPresent = false;
+				try
+				{
+					$flag = \IPS\Data\Store::i()->{'gdcatalog_ss_completed_naturally_' . $feedId} ?? null;
+					$flagPresent = ( (int) $flag ) === 1;
+				}
+				catch ( \Throwable ) {}
+
+				$mtime = (int) ( @filemtime( $path ) ?: 0 );
+				$isStale = $mtime > 0 && $mtime < $staleCutoffTs;
+
+				if ( $flagPresent && !$isStale )
+				{
+					continue;
+				}
+
+				if ( !$isStale )
+				{
+					/* Recent file, feed not running, no flag → probably a
+					 * queue tick between chunks. Give it another cycle
+					 * before removing. */
+					continue;
+				}
+
+				/* Stale + feed idle → abandoned. Remove file and clear the
+				 * lingering completion flag if any. */
+				if ( @unlink( $path ) ) { $ssStagesFreed++; }
+				try { unset( \IPS\Data\Store::i()->{'gdcatalog_ss_completed_naturally_' . $feedId} ); } catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			$errors[] = 'ss accumulator cleanup: ' . $e->getMessage();
+		}
+
 		if ( !empty( $errors ) )
 		{
 			try { \IPS\Log::log( implode( "\n", $errors ), 'gdcatalog_reconcile' ); } catch ( \Throwable ) {}
 		}
 
-		if ( $reconciled === 0 && $stagesFreed === 0 && empty( $errors ) )
+		if ( $reconciled === 0 && $stagesFreed === 0 && $ssStagesFreed === 0 && empty( $errors ) )
 		{
 			return null;
 		}
 
 		$parts = [];
-		if ( $reconciled  > 0 ) { $parts[] = "reconciled {$reconciled} stale job(s)"; }
-		if ( $stagesFreed > 0 ) { $parts[] = "cleaned {$stagesFreed} orphan staged file(s)"; }
-		if ( !empty( $errors ) ) { $parts[] = \count( $errors ) . ' error(s)'; }
+		if ( $reconciled    > 0 ) { $parts[] = "reconciled {$reconciled} stale job(s)"; }
+		if ( $stagesFreed   > 0 ) { $parts[] = "cleaned {$stagesFreed} orphan staged file(s)"; }
+		if ( $ssStagesFreed > 0 ) { $parts[] = "cleaned {$ssStagesFreed} abandoned SS accumulator file(s)"; }
+		if ( !empty( $errors ) )  { $parts[] = \count( $errors ) . ' error(s)'; }
 		return implode( ', ', $parts );
 	}
 }
