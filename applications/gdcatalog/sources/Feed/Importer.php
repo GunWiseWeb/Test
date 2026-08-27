@@ -93,53 +93,18 @@ class Importer
 		return $value;
 	}
 
-	/** Accessory attribute extraction — slot meaning is category-specific (SS). */
-	public const ACCESSORY_ATTR_MAP = [
-		'holsters-carry' => [ 'holster_type'=>'ITATR1', 'holster_color'=>'ITATR2', 'holster_material'=>'ITATR3', 'holster_hand'=>'ITATR5' ],
-		'apparel'        => [ 'apparel_pattern'=>'ITATR3', 'apparel_size'=>'ITATR4', 'apparel_material'=>'ITATR5' ],
-		'hunting-gear'   => [ 'hunt_call_type'=>'ITATR1', 'hunt_game'=>'ITATR2' ],
-		'knives'         => [ 'blade_shape'=>'ITATR2', 'blade_length'=>'ITATR3', 'blade_material'=>'ITATR5', 'blade_edge'=>'ITATR9', 'knife_handle'=>'ITATR6' ],
-	];
-
-	public static function accessoryAttrsFor( string $topSlug, array $raw ): array
-	{
-		if ( $topSlug === 'optics' )
-		{
-			$out = [];
-			$mag = trim( (string) ( $raw['ITATR1'] ?? '' ) );
-			if ( $mag !== '' && preg_match( '/^[0-9][0-9.\-]*x$/i', $mag ) ) { $out['optic_magnification'] = mb_substr( $mag, 0, 80 ); }
-			$obj = trim( (string) ( $raw['ITATR2'] ?? '' ) );
-			if ( $obj !== '' && preg_match( '/^[0-9][0-9.]*mm$/i', $obj ) ) { $out['optic_objective'] = mb_substr( $obj, 0, 80 ); }
-			return $out;
-		}
-
-		$out = [];
-		if ( isset( self::ACCESSORY_ATTR_MAP[ $topSlug ] ) )
-		{
-			foreach ( self::ACCESSORY_ATTR_MAP[ $topSlug ] as $col => $slot )
-			{
-				$v = trim( (string) ( $raw[ $slot ] ?? '' ) );
-				if ( $v !== '' ) { $out[ $col ] = mb_substr( $v, 0, 80 ); }
-			}
-		}
-		return $out;
-	}
-
-	/** category_id -> top-level slug, cached for the run. */
-	protected ?array $topSlugByCatId = null;
-	public function topSlugForCategoryId( int $catId ): string
-	{
-		if ( $this->topSlugByCatId === null )
-		{
-			$this->topSlugByCatId = [];
-			$parent = []; $slug = [];
-			foreach ( \IPS\Db::i()->select( 'id, parent_id, slug', 'gd_categories' ) as $c )
-			{ $parent[(int)$c['id']] = (int)$c['parent_id']; $slug[(int)$c['id']] = (string)$c['slug']; }
-			foreach ( $parent as $id => $pid )
-			{ $top = $pid > 0 ? $pid : $id; $this->topSlugByCatId[$id] = $slug[$top] ?? ''; }
-		}
-		return $this->topSlugByCatId[ $catId ] ?? '';
-	}
+	/**
+	 * v1.0.119 (Phase 3): ACCESSORY_ATTR_MAP, accessoryAttrsFor(), and
+	 * topSlugForCategoryId() + $topSlugByCatId cache moved to
+	 * SportsSouthAdapter. Slot meaning is Sports South-specific (ITATR1
+	 * as "holster type" only makes sense against SS's per-CATID slot
+	 * convention) and the top-slug lookup was only ever called to feed
+	 * accessoryAttrsFor. Zero external callers verified via grep before
+	 * removal (see Phase 3 audit — no other module references these
+	 * symbols). Their behaviour is preserved: the adapter now writes
+	 * `_ATTR_<col>` sentinels that the generic `_ATTR_*` merge in
+	 * processRecord picks up automatically.
+	 */
 
 	/**
 	 * v1.0.10: Safety cap on rows processed per import run. Sports South's
@@ -543,7 +508,15 @@ class Importer
 	{
 		if ( $this->sportsSouthAdapter === null )
 		{
-			$this->sportsSouthAdapter = new SportsSouthAdapter( $this->feed );
+			/* v1.0.119 (Phase 3): the adapter now owns the raw-CATID →
+			 * CategoryMapper::resolve override AND the accessory ITATR
+			 * slot interpretation (was Importer::accessoryAttrsFor + the
+			 * ACCESSORY_ATTR_MAP const). Both need this importer's
+			 * per-feed CategoryMapper to preserve exact-current output,
+			 * so inject it at construction. Adapter instance is still
+			 * per-import-run, matching the pre-refactor lookup-cache
+			 * lifetime. */
+			$this->sportsSouthAdapter = new SportsSouthAdapter( $this->feed, $this->categoryMapper );
 		}
 		return $this->sportsSouthAdapter;
 	}
@@ -604,17 +577,22 @@ class Importer
 			   the existing downstream pipeline (UPC extraction,
 			   category resolution, product create/update, conflict
 			   resolution, compliance, discontinuation, reindex).
-			   Later phases will progressively refactor the code below
-			   to consume $normalized directly rather than re-reading
+			   Later phases progressively refactor the code below to
+			   consume $normalized directly rather than re-reading
 			   $mapped, at which point the toArray() call can be
 			   removed. Introducing the seam here — after mapping +
 			   type-casting + the enrichment _ATTR_* merge, before the
 			   generic-catalog processing begins — keeps this change
 			   independently deployable and reversible.
 			   See gdcatalog Import System Audit (2026-08-25) §6
-			   Phase 1. Deliberately does NOT touch Sports South
-			   coupling below (raw CATID lookup on :1050, accessory
-			   ITATR* lookup on :1063) — those move in later phases. */
+			   Phase 1.
+			   v1.0.119 (Phase 3): the Sports South-specific reads that
+			   used to live below in this method (raw $rawRecord['CATID']
+			   → CategoryMapper::resolve override; raw ITATR* → accessory
+			   columns via accessoryAttrsFor + topSlugForCategoryId) have
+			   moved into SportsSouthAdapter::enrich(). Everything below
+			   this seam is now source-neutral: it reads only $mapped
+			   (canonical) and the pre-existing generic `_ATTR_*` merge. */
 			$normalized = NormalizedRecord::fromMapped( $mapped, $rawRecord, $this->feed );
 			$mapped     = $normalized->toArray();
 
@@ -667,21 +645,35 @@ class Importer
 			}
 			unset( $mapped['category'] );
 
-			/* Resolve numeric category_id through category_mapping using raw CATID (e.g. SS CATID → canonical) */
-			$rawCatId = (int) ( $rawRecord['CATID'] ?? 0 );
-			if ( $rawCatId > 0 )
-			{
-				$mapped['category_id'] = $this->categoryMapper->resolve( $rawCatId );
-			}
+			/* v1.0.119 (Phase 3): the raw-CATID → CategoryMapper::resolve
+			 * override that used to live here now runs inside
+			 * SportsSouthAdapter::enrich() (which writes `_CATEGORY_ID`
+			 * before FieldMapper::mapRecord runs upstream). Removing the
+			 * raw $rawRecord['CATID'] read leaves processRecord fully
+			 * source-neutral for category resolution. Byte-equivalent
+			 * output preserved — same CategoryMapper instance, same
+			 * argument, same call site ordering (still before
+			 * refineCategoryByTitle, which is source-neutral). */
 
-			$mapped['category_id'] = $this->refineCategoryByTitle( (int) ( $mapped['category_id'] ?? 0 ), $sTitle );
+			/* v1.0.119 (Phase 3): $sTitle was set only inside
+			 * enrichSportsSouthRecord (a different method's scope) —
+			 * accessing it here fataled on PHP 8 for non-SS feeds. Use
+			 * the mapped canonical title, which is what
+			 * refineCategoryByTitle actually reads for its title
+			 * heuristics. Fixes audit defect #1. */
+			$mapped['category_id'] = $this->refineCategoryByTitle( (int) ( $mapped['category_id'] ?? 0 ), (string) ( $mapped['title'] ?? '' ) );
 
 			/* Category-based ammo flag (Sports South sends none). Ammunition subtree => is_ammo. */
 			$mapped['is_ammo'] = in_array( (int) ( $mapped['category_id'] ?? 0 ), self::AMMO_CATEGORY_IDS, true ) ? 1 : 0;
 
-			/* Per-category accessory attributes from raw SS ITATR slots into their own columns. */
-			$topSlug = $this->topSlugForCategoryId( (int) ( $mapped['category_id'] ?? 0 ) );
-			foreach ( self::accessoryAttrsFor( $topSlug, $rawRecord ) as $col => $val ) { $mapped[ $col ] = $val; }
+			/* v1.0.119 (Phase 3): per-category accessory attribute
+			 * extraction from raw SS ITATR slots (the old
+			 * accessoryAttrsFor + topSlugForCategoryId helpers) has moved
+			 * into SportsSouthAdapter::enrich(). The adapter now writes
+			 * each accessory column as `_ATTR_<col>`, and the generic
+			 * `_ATTR_*` merge above (in this same processRecord, at the
+			 * top of the try block) already picks those up into $mapped
+			 * with no per-source knowledge required here. */
 
 			if ( isset( $mapped['action_type'] ) )
 			{

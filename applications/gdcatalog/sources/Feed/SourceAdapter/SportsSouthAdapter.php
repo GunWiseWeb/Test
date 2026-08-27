@@ -60,6 +60,7 @@
 
 namespace IPS\gdcatalog\Feed\SourceAdapter;
 
+use IPS\gdcatalog\Feed\CategoryMapper;
 use IPS\gdcatalog\Feed\Distributor;
 use IPS\gdcatalog\Feed\Distributor\SportsSouthAttributeMap;
 use IPS\gdcatalog\Feed\Distributor\SportsSouthClient;
@@ -128,6 +129,22 @@ class _SportsSouthAdapter implements SourceAdapterInterface
 		'type'            => 'gun_type',
 	];
 
+	/**
+	 * v1.0.119 (Phase 3): Sports South-specific accessory slot map,
+	 * moved verbatim from Importer::ACCESSORY_ATTR_MAP. Slot meaning is
+	 * category-specific — a given top-level category (holsters-carry,
+	 * apparel, hunting-gear, knives) assigns SS ITATR1..ITATR9 slots to
+	 * canonical accessory columns. The special-cased 'optics' branch
+	 * (pattern-validated magnification/objective) lives inline in
+	 * accessoryAttrs() rather than in this table.
+	 */
+	protected const ACCESSORY_ATTR_MAP = [
+		'holsters-carry' => [ 'holster_type'=>'ITATR1', 'holster_color'=>'ITATR2', 'holster_material'=>'ITATR3', 'holster_hand'=>'ITATR5' ],
+		'apparel'        => [ 'apparel_pattern'=>'ITATR3', 'apparel_size'=>'ITATR4', 'apparel_material'=>'ITATR5' ],
+		'hunting-gear'   => [ 'hunt_call_type'=>'ITATR1', 'hunt_game'=>'ITATR2' ],
+		'knives'         => [ 'blade_shape'=>'ITATR2', 'blade_length'=>'ITATR3', 'blade_material'=>'ITATR5', 'blade_edge'=>'ITATR9', 'knife_handle'=>'ITATR6' ],
+	];
+
 	/** Lazy-loaded brand lookup — keyed by brdno (string) => brdnam. */
 	protected ?array $brandLookup = null;
 
@@ -141,15 +158,35 @@ class _SportsSouthAdapter implements SourceAdapterInterface
 	protected ?array $categoryAttrs = null;
 
 	/**
+	 * v1.0.119 (Phase 3): canonical category_id → top-level slug cache,
+	 * moved verbatim from Importer::$topSlugByCatId. Populated lazily by
+	 * topSlugForCategoryId() on first accessory-attr resolution.
+	 */
+	protected ?array $topSlugByCatId = null;
+
+	/**
 	 * Optional feed context — passed through to the returned
 	 * NormalizedRecord so its getSourceFeed()/getSourceKey() are
 	 * populated for provenance / logging. Null in test contexts.
 	 */
 	protected ?Distributor $sourceFeed;
 
-	public function __construct( ?Distributor $sourceFeed = null )
+	/**
+	 * v1.0.119 (Phase 3): CategoryMapper injected from the Importer that
+	 * owns this adapter instance. Used to (a) resolve the raw SS CATID
+	 * through the feed's explicit category_mapping table (previously done
+	 * in Importer::processRecord as an override of `_CATEGORY_ID`) and
+	 * (b) drive accessory slot interpretation via the canonical
+	 * category_id → topSlug lookup. Null in test contexts that don't
+	 * exercise category-derived enrichment; those branches are skipped
+	 * gracefully.
+	 */
+	protected ?CategoryMapper $categoryMapper;
+
+	public function __construct( ?Distributor $sourceFeed = null, ?CategoryMapper $categoryMapper = null )
 	{
-		$this->sourceFeed = $sourceFeed;
+		$this->sourceFeed     = $sourceFeed;
+		$this->categoryMapper = $categoryMapper;
 	}
 
 	/**
@@ -527,7 +564,124 @@ class _SportsSouthAdapter implements SourceAdapterInterface
 			}
 		}
 
+		/* v1.0.119 (Phase 3): fold the raw-CATID → CategoryMapper::resolve
+		 * override that previously lived in Importer::processRecord (was
+		 * lines 670-675) into the adapter so processRecord no longer reads
+		 * $rawRecord['CATID']. Preserves the pre-Phase-3 chain: the
+		 * adapter's own gd_sportssouth_category_map lookup writes
+		 * `_CATEGORY_ID` first (above), then CategoryMapper::resolve
+		 * unconditionally overrides when CATID > 0 — exactly the tail-wins
+		 * behaviour Importer had. If no CategoryMapper is injected (test
+		 * fixtures), the override is skipped and `_CATEGORY_ID` retains
+		 * whatever gd_sportssouth_category_map produced. */
+		if ( $this->categoryMapper !== null )
+		{
+			$rawCatId = (int) ( $record['CATID'] ?? 0 );
+			if ( $rawCatId > 0 )
+			{
+				$record['_CATEGORY_ID'] = (string) $this->categoryMapper->resolve( $rawCatId );
+			}
+		}
+
+		/* v1.0.119 (Phase 3): per-category accessory attributes from raw SS
+		 * ITATR slots, moved verbatim from Importer::processRecord (was
+		 * lines 682-684 → Importer::accessoryAttrsFor). Writes each result
+		 * as `_ATTR_col` on $record so the generic `_ATTR_*` merge in
+		 * Importer::processRecord (line 587) picks them up — that keeps
+		 * the accessory pipeline going through the same one-way sentinel
+		 * channel every other adapter output uses (_BRAND_NAME,
+		 * _MANUFACTURER, _MPN, _CATEGORY_ID, _ATTR_caliber, etc.), and
+		 * removes the last raw-ITATR* / raw-CATID reads from
+		 * processRecord. Skipped in test contexts with no CategoryMapper. */
+		if ( $this->categoryMapper !== null )
+		{
+			$canonicalCatId = isset( $record['_CATEGORY_ID'] ) ? (int) $record['_CATEGORY_ID'] : 0;
+			if ( $canonicalCatId > 0 )
+			{
+				$topSlug = $this->topSlugForCategoryId( $canonicalCatId );
+				if ( $topSlug !== '' )
+				{
+					foreach ( $this->accessoryAttrs( $topSlug, $record ) as $col => $val )
+					{
+						/* Only fill if the slot is not already populated by
+						 * upstream enrichment. Matches the "first match wins"
+						 * discipline the ATTR_LABEL_MAP path uses (line 447)
+						 * and the pre-Phase-3 accessoryAttrsFor path (which
+						 * only reached un-mapped slots since ATTR_LABEL_MAP
+						 * and ACCESSORY_ATTR_MAP output columns don't
+						 * overlap). Non-empty guard mirrors the generic
+						 * `_ATTR_*` merge on Importer:592. */
+						if ( !isset( $record[ '_ATTR_' . $col ] ) || $record[ '_ATTR_' . $col ] === '' )
+						{
+							$record[ '_ATTR_' . $col ] = $val;
+						}
+					}
+				}
+			}
+		}
+
 		return $record;
+	}
+
+	/**
+	 * v1.0.119 (Phase 3): canonical category_id → top-level slug lookup,
+	 * moved verbatim (behaviourally) from Importer::topSlugForCategoryId.
+	 * Walks gd_categories once per import run and caches on the adapter
+	 * instance. Private — accessory-slot interpretation is the only caller
+	 * and the SS-specific meaning of ITATR slots is exactly what Phase 3
+	 * encapsulates here.
+	 */
+	private function topSlugForCategoryId( int $catId ): string
+	{
+		if ( $this->topSlugByCatId === null )
+		{
+			$this->topSlugByCatId = [];
+			$parent = []; $slug = [];
+			try
+			{
+				foreach ( \IPS\Db::i()->select( 'id, parent_id, slug', 'gd_categories' ) as $c )
+				{ $parent[(int)$c['id']] = (int)$c['parent_id']; $slug[(int)$c['id']] = (string)$c['slug']; }
+			}
+			catch ( \Throwable ) {}
+			foreach ( $parent as $id => $pid )
+			{ $top = $pid > 0 ? $pid : $id; $this->topSlugByCatId[$id] = $slug[$top] ?? ''; }
+		}
+		return $this->topSlugByCatId[ $catId ] ?? '';
+	}
+
+	/**
+	 * v1.0.119 (Phase 3): SS ITATR slot → accessory column value map,
+	 * moved verbatim from Importer::accessoryAttrsFor. Slot semantics are
+	 * category-specific — a holster's ITATR1 means holster_type, an
+	 * apparel item's ITATR3 means apparel_pattern, etc. The 'optics'
+	 * top-slug is special-cased with pattern validation (magnification
+	 * "12x", objective "40mm"); all other accessory top-slugs look up
+	 * ACCESSORY_ATTR_MAP and pluck the labelled slots verbatim (trimmed,
+	 * capped at 80 chars). Private for the same reason as
+	 * topSlugForCategoryId above — SS ITATR meaning belongs here now.
+	 */
+	private function accessoryAttrs( string $topSlug, array $raw ): array
+	{
+		if ( $topSlug === 'optics' )
+		{
+			$out = [];
+			$mag = trim( (string) ( $raw['ITATR1'] ?? '' ) );
+			if ( $mag !== '' && preg_match( '/^[0-9][0-9.\-]*x$/i', $mag ) ) { $out['optic_magnification'] = mb_substr( $mag, 0, 80 ); }
+			$obj = trim( (string) ( $raw['ITATR2'] ?? '' ) );
+			if ( $obj !== '' && preg_match( '/^[0-9][0-9.]*mm$/i', $obj ) ) { $out['optic_objective'] = mb_substr( $obj, 0, 80 ); }
+			return $out;
+		}
+
+		$out = [];
+		if ( isset( self::ACCESSORY_ATTR_MAP[ $topSlug ] ) )
+		{
+			foreach ( self::ACCESSORY_ATTR_MAP[ $topSlug ] as $col => $slot )
+			{
+				$v = trim( (string) ( $raw[ $slot ] ?? '' ) );
+				if ( $v !== '' ) { $out[ $col ] = mb_substr( $v, 0, 80 ); }
+			}
+		}
+		return $out;
 	}
 }
 
