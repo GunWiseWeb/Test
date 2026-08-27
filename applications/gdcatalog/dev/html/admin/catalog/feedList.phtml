@@ -1,7 +1,7 @@
 <ips:template parameters="$feeds, $feedCounts, $addUrl, $reorderUrl, $csrfKey, $reExtractUrl" />
 <div class="ipsBox ipsPull">
 	<div style="display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--i-border-color, #e0e0e0)">
-		<a href="{$addUrl}" class="ipsButton ipsButton--primary ipsButton--small">+ Add Distributor</a>
+		<a href="{$addUrl}" class="ipsButton ipsButton--primary ipsButton--small">+ Add Source</a>
 		{{if $reExtractUrl}}<a href="{$reExtractUrl}" class="ipsButton ipsButton--normal ipsButton--small" onclick="return confirm('Re-extract attributes from stored raw data for all products?');">Re-extract Attributes</a>{{endif}}
 	</div>
 	<div class="ipsBox_body ipsPad">
@@ -9,11 +9,11 @@
 		<div style="display:flex;gap:16px;margin-bottom:24px">
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
 				<div style="font-size:2em;font-weight:bold">{$feedCounts['total']}</div>
-				<div>Configured Feeds</div>
+				<div>Configured Sources</div>
 			</div>
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
 				<div style="font-size:2em;font-weight:bold">{$feedCounts['active']}</div>
-				<div>Active Feeds</div>
+				<div>Active Sources</div>
 			</div>
 			<div class="ipsBox" style="flex:1;padding:16px;text-align:center">
 				<div style="font-size:2em;font-weight:bold">{$feedCounts['urls']}</div>
@@ -31,15 +31,15 @@
 				<tr>
 					<th style="width:30px"></th>
 					<th style="width:5%">#</th>
-					<th>{lang="gdcatalog_feed_name"}</th>
-					<th>{lang="gdcatalog_feed_distributor"}</th>
-					<th>{lang="gdcatalog_feed_format"}</th>
-					<th>{lang="gdcatalog_feed_schedule"}</th>
-					<th>{lang="gdcatalog_feed_active"}</th>
-					<th>{lang="gdcatalog_feed_last_run"}</th>
-					<th>{lang="gdcatalog_feed_last_count"}</th>
-					<th>{lang="gdcatalog_feed_last_status"}</th>
-					<th style="width:320px">Actions</th>
+					<th>Source</th>
+					<th>Type</th>
+					<th>Schedule</th>
+					<th>State</th>
+					<th>Last Run</th>
+					<th>Records</th>
+					<th>Result</th>
+					<th style="width:280px">Primary</th>
+					<th style="width:260px">Advanced</th>
 				</tr>
 			</thead>
 			<tbody class="gdcatalog-sortable">
@@ -47,13 +47,20 @@
 				<tr data-feed-id="{$feed['id']}">
 					<td class="gdcatalog-drag-handle" style="cursor:grab;width:30px;text-align:center"><i class="fa-solid fa-bars"></i></td>
 					<td>{$feed['priority']}</td>
-					<td><strong>{$feed['feed_name']}</strong></td>
-					<td>{$feed['distributor_label']}</td>
-					<td>{$feed['feed_format']}</td>
+					<td>
+						<strong>{$feed['feed_name']}</strong><br>
+						<span style="font-size:0.85em;color:var(--i-color-soft)">{$feed['distributor_label']}</span>
+					</td>
+					<td>
+						{$feed['type_label']}
+						{{if $feed['is_locked']}}
+						<br><span class="ipsBadge ipsBadge--warning" style="margin-top:4px">Locked</span>
+						{{endif}}
+					</td>
 					<td>{$feed['import_schedule']}</td>
 					<td>
 						{{if $feed['active']}}
-							<span class="ipsBadge ipsBadge--positive">{lang="gdcatalog_feed_active"}</span>
+							<span class="ipsBadge ipsBadge--positive">Active</span>
 						{{else}}
 							<span class="ipsBadge ipsBadge--neutral">Inactive</span>
 						{{endif}}
@@ -78,12 +85,7 @@
 						{{endif}}
 					</td>
 					<td>
-						<a href="{$feed['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a>
-						<a href="{$feed['delete_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="Delete this feed and all associated data?">Delete</a>
-						{{if $feed['test_url']}}
-						<a href="{$feed['test_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Test Connection</a>
-						{{endif}}
-						{{if $feed['auth_type'] === 'manual_upload'}}
+						{{if $feed['is_manual_upload']}}
 							<a href="{$feed['upload_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Upload File</a>
 							{{if $feed['has_upload']}}
 							<a href="{$feed['run_manual_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm data-confirmMessage="Run import using {$feed['upload_filename']}?">Run Import</a>
@@ -91,15 +93,38 @@
 							{{else}}
 							<span style="font-size:0.85em;display:block;margin-top:2px;color:var(--i-color-soft)">No file uploaded</span>
 							{{endif}}
+						{{elseif $feed['is_sportssouth']}}
+							<a href="{$feed['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a>
+							{{if $feed['test_url']}}
+							<a href="{$feed['test_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Test Connection</a>
+							{{endif}}
+							<span style="font-size:0.85em;display:block;margin-top:4px;color:var(--i-color-soft)">Runs via queued task &mdash; not launched from this list.</span>
+						{{else}}
+							<a href="{$feed['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a>
+							{{if $feed['can_test_source']}}
+							<a href="{$feed['test_source_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Test Source</a>
+							{{endif}}
+							{{if $feed['can_run']}}
+							<a href="{$feed['run_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm data-confirmMessage="Run import now for this source?">Run Import</a>
+							{{endif}}
 						{{endif}}
-						{{if $feed['reset_url']}}
-						<a href="{$feed['reset_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="Reset this feed's running status? Only do this if the import is stuck.">Reset Status</a>
+					</td>
+					<td>
+						{{if !$feed['is_manual_upload']}}
+						<a href="{$feed['edit_url']}" class="ipsButton ipsButton--normal ipsButton--small">Edit</a>
+						{{endif}}
+						{{if $feed['can_refresh_lookups']}}
+						<a href="{$feed['refresh_lookups_url']}" class="ipsButton ipsButton--soft ipsButton--small">Refresh Lookups</a>
 						{{endif}}
 						{{if $feed['is_locked']}}
 						<a href="{$feed['unlock_catalog_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm>Unlock</a>
 						{{else}}
 						<a href="{$feed['lock_catalog_url']}" class="ipsButton ipsButton--soft ipsButton--small" data-confirm>Lock</a>
 						{{endif}}
+						{{if $feed['reset_url']}}
+						<a href="{$feed['reset_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="Reset this source's running status? Only do this if the import is stuck.">Reset Status</a>
+						{{endif}}
+						<a href="{$feed['delete_url']}" class="ipsButton ipsButton--negative ipsButton--small" data-confirm data-confirmMessage="Delete this source and all associated data?">Delete</a>
 					</td>
 				</tr>
 				{{if $feed['last_import_log']}}

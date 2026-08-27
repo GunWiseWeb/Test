@@ -68,6 +68,10 @@
     <word key="gdcatalog_feed_last_count"><![CDATA[Last Record Count]]></word>
     <word key="gdcatalog_feed_last_status"><![CDATA[Last Run Status]]></word>
     <word key="gdcatalog_feed_conflict_detection"><![CDATA[Conflict Detection Fields]]></word>
+    <word key="gdcatalog_feed_section_identity"><![CDATA[Source Identity]]></word>
+    <word key="gdcatalog_feed_section_data_format"><![CDATA[Data Format]]></word>
+    <word key="gdcatalog_feed_section_connection"><![CDATA[Connection]]></word>
+    <word key="gdcatalog_feed_section_schedule"><![CDATA[Import Schedule &amp; Activation]]></word>
     <word key="gdcatalog_dist_rsr_group"><![CDATA[RSR Group]]></word>
     <word key="gdcatalog_dist_sports_south"><![CDATA[Sports South]]></word>
     <word key="gdcatalog_dist_davidsons"><![CDATA[Davidson's]]></word>

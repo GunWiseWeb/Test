@@ -890,3 +890,57 @@ try
     \IPS\Db::i()->update( 'core_tasks', [ 'enabled' => 1 ], [ 'app=? AND `key`=?', 'core', 'queue' ] );
 }
 catch ( \Throwable ) {}
+
+/* v1.0.122 (Phase 6): after the $gdcatalogTemplates delete/insert pass
+ * above, walk dev/html/ and REPLACE INTO for every .phtml file present.
+ * This keeps fresh installs and upgrades converging on the same set of
+ * templates without duplicating template bodies inside a giant nowdoc
+ * array (rule #52). Adds any template that exists in the checked-out
+ * repo but not in $gdcatalogTemplates (feedList is in the array; new
+ * templates like testSourcePreview are picked up here). Idempotent —
+ * REPLACE ensures re-running just overwrites with current dev/html
+ * bodies.
+ */
+try
+{
+    $devRoot = \IPS\ROOT_PATH . '/applications/gdcatalog/dev/html';
+    if ( is_dir( $devRoot ) )
+    {
+        $it = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $devRoot, \FilesystemIterator::SKIP_DOTS ) );
+        foreach ( $it as $f )
+        {
+            if ( !$f->isFile() || strtolower( $f->getExtension() ) !== 'phtml' ) { continue; }
+            $rel = trim( str_replace( $devRoot, '', $f->getPathname() ), "/\\" );
+            $parts = preg_split( '#[/\\\\]#', $rel );
+            if ( count( $parts ) < 3 ) { continue; }
+            $location = (string) $parts[0];
+            $group    = (string) $parts[1];
+            $name     = pathinfo( (string) end( $parts ), PATHINFO_FILENAME );
+            $raw      = (string) @file_get_contents( $f->getPathname() );
+            if ( $raw === '' ) { continue; }
+            $params = '';
+            if ( preg_match( '#<ips:template\s+parameters="([^"]*)"\s*/>#', $raw, $m ) )
+            {
+                $params = (string) $m[1];
+            }
+            $content = preg_replace( '#^\s*<ips:template[^>]*/>\s*\r?\n?#', '', $raw, 1 );
+
+            try
+            {
+                \IPS\Db::i()->replace( 'core_theme_templates', [
+                    'template_set_id'   => 1,
+                    'template_app'      => 'gdcatalog',
+                    'template_location' => $location,
+                    'template_group'    => $group,
+                    'template_name'     => $name,
+                    'template_data'     => $params,
+                    'template_updated'  => time(),
+                    'template_version'  => '1.0.122',
+                    'template_content'  => (string) $content,
+                ] );
+            }
+            catch ( \Throwable ) {}
+        }
+    }
+}
+catch ( \Throwable ) {}

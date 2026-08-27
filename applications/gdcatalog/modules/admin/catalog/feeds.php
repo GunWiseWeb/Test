@@ -110,6 +110,52 @@ class _feeds extends \IPS\Dispatcher\Controller
 				}
 			}
 
+			$isSportsSouth = ( $authType === 'sportssouth' );
+			$isRunning     = ( $feed->last_run_status === 'running' );
+
+			/* v1.0.122 (Phase 6): capability flags so the template does
+			 * not have to compute source-type dispatch itself. Sports
+			 * South-only actions (Test SS Connection, Refresh SS
+			 * Lookups) are hidden on generic sources; the generic
+			 * Test Source action is hidden on SS + manual_upload
+			 * (SS has its own testConnection, manual_upload has no
+			 * remote to test until a file is uploaded). Every URL is
+			 * still generated for every capability that applies to a
+			 * given source — the template just gates on the flags. */
+			$typeLabel = match ( $authType ) {
+				'sportssouth'   => 'Sports South Web Service',
+				'manual_upload' => 'Manual Upload',
+				'ftp'           => 'FTP (' . strtoupper( (string) $feed->feed_format ) . ')',
+				'basic'         => 'HTTP Basic Auth (' . strtoupper( (string) $feed->feed_format ) . ')',
+				'apikey'        => 'HTTP API Key (' . strtoupper( (string) $feed->feed_format ) . ')',
+				default         => 'HTTP (' . strtoupper( (string) $feed->feed_format ) . ')',
+			};
+
+			$refreshLookupsUrl = $isSportsSouth
+				? (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=feeds&do=refreshLookups&id=' . (int) $feed->id
+				  )
+				: '';
+
+			$testSourceUrl = ( !$isSportsSouth && !$isManualUpload )
+				? (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=feeds&do=testSource&id=' . (int) $feed->id
+				  )
+				: '';
+
+			/* Run Import — one canonical CSRF-protected POST-target that
+			 * dispatches by auth_type internally. For manual_upload we
+			 * keep the pre-Phase-6 runManualFeed URL because the list
+			 * template's confirm-with-filename UX and the postComplete
+			 * queue clean-up flow depend on that action name. */
+			$runUrl = $isManualUpload
+				? $runManualUrl
+				: (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=feeds&do=runImport&id=' . (int) $feed->id
+				  )->csrf();
+			$canRun = ( $isManualUpload && $uploadFilename !== '' )
+				|| ( !$isManualUpload && !$isRunning );
+
 			$feeds[] = [
 				'id'                => (int) $feed->id,
 				'priority'          => (int) $feed->priority,
@@ -132,7 +178,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 				'unlock_catalog_url' => (string) \IPS\Http\Url::internal(
 					'app=gdcatalog&module=catalog&controller=dashboard&do=unlockCatalog&feed_id=' . (int) $feed->id
 				)->csrf(),
-				'reset_url' => $feed->last_run_status === 'running'
+				'reset_url' => $isRunning
 					? (string) \IPS\Http\Url::internal(
 						'app=gdcatalog&module=catalog&controller=feeds&do=resetFeedStatus&id=' . (int) $feed->id
 					  )->csrf()
@@ -143,6 +189,18 @@ class _feeds extends \IPS\Dispatcher\Controller
 				'run_manual_url'  => $runManualUrl,
 				'has_upload'      => ( $uploadFilename !== '' ),
 				'upload_filename' => $uploadFilename,
+
+				/* v1.0.122 (Phase 6) capability flags + new URLs. */
+				'type_label'          => $typeLabel,
+				'is_sportssouth'      => $isSportsSouth,
+				'is_manual_upload'    => $isManualUpload,
+				'is_running'          => $isRunning,
+				'can_test_source'     => ( $testSourceUrl !== '' ),
+				'test_source_url'     => $testSourceUrl,
+				'can_refresh_lookups' => $isSportsSouth,
+				'refresh_lookups_url' => $refreshLookupsUrl,
+				'run_url'             => $runUrl,
+				'can_run'             => $canRun,
 			];
 		}
 
@@ -383,11 +441,27 @@ class _feeds extends \IPS\Dispatcher\Controller
 
 		$form = new Form;
 
+		/* v1.0.122 (Phase 6): grouped edit form. Backend model
+		 * (Distributor) unchanged; every existing field name and
+		 * lang key preserved so save/load semantics match pre-Phase-6
+		 * for both Sports South and generic sources. The IPS Select
+		 * `toggles` array below is the mechanism IPS's own admin form
+		 * JS uses to show/hide fields based on auth_type — no custom
+		 * JavaScript needed here.
+		 *
+		 * Presentation uses "Source" terminology in the section
+		 * headers only; the underlying lang keys the fields point at
+		 * still say "Feed" to preserve compatibility with existing
+		 * lang strings. */
+		$form->addHeader( 'gdcatalog_feed_section_identity' );
 		$form->add( new Form\Text( 'gdcatalog_feed_name', $feed->feed_name, TRUE ) );
-		$form->add( new Form\Url( 'gdcatalog_feed_url', $feed->feed_url, FALSE ) );
+
+		$form->addHeader( 'gdcatalog_feed_section_data_format' );
 		$form->add( new Form\Select( 'gdcatalog_feed_format', $feed->feed_format, TRUE, [
 			'options' => [ 'xml' => 'XML', 'json' => 'JSON', 'csv' => 'CSV' ],
 		] ) );
+
+		$form->addHeader( 'gdcatalog_feed_section_connection' );
 		$form->add( new Form\Select( 'gdcatalog_feed_auth_type', $feed->auth_type, TRUE, [
 			'options' => [
 				'none'           => 'None',
@@ -398,17 +472,20 @@ class _feeds extends \IPS\Dispatcher\Controller
 				'manual_upload'  => 'Manual File Upload',
 			],
 			'toggles' => [
-				'none'          => [ 'gdcatalog_feed_url', 'gdcatalog_feed_auth_credentials' ],
+				'none'          => [ 'gdcatalog_feed_url' ],
 				'basic'         => [ 'gdcatalog_feed_url', 'gdcatalog_feed_auth_credentials' ],
 				'apikey'        => [ 'gdcatalog_feed_url', 'gdcatalog_feed_auth_credentials' ],
 				'ftp'           => [ 'gdcatalog_feed_url', 'gdcatalog_feed_auth_credentials' ],
-				'sportssouth'   => [ 'gdcatalog_feed_url', 'gdcatalog_feed_auth_credentials' ],
+				'sportssouth'   => [ 'gdcatalog_feed_auth_credentials' ],
 				'manual_upload' => [],
 			],
 		] ) );
+		$form->add( new Form\Url( 'gdcatalog_feed_url', $feed->feed_url, FALSE ) );
 		$form->add( new Form\TextArea( 'gdcatalog_feed_auth_credentials', $feed->getCredentials() ?? '', FALSE, [
 			'placeholder' => 'JSON: {"username":"...","password":"..."} or {"api_key":"..."}',
 		] ) );
+
+		$form->addHeader( 'gdcatalog_feed_section_schedule' );
 		$form->add( new Form\Select( 'gdcatalog_feed_schedule', $feed->import_schedule, TRUE, [
 			'options' => [
 				'15min' => 'Every 15 minutes',
@@ -445,25 +522,59 @@ class _feeds extends \IPS\Dispatcher\Controller
 
 		if ( $values = $form->values() )
 		{
+			/* v1.0.122 (Phase 6): explicit validation of mapping JSON,
+			 * URL requirement, and credentials shape based on
+			 * auth_type. Errors block save and re-render the form with
+			 * an error banner — no partial writes reach the DB. The
+			 * pre-Phase-6 behaviour silently dropped invalid JSON to
+			 * null, which hid typos from the admin. */
+			$authType    = (string) $values['gdcatalog_feed_auth_type'];
+			$feedUrlVal  = (string) $values['gdcatalog_feed_url'];
+			$credsRaw    = trim( (string) $values['gdcatalog_feed_auth_credentials'] );
+			$fieldJson   = trim( (string) $values['gdcatalog_feed_field_mapping_json'] );
+			$catJson     = trim( (string) $values['gdcatalog_feed_category_mapping_json'] );
+			$errors      = [];
+
+			if ( in_array( $authType, [ 'none', 'basic', 'apikey', 'ftp' ], true ) && $feedUrlVal === '' )
+			{
+				$errors[] = 'A Feed URL is required for the selected authentication type.';
+			}
+			if ( in_array( $authType, [ 'basic', 'apikey' ], true ) && $credsRaw === '' )
+			{
+				$errors[] = 'Auth credentials JSON is required for Basic Auth / API Key.';
+			}
+			if ( $credsRaw !== '' && json_decode( $credsRaw, true ) === null && json_last_error() !== JSON_ERROR_NONE )
+			{
+				$errors[] = 'Auth credentials must be valid JSON (e.g. {"username":"…","password":"…"}).';
+			}
+			if ( $fieldJson !== '' && ( !is_array( json_decode( $fieldJson, true ) ) ) )
+			{
+				$errors[] = 'Field Mapping must be a JSON object mapping source field names to canonical column names.';
+			}
+			if ( $catJson !== '' && ( !is_array( json_decode( $catJson, true ) ) ) )
+			{
+				$errors[] = 'Category Mapping must be a JSON object mapping source category strings to canonical slugs.';
+			}
+
+			if ( !empty( $errors ) )
+			{
+				$form->error = implode( '  ', $errors );
+				Output::i()->title  = $feed->feed_name;
+				Output::i()->output = (string) $form;
+				return;
+			}
+
 			$feed->feed_name       = $values['gdcatalog_feed_name'];
-			$feed->feed_url        = (string) $values['gdcatalog_feed_url'];
+			$feed->feed_url        = $feedUrlVal;
 			$feed->feed_format     = $values['gdcatalog_feed_format'];
-			$feed->auth_type       = $values['gdcatalog_feed_auth_type'];
+			$feed->auth_type       = $authType;
 			$feed->import_schedule = $values['gdcatalog_feed_schedule'];
 			$feed->active          = (int) $values['gdcatalog_feed_active'];
 
-			$creds = trim( $values['gdcatalog_feed_auth_credentials'] );
-			$feed->setCredentials( $creds !== '' ? $creds : null );
+			$feed->setCredentials( $credsRaw !== '' ? $credsRaw : null );
 
-			$fieldJson = trim( $values['gdcatalog_feed_field_mapping_json'] );
-			$feed->field_mapping = ( $fieldJson !== '' && json_decode( $fieldJson ) !== null )
-				? $fieldJson
-				: null;
-
-			$catJson = trim( $values['gdcatalog_feed_category_mapping_json'] );
-			$feed->category_mapping = ( $catJson !== '' && json_decode( $catJson ) !== null )
-				? $catJson
-				: null;
+			$feed->field_mapping    = ( $fieldJson !== '' ) ? $fieldJson : null;
+			$feed->category_mapping = ( $catJson   !== '' ) ? $catJson   : null;
 
 			$updatedConflict = [];
 			foreach ( $conflictFields as $fieldName => $default )
@@ -1109,6 +1220,171 @@ class _feeds extends \IPS\Dispatcher\Controller
 			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' ),
 			"Re-extracted attributes: {$updated} of {$scanned} products updated."
 		);
+	}
+
+	/**
+	 * v1.0.122 (Phase 6): non-destructive "Test Source" for generic
+	 * structured feeds (HTTP/FTP + CSV/JSON/XML + manual_upload with a
+	 * file waiting). Pulls a small first sample via
+	 * Importer::sampleRecords (single fetch + parse), runs each raw row
+	 * through the StructuredFeedAdapter, and renders a raw/normalized
+	 * side-by-side preview. Writes nothing to gd_catalog, does not
+	 * touch gd_import_log, gd_reindex_queue, ConflictResolver, or
+	 * OpenSearch. Sports South feeds go to the existing
+	 * testConnection action instead — the flag on the list template
+	 * hides this button for auth_type='sportssouth' so the two paths
+	 * do not overlap.
+	 *
+	 * URL: ?app=gdcatalog&module=catalog&controller=feeds&do=testSource&id=N
+	 */
+	protected function testSource(): void
+	{
+		\IPS\Dispatcher::i()->checkAcpPermission( 'feeds_manage' );
+
+		$backUrl = (string) \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+		$id      = (int) Request::i()->id;
+
+		try
+		{
+			if ( $id <= 0 ) { throw new \RuntimeException( 'Missing source ID.' ); }
+			$feed = Distributor::load( $id );
+
+			$authType = (string) ( $feed->auth_type ?? 'none' );
+			if ( $authType === 'sportssouth' )
+			{
+				throw new \RuntimeException( 'Sports South feeds use the "Test Connection" action, not "Test Source".' );
+			}
+			if ( $authType === 'manual_upload' && trim( (string) ( $feed->uploaded_file_path ?? '' ) ) === '' )
+			{
+				throw new \RuntimeException( 'Upload a feed file first (manual-upload sources have nothing to test until a file is present).' );
+			}
+
+			$sample = \IPS\gdcatalog\Feed\Importer::sampleRecords( $feed, 5 );
+			$recordCount = \count( $sample );
+
+			$adapter = new \IPS\gdcatalog\Feed\SourceAdapter\StructuredFeedAdapter(
+				$feed,
+				new \IPS\gdcatalog\Feed\FieldMapper( $feed->field_mapping )
+			);
+
+			$rows = [];
+			foreach ( $sample as $idx => $rawRecord )
+			{
+				try
+				{
+					$normalized = $adapter->normalize( $rawRecord );
+					$rows[] = [
+						'idx'       => $idx + 1,
+						'raw'       => $rawRecord,
+						'canonical' => $normalized->toArray(),
+						'error'     => '',
+					];
+				}
+				catch ( \Throwable $inner )
+				{
+					$rows[] = [
+						'idx'       => $idx + 1,
+						'raw'       => $rawRecord,
+						'canonical' => [],
+						'error'     => $inner->getMessage(),
+					];
+				}
+			}
+
+			Output::i()->title  = 'Test Source: ' . (string) $feed->feed_name;
+			Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->testSourcePreview(
+				(string) $feed->feed_name,
+				(string) $authType,
+				strtoupper( (string) $feed->feed_format ),
+				(int) $recordCount,
+				$rows,
+				$backUrl
+			);
+
+			try { \IPS\Log::log( 'Test Source success id=' . $id . ' records=' . $recordCount, 'gdcatalog_test_source' ); } catch ( \Throwable ) {}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'Test Source FAILED id=' . $id . ': ' . $e->getMessage(), 'gdcatalog_test_source' ); } catch ( \Throwable ) {}
+
+			/* Credential values are never rendered here — only the
+			 * exception message text, which never contains secrets
+			 * (validation errors mention field NAMES, HTTP failures
+			 * mention response codes / hosts). */
+			$html  = '<div style="padding:16px 20px;max-width:1100px;margin:0 auto">';
+			$html .= '<h2 style="margin:0 0 16px">Test Source &mdash; Failed</h2>';
+			$html .= '<div style="background:#fee2e2;border:1px solid #fca5a5;color:#7f1d1d;padding:12px 16px;border-radius:8px;margin-bottom:16px">';
+			$html .= '<strong>Test failed</strong><br>';
+			$html .= htmlspecialchars( $e->getMessage(), ENT_QUOTES, 'UTF-8' );
+			$html .= '</div>';
+			$html .= '<p style="color:#6b7280;font-size:0.9em">Check the IPS error log filtered by category=<code>gdcatalog_test_source</code>.</p>';
+			$html .= '<div style="margin-top:16px"><a href="' . htmlspecialchars( $backUrl, ENT_QUOTES, 'UTF-8' ) . '" class="ipsButton ipsButton_normal">Back to sources</a></div>';
+			$html .= '</div>';
+
+			Output::i()->title  = 'Test Source &mdash; Failed';
+			Output::i()->output = $html;
+		}
+	}
+
+	/**
+	 * v1.0.122 (Phase 6): synchronous "Run Import" action for any
+	 * fetchable source (auth_type != 'sportssouth' + != 'manual_upload').
+	 * Manual-upload sources continue to use the pre-Phase-6
+	 * runManualFeed action — the list template routes there directly
+	 * so this method never has to handle uploaded-file semantics.
+	 * Sports South imports go through the queued
+	 * SportsSouthImport extension via cron; running one from the
+	 * list is intentionally NOT supported here (no execution
+	 * architecture change per the Phase 6 prompt).
+	 *
+	 * URL: ?app=gdcatalog&module=catalog&controller=feeds&do=runImport&id=N (CSRF-protected)
+	 */
+	protected function runImport(): void
+	{
+		\IPS\Dispatcher::i()->checkAcpPermission( 'feeds_manage' );
+		\IPS\Session::i()->csrfCheck();
+
+		$backUrl = \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=feeds' );
+		$id      = (int) Request::i()->id;
+
+		try
+		{
+			if ( $id <= 0 ) { throw new \RuntimeException( 'Missing source ID.' ); }
+			$feed = Distributor::load( $id );
+			$authType = (string) ( $feed->auth_type ?? 'none' );
+
+			if ( $authType === 'sportssouth' )
+			{
+				throw new \RuntimeException( 'Sports South imports run via the queued SportsSouthImport extension — use its own controls.' );
+			}
+			if ( $authType === 'manual_upload' )
+			{
+				throw new \RuntimeException( 'Manual-upload sources run via the "Run Import" button on the upload row.' );
+			}
+			if ( $feed->isRunning() )
+			{
+				throw new \RuntimeException( 'Source is already running. Use "Reset Status" if the previous run is stuck.' );
+			}
+
+			$log = \IPS\gdcatalog\Feed\Importer::run( $feed );
+
+			Output::i()->redirect(
+				$backUrl,
+				sprintf(
+					'Import complete: %d created, %d updated, %d skipped, %d errored (%d conflicts).',
+					(int) ( $log->records_created  ?? 0 ),
+					(int) ( $log->records_updated  ?? 0 ),
+					(int) ( $log->records_skipped  ?? 0 ),
+					(int) ( $log->records_errored  ?? 0 ),
+					(int) ( $log->conflicts_logged ?? 0 )
+				)
+			);
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'Run Import FAILED id=' . $id . ': ' . $e->getMessage(), 'gdcatalog_run_import' ); } catch ( \Throwable ) {}
+			Output::i()->redirect( $backUrl, 'Import failed: ' . $e->getMessage() );
+		}
 	}
 }
 

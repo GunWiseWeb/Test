@@ -174,6 +174,43 @@ class Importer
 	}
 
 	/**
+	 * v1.0.122 (Phase 6): non-destructive sample fetch for the "Test
+	 * Source" AdminCP action. Runs the existing per-feed fetch +
+	 * parse pipeline against the same Distributor row a real import
+	 * would use, returns the first N parsed raw records, and does
+	 * nothing else — no product create/update, no ConflictResolver
+	 * write, no ImportLog write, no OpenSearch queue, no
+	 * discontinuation, no markRunning. This is the ONLY entry point
+	 * the Test Source action uses, so the AdminCP controller never
+	 * has to duplicate fetch or parser behaviour.
+	 *
+	 * The Sports South branch of fetchFeed pulls a small first page
+	 * (per MAX_RECORDS_PER_RUN) and pre-enriches via the SS adapter
+	 * — the sample slice below caps that further so we never render
+	 * a full page's worth of SS raw. For CSV/JSON/XML/HTTP/FTP the
+	 * whole feed body is fetched (same as a live run) and then
+	 * sliced; a feed larger than a few thousand rows will therefore
+	 * be paid for at fetch time. That is a known trade-off; the
+	 * alternative — a range-limited fetch — would duplicate live
+	 * fetchFeed logic and risk drift.
+	 *
+	 * @param  Distributor $feed  Feed configuration to sample
+	 * @param  int         $limit Maximum records to return (>=1)
+	 * @return array<int, array<string, mixed>> First $limit raw records
+	 */
+	public static function sampleRecords( Distributor $feed, int $limit = 5 ): array
+	{
+		if ( $limit < 1 )
+		{
+			$limit = 1;
+		}
+		$importer = new static( $feed );
+		$content  = $importer->fetchFeed();
+		$records  = $importer->parseFeed( $content );
+		return array_slice( $records, 0, $limit );
+	}
+
+	/**
 	 * Constructor.
 	 *
 	 * @param  Distributor $feed
