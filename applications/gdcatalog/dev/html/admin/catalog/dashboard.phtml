@@ -166,8 +166,11 @@
 			<a href="{$osStats['process_queue_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Process Queue</a>
 		</div>
 		{{else}}
-		<div class="ipsMessage ipsMessage--info" style="margin-top:12px"><p>OpenSearch index not found. Build the index to enable fast product search and conflict resolution.</p></div>
-		<a href="{$osStats['rebuild_url']}" class="ipsButton ipsButton--primary ipsButton--small">Build Index Now</a>
+		<div class="ipsMessage ipsMessage--info" style="margin-top:12px"><p>OpenSearch status not verified on this page load. The dashboard no longer probes the cluster synchronously (a hang there used to freeze the ACP page). Use <strong>Build Index Now</strong> to verify reachability and rebuild in one action, or <strong>Process Queue</strong> to run pending reindex jobs.</p></div>
+		<div style="display:flex;gap:8px">
+			<a href="{$osStats['rebuild_url']}" class="ipsButton ipsButton--primary ipsButton--small">Build Index Now</a>
+			<a href="{$osStats['process_queue_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Process Queue</a>
+		</div>
 		{{endif}}
 
 		{{if $reindexQueue}}

@@ -174,7 +174,14 @@ class _categorize extends \IPS\Dispatcher\Controller
 				$idx = new \IPS\gdcatalog\Search\OpenSearchIndexer();
 				foreach ( array_unique( $upcs ) as $upc )
 				{
-					try { $idx->indexProduct( \IPS\gdcatalog\Product::load( $upc ) ); } catch ( \Throwable ) {}
+					/* v1.0.121 (Phase 5): correct Product class is
+					 * \IPS\gdcatalog\Catalog\Product — the bare
+					 * \IPS\gdcatalog\Product referenced pre-Phase-5 does
+					 * not exist, and the surrounding catch(\Throwable)
+					 * was silently swallowing the resulting Error, so
+					 * every follow-up reindex from an admin categorize
+					 * action was a no-op. */
+					try { $idx->indexProduct( \IPS\gdcatalog\Catalog\Product::load( $upc ) ); } catch ( \Throwable ) {}
 				}
 			} catch ( \Throwable ) {}
 		}

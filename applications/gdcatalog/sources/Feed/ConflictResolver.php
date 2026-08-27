@@ -436,8 +436,17 @@ class ConflictResolver
 				]
 			)->first();
 		}
-		catch ( \UnderflowException )
+		catch ( \Throwable )
 		{
+			/* v1.0.121 (Phase 5): broadened from \UnderflowException per
+			 * CLAUDE.md rule #35. \UnderflowException only covered the
+			 * "row not found" case; a genuine DB error (bad column,
+			 * missing table, connection failure) throws
+			 * \IPS\Db\Exception / \Error and would escape here and
+			 * abort the caller's whole resolveConflicts pass. Treat
+			 * every failure the same as "no lock found" — the field
+			 * remains eligible for feed writes, which matches the
+			 * safest default when lock state cannot be determined. */
 			return false;
 		}
 

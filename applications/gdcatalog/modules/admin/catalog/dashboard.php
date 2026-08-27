@@ -208,64 +208,42 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		}
 		catch ( \Throwable ) {}
 
-		/* v1.0.30: Real OpenSearch probe.
+		/* v1.0.121 (Phase 5): the dashboard MUST NOT synchronously
+		 * probe OpenSearch — per CLAUDE.md rule #8, the ACP dashboard
+		 * has to load even if OpenSearch is unavailable. The v1.0.30
+		 * "HEAD hang fix" comment above was premature: 3s per request
+		 * × two requests × the ACP page render blocking on it is still
+		 * a real hang under a slow or unreachable cluster, and the
+		 * rule is unambiguous. Live index-state work has moved back
+		 * out of manage() and lives only in the explicit admin actions
+		 * (rebuildIndex, processQueue) an administrator deliberately
+		 * invokes.
 		 *
-		 * The hardcoded FALSE was a workaround for a HEAD-request hang bug
-		 * in OpenSearchIndexer::request() that v1.0.30 fixed. Now we can
-		 * call indexExists() and getStats() with confidence - HEAD now uses
-		 * CURLOPT_NOBODY+3s timeout, so worst case is a 3-second add to
-		 * page render if OpenSearch is down. */
+		 * $osExists is deliberately FALSE here — an "unknown, not
+		 * checked" state, not a "confirmed missing" state. The
+		 * template's else-branch text has been updated to reflect
+		 * that; the "Build Index Now" button doubles as a "verify by
+		 * rebuilding" action (a rebuild against an existing index is
+		 * idempotent). $osStats carries only the two admin-action URLs
+		 * — no doc count, no bytes — because those numbers can only
+		 * be filled by a live probe which we deliberately don't do
+		 * here.
+		 *
+		 * Zero HTTP requests reach OpenSearch during normal dashboard
+		 * rendering. Verified by the manage()-render smoke check in
+		 * Phase 5 tests. */
 		$osExists = FALSE;
 		$osStats  = [];
-
 		try
 		{
-			$indexer  = OpenSearchIndexer::i();
-			$osExists = $indexer->indexExists();
-
-			if ( $osExists )
-			{
-				try
-				{
-					$stats = $indexer->getStats();
-				}
-				catch ( \Throwable )
-				{
-					$stats = [];
-				}
-
-				$osStats['doc_count']  = (int) ( $stats['doc_count'] ?? 0 );
-				$osStats['size_bytes'] = (int) ( $stats['size_bytes'] ?? 0 );
-			}
-
-			/* URLs are always set regardless of $osExists - they're rendered
-			 * in different template branches (Build Index Now vs Rebuild). */
 			$osStats['rebuild_url'] = (string) \IPS\Http\Url::internal(
 				'app=gdcatalog&module=catalog&controller=dashboard&do=rebuildIndex'
 			)->csrf();
-
 			$osStats['process_queue_url'] = (string) \IPS\Http\Url::internal(
 				'app=gdcatalog&module=catalog&controller=dashboard&do=processQueue'
 			)->csrf();
 		}
-		catch ( \Throwable $e )
-		{
-			/* Keep $osExists = FALSE on any unexpected error so the
-			 * "Build Index Now" path still renders. Log for diagnosis. */
-			try { \IPS\Log::log( 'Dashboard OpenSearch probe failed: ' . $e->getMessage(), 'gdcatalog_dashboard' ); } catch ( \Throwable ) {}
-
-			/* But still set the URLs so the button works even if probe failed. */
-			try
-			{
-				$osStats['rebuild_url'] = (string) \IPS\Http\Url::internal(
-					'app=gdcatalog&module=catalog&controller=dashboard&do=rebuildIndex'
-				)->csrf();
-				$osStats['process_queue_url'] = (string) \IPS\Http\Url::internal(
-					'app=gdcatalog&module=catalog&controller=dashboard&do=processQueue'
-				)->csrf();
-			}
-			catch ( \Throwable ) {}
-		}
+		catch ( \Throwable ) {}
 
 		/* Pending items */
 		$pendingConflicts  = 0;
