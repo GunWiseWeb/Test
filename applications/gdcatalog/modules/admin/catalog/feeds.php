@@ -1502,15 +1502,68 @@ class _feeds extends \IPS\Dispatcher\Controller
 			{
 				throw new \RuntimeException( 'This source already has an active import job — nothing to retry.' );
 			}
-			$job = \IPS\gdcatalog\Feed\ImportJob::enqueueFor( (int) $feed->id );
-			if ( $job === null ) { throw new \RuntimeException( 'Could not create retry job.' ); }
+
+			/* v1.0.124 (Phase 8): retry chooses the correct strategy
+			 * based on the failed job's checkpoint state:
+			 *   - RESUME if the failed job has a staged file + a
+			 *     partial offset (batch-processing failure after a
+			 *     successful fetch). Same ImportJob row is reopened,
+			 *     same import_log_id is preserved, offset carries
+			 *     over. GenericImport::run continues from that
+			 *     offset because cursor.stage_ready is still true.
+			 *   - FRESH otherwise (fetch/config failure before
+			 *     staging). A new ImportJob row is created and a new
+			 *     ImportLog will start on the next preQueueData.
+			 * Either way, exactly one Queue::queue call and one
+			 * background execution. */
+			$failedRow = null;
+			try
+			{
+				$failedRow = \IPS\Db::i()->select(
+					'*', 'gd_import_jobs',
+					[ 'feed_id=? AND status=?', (int) $feed->id, \IPS\gdcatalog\Feed\ImportJob::STATUS_FAILED ],
+					'id DESC', 1
+				)->first();
+			}
+			catch ( \Throwable ) {}
+
+			$mode = 'fresh';
+			$job  = null;
+			if ( $failedRow )
+			{
+				$failedJob = \IPS\gdcatalog\Feed\ImportJob::constructFromData( $failedRow );
+				$cursor    = $failedJob->cursor();
+				$stagePath = (string) ( $cursor['staged_file_path'] ?? '' );
+				$offset    = (int)    ( $cursor['offset']           ?? 0 );
+				if ( $stagePath !== '' && is_file( $stagePath ) && $offset > 0 )
+				{
+					if ( $failedJob->reopen() )
+					{
+						$mode = 'resume';
+						$job  = $failedJob;
+					}
+				}
+				else
+				{
+					/* Old staged file (if any) is stale — remove it
+					 * before a fresh retry pays the fetch cost again. */
+					$failedJob->deleteStagedFile();
+				}
+			}
+
+			if ( $job === null )
+			{
+				$job = \IPS\gdcatalog\Feed\ImportJob::enqueueFor( (int) $feed->id );
+				if ( $job === null ) { throw new \RuntimeException( 'Could not create retry job.' ); }
+			}
 
 			\IPS\Task\Queue::queue( 'gdcatalog', 'GenericImport', [
 				'feed_id' => (int) $feed->id,
 				'job_id'  => (int) $job->id,
 			] );
 
-			Output::i()->redirect( $backUrl, 'Import retry queued.' );
+			try { \IPS\Log::log( sprintf( 'Retry Import feed_id=%d job_id=%d mode=%s', (int) $feed->id, (int) $job->id, $mode ), 'gdcatalog_run_import' ); } catch ( \Throwable ) {}
+			Output::i()->redirect( $backUrl, $mode === 'resume' ? 'Retry queued — resuming from checkpoint.' : 'Retry queued — fresh import.' );
 		}
 		catch ( \Throwable $e )
 		{
@@ -1544,7 +1597,30 @@ class _feeds extends \IPS\Dispatcher\Controller
 				throw new \RuntimeException( 'No active job for this source.' );
 			}
 			$job->markCancelled();
-			Output::i()->redirect( $backUrl, 'Import cancelled. It will stop after the current batch finishes.' );
+
+			/* v1.0.124 (Phase 8): reset the Distributor's
+			 * last_run_status so the source list stops showing it as
+			 * "running" (the queue worker will notice status=cancelled
+			 * on its next batch and exit; without this reset the feed
+			 * badge would stay orange until admin manually clicked
+			 * Reset Status). resetRunningStatus() only clears
+			 * `last_run_status='running'`; historical last_run_status
+			 * of a prior completed/failed import is preserved. */
+			try
+			{
+				$feed = Distributor::load( $id );
+				$feed->resetRunningStatus();
+			}
+			catch ( \Throwable ) {}
+
+			/* v1.0.124 (Phase 8): delete the staged records file
+			 * immediately. Safe because the queue worker checks
+			 * job.status at the top of every run() batch and exits
+			 * via QueueOutOfRangeException on cancelled — so no
+			 * in-flight batch is reading the file. */
+			try { $job->deleteStagedFile(); } catch ( \Throwable ) {}
+
+			Output::i()->redirect( $backUrl, 'Import cancelled. It will stop before the next batch begins.' );
 		}
 		catch ( \Throwable $e )
 		{

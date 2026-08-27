@@ -83,50 +83,135 @@ class _ImportJob extends \IPS\Patterns\ActiveRecord
 	}
 
 	/**
-	 * v1.0.123 (Phase 7): atomically create a new queued job for a
-	 * feed. Returns the ImportJob on success or null when there is
-	 * already an active job. Race prevention rides on the row insert
-	 * being unable to succeed if a concurrent caller has already
-	 * queued — we probe with SELECT first (fast path) and let the
-	 * queue extension's preQueueData double-check on run.
+	 * v1.0.124 (Phase 8): atomically create a new queued job for a
+	 * feed. Uses INSERT ... SELECT WHERE NOT EXISTS so exactly one
+	 * caller wins when two AdminCP Run Import clicks race against
+	 * each other. Returns the newly-created ImportJob on success or
+	 * null when another concurrent caller already inserted an
+	 * active queued/running row for this feed.
 	 *
-	 * The two-step SELECT-then-INSERT window is small and matches
-	 * the SportsSouthImport pattern in production. GenericImport's
-	 * preQueueData below also aborts if it discovers a duplicate
-	 * ACTIVE job.
+	 * The Phase 7 two-step check-then-insert had a small race window
+	 * that could produce orphan duplicate queued rows. This
+	 * implementation eliminates that window: the MySQL server
+	 * evaluates the NOT EXISTS subquery inside the same statement as
+	 * the INSERT, and \IPS\Db::i()->affected_rows returns 0 on the
+	 * loser.
 	 */
 	public static function enqueueFor( int $feedId ): ?ImportJob
 	{
-		if ( self::activeForFeed( $feedId ) !== null )
-		{
-			return null;
-		}
+		$now    = time();
+		$cursor = json_encode( [
+			'stage_ready'        => false,
+			'offset'             => 0,
+			'batch_size'         => 500,
+			'staged_file_path'   => '',
+			'seen_upcs'          => [],
+			'records_processed'  => 0,
+			'records_created'    => 0,
+			'records_updated'    => 0,
+			'records_skipped'    => 0,
+			'records_errored'    => 0,
+			'conflicts_logged'   => 0,
+			'total_records'      => 0,
+			'batch_retry_count'  => 0,
+			'batch_last_error'   => '',
+		] );
 		try
 		{
-			$now = time();
-			$jobId = (int) \IPS\Db::i()->insert( 'gd_import_jobs', [
-				'feed_id'     => $feedId,
-				'status'      => self::STATUS_QUEUED,
-				'cursor_data' => json_encode( [
-					'offset'             => 0,
-					'batch_size'         => 500,
-					'staged_file_path'   => '',
-					'seen_upcs'          => [],
-					'records_processed'  => 0,
-					'records_created'    => 0,
-					'records_updated'    => 0,
-					'records_skipped'    => 0,
-					'records_errored'    => 0,
-					'conflicts_logged'   => 0,
-				] ),
-				'started_at'  => $now,
-				'updated_at'  => $now,
-			] );
-			return ImportJob::load( $jobId );
+			$prefix = \IPS\Db::i()->prefix;
+			\IPS\Db::i()->preparedQuery(
+				"INSERT INTO {$prefix}gd_import_jobs (feed_id, status, cursor_data, started_at, updated_at)
+				 SELECT ?, ?, ?, ?, ?
+				 WHERE NOT EXISTS (
+					SELECT 1 FROM {$prefix}gd_import_jobs
+					WHERE feed_id=? AND status IN (?, ?)
+				 )",
+				[ $feedId, self::STATUS_QUEUED, $cursor, $now, $now, $feedId, self::STATUS_QUEUED, self::STATUS_RUNNING ]
+			);
+			$affected = 0;
+			try { $affected = (int) \IPS\Db::i()->affected_rows; } catch ( \Throwable ) {}
+			if ( $affected === 0 )
+			{
+				return null;
+			}
+			$newId = 0;
+			try { $newId = (int) \IPS\Db::i()->insert_id; } catch ( \Throwable ) {}
+			if ( $newId > 0 )
+			{
+				return ImportJob::load( $newId );
+			}
+			/* Fallback: fetch the queued row we just inserted. Safe
+			 * because our INSERT succeeded (affected=1) and we hold
+			 * the connection's insert scope; another caller could
+			 * insert only AFTER our WHERE NOT EXISTS check passed
+			 * (i.e. after this row exists). */
+			$row = \IPS\Db::i()->select(
+				'*', 'gd_import_jobs',
+				[ 'feed_id=? AND status=?', $feedId, self::STATUS_QUEUED ],
+				'id DESC', 1
+			)->first();
+			return ImportJob::constructFromData( $row );
 		}
 		catch ( \Throwable )
 		{
 			return null;
+		}
+	}
+
+	/**
+	 * v1.0.124 (Phase 8): reopen a failed job by resetting its
+	 * status back to 'queued' and clearing the batch-retry error
+	 * scratch. Used by feeds::retryImport() when the job has a
+	 * usable checkpoint (staged file present + offset > 0). Returns
+	 * true on success; false when the job is not in a state that
+	 * can be reopened (running / queued / completed / cancelled).
+	 * Atomic on status='failed' so a concurrent completion cannot
+	 * lose data.
+	 */
+	public function reopen(): bool
+	{
+		try
+		{
+			$affected = (int) \IPS\Db::i()->update(
+				'gd_import_jobs',
+				[ 'status' => self::STATUS_QUEUED, 'last_error' => null, 'updated_at' => time() ],
+				[ 'id=? AND status=?', (int) $this->id, self::STATUS_FAILED ]
+			);
+			if ( $affected !== 1 ) { return false; }
+			$cursor = $this->cursor();
+			$cursor['batch_retry_count'] = 0;
+			$cursor['batch_last_error']  = '';
+			$this->status     = self::STATUS_QUEUED;
+			$this->last_error = null;
+			$this->cursor_data = json_encode( $cursor );
+			$this->updated_at  = time();
+			try { $this->save(); } catch ( \Throwable ) {}
+			return true;
+		}
+		catch ( \Throwable )
+		{
+			return false;
+		}
+	}
+
+	/**
+	 * v1.0.124 (Phase 8): utility used by cancelImport + Retry-with-
+	 * fresh-job flows. Removes the staged records file that
+	 * GenericImport::preQueueData wrote for this job. Idempotent —
+	 * silently succeeds if the file was already deleted or never
+	 * created (fetch-stage failures never wrote it).
+	 */
+	public function deleteStagedFile(): void
+	{
+		$cursor = $this->cursor();
+		$path = (string) ( $cursor['staged_file_path'] ?? '' );
+		if ( $path === '' )
+		{
+			$path = \IPS\ROOT_PATH . '/uploads/gdcatalog_job_' . (int) $this->id . '.json';
+		}
+		if ( is_file( $path ) )
+		{
+			@unlink( $path );
 		}
 	}
 
