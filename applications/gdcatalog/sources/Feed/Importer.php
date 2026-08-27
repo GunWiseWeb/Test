@@ -25,7 +25,9 @@ use IPS\gdcatalog\Feed\Parser\XmlParser;
 use IPS\gdcatalog\Feed\Parser\JsonParser;
 use IPS\gdcatalog\Feed\Parser\CsvParser;
 use IPS\gdcatalog\Feed\Distributor\SportsSouthClient;
+use IPS\gdcatalog\Feed\SourceAdapter\SourceAdapterInterface;
 use IPS\gdcatalog\Feed\SourceAdapter\SportsSouthAdapter;
+use IPS\gdcatalog\Feed\SourceAdapter\StructuredFeedAdapter;
 use IPS\gdcatalog\Feed\UpcValidator;
 use IPS\gdcatalog\Log\ImportLog;
 use IPS\gdcatalog\Compliance\FlagProcessor;
@@ -129,6 +131,16 @@ class Importer
 	 */
 	protected ?SportsSouthAdapter $sportsSouthAdapter = null;
 
+	/**
+	 * v1.0.120 (Phase 4): generic structured-feed adapter (CSV / JSON /
+	 * XML / manual upload / basic HTTP / FTP). Constructed once per
+	 * import run, same lifetime rule the Sports South adapter follows —
+	 * FieldMapper injected at construction is the per-feed instance
+	 * this Importer already owns. See getStructuredFeedAdapter() and
+	 * resolveAdapter() below.
+	 */
+	protected ?StructuredFeedAdapter $structuredFeedAdapter = null;
+
 	protected Distributor $feed;
 	protected FieldMapper $fieldMapper;
 	protected CategoryMapper $categoryMapper;
@@ -212,10 +224,32 @@ class Importer
 
 			$this->stats['total'] = \count( $records );
 
-			/* 3. Process each record */
+			/* 3. Process each record.
+			 * v1.0.120 (Phase 4): source dispatch.
+			 *   - auth_type='sportssouth': records were pre-enriched
+			 *     record-by-record in fetchFeed()'s SS branch (each
+			 *     call to enrichSportsSouthRecord ran the SS adapter),
+			 *     so downstream we use the legacy processRecord path.
+			 *     That path calls FieldMapper exactly once, then hands
+			 *     off to the shared processNormalizedRecord tail.
+			 *   - every other auth_type routes through resolveAdapter()
+			 *     — StructuredFeedAdapter — which maps the parsed raw
+			 *     row once and hands the pre-mapped NormalizedRecord
+			 *     straight to processNormalizedRecord. No re-mapping,
+			 *     no SS-specific coupling. */
+			$isSportsSouth = ( $this->feed->auth_type === 'sportssouth' );
 			foreach ( $records as $record )
 			{
-				$this->processRecord( $record );
+				if ( $isSportsSouth )
+				{
+					$this->processRecord( $record );
+				}
+				else
+				{
+					$this->processNormalizedRecord(
+						$this->resolveAdapter()->normalize( $record )
+					);
+				}
 			}
 
 			/* 4. Handle discontinuation — products not seen in this run */
@@ -504,6 +538,40 @@ class Importer
 	 * @param  array $record  Raw record from SportsSouthClient
 	 * @return array  Enriched record (still keyed by Sports South field names)
 	 */
+	/**
+	 * v1.0.120 (Phase 4): lazy-load the generic structured-feed adapter
+	 * (once per import run). The FieldMapper is the exact per-feed
+	 * instance this Importer already owns — mapping happens inside the
+	 * adapter, and processNormalizedRecord consumes the canonical map
+	 * without re-mapping.
+	 */
+	protected function getStructuredFeedAdapter(): StructuredFeedAdapter
+	{
+		if ( $this->structuredFeedAdapter === null )
+		{
+			$this->structuredFeedAdapter = new StructuredFeedAdapter( $this->feed, $this->fieldMapper );
+		}
+		return $this->structuredFeedAdapter;
+	}
+
+	/**
+	 * v1.0.120 (Phase 4): source dispatch. Returns the SS adapter for
+	 * `auth_type='sportssouth'`, the generic StructuredFeedAdapter for
+	 * every other current auth_type (none / basic / apikey / ftp /
+	 * manual_upload). Small explicit switch on the existing Distributor
+	 * configuration — no plugin registry, no factory — because the
+	 * codebase currently has exactly two adapter kinds. A third kind
+	 * (a new source-specific adapter) grows this switch by one line.
+	 */
+	protected function resolveAdapter(): SourceAdapterInterface
+	{
+		if ( $this->feed->auth_type === 'sportssouth' )
+		{
+			return $this->getSportsSouthAdapter();
+		}
+		return $this->getStructuredFeedAdapter();
+	}
+
 	protected function getSportsSouthAdapter(): SportsSouthAdapter
 	{
 		if ( $this->sportsSouthAdapter === null )
@@ -553,11 +621,70 @@ class Importer
 	{
 		try
 		{
-			/* Map distributor fields → canonical fields */
+			/* v1.0.120 (Phase 4): map distributor fields → canonical
+			 * fields ONCE, right here. This is the SS legacy entry
+			 * point — SportsSouthAdapter's Phase-2 contract is to
+			 * enrich the raw payload and defer FieldMapper to the
+			 * Importer, so mapping happens here. Records that reach
+			 * this method via runChunk (SS) or via processRecord's
+			 * subclass overrides continue to work unchanged.
+			 * The generic structured-feed path (StructuredFeedAdapter)
+			 * bypasses this wrapper entirely — the adapter maps
+			 * upstream in execute()'s loop and calls
+			 * processNormalizedRecord directly with the pre-mapped
+			 * canonical, so a record is never mapped twice regardless
+			 * of entry point. */
 			$mapped = $this->fieldMapper->mapRecord( $rawRecord );
 			$mapped = FieldMapper::castTypes( $mapped );
 
-			/* Merge ITATR-extracted attributes from enrichment */
+			/* Delegate to the shared tail. `_ATTR_*` merge (was inline
+			 * here pre-Phase-4) moved into processNormalizedRecord so it
+			 * runs exactly once for both entry paths. */
+			$this->processNormalizedRecord(
+				NormalizedRecord::fromMapped( $mapped, $rawRecord, $this->feed )
+			);
+		}
+		catch ( \Throwable $e )
+		{
+			$this->stats['errored']++;
+			$this->log->appendError( 'Record error: ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * v1.0.120 (Phase 4): shared generic-catalog tail. Called from two
+	 * entry paths:
+	 *   1. processRecord( array ) — SS legacy path (runChunk + any
+	 *      subclass override). Wraps the mapped canonical in a
+	 *      NormalizedRecord and hands it here.
+	 *   2. execute()'s per-record loop for non-SS auth_types —
+	 *      resolveAdapter()->normalize() maps once in
+	 *      StructuredFeedAdapter and hands the pre-mapped
+	 *      NormalizedRecord here directly.
+	 *
+	 * This method does NOT re-run FieldMapper — its input is always a
+	 * NormalizedRecord whose canonical map has already been produced
+	 * by exactly one FieldMapper::mapRecord + castTypes call
+	 * upstream. That satisfies the Phase 4 "no double mapping"
+	 * invariant.
+	 *
+	 * The generic `_ATTR_<col>` sentinel merge — pre-Phase-4 inline in
+	 * processRecord — lives here so it runs exactly once regardless of
+	 * entry path. Adapters emit `_ATTR_*` sentinels on the raw payload
+	 * (SportsSouthAdapter writes them from ITATR interpretation; a
+	 * generic feed can ship pre-computed `_ATTR_<col>` columns
+	 * verbatim); this merge is the one convergence point.
+	 */
+	protected function processNormalizedRecord( NormalizedRecord $normalized ): void
+	{
+		try
+		{
+			$mapped    = $normalized->toArray();
+			$rawRecord = $normalized->getRaw();
+
+			/* Generic `_ATTR_<col>` sentinel merge — the one convergence
+			 * point (see method docblock). Non-empty guard mirrors the
+			 * pre-Phase-4 inline merge in processRecord. */
 			foreach ( $rawRecord as $k => $v )
 			{
 				if ( str_starts_with( (string) $k, '_ATTR_' ) )
@@ -569,32 +696,6 @@ class Importer
 					}
 				}
 			}
-
-			/* Phase 1 refactor seam — wrap the mapped canonical record
-			   + raw source payload + feed context in a source-neutral
-			   DTO. Immediately expose the canonical map back as an
-			   array so this phase makes zero behavioural change to
-			   the existing downstream pipeline (UPC extraction,
-			   category resolution, product create/update, conflict
-			   resolution, compliance, discontinuation, reindex).
-			   Later phases progressively refactor the code below to
-			   consume $normalized directly rather than re-reading
-			   $mapped, at which point the toArray() call can be
-			   removed. Introducing the seam here — after mapping +
-			   type-casting + the enrichment _ATTR_* merge, before the
-			   generic-catalog processing begins — keeps this change
-			   independently deployable and reversible.
-			   See gdcatalog Import System Audit (2026-08-25) §6
-			   Phase 1.
-			   v1.0.119 (Phase 3): the Sports South-specific reads that
-			   used to live below in this method (raw $rawRecord['CATID']
-			   → CategoryMapper::resolve override; raw ITATR* → accessory
-			   columns via accessoryAttrsFor + topSlugForCategoryId) have
-			   moved into SportsSouthAdapter::enrich(). Everything below
-			   this seam is now source-neutral: it reads only $mapped
-			   (canonical) and the pre-existing generic `_ATTR_*` merge. */
-			$normalized = NormalizedRecord::fromMapped( $mapped, $rawRecord, $this->feed );
-			$mapped     = $normalized->toArray();
 
 			/* Extract UPC — skip if missing (Section 2.6) */
 			$rawUpc = $this->fieldMapper->extractUpc( $rawRecord );
@@ -645,35 +746,16 @@ class Importer
 			}
 			unset( $mapped['category'] );
 
-			/* v1.0.119 (Phase 3): the raw-CATID → CategoryMapper::resolve
-			 * override that used to live here now runs inside
-			 * SportsSouthAdapter::enrich() (which writes `_CATEGORY_ID`
-			 * before FieldMapper::mapRecord runs upstream). Removing the
-			 * raw $rawRecord['CATID'] read leaves processRecord fully
-			 * source-neutral for category resolution. Byte-equivalent
-			 * output preserved — same CategoryMapper instance, same
-			 * argument, same call site ordering (still before
-			 * refineCategoryByTitle, which is source-neutral). */
-
 			/* v1.0.119 (Phase 3): $sTitle was set only inside
 			 * enrichSportsSouthRecord (a different method's scope) —
 			 * accessing it here fataled on PHP 8 for non-SS feeds. Use
 			 * the mapped canonical title, which is what
 			 * refineCategoryByTitle actually reads for its title
-			 * heuristics. Fixes audit defect #1. */
+			 * heuristics. */
 			$mapped['category_id'] = $this->refineCategoryByTitle( (int) ( $mapped['category_id'] ?? 0 ), (string) ( $mapped['title'] ?? '' ) );
 
 			/* Category-based ammo flag (Sports South sends none). Ammunition subtree => is_ammo. */
 			$mapped['is_ammo'] = in_array( (int) ( $mapped['category_id'] ?? 0 ), self::AMMO_CATEGORY_IDS, true ) ? 1 : 0;
-
-			/* v1.0.119 (Phase 3): per-category accessory attribute
-			 * extraction from raw SS ITATR slots (the old
-			 * accessoryAttrsFor + topSlugForCategoryId helpers) has moved
-			 * into SportsSouthAdapter::enrich(). The adapter now writes
-			 * each accessory column as `_ATTR_<col>`, and the generic
-			 * `_ATTR_*` merge above (in this same processRecord, at the
-			 * top of the try block) already picks those up into $mapped
-			 * with no per-source knowledge required here. */
 
 			if ( isset( $mapped['action_type'] ) )
 			{

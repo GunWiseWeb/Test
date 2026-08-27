@@ -43,13 +43,28 @@
  *   - own task or queue execution
  *   - own AdminCP controllers or routes
  *
- * The interface is deliberately kept to one method. When Phase 3+
- * introduces a second real adapter and a factory/registry, the
- * contract can grow (a static `supports(Distributor): bool` and a
- * `getSourceKey(): string` are the obvious next additions). Not
- * needed yet — Importer instantiates SportsSouthAdapter directly
- * in this phase, exactly where it currently instantiates
- * SportsSouthClient in the sportssouth branch of fetchFeed().
+ * The interface is deliberately kept to one method. Phase 4 added a
+ * second real adapter (StructuredFeedAdapter) and a small explicit
+ * source dispatch (Importer::resolveAdapter) that switches on the
+ * Distributor's existing auth_type — no factory or registry, because
+ * the codebase currently has exactly two adapter kinds and a third
+ * only extends the switch by one line. A future `supports(Distributor)`
+ * static and a `getSourceKey(): string` remain the obvious next
+ * additions when a third source ships.
+ *
+ * TWO CURRENT ADAPTER SHAPES — for normalize()'s NormalizedRecord:
+ *   - SportsSouthAdapter (Phase 2): canonical map EMPTY, raw ENRICHED
+ *     with sentinels (_BRAND_NAME, _MANUFACTURER, _MPN, _CATEGORY_ID,
+ *     _ATTR_*). FieldMapper runs in the Importer's SS legacy
+ *     processRecord path, downstream. This shape defers mapping to
+ *     the caller.
+ *   - StructuredFeedAdapter (Phase 4): canonical map POPULATED
+ *     (FieldMapper::mapRecord + castTypes done in the adapter),
+ *     raw UNTOUCHED. This shape does mapping inside the adapter.
+ *
+ * BOTH shapes reach Importer::processNormalizedRecord as the shared
+ * generic-catalog tail. Mapping runs exactly once per record for
+ * either path.
  */
 
 namespace IPS\gdcatalog\Feed\SourceAdapter;
