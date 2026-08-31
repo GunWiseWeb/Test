@@ -75,6 +75,7 @@
     <word key="gdcatalog_feed_mark_imports_as_review"><![CDATA[Send new products to Review Queue]]></word>
     <word key="gdcatalog_feed_mark_imports_as_review_desc"><![CDATA[When ON, products this source creates are held with record_status='admin_review' and hidden from the front-end until an admin promotes them via the Review Queue admin page. Existing catalog products updated by this source are unaffected. Use for low-quality dealer/backfill feeds.]]></word>
     <word key="menu__gdcatalog_catalog_reviewqueue"><![CDATA[Review Queue]]></word>
+    <word key="menu__gdcatalog_catalog_categorize"><![CDATA[Categorize]]></word>
     <word key="gdcatalog_dist_rsr_group"><![CDATA[RSR Group]]></word>
     <word key="gdcatalog_dist_sports_south"><![CDATA[Sports South]]></word>
     <word key="gdcatalog_dist_davidsons"><![CDATA[Davidson's]]></word>
