@@ -1496,6 +1496,20 @@
                 "zerofill": false,
                 "values": [],
                 "comment": ""
+            },
+            "mark_imports_as_review": {
+                "name": "mark_imports_as_review",
+                "type": "TINYINT",
+                "length": 1,
+                "decimals": null,
+                "allow_null": false,
+                "default": 0,
+                "auto_increment": false,
+                "binary": false,
+                "unsigned": true,
+                "zerofill": false,
+                "values": [],
+                "comment": "v1.0.130: new products imported from this source land as record_status='admin_review' instead of 'active' — Review Queue admin UI promotes to active."
             }
         },
         "indexes": {

@@ -568,6 +568,14 @@ class _feeds extends \IPS\Dispatcher\Controller
 			],
 		] ) );
 		$form->add( new Form\YesNo( 'gdcatalog_feed_active', $feed->active, FALSE ) );
+		/* v1.0.130: per-source review-queue gate. When ON, new
+		 * products imported from this source land as
+		 * record_status='admin_review' — invisible to the front-end
+		 * until an admin promotes them via the Review Queue admin
+		 * page. Existing catalog products updated by this source
+		 * are unaffected. Intended for low-quality dealer/backfill
+		 * feeds. */
+		$form->add( new Form\YesNo( 'gdcatalog_feed_mark_imports_as_review', (int) ( $feed->mark_imports_as_review ?? 0 ), FALSE ) );
 
 		$form->addHeader( 'gdcatalog_feed_field_mapping' );
 		$form->add( new Form\TextArea( 'gdcatalog_feed_field_mapping_json', $feed->field_mapping ?? '', FALSE, [
@@ -640,8 +648,9 @@ class _feeds extends \IPS\Dispatcher\Controller
 			$feed->feed_url        = $feedUrlVal;
 			$feed->feed_format     = $values['gdcatalog_feed_format'];
 			$feed->auth_type       = $authType;
-			$feed->import_schedule = $values['gdcatalog_feed_schedule'];
-			$feed->active          = (int) $values['gdcatalog_feed_active'];
+			$feed->import_schedule         = $values['gdcatalog_feed_schedule'];
+			$feed->active                  = (int) $values['gdcatalog_feed_active'];
+			$feed->mark_imports_as_review  = (int) ( $values['gdcatalog_feed_mark_imports_as_review'] ?? 0 );
 
 			$feed->setCredentials( $credsRaw !== '' ? $credsRaw : null );
 

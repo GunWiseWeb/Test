@@ -42,6 +42,12 @@
 			"do": "",
 			"restriction": "catalog_manage"
 		},
+		"reviewqueue": {
+			"tab": "gdcatalog",
+			"controller": "reviewqueue",
+			"do": "",
+			"restriction": "catalog_manage"
+		},
 		"settings": {
 			"tab": "gdcatalog",
 			"controller": "settings",

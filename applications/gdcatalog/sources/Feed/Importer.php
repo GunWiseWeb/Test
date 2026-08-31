@@ -944,7 +944,18 @@ class Importer
 
 		$product->distributor_sources = $this->feed->distributor;
 		$product->primary_source      = $this->feed->distributor;
-		$product->record_status       = Product::STATUS_ACTIVE;
+		/* v1.0.130: per-source "mark imports as review" flag. When
+		 * an admin sets this on a low-quality source (e.g. a dealer
+		 * XML backfill), newly-created products land as admin_review
+		 * instead of active — the Review Queue admin UI shows them
+		 * with a completeness heat-map and a Promote action so an
+		 * admin can fill in missing canonical fields before the
+		 * product goes live on the front-end. Existing catalog
+		 * products updated by this source keep their current
+		 * record_status — the flag ONLY affects the create branch. */
+		$product->record_status       = ( (int) ( $this->feed->mark_imports_as_review ?? 0 ) === 1 )
+			? Product::STATUS_ADMIN_REVIEW
+			: Product::STATUS_ACTIVE;
 		$product->last_updated        = date( 'Y-m-d H:i:s' );
 
 		/* Track this distributor */

@@ -1,0 +1,103 @@
+<ips:template parameters="$rows, $total, $page, $totalPages, $prevUrl, $nextUrl, $sources, $sourceFilter, $promoteBulkUrl, $criticalFields" />
+<div class="ipsBox ipsPull">
+	<div class="ipsBox_body ipsPad">
+
+		<div style="display:flex;gap:16px;margin-bottom:16px;align-items:center">
+			<div>
+				<div style="font-size:1.4em;font-weight:bold">{expression="number_format( (int) $total )"} product(s) awaiting review</div>
+				<div style="color:var(--i-color-soft);font-size:0.9em">Page {$page} of {$totalPages}</div>
+			</div>
+			<form method="GET" action="" style="margin-left:auto">
+				<input type="hidden" name="app" value="gdcatalog">
+				<input type="hidden" name="module" value="catalog">
+				<input type="hidden" name="controller" value="reviewqueue">
+				<label style="margin-right:6px">Source:</label>
+				<select name="source" onchange="this.form.submit()" class="ipsField_input">
+					{{foreach $sources as $slug => $label}}
+					<option value="{$slug}"{{if $slug === $sourceFilter}} selected{{endif}}>{$label}</option>
+					{{endforeach}}
+				</select>
+			</form>
+		</div>
+
+		<p class="ipsType_light" style="margin-bottom:16px">
+			These products are marked <strong>admin_review</strong> and are <strong>not visible on the front-end</strong>.
+			Each row shows a completeness score across critical canonical fields ({expression="implode( ', ', $criticalFields )"}).
+			Edit to fill in missing data, then Promote to make the product live.
+		</p>
+
+		{{if count($rows) === 0}}
+			<div class="ipsEmptyMessage"><p>Nothing to review. All products in the catalog are either active or discontinued.</p></div>
+		{{else}}
+		<form method="POST" action="{$promoteBulkUrl}" onsubmit="return confirm('Promote all selected products to active?');">
+			<div style="margin-bottom:8px">
+				<button type="submit" class="ipsButton ipsButton--positive ipsButton--small">Promote Selected</button>
+				<label style="margin-left:12px;font-size:0.9em;cursor:pointer">
+					<input type="checkbox" onclick="var boxes=this.form.querySelectorAll('input[name=&quot;ids[]&quot;]');for(var i=0;i&lt;boxes.length;i++)boxes[i].checked=this.checked">
+					Select all on this page
+				</label>
+			</div>
+			<table class="ipsTable ipsTable_zebra" style="width:100%">
+				<thead>
+					<tr>
+						<th style="width:30px"></th>
+						<th style="width:15%">UPC</th>
+						<th>Title</th>
+						<th style="width:12%">Brand</th>
+						<th style="width:10%">Caliber</th>
+						<th style="width:10%">Source</th>
+						<th style="width:22%">Completeness</th>
+						<th style="width:180px">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{foreach $rows as $row}}
+					<tr>
+						<td><input type="checkbox" name="ids[]" value="{$row['upc']}"></td>
+						<td style="font-family:monospace">{$row['upc']}</td>
+						<td>
+							{{if $row['title']}}
+								{$row['title']}
+							{{else}}
+								<span style="color:#b91c1c;font-style:italic">(no title)</span>
+							{{endif}}
+						</td>
+						<td>{{if $row['brand']}}{$row['brand']}{{else}}<span style="color:#b91c1c">—</span>{{endif}}</td>
+						<td>{{if $row['caliber']}}{$row['caliber']}{{else}}<span style="color:#b91c1c">—</span>{{endif}}</td>
+						<td><span class="ipsBadge ipsBadge--neutral">{$row['primary_source']}</span></td>
+						<td>
+							<div style="display:flex;align-items:center;gap:8px">
+								<div style="flex:1;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden">
+									<div style="height:100%;width:{$row['completeness']}%;background:{{if $row['completeness'] >= 80}}#10b981{{elseif $row['completeness'] >= 50}}#f59e0b{{else}}#ef4444{{endif}}"></div>
+								</div>
+								<span style="font-size:0.85em;font-weight:600;min-width:36px;text-align:right">{$row['completeness']}%</span>
+							</div>
+							{{if count($row['missing']) > 0}}
+							<div style="font-size:0.75em;color:#b91c1c;margin-top:4px">
+								missing: {expression="implode( ', ', $row['missing'] )"}
+							</div>
+							{{endif}}
+						</td>
+						<td>
+							<a href="{$row['edit_url']}" class="ipsButton ipsButton--normal ipsButton--small">Edit</a>
+							<a href="{$row['promote_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm data-confirmMessage="Promote {$row['upc']} to active? It will become visible on the front-end.">Promote</a>
+						</td>
+					</tr>
+					{{endforeach}}
+				</tbody>
+			</table>
+		</form>
+
+		<div style="display:flex;gap:8px;margin-top:16px;align-items:center">
+			{{if $prevUrl}}
+			<a href="{$prevUrl}" class="ipsButton ipsButton--normal ipsButton--small">&laquo; Previous</a>
+			{{endif}}
+			<span style="color:var(--i-color-soft);font-size:0.9em">Page {$page} of {$totalPages}</span>
+			{{if $nextUrl}}
+			<a href="{$nextUrl}" class="ipsButton ipsButton--normal ipsButton--small">Next &raquo;</a>
+			{{endif}}
+		</div>
+		{{endif}}
+
+	</div>
+</div>
