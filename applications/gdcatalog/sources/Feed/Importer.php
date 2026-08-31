@@ -529,10 +529,16 @@ class Importer
 
 		$response = $request->get();
 
-		if ( $response->httpResponseCode !== 200 )
+		/* v1.0.129: IPS\Http\Response::$httpResponseCode is a STRING
+		 * ("200", not 200). The pre-1.0.129 strict !== 200 comparison
+		 * ALWAYS threw "Feed fetch failed: HTTP 200" for any generic
+		 * source, because "200" !== 200 in PHP. SportsSouthClient +
+		 * FetchImageDimensions both already cast to (int) before
+		 * comparing; align this call site with that pattern. */
+		if ( (int) $response->httpResponseCode !== 200 )
 		{
 			throw new \RuntimeException(
-				'Feed fetch failed: HTTP ' . $response->httpResponseCode
+				'Feed fetch failed: HTTP ' . (int) $response->httpResponseCode
 			);
 		}
 
