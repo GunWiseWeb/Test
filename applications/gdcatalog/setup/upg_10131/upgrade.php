@@ -1,74 +1,54 @@
 <?php
 /**
- * @brief  GD Master Catalog — upgrade 1.0.130 (Review Queue + per-source mark-as-review gate).
+ * @brief  GD Master Catalog — upgrade 1.0.131 (\IPS\Task\Queue::queue → \IPS\Task::queue fix).
  *
- * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
- * Rule #27 — dual class wrapper, guard header.
+ * Rule #79 — exactly ONE upg_* dir per app. Self-contained: carries
+ * ALL of 1.0.130's migrations too so a 1.0.129 → 1.0.131 direct
+ * upgrade lands at the same state as if 1.0.130 had run first.
  *
- * WHAT SHIPS IN 1.0.130
- *   Two coordinated additions:
+ * WHAT SHIPS IN 1.0.131
+ *   Single-line code fix: 8 call sites across 4 files used
+ *   `\IPS\Task\Queue::queue()` (nonexistent class in IPS 5.0.18) —
+ *   should be `\IPS\Task::queue()` (the static method the
+ *   dashboard/products controllers already use). The wrong form
+ *   ate every Run Import click on generic feeds with
+ *   `Queue::queue() rejected: Class "IPS\Task\Queue" not found`.
  *
- *     - NEW  modules/admin/catalog/reviewqueue.php + template
- *            — paginated admin queue of gd_catalog rows with
- *              record_status='admin_review'. Per-row completeness
- *              heat-map across critical canonical fields
- *              (upc/title/brand/model/category_id/image_url/caliber)
- *              with missing-field callouts, filter by primary_source,
- *              Edit-then-Promote-one and bulk-Promote-selected
- *              workflows. Promote sets record_status='active' and
- *              queues gd_reindex_queue through the existing pathway
- *              (no OpenSearch HTTP). CSRF-protected on both actions.
- *     - MOD  sources/Feed/Importer.php
- *            — NEW behaviour in createProduct(): when the owning
- *              feed has mark_imports_as_review=1, a newly-created
- *              product is stamped record_status='admin_review'
- *              instead of 'active' — invisible to the front-end
- *              until an admin promotes it via the Review Queue.
- *              Only affects the CREATE branch — existing catalog
- *              products updated by this source keep their current
- *              record_status.
- *     - MOD  modules/admin/catalog/feeds.php
- *            — Edit Source form now exposes a
- *              "Send new products to Review Queue" YesNo toggle
- *              (persists to the new column) in the Import Schedule
- *              & Activation section.
- *     - MOD  data/schema.json
- *            — NEW column gd_distributor_feeds.mark_imports_as_review
- *              TINYINT(1) NOT NULL DEFAULT 0 UNSIGNED.
- *     - MOD  data/acpmenu.json
- *            — NEW menu entry "reviewqueue" under the gdcatalog
- *              catalog tab.
- *     - MOD  data/lang.xml
- *            — NEW keys: gdcatalog_feed_mark_imports_as_review,
- *              gdcatalog_feed_mark_imports_as_review_desc,
- *              menu__gdcatalog_catalog_reviewqueue.
+ *   Files patched:
+ *     - modules/admin/catalog/dashboard.php (BackfillAttributes /
+ *       ResolveBrands stray)
+ *     - modules/admin/catalog/feeds.php (runImport + retryImport)
+ *     - tasks/ImportFeeds.php (generic enqueue + BackfillAttributes
+ *       + ResolveBrands strays)
+ *     - sources/Feed/ImageDimensionCache.php (FetchImageDimensions
+ *       enqueue)
  *
- *   PRESERVED UNCHANGED:
- *     - Product::STATUS_* constants (uses existing admin_review).
- *     - ConflictResolver's own admin_review setting on cross-validation
- *       conflicts (unchanged rule; Review Queue happens to surface
- *       those rows too).
- *     - Every other pre-Phase-12 do= action + queue extension +
- *       task + adapter contract + importer public API.
+ *   The fix is pure PHP-file replacement — takes effect the moment
+ *   the tar is extracted. No DB state change is required for the
+ *   fix itself; the upgrade only carries forward the Review Queue
+ *   DB migrations from 1.0.130 so a direct-jump upgrade
+ *   (1.0.128 or 1.0.129 → 1.0.131) still lands correctly.
  *
- * WHAT THIS UPGRADE DOES
- *   1. Adds gd_distributor_feeds.mark_imports_as_review column
- *      (idempotent — checkForColumn guarded, default 0 so existing
- *      source rows behave exactly as before).
- *   2. Inserts the reviewqueue AdminCP menu entry into core_menu
- *      (idempotent — checked before insert). Existing menu order
- *      preserved.
- *   3. Seeds the three new lang keys into core_sys_lang_words for
- *      every language row (rule #39).
- *   4. Re-seeds every dev/html/*.phtml into core_theme_templates
- *      including the new reviewQueue template (rule #52).
- *   5. Cache / datastore / opcache purge so the new controller,
- *      menu entry, and column all take effect on the next request.
+ * WHAT THIS UPGRADE DOES (mostly 1.0.130 carried forward)
+ *   1. Adds gd_distributor_feeds.mark_imports_as_review TINYINT(1)
+ *      NOT NULL DEFAULT 0 UNSIGNED column (idempotent).
+ *   2. Seeds the three 1.0.130 lang keys into core_sys_lang_words
+ *      for every language row (rule #39).
+ *   3. Re-seeds every dev/html/*.phtml into core_theme_templates
+ *      including the Review Queue template (rule #52).
+ *   4. Cache / datastore / opcache purge so the new controller,
+ *      menu entry, Queue::queue fix, and column all take effect on
+ *      the next request.
  *
- * Rule #79: upg_10129 removed, exactly one upg dir per app.
+ *   PRESERVED UNCHANGED: adapters, importer public APIs, queue
+ *   extension identities, task identities, AdminCP routes, schema
+ *   (only 1.0.130's already-shipped column is added if absent),
+ *   raw_distributor_data.
+ *
+ * Rule #79: upg_10130 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10130;
+namespace IPS\gdcatalog\setup\upg_10131;
 
 use function defined;
 use function function_exists;
@@ -84,10 +64,10 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdcatalog';
-		$version = '1.0.130';
+		$version = '1.0.131';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
-		/* -------- Schema: mark_imports_as_review column (idempotent) -------- */
+		/* -------- 1.0.130 schema: mark_imports_as_review (idempotent) -------- */
 		try
 		{
 			if ( \IPS\Db::i()->checkForTable( 'gd_distributor_feeds' )
@@ -105,31 +85,10 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10130 addColumn mark_imports_as_review: ' . $e->getMessage(), 'gdcatalog_upg_10130' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10131 addColumn mark_imports_as_review: ' . $e->getMessage(), 'gdcatalog_upg_10131' ); } catch ( \Throwable ) {}
 		}
 
-		/* -------- Register reviewqueue menu entry (idempotent) -------- */
-		try
-		{
-			$exists = 0;
-			try
-			{
-				$exists = (int) \IPS\Db::i()->select(
-					'COUNT(*)', 'core_acp_tab_order',
-					[ 'app=? AND `key`=?', $app, 'reviewqueue' ]
-				)->first();
-			}
-			catch ( \Throwable ) { $exists = 0; }
-
-			/* core_acp_tab_order isn't the primary menu source in every
-			 * IPS 5.0.x install — the AdminCP menu is derived from
-			 * data/acpmenu.json at app-install time and cached in
-			 * core_store / datastore. Clear those caches below so the
-			 * new "reviewqueue" entry surfaces on the next request. */
-		}
-		catch ( \Throwable ) {}
-
-		/* -------- Lang seed (rule #39, #43, #44) -------- */
+		/* -------- 1.0.130 lang seed -------- */
 		$newStrings = [
 			'gdcatalog_feed_mark_imports_as_review'      => 'Send new products to Review Queue',
 			'gdcatalog_feed_mark_imports_as_review_desc' => "When ON, products this source creates are held with record_status='admin_review' and hidden from the front-end until an admin promotes them via the Review Queue admin page. Existing catalog products updated by this source are unaffected. Use for low-quality dealer/backfill feeds.",
@@ -154,14 +113,14 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10130 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10130' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10131 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10131' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10130 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10130' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10131 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10131' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Template resync (rule #52 + #79) -------- */
@@ -204,13 +163,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10130 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10130' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10131 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10131' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10130 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10130' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10131 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10131' ); } catch ( \Throwable ) {}
 			}
 		}
 

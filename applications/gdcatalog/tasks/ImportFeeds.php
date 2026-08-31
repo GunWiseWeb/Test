@@ -87,7 +87,7 @@ class _ImportFeeds extends \IPS\Task
 					{
 						continue;
 					}
-					\IPS\Task\Queue::queue( 'gdcatalog', 'GenericImport', [
+					\IPS\Task::queue( 'gdcatalog', 'GenericImport', [
 						'feed_id' => (int) $feed->id,
 						'job_id'  => (int) $job->id,
 					] );
@@ -113,12 +113,12 @@ class _ImportFeeds extends \IPS\Task
 				{
 					try
 					{
-						\IPS\Task\Queue::queue( 'gdcatalog', 'BackfillAttributes', [ 'offset' => 0 ] );
+						\IPS\Task::queue( 'gdcatalog', 'BackfillAttributes', [ 'offset' => 0 ] );
 					}
 					catch ( \Throwable ) {}
 					try
 					{
-						\IPS\Task\Queue::queue( 'gdcatalog', 'ResolveBrands', [ 'offset' => 0 ] );
+						\IPS\Task::queue( 'gdcatalog', 'ResolveBrands', [ 'offset' => 0 ] );
 					}
 					catch ( \Throwable ) {}
 				}

@@ -730,7 +730,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		{
 			try
 			{
-				\IPS\Task\Queue::queue( 'gdcatalog', 'ResolveBrands', [ 'offset' => 0 ] );
+				\IPS\Task::queue( 'gdcatalog', 'ResolveBrands', [ 'offset' => 0 ] );
 			}
 			catch ( \Throwable ) {}
 		}

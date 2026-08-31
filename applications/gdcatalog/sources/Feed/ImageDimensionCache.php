@@ -234,7 +234,7 @@ class _ImageDimensionCache
 
 		try
 		{
-			\IPS\Task\Queue::queue( 'gdcatalog', 'FetchImageDimensions', [ 'url' => $url ] );
+			\IPS\Task::queue( 'gdcatalog', 'FetchImageDimensions', [ 'url' => $url ] );
 		}
 		catch ( \Throwable ) {}
 	}

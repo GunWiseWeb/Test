@@ -1537,7 +1537,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 			}
 			try
 			{
-				\IPS\Task\Queue::queue( 'gdcatalog', 'GenericImport', [
+				\IPS\Task::queue( 'gdcatalog', 'GenericImport', [
 					'feed_id' => (int) $feed->id,
 					'job_id'  => (int) $job->id,
 				] );
@@ -1641,7 +1641,7 @@ class _feeds extends \IPS\Dispatcher\Controller
 				if ( $job === null ) { throw new \RuntimeException( 'Could not create retry job.' ); }
 			}
 
-			\IPS\Task\Queue::queue( 'gdcatalog', 'GenericImport', [
+			\IPS\Task::queue( 'gdcatalog', 'GenericImport', [
 				'feed_id' => (int) $feed->id,
 				'job_id'  => (int) $job->id,
 			] );
