@@ -1,35 +1,36 @@
 <?php
 /**
- * @brief  GD Master Catalog — upgrade 1.0.137
- *         Show Edit button for manual-upload sources.
+ * @brief  GD Master Catalog — upgrade 1.0.138
+ *         Prominent Edit button in the first column for manual sources.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHAT SHIPS IN 1.0.137
- *   One template fix: dev/html/admin/catalog/feedList.phtml stops
- *   hiding the Edit button on manual-upload sources. The edit form
- *   already exposes field_mapping / category_mapping via TextArea
- *   (feeds.php::edit line 581), but feedList wrapped the second
- *   column's Edit button in `{{if !$feed['is_manual_upload']}}` so
- *   admins had no way to reach that form from the UI — the only
- *   path to configure a manual CSV source's field_mapping was via
- *   direct DB update. This surfaced when the Review Queue CSV
- *   round-trip stayed broken until field_mapping was set: the
- *   admin literally could not fix their own source.
+ * WHAT SHIPS IN 1.0.138
+ *   Follow-up to 1.0.137. 1.0.137 removed the second-column Edit
+ *   button's is_manual_upload guard, which surfaced Edit next to
+ *   Lock/Delete — but the small grey `ipsButton--normal` style was
+ *   easy to miss, and admins reasonably expected the prominent
+ *   blue `ipsButton--primary` Edit button that appears in the FIRST
+ *   column for every other source type (SS + URL feeds). This
+ *   version adds that same primary Edit button as the first
+ *   element of the manual-upload branch in feedList.phtml, so
+ *   Manual Upload rows now show:
  *
- *   No controller change. No schema change. No new lang key.
- *   Editing already works; the button that reached it was hidden.
+ *     [Edit] [Upload File] ([Run Import]) — first column
+ *     [Edit] [Lock] [Delete]              — second column (from 1.0.137)
+ *
+ *   No controller change, no schema change, no new lang key.
  *
  * WHAT THIS UPGRADE DOES (idempotent, safe to re-run)
  *   1. Idempotent 1.0.130 schema hoist.
  *   2. Seeds the four accumulated lang keys.
- *   3. Re-seeds every dev/html/*.phtml (feedList picks up the fix).
+ *   3. Re-seeds every dev/html/*.phtml.
  *   4. Cache / datastore / opcache purge.
  *
- * Rule #79: upg_10136 removed, exactly one upg dir per app.
+ * Rule #79: upg_10137 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10137;
+namespace IPS\gdcatalog\setup\upg_10138;
 
 use function defined;
 use function function_exists;
@@ -45,7 +46,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdcatalog';
-		$version = '1.0.137';
+		$version = '1.0.138';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		/* -------- 1.0.130 schema hoist (idempotent) -------- */
@@ -66,7 +67,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10137 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10137' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10138 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10138' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Lang seed (accumulated from 1.0.130 + 1.0.132) -------- */
@@ -95,14 +96,14 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10137 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10137' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10138 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10138' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10137 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10137' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10138 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10138' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Template resync (rule #52 + #79) -------- */
@@ -145,13 +146,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10137 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10137' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10138 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10138' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10137 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10137' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10138 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10138' ); } catch ( \Throwable ) {}
 			}
 		}
 

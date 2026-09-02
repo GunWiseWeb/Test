@@ -86,6 +86,7 @@
 					</td>
 					<td>
 						{{if $feed['is_manual_upload']}}
+							<a href="{$feed['edit_url']}" class="ipsButton ipsButton--primary ipsButton--small">Edit</a>
 							<a href="{$feed['upload_url']}" class="ipsButton ipsButton--secondary ipsButton--small">Upload File</a>
 							{{if $feed['has_upload']}}
 							<a href="{$feed['run_manual_url']}" class="ipsButton ipsButton--positive ipsButton--small" data-confirm data-confirmMessage="Run import using {$feed['upload_filename']}?">Run Import</a>
