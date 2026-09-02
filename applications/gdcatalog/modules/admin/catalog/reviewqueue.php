@@ -1,6 +1,6 @@
 <?php
 /**
- * @brief  GD Master Catalog — Review Queue Controller (v1.0.130)
+ * @brief  GD Master Catalog — Review Queue Controller (v1.0.134)
  *
  * Lists gd_catalog products with record_status='admin_review' — the
  * products that landed via a source configured with
@@ -178,6 +178,10 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 			. ( $sourceFilter !== '' ? '&source=' . urlencode( $sourceFilter ) : '' )
 		);
 
+		$exportCategoriesUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=reviewqueue&do=exportCategoriesCsv'
+		);
+
 		Output::i()->title  = 'Review Queue';
 		Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->reviewQueue(
 			$rows,
@@ -190,7 +194,8 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 			$sourceFilter,
 			$promoteBulkUrl,
 			self::CRITICAL_FIELDS,
-			$exportCsvUrl
+			$exportCsvUrl,
+			$exportCategoriesUrl
 		);
 	}
 
@@ -278,6 +283,94 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 		catch ( \Throwable $e )
 		{
 			try { \IPS\Log::log( 'reviewqueue::exportCsv failed: ' . $e->getMessage(), 'gdcatalog_reviewqueue' ); } catch ( \Throwable ) {}
+		}
+
+		rewind( $fh );
+		$csv = stream_get_contents( $fh );
+		fclose( $fh );
+
+		Output::i()->sendOutput(
+			$csv,
+			200,
+			'text/csv; charset=utf-8',
+			[ 'Content-Disposition' => 'attachment; filename="' . $filename . '"' ]
+		);
+	}
+
+	/**
+	 * v1.0.134: export the full canonical category list as a CSV so it
+	 * can be handed to an AI enrichment step alongside the Review Queue
+	 * CSV. The AI is instructed to use ONLY names from this list in the
+	 * `category` column of the enriched CSV; the manual-upload CSV
+	 * source's category_mapping JSON resolves name → id at import.
+	 *
+	 * Columns: id, name, slug, parent_id, parent_name, full_path.
+	 * `full_path` is the hierarchical breadcrumb ("Handguns > Pistols")
+	 * so the AI can disambiguate leaf categories that share names.
+	 *
+	 * GET-only, read-only, no CSRF (rule #62).
+	 */
+	protected function exportCategoriesCsv(): void
+	{
+		$filename = 'catalog_categories_' . date( 'Ymd_His' ) . '.csv';
+
+		/* Build id → [name, parent_id] index so full_path breadcrumbs
+		 * resolve without an N+1 lookup per row. */
+		$byId = [];
+		try
+		{
+			foreach ( \IPS\Db::i()->select( 'id, name, slug, parent_id', 'gd_categories' ) as $r )
+			{
+				$byId[ (int) $r['id'] ] = [
+					'name'      => (string) $r['name'],
+					'slug'      => (string) $r['slug'],
+					'parent_id' => (int)    ( $r['parent_id'] ?? 0 ),
+				];
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'reviewqueue::exportCategoriesCsv select failed: ' . $e->getMessage(), 'gdcatalog_reviewqueue' ); } catch ( \Throwable ) {}
+		}
+
+		$fullPath = static function ( int $id ) use ( $byId ): string {
+			$segments = [];
+			$guard    = 0;
+			$cur      = $id;
+			while ( $cur > 0 && isset( $byId[ $cur ] ) && $guard++ < 16 )
+			{
+				array_unshift( $segments, $byId[ $cur ]['name'] );
+				$cur = $byId[ $cur ]['parent_id'];
+			}
+			return implode( ' > ', $segments );
+		};
+
+		$fh = fopen( 'php://memory', 'w+' );
+		fputcsv( $fh, [ 'id', 'name', 'slug', 'parent_id', 'parent_name', 'full_path' ] );
+
+		/* Order roots first, then children by parent, then alphabetical —
+		 * mirrors the CLI dump ordering so pasting into an AI prompt
+		 * groups siblings together. */
+		uksort( $byId, static function ( $a, $b ) use ( $byId ) {
+			$pa = $byId[ $a ]['parent_id'];
+			$pb = $byId[ $b ]['parent_id'];
+			if ( $pa !== $pb ) { return $pa <=> $pb; }
+			return strcasecmp( $byId[ $a ]['name'], $byId[ $b ]['name'] );
+		} );
+
+		foreach ( $byId as $id => $row )
+		{
+			$parentName = ( $row['parent_id'] > 0 && isset( $byId[ $row['parent_id'] ] ) )
+				? $byId[ $row['parent_id'] ]['name']
+				: '';
+			fputcsv( $fh, [
+				$id,
+				$row['name'],
+				$row['slug'],
+				$row['parent_id'] > 0 ? $row['parent_id'] : '',
+				$parentName,
+				$fullPath( (int) $id ),
+			] );
 		}
 
 		rewind( $fh );

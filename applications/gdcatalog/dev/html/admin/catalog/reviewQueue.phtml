@@ -1,4 +1,4 @@
-<ips:template parameters="$rows, $total, $page, $totalPages, $prevUrl, $nextUrl, $sources, $sourceFilter, $promoteBulkUrl, $criticalFields, $exportCsvUrl" />
+<ips:template parameters="$rows, $total, $page, $totalPages, $prevUrl, $nextUrl, $sources, $sourceFilter, $promoteBulkUrl, $criticalFields, $exportCsvUrl, $exportCategoriesUrl" />
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 
@@ -9,6 +9,7 @@
 			</div>
 			<div style="margin-left:auto;display:flex;gap:8px;align-items:center">
 				<a href="{$exportCsvUrl}" class="ipsButton ipsButton--normal ipsButton--small" title="Download all rows in the current filter as CSV — hand to an AI enrichment step, then re-import via a manual-upload CSV source.">Export CSV</a>
+				<a href="{$exportCategoriesUrl}" class="ipsButton ipsButton--normal ipsButton--small" title="Download the full catalog category list (id, name, slug, parent, full path). Attach this alongside the Review Queue CSV so the AI classifies UPCs against real category names, not invented labels.">Categories CSV</a>
 				<form method="GET" action="" style="margin:0">
 					<input type="hidden" name="app" value="gdcatalog">
 					<input type="hidden" name="module" value="catalog">
