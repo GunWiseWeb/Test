@@ -1,41 +1,73 @@
 <?php
 /**
- * @brief  GD Master Catalog — upgrade 1.0.132 (Categorize menu lang key backfill).
+ * @brief  GD Master Catalog — upgrade 1.0.133 (Review Queue CSV export).
  *
- * Rule #79 — exactly ONE upg_* dir per app. Self-contained: carries
- * forward 1.0.130's Review Queue migrations + 1.0.131's Task::queue
- * lang seed so any prior-version → 1.0.132 upgrade lands at the
- * same state.
+ * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHAT SHIPS IN 1.0.132
- *   Single-key lang backfill. The AdminCP menu entry "categorize"
- *   was registered in data/acpmenu.json since Plugin 1 shipped but
- *   never had a matching menu__gdcatalog_catalog_categorize lang
- *   key — the ACP menu therefore rendered the raw key rather than
- *   "Categorize".
+ * WHAT SHIPS IN 1.0.133
+ *   Small feature: Review Queue can now export the current filter's
+ *   rows as a CSV. Column order matches FieldMapper::VALID_FIELDS
+ *   plus four informational trailing columns (primary_source,
+ *   record_status, completeness_pct, missing_fields) that the
+ *   round-trip re-import path can safely ignore because they fall
+ *   outside VALID_FIELDS. The intended workflow:
+ *
+ *     1. Filter Review Queue by source → click Export CSV.
+ *     2. Hand the CSV to an AI enrichment step (external).
+ *     3. Configure a manual-upload CSV source in gdcatalog with
+ *        field_mapping mapping the enriched CSV's canonical
+ *        columns 1:1, medium priority (above dealer feeds, below
+ *        wholesale like Sports South).
+ *     4. Upload the enriched CSV to that source, Run Import.
+ *     5. Existing admin_review products get updated with enriched
+ *        fields (record_status stays admin_review — Importer's
+ *        update branch does not flip status).
+ *     6. Return to Review Queue, completeness bars are now higher,
+ *        Promote to active.
  *
  *   Code changes:
- *     - MOD  data/lang.xml
- *            — NEW key menu__gdcatalog_catalog_categorize.
+ *     - MOD  modules/admin/catalog/reviewqueue.php
+ *            — NEW protected const CSV_EXPORT_COLUMNS covering all
+ *              of FieldMapper::VALID_FIELDS + informational trailers.
+ *            — NEW protected exportCsv() action. GET-only,
+ *              read-only, no CSRF (per CLAUDE.md rule #62). Streams
+ *              CSV via Output::sendOutput with a filename that
+ *              includes the source filter + timestamp.
+ *            — manage() now passes an exportCsvUrl parameter through
+ *              to the template (includes the current source filter
+ *              in the URL so the download honours what the admin
+ *              is currently viewing).
+ *     - MOD  dev/html/admin/catalog/reviewQueue.phtml
+ *            — NEW $exportCsvUrl parameter.
+ *            — NEW "Export CSV" button in the header row, next to
+ *              the source filter dropdown.
  *
- *   NO other change. No schema, no PHP, no template, no queue/task
- *   registration.
+ *   NO schema change. NO extension/task registration change. NO
+ *   AdminCP menu change. NO importer/adapter/queue behaviour change.
+ *
+ * PRESERVED UNCHANGED:
+ *   - CSV export is one new GET route (do=exportCsv on the existing
+ *     reviewqueue controller). Every other pre-1.0.133 do= action
+ *     kept.
+ *   - No new DB column, no new table.
+ *   - No new lang key required (the Export button label is a plain
+ *     string in the template — matches the existing template style).
+ *   - Round-trip re-import uses the EXISTING manual-upload CSV
+ *     source type + StructuredFeedAdapter + GenericImport queue.
+ *     No new import mechanism.
  *
  * WHAT THIS UPGRADE DOES
- *   1. Idempotent 1.0.130 schema hoist: adds
- *      gd_distributor_feeds.mark_imports_as_review if absent, so
- *      1.0.129 → 1.0.132 direct upgrade path is also correct.
- *   2. Seeds the four accumulated lang keys (three from 1.0.130 +
- *      the new categorize key from 1.0.132) into core_sys_lang_words
- *      for every language row.
- *   3. Re-seeds every dev/html/*.phtml into core_theme_templates.
- *   4. Cache / datastore / opcache purge so the new menu label
- *      picks up immediately.
+ *   1. Idempotent 1.0.130 schema hoist (adds
+ *      gd_distributor_feeds.mark_imports_as_review if absent).
+ *   2. Seeds the four accumulated lang keys.
+ *   3. Re-seeds every dev/html/*.phtml — including the updated
+ *      reviewQueue template with the Export button.
+ *   4. Cache / datastore / opcache purge.
  *
- * Rule #79: upg_10131 removed, exactly one upg dir per app.
+ * Rule #79: upg_10132 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10132;
+namespace IPS\gdcatalog\setup\upg_10133;
 
 use function defined;
 use function function_exists;
@@ -51,10 +83,10 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdcatalog';
-		$version = '1.0.132';
+		$version = '1.0.133';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
-		/* -------- 1.0.130 schema (carried forward, idempotent) -------- */
+		/* -------- 1.0.130 schema hoist (idempotent) -------- */
 		try
 		{
 			if ( \IPS\Db::i()->checkForTable( 'gd_distributor_feeds' )
@@ -72,10 +104,10 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10132 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10132' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10133 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10133' ); } catch ( \Throwable ) {}
 		}
 
-		/* -------- Lang seed (rules #39, #43, #44) -------- */
+		/* -------- Lang seed (accumulated from 1.0.130 + 1.0.132) -------- */
 		$newStrings = [
 			'gdcatalog_feed_mark_imports_as_review'      => 'Send new products to Review Queue',
 			'gdcatalog_feed_mark_imports_as_review_desc' => "When ON, products this source creates are held with record_status='admin_review' and hidden from the front-end until an admin promotes them via the Review Queue admin page. Existing catalog products updated by this source are unaffected. Use for low-quality dealer/backfill feeds.",
@@ -101,14 +133,14 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10132 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10132' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10133 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10133' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10132 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10132' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10133 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10133' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Template resync (rule #52 + #79) -------- */
@@ -151,13 +183,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10132 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10132' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10133 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10133' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10132 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10132' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10133 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10133' ); } catch ( \Throwable ) {}
 			}
 		}
 

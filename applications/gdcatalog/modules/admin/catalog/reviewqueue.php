@@ -50,6 +50,26 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 		'upc', 'title', 'brand', 'model', 'category_id', 'image_url', 'caliber',
 	];
 
+	/**
+	 * Full canonical field set exported by exportCsv. Order is
+	 * preserved as the CSV column order. `upc` MUST come first
+	 * because the round-trip re-import keys on it. Trailing columns
+	 * beyond FieldMapper::VALID_FIELDS (primary_source,
+	 * record_status, completeness_pct, missing_fields) are
+	 * informational only — a manual-upload CSV source's
+	 * field_mapping simply omits them, and the importer's mapRecord
+	 * drops any unmapped columns automatically.
+	 */
+	protected const CSV_EXPORT_COLUMNS = [
+		'upc', 'title', 'brand', 'model', 'category', 'category_id',
+		'caliber', 'action_type', 'barrel_length', 'capacity', 'finish',
+		'weight_oz', 'overall_length', 'msrp', 'description', 'image_url',
+		'additional_images', 'nfa_item', 'requires_ffl', 'is_ammo',
+		'rounds_per_box', 'subcategory',
+		/* informational, ignored on re-import */
+		'primary_source', 'record_status', 'completeness_pct', 'missing_fields',
+	];
+
 	protected const PER_PAGE = 25;
 
 	public function execute(): void
@@ -153,6 +173,11 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 			'app=gdcatalog&module=catalog&controller=reviewqueue&do=promoteBulk'
 		)->csrf();
 
+		$exportCsvUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=reviewqueue&do=exportCsv'
+			. ( $sourceFilter !== '' ? '&source=' . urlencode( $sourceFilter ) : '' )
+		);
+
 		Output::i()->title  = 'Review Queue';
 		Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->reviewQueue(
 			$rows,
@@ -164,7 +189,106 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 			$sources,
 			$sourceFilter,
 			$promoteBulkUrl,
-			self::CRITICAL_FIELDS
+			self::CRITICAL_FIELDS,
+			$exportCsvUrl
+		);
+	}
+
+	/**
+	 * v1.0.133: export every gd_catalog row in admin_review (optionally
+	 * filtered by source slug) as a CSV download. Rows that need
+	 * enrichment are streamed with columns aligned to FieldMapper's
+	 * canonical VALID_FIELDS plus four informational columns
+	 * (primary_source, record_status, completeness_pct, missing_fields)
+	 * so a downstream AI enrichment step can prioritise gaps.
+	 *
+	 * Round-trip contract: the informational trailing columns are
+	 * deliberately named to fall OUTSIDE FieldMapper::VALID_FIELDS,
+	 * so a manual-upload CSV source's field_mapping can simply omit
+	 * them and mapRecord drops them on re-import. The keyed lookup
+	 * is on `upc` — every row must retain its UPC or the re-import
+	 * cannot match the existing catalog row.
+	 *
+	 * GET-only, read-only. No CSRF check (per CLAUDE.md rule #62 —
+	 * ->csrf() must never appear on GET URLs that render responses).
+	 */
+	protected function exportCsv(): void
+	{
+		$sourceFilter = trim( (string) ( Request::i()->source ?? '' ) );
+
+		$where = [ 'record_status=?' ];
+		$args  = [ Product::STATUS_ADMIN_REVIEW ];
+		if ( $sourceFilter !== '' )
+		{
+			$where[] = 'FIND_IN_SET(?, distributor_sources) > 0';
+			$args[]  = $sourceFilter;
+		}
+		$whereSql = [ implode( ' AND ', $where ), ...$args ];
+
+		$filename = 'review_queue_'
+			. ( $sourceFilter !== '' ? preg_replace( '/[^a-z0-9_-]+/i', '', $sourceFilter ) . '_' : '' )
+			. date( 'Ymd_His' ) . '.csv';
+
+		$fh = fopen( 'php://memory', 'w+' );
+		fputcsv( $fh, self::CSV_EXPORT_COLUMNS );
+
+		try
+		{
+			$rs = \IPS\Db::i()->select(
+				'*', 'gd_catalog', $whereSql,
+				'last_updated DESC'
+			);
+			foreach ( $rs as $row )
+			{
+				$missing = [];
+				$present = 0;
+				foreach ( self::CRITICAL_FIELDS as $cf )
+				{
+					$v = $row[$cf] ?? null;
+					if ( $v === null || $v === '' || $v === 0 || $v === '0' )
+					{
+						$missing[] = $cf;
+					}
+					else
+					{
+						$present++;
+					}
+				}
+				$completeness = (int) round( ( $present / count( self::CRITICAL_FIELDS ) ) * 100 );
+
+				$line = [];
+				foreach ( self::CSV_EXPORT_COLUMNS as $col )
+				{
+					switch ( $col )
+					{
+						case 'completeness_pct':
+							$line[] = $completeness;
+							break;
+						case 'missing_fields':
+							$line[] = implode( '|', $missing );
+							break;
+						default:
+							$v = $row[ $col ] ?? '';
+							$line[] = is_scalar( $v ) ? (string) $v : '';
+					}
+				}
+				fputcsv( $fh, $line );
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'reviewqueue::exportCsv failed: ' . $e->getMessage(), 'gdcatalog_reviewqueue' ); } catch ( \Throwable ) {}
+		}
+
+		rewind( $fh );
+		$csv = stream_get_contents( $fh );
+		fclose( $fh );
+
+		Output::i()->sendOutput(
+			$csv,
+			200,
+			'text/csv; charset=utf-8',
+			[ 'Content-Disposition' => 'attachment; filename="' . $filename . '"' ]
 		);
 	}
 

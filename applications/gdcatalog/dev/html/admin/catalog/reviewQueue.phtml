@@ -1,4 +1,4 @@
-<ips:template parameters="$rows, $total, $page, $totalPages, $prevUrl, $nextUrl, $sources, $sourceFilter, $promoteBulkUrl, $criticalFields" />
+<ips:template parameters="$rows, $total, $page, $totalPages, $prevUrl, $nextUrl, $sources, $sourceFilter, $promoteBulkUrl, $criticalFields, $exportCsvUrl" />
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 
@@ -7,17 +7,20 @@
 				<div style="font-size:1.4em;font-weight:bold">{expression="number_format( (int) $total )"} product(s) awaiting review</div>
 				<div style="color:var(--i-color-soft);font-size:0.9em">Page {$page} of {$totalPages}</div>
 			</div>
-			<form method="GET" action="" style="margin-left:auto">
-				<input type="hidden" name="app" value="gdcatalog">
-				<input type="hidden" name="module" value="catalog">
-				<input type="hidden" name="controller" value="reviewqueue">
-				<label style="margin-right:6px">Source:</label>
-				<select name="source" onchange="this.form.submit()" class="ipsField_input">
-					{{foreach $sources as $slug => $label}}
-					<option value="{$slug}"{{if $slug === $sourceFilter}} selected{{endif}}>{$label}</option>
-					{{endforeach}}
-				</select>
-			</form>
+			<div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+				<a href="{$exportCsvUrl}" class="ipsButton ipsButton--normal ipsButton--small" title="Download all rows in the current filter as CSV — hand to an AI enrichment step, then re-import via a manual-upload CSV source.">Export CSV</a>
+				<form method="GET" action="" style="margin:0">
+					<input type="hidden" name="app" value="gdcatalog">
+					<input type="hidden" name="module" value="catalog">
+					<input type="hidden" name="controller" value="reviewqueue">
+					<label style="margin-right:6px">Source:</label>
+					<select name="source" onchange="this.form.submit()" class="ipsField_input">
+						{{foreach $sources as $slug => $label}}
+						<option value="{$slug}"{{if $slug === $sourceFilter}} selected{{endif}}>{$label}</option>
+						{{endforeach}}
+					</select>
+				</form>
+			</div>
 		</div>
 
 		<p class="ipsType_light" style="margin-bottom:16px">
