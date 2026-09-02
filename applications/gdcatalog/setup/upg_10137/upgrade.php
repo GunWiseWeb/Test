@@ -1,54 +1,35 @@
 <?php
 /**
- * @brief  GD Master Catalog — upgrade 1.0.136
- *         Category resolution fixes + edit-form placeholder.
+ * @brief  GD Master Catalog — upgrade 1.0.137
+ *         Show Edit button for manual-upload sources.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHAT SHIPS IN 1.0.136
- *   Three related fixes for the "Air Guns is the default in the edit
- *   form" bug the admin reported after clicking Edit on a Review Queue
- *   product:
+ * WHAT SHIPS IN 1.0.137
+ *   One template fix: dev/html/admin/catalog/feedList.phtml stops
+ *   hiding the Edit button on manual-upload sources. The edit form
+ *   already exposes field_mapping / category_mapping via TextArea
+ *   (feeds.php::edit line 581), but feedList wrapped the second
+ *   column's Edit button in `{{if !$feed['is_manual_upload']}}` so
+ *   admins had no way to reach that form from the UI — the only
+ *   path to configure a manual CSV source's field_mapping was via
+ *   direct DB update. This surfaced when the Review Queue CSV
+ *   round-trip stayed broken until field_mapping was set: the
+ *   admin literally could not fix their own source.
  *
- *   1. sources/Feed/CategoryMapper.php — map() now falls back to
- *      canonical name / slug / breadcrumb lookup when no explicit
- *      per-feed mapping matches. This is what makes the Review Queue
- *      CSV round-trip actually update category_id: an AI enrichment
- *      step that writes real category names ("Pistols") or slugs
- *      ("handguns-pistols") straight from categories.csv resolves
- *      without every manual-upload source needing a hand-configured
- *      category_mapping JSON. Explicit mappings still win.
- *
- *   2. sources/Feed/Importer.php — the category block no longer
- *      zeroes out category_id when the mapper can't resolve the
- *      incoming string. Prior code wrote 0 on a miss which, in the
- *      update branch, silently overwrote a previously-good category
- *      with 0 whenever a feed record had an unresolvable or empty
- *      `category` field. Now: only set category_id when the mapper
- *      returns a real id; otherwise leave the key absent so the
- *      update loop skips it and the DB keeps its current value.
- *
- *   3. modules/admin/catalog/products.php — the edit form's category
- *      Select gains an explicit "— (none selected) —" placeholder at
- *      the top so a product with category_id=0 stops rendering as if
- *      Air Guns (the alphabetically-first top-level category) is the
- *      saved value. The admin now sees the true state.
- *
- *   NO schema change. NO extension/task registration change. NO
- *   AdminCP menu change. NO importer batching / queue behaviour
- *   change. NO new lang key.
+ *   No controller change. No schema change. No new lang key.
+ *   Editing already works; the button that reached it was hidden.
  *
  * WHAT THIS UPGRADE DOES (idempotent, safe to re-run)
- *   1. Idempotent 1.0.130 schema hoist
- *      (gd_distributor_feeds.mark_imports_as_review) if absent.
+ *   1. Idempotent 1.0.130 schema hoist.
  *   2. Seeds the four accumulated lang keys.
- *   3. Re-seeds every dev/html/*.phtml.
+ *   3. Re-seeds every dev/html/*.phtml (feedList picks up the fix).
  *   4. Cache / datastore / opcache purge.
  *
- * Rule #79: upg_10135 removed, exactly one upg dir per app.
+ * Rule #79: upg_10136 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10136;
+namespace IPS\gdcatalog\setup\upg_10137;
 
 use function defined;
 use function function_exists;
@@ -64,7 +45,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdcatalog';
-		$version = '1.0.136';
+		$version = '1.0.137';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		/* -------- 1.0.130 schema hoist (idempotent) -------- */
@@ -85,7 +66,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10136 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10136' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10137 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10137' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Lang seed (accumulated from 1.0.130 + 1.0.132) -------- */
@@ -114,14 +95,14 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10136 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10136' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10137 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10137' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10136 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10136' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10137 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10137' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Template resync (rule #52 + #79) -------- */
@@ -164,13 +145,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10136 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10136' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10137 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10137' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10136 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10136' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10137 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10137' ); } catch ( \Throwable ) {}
 			}
 		}
 

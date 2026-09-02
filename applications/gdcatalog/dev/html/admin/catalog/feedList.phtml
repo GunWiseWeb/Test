@@ -110,9 +110,7 @@
 						{{endif}}
 					</td>
 					<td>
-						{{if !$feed['is_manual_upload']}}
 						<a href="{$feed['edit_url']}" class="ipsButton ipsButton--normal ipsButton--small">Edit</a>
-						{{endif}}
 						{{if $feed['can_refresh_lookups']}}
 						<a href="{$feed['refresh_lookups_url']}" class="ipsButton ipsButton--soft ipsButton--small">Refresh Lookups</a>
 						{{endif}}
