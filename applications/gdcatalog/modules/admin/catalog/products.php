@@ -1172,6 +1172,12 @@ class _products extends \IPS\Dispatcher\Controller
 		] ) );
 
 		$catOptions = [];
+		/* v1.0.136: explicit placeholder so a product with category_id=0
+		 * doesn't silently render as the first alphabetical top-level
+		 * category ("Air Guns") — which reads as if 0 is actually
+		 * saved as Air Guns. Placeholder appears first, is selectable
+		 * only when nothing else is chosen. */
+		$catOptions[''] = [ 0 => '— (none selected) —' ];
 		try
 		{
 			$parents = [];

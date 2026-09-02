@@ -59,29 +59,63 @@ class CategoryMapper
 			return null;
 		}
 
-		if ( !isset( $this->map[ $normalised ] ) )
+		/* 1) Explicit per-feed mapping wins — this is what an admin
+		 * configured for distributor-specific strings that don't
+		 * match our canonical names verbatim. */
+		if ( isset( $this->map[ $normalised ] ) )
 		{
-			$this->unmatched[ $normalised ] = $distributorCategory;
-			return null;
+			$slug = $this->map[ $normalised ];
+
+			if ( !isset( $this->idCache[ $slug ] ) )
+			{
+				try
+				{
+					$category = Category::loadBySlug( $slug );
+					$this->idCache[ $slug ] = (int) $category->id;
+				}
+				catch ( \OutOfRangeException )
+				{
+					/* Configured slug doesn't exist — fall through to the
+					 * canonical fallbacks below rather than giving up. */
+				}
+			}
+
+			if ( isset( $this->idCache[ $slug ] ) )
+			{
+				return $this->idCache[ $slug ];
+			}
 		}
 
-		$slug = $this->map[ $normalised ];
-
-		if ( !isset( $this->idCache[ $slug ] ) )
+		/* 2) v1.0.136: fall back to a direct canonical lookup. This is
+		 * what makes the Review Queue CSV round-trip work — an AI
+		 * enrichment step that writes real category names ("Pistols")
+		 * or slugs ("handguns-pistols") straight from categories.csv
+		 * should resolve without every manual-upload source needing
+		 * an explicit category_mapping JSON. */
+		if ( isset( $this->canonicalByName[ $normalised ] ) )
 		{
-			try
+			return $this->canonicalByName[ $normalised ];
+		}
+		if ( isset( $this->canonicalBySlug[ $normalised ] ) )
+		{
+			return $this->canonicalBySlug[ $normalised ];
+		}
+
+		/* 3) Breadcrumb form ("Handguns > Pistols") — take the last
+		 * segment and recurse. Matches how categories.csv presents
+		 * full_path values to the AI. */
+		if ( str_contains( $normalised, '>' ) )
+		{
+			$parts = explode( '>', $normalised );
+			$tail  = trim( (string) end( $parts ) );
+			if ( $tail !== '' && $tail !== $normalised )
 			{
-				$category = Category::loadBySlug( $slug );
-				$this->idCache[ $slug ] = (int) $category->id;
-			}
-			catch ( \OutOfRangeException )
-			{
-				$this->unmatched[ $normalised ] = $distributorCategory;
-				return null;
+				return $this->map( $tail );
 			}
 		}
 
-		return $this->idCache[ $slug ];
+		$this->unmatched[ $normalised ] = $distributorCategory;
+		return null;
 	}
 
 	protected ?int $uncatId = null;

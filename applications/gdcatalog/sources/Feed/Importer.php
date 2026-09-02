@@ -822,12 +822,23 @@ class Importer
 
 			$this->seenUpcs[$upc] = true;
 
-			/* Map category */
-			$categoryRaw = $mapped['category'] ?? null;
-			if ( $categoryRaw !== null )
+			/* Map category. v1.0.136: only set category_id when the
+			 * mapper resolves to a real id. Prior behaviour wrote 0 on
+			 * a mapper miss, which for the UPDATE branch silently
+			 * overwrote an existing valid category_id with 0 whenever
+			 * an incoming record had an unresolvable category name or
+			 * an empty `category` cell. Leaving the key absent means
+			 * the update loop skips category_id entirely (null-guard
+			 * on line 993 of updateProduct) — existing value stays,
+			 * fresh inserts get schema default 0. */
+			$categoryRaw = trim( (string) ( $mapped['category'] ?? '' ) );
+			if ( $categoryRaw !== '' )
 			{
-				$categoryId = $this->categoryMapper->map( (string) $categoryRaw );
-				$mapped['category_id'] = $categoryId ?? 0;
+				$categoryId = $this->categoryMapper->map( $categoryRaw );
+				if ( $categoryId !== null )
+				{
+					$mapped['category_id'] = $categoryId;
+				}
 			}
 			unset( $mapped['category'] );
 

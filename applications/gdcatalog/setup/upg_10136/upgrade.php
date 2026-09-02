@@ -1,52 +1,54 @@
 <?php
 /**
- * @brief  GD Master Catalog — upgrade 1.0.135 (Review Queue UPC search).
+ * @brief  GD Master Catalog — upgrade 1.0.136
+ *         Category resolution fixes + edit-form placeholder.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHAT SHIPS IN 1.0.135
- *   Small feature: Review Queue admin page gains a UPC search box
- *   next to the source filter. Substring match on `upc` (LIKE
- *   '%digits%'), non-digits stripped server-side so LIKE wildcards
- *   ('%', '_') cannot be injected. Filter is preserved across
- *   pagination and inherited by both Export CSV and reset link.
+ * WHAT SHIPS IN 1.0.136
+ *   Three related fixes for the "Air Guns is the default in the edit
+ *   form" bug the admin reported after clicking Edit on a Review Queue
+ *   product:
  *
- *   Code changes:
- *     - MOD  modules/admin/catalog/reviewqueue.php
- *            — manage(): reads Request::i()->upc_search, strips to
- *              digits, appends `upc LIKE ?` to where clause when
- *              non-empty. New $filterQs helper builds the query
- *              string appended to pagination + export URLs.
- *            — exportCsv(): same UPC filter honored; filename
- *              includes upc<digits>_ suffix when filtered.
- *            — manage() passes new $upcFilter to template.
- *     - MOD  dev/html/admin/catalog/reviewQueue.phtml
- *            — NEW $upcFilter parameter.
- *            — NEW UPC text input in the filter form (numeric only,
- *              maxlength=14, monospace).
- *            — NEW explicit Filter submit button so UPC entries
- *              submit on click (source dropdown still auto-submits
- *              on change and preserves any typed UPC).
- *            — NEW Reset link shown when either filter is active.
+ *   1. sources/Feed/CategoryMapper.php — map() now falls back to
+ *      canonical name / slug / breadcrumb lookup when no explicit
+ *      per-feed mapping matches. This is what makes the Review Queue
+ *      CSV round-trip actually update category_id: an AI enrichment
+ *      step that writes real category names ("Pistols") or slugs
+ *      ("handguns-pistols") straight from categories.csv resolves
+ *      without every manual-upload source needing a hand-configured
+ *      category_mapping JSON. Explicit mappings still win.
+ *
+ *   2. sources/Feed/Importer.php — the category block no longer
+ *      zeroes out category_id when the mapper can't resolve the
+ *      incoming string. Prior code wrote 0 on a miss which, in the
+ *      update branch, silently overwrote a previously-good category
+ *      with 0 whenever a feed record had an unresolvable or empty
+ *      `category` field. Now: only set category_id when the mapper
+ *      returns a real id; otherwise leave the key absent so the
+ *      update loop skips it and the DB keeps its current value.
+ *
+ *   3. modules/admin/catalog/products.php — the edit form's category
+ *      Select gains an explicit "— (none selected) —" placeholder at
+ *      the top so a product with category_id=0 stops rendering as if
+ *      Air Guns (the alphabetically-first top-level category) is the
+ *      saved value. The admin now sees the true state.
  *
  *   NO schema change. NO extension/task registration change. NO
- *   AdminCP menu change. NO importer/adapter/queue behaviour change.
- *   NO new lang key (button labels are plain strings).
+ *   AdminCP menu change. NO importer batching / queue behaviour
+ *   change. NO new lang key.
  *
  * WHAT THIS UPGRADE DOES (idempotent, safe to re-run)
  *   1. Idempotent 1.0.130 schema hoist
  *      (gd_distributor_feeds.mark_imports_as_review) if absent.
- *   2. Seeds the four accumulated lang keys (Review Queue menu,
- *      Categorize menu, feed toggle labels) in case a prior
- *      upgrade missed them.
- *   3. Re-seeds every dev/html/*.phtml — including reviewQueue
- *      with the new UPC search input.
+ *   2. Seeds the four accumulated lang keys.
+ *   3. Re-seeds every dev/html/*.phtml.
  *   4. Cache / datastore / opcache purge.
  *
- * Rule #79: upg_10134 removed, exactly one upg dir per app.
+ * Rule #79: upg_10135 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10135;
+namespace IPS\gdcatalog\setup\upg_10136;
 
 use function defined;
 use function function_exists;
@@ -62,7 +64,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdcatalog';
-		$version = '1.0.135';
+		$version = '1.0.136';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		/* -------- 1.0.130 schema hoist (idempotent) -------- */
@@ -83,7 +85,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10135 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10135' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10136 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10136' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Lang seed (accumulated from 1.0.130 + 1.0.132) -------- */
@@ -112,14 +114,14 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10135 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10135' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10136 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10136' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10135 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10135' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10136 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10136' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Template resync (rule #52 + #79) -------- */
@@ -162,13 +164,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10135 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10135' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10136 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10136' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10135 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10135' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10136 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10136' ); } catch ( \Throwable ) {}
 			}
 		}
 
