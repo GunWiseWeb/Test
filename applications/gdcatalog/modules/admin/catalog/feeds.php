@@ -29,6 +29,41 @@ class _feeds extends \IPS\Dispatcher\Controller
 {
 	public static $csrfProtected = TRUE;
 
+	/**
+	 * v1.0.139: canonical 1:1 default field_mapping for manual-upload
+	 * sources. Matches the column order of the Review Queue Export CSV
+	 * (reviewqueue::CSV_EXPORT_COLUMNS) MINUS the four informational
+	 * trailing columns (primary_source, record_status, completeness_pct,
+	 * missing_fields) that fall outside FieldMapper::VALID_FIELDS and
+	 * would be dropped anyway. Pre-filled into the edit form when auth
+	 * type is manual_upload and no mapping is stored yet, so the
+	 * enriched-CSV round-trip works with zero JSON knowledge required.
+	 */
+	protected const MANUAL_UPLOAD_DEFAULT_FIELD_MAPPING = [
+		'upc'               => 'upc',
+		'title'             => 'title',
+		'brand'             => 'brand',
+		'model'             => 'model',
+		'category'          => 'category',
+		'category_id'       => 'category_id',
+		'caliber'           => 'caliber',
+		'action_type'       => 'action_type',
+		'barrel_length'     => 'barrel_length',
+		'capacity'          => 'capacity',
+		'finish'            => 'finish',
+		'weight_oz'         => 'weight_oz',
+		'overall_length'    => 'overall_length',
+		'msrp'              => 'msrp',
+		'description'       => 'description',
+		'image_url'         => 'image_url',
+		'additional_images' => 'additional_images',
+		'nfa_item'          => 'nfa_item',
+		'requires_ffl'      => 'requires_ffl',
+		'is_ammo'           => 'is_ammo',
+		'rounds_per_box'    => 'rounds_per_box',
+		'subcategory'       => 'subcategory',
+	];
+
 	public function execute(): void
 	{
 		parent::execute();
@@ -578,7 +613,22 @@ class _feeds extends \IPS\Dispatcher\Controller
 		$form->add( new Form\YesNo( 'gdcatalog_feed_mark_imports_as_review', (int) ( $feed->mark_imports_as_review ?? 0 ), FALSE ) );
 
 		$form->addHeader( 'gdcatalog_feed_field_mapping' );
-		$form->add( new Form\TextArea( 'gdcatalog_feed_field_mapping_json', $feed->field_mapping ?? '', FALSE, [
+		/* v1.0.139: pre-fill the canonical 1:1 default on manual-upload
+		 * sources when nothing is stored yet, so the Review-Queue-CSV
+		 * round-trip works with zero JSON knowledge required. Admin
+		 * can still override — the value only pre-fills on first
+		 * display; subsequent edits show whatever they saved. */
+		$storedFieldMapping     = (string) ( $feed->field_mapping ?? '' );
+		$isManualUpload         = ( (string) $feed->auth_type === 'manual_upload' );
+		$initialFieldMappingVal = $storedFieldMapping;
+		if ( $storedFieldMapping === '' && $isManualUpload )
+		{
+			$initialFieldMappingVal = (string) json_encode(
+				self::MANUAL_UPLOAD_DEFAULT_FIELD_MAPPING,
+				JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+			);
+		}
+		$form->add( new Form\TextArea( 'gdcatalog_feed_field_mapping_json', $initialFieldMappingVal, FALSE, [
 			'rows'        => 12,
 			'placeholder' => '{"DIST_FIELD":"canonical_field", "PROD_NAME":"title", ...}',
 		] ) );
@@ -630,6 +680,17 @@ class _feeds extends \IPS\Dispatcher\Controller
 			if ( $fieldJson !== '' && ( !is_array( json_decode( $fieldJson, true ) ) ) )
 			{
 				$errors[] = 'Field Mapping must be a JSON object mapping source field names to canonical column names.';
+			}
+			/* v1.0.139: manual-upload sources MUST have a non-empty
+			 * field_mapping. Without it the importer has no way to
+			 * translate CSV columns to canonical fields — the entire
+			 * upload is silently skipped. The edit form pre-fills a
+			 * sensible 1:1 default when nothing is stored yet, so
+			 * this validation only trips when an admin deliberately
+			 * cleared it. */
+			if ( $authType === 'manual_upload' && $fieldJson === '' )
+			{
+				$errors[] = 'Field Mapping is required for Manual File Upload sources — clear it and the CSV importer has nothing to translate columns with.';
 			}
 			if ( $catJson !== '' && ( !is_array( json_decode( $catJson, true ) ) ) )
 			{

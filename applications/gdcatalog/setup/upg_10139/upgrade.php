@@ -1,25 +1,35 @@
 <?php
 /**
- * @brief  GD Master Catalog — upgrade 1.0.138
- *         Prominent Edit button in the first column for manual sources.
+ * @brief  GD Master Catalog — upgrade 1.0.139
+ *         Manual-upload field_mapping: pre-fill canonical default + require on save.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHAT SHIPS IN 1.0.138
- *   Follow-up to 1.0.137. 1.0.137 removed the second-column Edit
- *   button's is_manual_upload guard, which surfaced Edit next to
- *   Lock/Delete — but the small grey `ipsButton--normal` style was
- *   easy to miss, and admins reasonably expected the prominent
- *   blue `ipsButton--primary` Edit button that appears in the FIRST
- *   column for every other source type (SS + URL feeds). This
- *   version adds that same primary Edit button as the first
- *   element of the manual-upload branch in feedList.phtml, so
- *   Manual Upload rows now show:
+ * WHAT SHIPS IN 1.0.139
+ *   Two related edit-form changes on the Feeds controller for
+ *   Manual File Upload sources:
  *
- *     [Edit] [Upload File] ([Run Import]) — first column
- *     [Edit] [Lock] [Delete]              — second column (from 1.0.137)
+ *   1. Pre-fill a canonical 1:1 default field_mapping (JSON, pretty-
+ *      printed) when auth_type=manual_upload AND no mapping is
+ *      stored yet. The default matches the Review Queue Export CSV
+ *      column order minus the four informational trailing columns
+ *      that fall outside FieldMapper::VALID_FIELDS. Admins get a
+ *      working starting point they can Save immediately, or edit
+ *      if their CSV uses different column names. Only pre-fills on
+ *      first display — subsequent edits show whatever was saved.
  *
- *   No controller change, no schema change, no new lang key.
+ *   2. Require field_mapping to be non-empty on save when
+ *      auth_type=manual_upload. Without a mapping the importer has
+ *      no way to translate CSV columns to canonical fields — the
+ *      entire upload is silently skipped. This validation only
+ *      trips if an admin deliberately clears the pre-fill.
+ *
+ *   Together these close the "empty field_mapping on manual source"
+ *   footgun that made the Review Queue CSV round-trip fail silently
+ *   until an admin figured out to configure it via CLI.
+ *
+ *   No controller behaviour change beyond the form. No schema
+ *   change. No new lang key.
  *
  * WHAT THIS UPGRADE DOES (idempotent, safe to re-run)
  *   1. Idempotent 1.0.130 schema hoist.
@@ -27,10 +37,10 @@
  *   3. Re-seeds every dev/html/*.phtml.
  *   4. Cache / datastore / opcache purge.
  *
- * Rule #79: upg_10137 removed, exactly one upg dir per app.
+ * Rule #79: upg_10138 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10138;
+namespace IPS\gdcatalog\setup\upg_10139;
 
 use function defined;
 use function function_exists;
@@ -46,7 +56,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdcatalog';
-		$version = '1.0.138';
+		$version = '1.0.139';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		/* -------- 1.0.130 schema hoist (idempotent) -------- */
@@ -67,7 +77,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10138 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10138' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10139 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10139' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Lang seed (accumulated from 1.0.130 + 1.0.132) -------- */
@@ -96,14 +106,14 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10138 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10138' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10139 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10139' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10138 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10138' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10139 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10139' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Template resync (rule #52 + #79) -------- */
@@ -146,13 +156,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10138 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10138' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10139 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10139' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10138 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10138' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10139 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10139' ); } catch ( \Throwable ) {}
 			}
 		}
 
