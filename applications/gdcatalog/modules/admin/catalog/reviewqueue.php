@@ -1,6 +1,6 @@
 <?php
 /**
- * @brief  GD Master Catalog — Review Queue Controller (v1.0.134)
+ * @brief  GD Master Catalog — Review Queue Controller (v1.0.135)
  *
  * Lists gd_catalog products with record_status='admin_review' — the
  * products that landed via a source configured with
@@ -83,6 +83,11 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 		$page    = max( 1, (int) ( Request::i()->page ?? 1 ) );
 		$offset  = ( $page - 1 ) * self::PER_PAGE;
 		$sourceFilter = trim( (string) ( Request::i()->source ?? '' ) );
+		/* v1.0.135: UPC search — strip to digits so LIKE wildcards
+		 * ('%', '_') can't inject and blow up the filter. UPCs are
+		 * numeric per spec (12–14 digits). Empty after strip = no
+		 * filter applied. */
+		$upcFilter = preg_replace( '/\D+/', '', (string) ( Request::i()->upc_search ?? '' ) ) ?? '';
 
 		$where = [ 'record_status=?' ];
 		$args  = [ Product::STATUS_ADMIN_REVIEW ];
@@ -90,6 +95,11 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 		{
 			$where[] = 'FIND_IN_SET(?, distributor_sources) > 0';
 			$args[]  = $sourceFilter;
+		}
+		if ( $upcFilter !== '' )
+		{
+			$where[] = 'upc LIKE ?';
+			$args[]  = '%' . $upcFilter . '%';
 		}
 		$whereSql = [ implode( ' AND ', $where ), ...$args ];
 
@@ -160,13 +170,14 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 
 		$totalPages = max( 1, (int) ceil( $total / self::PER_PAGE ) );
 
+		$filterQs = ( $sourceFilter !== '' ? '&source=' . urlencode( $sourceFilter ) : '' )
+			. ( $upcFilter !== '' ? '&upc_search=' . urlencode( $upcFilter ) : '' );
+
 		$prevUrl = $page > 1 ? (string) \IPS\Http\Url::internal(
-			'app=gdcatalog&module=catalog&controller=reviewqueue&page=' . ( $page - 1 )
-			. ( $sourceFilter !== '' ? '&source=' . urlencode( $sourceFilter ) : '' )
+			'app=gdcatalog&module=catalog&controller=reviewqueue&page=' . ( $page - 1 ) . $filterQs
 		) : '';
 		$nextUrl = $page < $totalPages ? (string) \IPS\Http\Url::internal(
-			'app=gdcatalog&module=catalog&controller=reviewqueue&page=' . ( $page + 1 )
-			. ( $sourceFilter !== '' ? '&source=' . urlencode( $sourceFilter ) : '' )
+			'app=gdcatalog&module=catalog&controller=reviewqueue&page=' . ( $page + 1 ) . $filterQs
 		) : '';
 
 		$promoteBulkUrl = (string) \IPS\Http\Url::internal(
@@ -174,8 +185,7 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 		)->csrf();
 
 		$exportCsvUrl = (string) \IPS\Http\Url::internal(
-			'app=gdcatalog&module=catalog&controller=reviewqueue&do=exportCsv'
-			. ( $sourceFilter !== '' ? '&source=' . urlencode( $sourceFilter ) : '' )
+			'app=gdcatalog&module=catalog&controller=reviewqueue&do=exportCsv' . $filterQs
 		);
 
 		$exportCategoriesUrl = (string) \IPS\Http\Url::internal(
@@ -195,7 +205,8 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 			$promoteBulkUrl,
 			self::CRITICAL_FIELDS,
 			$exportCsvUrl,
-			$exportCategoriesUrl
+			$exportCategoriesUrl,
+			$upcFilter
 		);
 	}
 
@@ -220,6 +231,7 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 	protected function exportCsv(): void
 	{
 		$sourceFilter = trim( (string) ( Request::i()->source ?? '' ) );
+		$upcFilter    = preg_replace( '/\D+/', '', (string) ( Request::i()->upc_search ?? '' ) ) ?? '';
 
 		$where = [ 'record_status=?' ];
 		$args  = [ Product::STATUS_ADMIN_REVIEW ];
@@ -228,10 +240,16 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 			$where[] = 'FIND_IN_SET(?, distributor_sources) > 0';
 			$args[]  = $sourceFilter;
 		}
+		if ( $upcFilter !== '' )
+		{
+			$where[] = 'upc LIKE ?';
+			$args[]  = '%' . $upcFilter . '%';
+		}
 		$whereSql = [ implode( ' AND ', $where ), ...$args ];
 
 		$filename = 'review_queue_'
 			. ( $sourceFilter !== '' ? preg_replace( '/[^a-z0-9_-]+/i', '', $sourceFilter ) . '_' : '' )
+			. ( $upcFilter !== '' ? 'upc' . $upcFilter . '_' : '' )
 			. date( 'Ymd_His' ) . '.csv';
 
 		$fh = fopen( 'php://memory', 'w+' );

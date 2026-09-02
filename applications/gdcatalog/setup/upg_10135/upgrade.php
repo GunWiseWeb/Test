@@ -1,67 +1,52 @@
 <?php
 /**
- * @brief  GD Master Catalog — upgrade 1.0.134 (Review Queue "Categories CSV" export).
+ * @brief  GD Master Catalog — upgrade 1.0.135 (Review Queue UPC search).
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHAT SHIPS IN 1.0.134
- *   Small feature: Review Queue now has a second download button —
- *   "Categories CSV" — that dumps the full gd_categories tree (id,
- *   name, slug, parent_id, parent_name, full_path) as a companion
- *   file for the Review Queue enrichment CSV. Workflow:
- *
- *     1. Filter Review Queue by source.
- *     2. Click "Export CSV" (rows to enrich).
- *     3. Click "Categories CSV" (valid category names).
- *     4. Attach BOTH files to the AI enrichment prompt with
- *        instructions like: "For the `category` column, use ONLY
- *        exact names from categories.csv — do not invent labels."
- *     5. Configure a manual-upload CSV source with field_mapping
- *        matching the enriched CSV's canonical columns and a
- *        category_mapping JSON that resolves category names to
- *        gd_categories.slug or id. Set medium priority (above
- *        dealer feeds, below wholesale like Sports South).
- *     6. Upload the enriched CSV, Run Import — existing admin_review
- *        rows are updated in place (Importer's update branch does
- *        NOT flip record_status, so rows stay in the Review Queue).
- *     7. Back in Review Queue, completeness bars are now higher,
- *        Promote to active.
+ * WHAT SHIPS IN 1.0.135
+ *   Small feature: Review Queue admin page gains a UPC search box
+ *   next to the source filter. Substring match on `upc` (LIKE
+ *   '%digits%'), non-digits stripped server-side so LIKE wildcards
+ *   ('%', '_') cannot be injected. Filter is preserved across
+ *   pagination and inherited by both Export CSV and reset link.
  *
  *   Code changes:
  *     - MOD  modules/admin/catalog/reviewqueue.php
- *            — NEW protected exportCategoriesCsv() action. GET-only,
- *              read-only, no CSRF (rule #62). Streams the full
- *              gd_categories tree with a computed full_path
- *              breadcrumb so the AI can disambiguate leaf names
- *              that repeat across parents.
- *            — manage() now passes $exportCategoriesUrl to the
- *              template.
+ *            — manage(): reads Request::i()->upc_search, strips to
+ *              digits, appends `upc LIKE ?` to where clause when
+ *              non-empty. New $filterQs helper builds the query
+ *              string appended to pagination + export URLs.
+ *            — exportCsv(): same UPC filter honored; filename
+ *              includes upc<digits>_ suffix when filtered.
+ *            — manage() passes new $upcFilter to template.
  *     - MOD  dev/html/admin/catalog/reviewQueue.phtml
- *            — NEW $exportCategoriesUrl parameter.
- *            — NEW "Categories CSV" button next to "Export CSV".
+ *            — NEW $upcFilter parameter.
+ *            — NEW UPC text input in the filter form (numeric only,
+ *              maxlength=14, monospace).
+ *            — NEW explicit Filter submit button so UPC entries
+ *              submit on click (source dropdown still auto-submits
+ *              on change and preserves any typed UPC).
+ *            — NEW Reset link shown when either filter is active.
  *
  *   NO schema change. NO extension/task registration change. NO
  *   AdminCP menu change. NO importer/adapter/queue behaviour change.
- *
- * PRESERVED UNCHANGED:
- *   - No new DB column, no new table.
- *   - No new lang key required (button label is plain string in the
- *     template — matches existing style).
- *   - Round-trip re-import path unchanged from 1.0.133.
+ *   NO new lang key (button labels are plain strings).
  *
  * WHAT THIS UPGRADE DOES (idempotent, safe to re-run)
- *   1. Idempotent 1.0.130 schema hoist (adds
- *      gd_distributor_feeds.mark_imports_as_review if absent).
- *   2. Seeds the four accumulated lang keys carried since 1.0.130 /
- *      1.0.132 in case a prior upgrade missed them.
- *   3. Re-seeds every dev/html/*.phtml — including the updated
- *      reviewQueue template with the Categories CSV button.
+ *   1. Idempotent 1.0.130 schema hoist
+ *      (gd_distributor_feeds.mark_imports_as_review) if absent.
+ *   2. Seeds the four accumulated lang keys (Review Queue menu,
+ *      Categorize menu, feed toggle labels) in case a prior
+ *      upgrade missed them.
+ *   3. Re-seeds every dev/html/*.phtml — including reviewQueue
+ *      with the new UPC search input.
  *   4. Cache / datastore / opcache purge.
  *
- * Rule #79: upg_10133 removed, exactly one upg dir per app.
+ * Rule #79: upg_10134 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10134;
+namespace IPS\gdcatalog\setup\upg_10135;
 
 use function defined;
 use function function_exists;
@@ -77,7 +62,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdcatalog';
-		$version = '1.0.134';
+		$version = '1.0.135';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		/* -------- 1.0.130 schema hoist (idempotent) -------- */
@@ -98,7 +83,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10134 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10134' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10135 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10135' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Lang seed (accumulated from 1.0.130 + 1.0.132) -------- */
@@ -127,14 +112,14 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10134 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10134' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10135 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10135' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10134 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10134' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10135 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10135' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Template resync (rule #52 + #79) -------- */
@@ -177,13 +162,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10134 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10134' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10135 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10135' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10134 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10134' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10135 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10135' ); } catch ( \Throwable ) {}
 			}
 		}
 
