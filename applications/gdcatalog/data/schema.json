@@ -987,6 +987,11 @@
                 "values": [],
                 "comment": ""
             },
+            "upc_audit_status":       { "name": "upc_audit_status",       "type": "VARCHAR", "length": 64,  "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "v1.0.142: short label of any UPC/identity issue on this row — 'Invalid UPC-A checksum', 'Placeholder UPC', 'Verified', or AI-provided text. Empty/null = no known issue." },
+            "upc_audit_notes":        { "name": "upc_audit_notes",        "type": "TEXT",    "length": 0,   "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "v1.0.142: free-form explanation of upc_audit_status. Typically set by AI enrichment via CSV round-trip." },
+            "suggested_correct_upc":  { "name": "suggested_correct_upc",  "type": "VARCHAR", "length": 32,  "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "v1.0.142: AI-proposed real UPC when this row's UPC is invalid or wrong (e.g. maps to a different product)." },
+            "verified_mpn":           { "name": "verified_mpn",           "type": "VARCHAR", "length": 64,  "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "v1.0.142: MPN that AI independently verified belongs to this product." },
+            "upc_audit_source":       { "name": "upc_audit_source",       "type": "TEXT",    "length": 0,   "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "v1.0.142: URL(s) of the external source the AI used to audit this row." },
             "holster_type": { "name": "holster_type", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
             "holster_color": { "name": "holster_color", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
             "holster_material": { "name": "holster_material", "type": "VARCHAR", "length": 80, "decimals": null, "allow_null": true, "default": null, "auto_increment": false, "binary": false, "unsigned": false, "zerofill": false, "values": [], "comment": "" },
@@ -1044,6 +1049,16 @@
                 ],
                 "length": [
                     null
+                ]
+            },
+            "idx_upc_audit_status": {
+                "type": "key",
+                "name": "idx_upc_audit_status",
+                "columns": [
+                    "upc_audit_status"
+                ],
+                "length": [
+                    32
                 ]
             },
             "idx_status": {

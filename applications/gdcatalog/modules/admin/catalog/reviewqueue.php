@@ -84,6 +84,11 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 		'muzzle_velocity', 'muzzle_energy', 'boxes_per_case', 'casing_material',
 		/* optic-specific (v1.0.141) — user reported these were missing */
 		'magnification', 'objective_mm', 'reticle', 'tube_diameter', 'eye_relief',
+		/* v1.0.142 UPC/identity audit — round-trip so AI can read the
+		 * current auto-flag, add its own richer status/notes, and the
+		 * re-import persists them into gd_catalog */
+		'upc_audit_status', 'upc_audit_notes', 'suggested_correct_upc',
+		'verified_mpn', 'upc_audit_source',
 		/* informational, ignored on re-import (fall outside VALID_FIELDS) */
 		'primary_source', 'record_status', 'completeness_pct', 'missing_fields',
 	];
@@ -106,6 +111,9 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 		 * numeric per spec (12–14 digits). Empty after strip = no
 		 * filter applied. */
 		$upcFilter = preg_replace( '/\D+/', '', (string) ( Request::i()->upc_search ?? '' ) ) ?? '';
+		/* v1.0.142: audit-flag filter — "1" = only rows with a non-empty
+		 * upc_audit_status that doesn't look like an all-clear label. */
+		$flaggedOnly = (int) ( Request::i()->flagged ?? 0 ) === 1;
 
 		$where = [ 'record_status=?' ];
 		$args  = [ Product::STATUS_ADMIN_REVIEW ];
@@ -118,6 +126,10 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 		{
 			$where[] = 'upc LIKE ?';
 			$args[]  = '%' . $upcFilter . '%';
+		}
+		if ( $flaggedOnly )
+		{
+			$where[] = "upc_audit_status IS NOT NULL AND upc_audit_status != '' AND upc_audit_status NOT LIKE '%Verified%' AND upc_audit_status NOT LIKE '%Valid%'";
 		}
 		$whereSql = [ implode( ' AND ', $where ), ...$args ];
 
@@ -143,6 +155,11 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 					if ( $has ) { $present[] = $f; } else { $missing[] = $f; }
 				}
 				$completeness = (int) round( ( count( $present ) / count( self::CRITICAL_FIELDS ) ) * 100 );
+				$auditStatus = (string) ( $row['upc_audit_status'] ?? '' );
+				$auditNotes  = (string) ( $row['upc_audit_notes']  ?? '' );
+				$auditFlagged = $auditStatus !== ''
+					&& stripos( $auditStatus, 'verified' ) === false
+					&& stripos( $auditStatus, 'valid' ) === false;
 				$rows[] = [
 					'upc'            => (string) $row['upc'],
 					'title'          => (string) ( $row['title'] ?? '' ),
@@ -155,6 +172,10 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 					'present'        => $present,
 					'missing'        => $missing,
 					'completeness'   => $completeness,
+					'audit_status'   => $auditStatus,
+					'audit_notes'    => $auditNotes,
+					'audit_flagged'  => $auditFlagged,
+					'suggested_upc'  => (string) ( $row['suggested_correct_upc'] ?? '' ),
 					'edit_url'       => (string) \IPS\Http\Url::internal(
 						'app=gdcatalog&module=catalog&controller=products&do=edit&upc=' . urlencode( (string) $row['upc'] )
 					),
@@ -189,7 +210,19 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 		$totalPages = max( 1, (int) ceil( $total / self::PER_PAGE ) );
 
 		$filterQs = ( $sourceFilter !== '' ? '&source=' . urlencode( $sourceFilter ) : '' )
-			. ( $upcFilter !== '' ? '&upc_search=' . urlencode( $upcFilter ) : '' );
+			. ( $upcFilter !== '' ? '&upc_search=' . urlencode( $upcFilter ) : '' )
+			. ( $flaggedOnly ? '&flagged=1' : '' );
+
+		/* v1.0.142: count of currently-flagged rows for the "Flagged only"
+		 * toggle label, matched against the same source/upc scope so the
+		 * count reflects what the toggle would actually filter to. */
+		$flaggedCountWhere = $where;
+		if ( !$flaggedOnly )
+		{
+			$flaggedCountWhere[] = "upc_audit_status IS NOT NULL AND upc_audit_status != '' AND upc_audit_status NOT LIKE '%Verified%' AND upc_audit_status NOT LIKE '%Valid%'";
+		}
+		$flaggedCount = 0;
+		try { $flaggedCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_catalog', [ implode( ' AND ', $flaggedCountWhere ), ...$args ] )->first(); } catch ( \Throwable ) {}
 
 		$prevUrl = $page > 1 ? (string) \IPS\Http\Url::internal(
 			'app=gdcatalog&module=catalog&controller=reviewqueue&page=' . ( $page - 1 ) . $filterQs
@@ -210,6 +243,13 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 			'app=gdcatalog&module=catalog&controller=reviewqueue&do=exportCategoriesCsv'
 		);
 
+		$flaggedToggleUrl = (string) \IPS\Http\Url::internal(
+			'app=gdcatalog&module=catalog&controller=reviewqueue'
+			. ( $sourceFilter !== '' ? '&source=' . urlencode( $sourceFilter ) : '' )
+			. ( $upcFilter !== '' ? '&upc_search=' . urlencode( $upcFilter ) : '' )
+			. ( $flaggedOnly ? '' : '&flagged=1' )
+		);
+
 		Output::i()->title  = 'Review Queue';
 		Output::i()->output = \IPS\Theme::i()->getTemplate( 'catalog', 'gdcatalog', 'admin' )->reviewQueue(
 			$rows,
@@ -224,7 +264,10 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 			self::CRITICAL_FIELDS,
 			$exportCsvUrl,
 			$exportCategoriesUrl,
-			$upcFilter
+			$upcFilter,
+			$flaggedOnly,
+			$flaggedCount,
+			$flaggedToggleUrl
 		);
 	}
 

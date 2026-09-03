@@ -100,6 +100,12 @@ class _feeds extends \IPS\Dispatcher\Controller
 		'reticle'           => 'reticle',
 		'tube_diameter'     => 'tube_diameter',
 		'eye_relief'        => 'eye_relief',
+		/* v1.0.142 UPC/identity audit — AI-editable via CSV round-trip */
+		'upc_audit_status'      => 'upc_audit_status',
+		'upc_audit_notes'       => 'upc_audit_notes',
+		'suggested_correct_upc' => 'suggested_correct_upc',
+		'verified_mpn'          => 'verified_mpn',
+		'upc_audit_source'      => 'upc_audit_source',
 	];
 
 	public function execute(): void

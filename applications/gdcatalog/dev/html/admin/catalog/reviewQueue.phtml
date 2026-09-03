@@ -1,4 +1,4 @@
-<ips:template parameters="$rows, $total, $page, $totalPages, $prevUrl, $nextUrl, $sources, $sourceFilter, $promoteBulkUrl, $criticalFields, $exportCsvUrl, $exportCategoriesUrl, $upcFilter" />
+<ips:template parameters="$rows, $total, $page, $totalPages, $prevUrl, $nextUrl, $sources, $sourceFilter, $promoteBulkUrl, $criticalFields, $exportCsvUrl, $exportCategoriesUrl, $upcFilter, $flaggedOnly, $flaggedCount, $flaggedToggleUrl" />
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body ipsPad">
 
@@ -23,10 +23,13 @@
 						{{endforeach}}
 					</select>
 					<button type="submit" class="ipsButton ipsButton--normal ipsButton--small">Filter</button>
-					{{if $upcFilter || $sourceFilter}}
+					{{if $upcFilter || $sourceFilter || $flaggedOnly}}
 					<a href="{url="app=gdcatalog&module=catalog&controller=reviewqueue"}" class="ipsButton ipsButton--link ipsButton--small" title="Clear all filters">Reset</a>
 					{{endif}}
 				</form>
+				<a href="{$flaggedToggleUrl}" class="ipsButton {{if $flaggedOnly}}ipsButton--negative{{else}}ipsButton--normal{{endif}} ipsButton--small" title="Toggle: only rows with a UPC/identity audit flag (bad checksum, placeholder, or AI-detected identity conflict).">
+					{{if $flaggedOnly}}✕ Showing flagged only{{else}}⚠ Flagged only ({expression="number_format( (int) $flaggedCount )"}){{endif}}
+				</a>
 			</div>
 		</div>
 
@@ -64,7 +67,21 @@
 					{{foreach $rows as $row}}
 					<tr>
 						<td><input type="checkbox" name="ids[]" value="{$row['upc']}"></td>
-						<td style="font-family:monospace">{$row['upc']}</td>
+						<td style="font-family:monospace">
+							{$row['upc']}
+							{{if $row['audit_flagged']}}
+							<div style="margin-top:4px">
+								<span style="display:inline-block;padding:2px 6px;border-radius:3px;background:#fee2e2;color:#991b1b;font-family:sans-serif;font-size:0.75em;font-weight:600" title="{$row['audit_notes']}">
+									⚠ {$row['audit_status']}
+								</span>
+								{{if $row['suggested_upc']}}
+								<div style="font-family:monospace;font-size:0.75em;margin-top:2px;color:#065f46">
+									→ {$row['suggested_upc']}
+								</div>
+								{{endif}}
+							</div>
+							{{endif}}
+						</td>
 						<td>
 							{{if $row['title']}}
 								{$row['title']}

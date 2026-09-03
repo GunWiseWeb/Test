@@ -872,6 +872,43 @@ class Importer
 				}
 			}
 
+			/* v1.0.142: automatic UPC/identity audit. classify() returns
+			 * a short label ("Invalid UPC-A checksum", "Placeholder UPC",
+			 * "Invalid EAN-13 checksum") when the UPC fails a structural
+			 * check, or null when it looks clean. We ONLY inject the
+			 * auto-flag when the incoming mapped record didn't already
+			 * carry an audit status (i.e. AI enrichment via CSV
+			 * round-trip populated one) — respecting AI's judgment,
+			 * which is richer than our checksum-only view. When any
+			 * audit issue is present (auto or AI), flip the row to
+			 * admin_review so it surfaces in the Review Queue. */
+			$hasIncomingAuditStatus = isset( $mapped['upc_audit_status'] )
+				&& is_string( $mapped['upc_audit_status'] )
+				&& trim( $mapped['upc_audit_status'] ) !== '';
+			if ( !$hasIncomingAuditStatus )
+			{
+				$autoStatus = UpcValidator::classify( $upc );
+				if ( $autoStatus !== null )
+				{
+					$mapped['upc_audit_status'] = $autoStatus;
+				}
+			}
+			$flaggedForReview = isset( $mapped['upc_audit_status'] )
+				&& is_string( $mapped['upc_audit_status'] )
+				&& trim( $mapped['upc_audit_status'] ) !== ''
+				&& stripos( $mapped['upc_audit_status'], 'verified' ) === false
+				&& stripos( $mapped['upc_audit_status'], 'valid' ) === false;
+			if ( $flaggedForReview )
+			{
+				/* Only relevant on create — updateProduct doesn't flip
+				 * record_status (v1.0.130 contract). createProduct
+				 * already reads mark_imports_as_review; we tack an
+				 * OR-branch onto the feed-flag by overriding to
+				 * admin_review here via a synthetic mapped key that
+				 * createProduct honours (added below). */
+				$mapped['_force_admin_review'] = true;
+			}
+
 			/* Check if UPC exists */
 			$existing = $this->loadProduct( $upc );
 
@@ -978,9 +1015,14 @@ class Importer
 		 * product goes live on the front-end. Existing catalog
 		 * products updated by this source keep their current
 		 * record_status — the flag ONLY affects the create branch. */
-		$product->record_status       = ( (int) ( $this->feed->mark_imports_as_review ?? 0 ) === 1 )
+		/* v1.0.142: also flip to admin_review when the row carries an
+		 * audit flag (auto-detected bad UPC, or AI-flagged identity
+		 * issue). Either signal is sufficient — union, not intersection. */
+		$forceReview = !empty( $mapped['_force_admin_review'] );
+		$product->record_status       = ( $forceReview || (int) ( $this->feed->mark_imports_as_review ?? 0 ) === 1 )
 			? Product::STATUS_ADMIN_REVIEW
 			: Product::STATUS_ACTIVE;
+		unset( $mapped['_force_admin_review'] );
 		$product->last_updated        = date( 'Y-m-d H:i:s' );
 
 		/* Track this distributor */
@@ -1004,6 +1046,13 @@ class Importer
 	{
 		$conflictCount = 0;
 		$changed       = false;
+
+		/* v1.0.142: drop synthetic control keys that only createProduct
+		 * consumes. Without this the loop below tries to write
+		 * `_force_admin_review` as a column and it's ignored by
+		 * catalogColumns filter — cheap, but the unset keeps the map
+		 * clean for the resolver. */
+		unset( $mapped['_force_admin_review'] );
 
 		/* Delegate to ConflictResolver for each field */
 		$resolver = new \IPS\gdcatalog\Feed\ConflictResolver(

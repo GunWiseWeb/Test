@@ -80,6 +80,10 @@ class FieldMapper
 		'muzzle_velocity', 'muzzle_energy', 'boxes_per_case', 'casing_material',
 		/* optic-specific */
 		'magnification', 'objective_mm', 'reticle', 'tube_diameter', 'eye_relief',
+		/* v1.0.142 UPC/identity audit columns — populated automatically
+		 * for structural failures + by AI enrichment via CSV round-trip */
+		'upc_audit_status', 'upc_audit_notes', 'suggested_correct_upc',
+		'verified_mpn', 'upc_audit_source',
 	];
 
 	/**
