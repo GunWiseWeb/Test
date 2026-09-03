@@ -858,6 +858,20 @@ class Importer
 				$mapped['action_type'] = TitleParser::cleanAction( (string) $mapped['action_type'] );
 			}
 
+			/* v1.0.140: collapse multi-space runs in single-line text
+			 * fields (title/brand/model). Distributors often pad
+			 * fixed-width columns and concatenate them, leaving titles
+			 * like "Burris Droptine, Bur 200077   Droptne 4.5-14x42".
+			 * description is intentionally excluded — real distributor
+			 * line breaks in descriptions are worth keeping. */
+			foreach ( [ 'title', 'brand', 'model' ] as $wsField )
+			{
+				if ( isset( $mapped[ $wsField ] ) && is_string( $mapped[ $wsField ] ) )
+				{
+					$mapped[ $wsField ] = TitleParser::normalizeWhitespace( $mapped[ $wsField ] );
+				}
+			}
+
 			/* Check if UPC exists */
 			$existing = $this->loadProduct( $upc );
 

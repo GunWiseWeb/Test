@@ -1,46 +1,53 @@
 <?php
 /**
- * @brief  GD Master Catalog — upgrade 1.0.139
- *         Manual-upload field_mapping: pre-fill canonical default + require on save.
+ * @brief  GD Master Catalog — upgrade 1.0.140
+ *         Normalise multi-space runs in title/brand/model on import
+ *         + one-off retroactive cleanup for existing rows.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHAT SHIPS IN 1.0.139
- *   Two related edit-form changes on the Feeds controller for
- *   Manual File Upload sources:
+ * WHAT SHIPS IN 1.0.140
+ *   Distributor feeds (esp. Sports South, some XML dealers) pad
+ *   fixed-width columns and concatenate them, leaving titles like:
+ *     "Burris Droptine, Bur 200077   Droptne 4.5-14x42    Bplx Mt"
+ *   Multi-space runs are always noise in single-line text fields.
  *
- *   1. Pre-fill a canonical 1:1 default field_mapping (JSON, pretty-
- *      printed) when auth_type=manual_upload AND no mapping is
- *      stored yet. The default matches the Review Queue Export CSV
- *      column order minus the four informational trailing columns
- *      that fall outside FieldMapper::VALID_FIELDS. Admins get a
- *      working starting point they can Save immediately, or edit
- *      if their CSV uses different column names. Only pre-fills on
- *      first display — subsequent edits show whatever was saved.
+ *   Code changes:
+ *     - MOD  sources/Feed/TitleParser.php
+ *            — NEW public static normalizeWhitespace(?string): ?string.
+ *              Collapses \s+ (including NBSP) to a single ASCII space
+ *              and trims. Returns null for empty/null input.
+ *     - MOD  sources/Feed/Importer.php
+ *            — Importer::processRecord now applies
+ *              TitleParser::normalizeWhitespace to title / brand /
+ *              model in the mapped canonical record before it
+ *              reaches create/update. description is intentionally
+ *              excluded — distributor line breaks there are worth
+ *              keeping.
  *
- *   2. Require field_mapping to be non-empty on save when
- *      auth_type=manual_upload. Without a mapping the importer has
- *      no way to translate CSV columns to canonical fields — the
- *      entire upload is silently skipped. This validation only
- *      trips if an admin deliberately clears the pre-fill.
+ *   Data change (this upgrade, ONE-TIME):
+ *     - Retroactively normalises whitespace on existing gd_catalog
+ *       rows whose title, brand, or model contain a run of two or
+ *       more consecutive whitespace characters. Uses REGEXP to
+ *       filter and PHP-side rewrite so the query works on both
+ *       MySQL 8+ and older MariaDB regardless of REGEXP_REPLACE
+ *       availability. Idempotent — re-running does nothing because
+ *       the WHERE-filter finds no more rows.
  *
- *   Together these close the "empty field_mapping on manual source"
- *   footgun that made the Review Queue CSV round-trip fail silently
- *   until an admin figured out to configure it via CLI.
- *
- *   No controller behaviour change beyond the form. No schema
- *   change. No new lang key.
+ *   NO schema change. NO extension/task registration change. NO
+ *   AdminCP menu change. NO new lang key.
  *
  * WHAT THIS UPGRADE DOES (idempotent, safe to re-run)
  *   1. Idempotent 1.0.130 schema hoist.
  *   2. Seeds the four accumulated lang keys.
- *   3. Re-seeds every dev/html/*.phtml.
- *   4. Cache / datastore / opcache purge.
+ *   3. Retroactive whitespace cleanup on gd_catalog (title/brand/model).
+ *   4. Re-seeds every dev/html/*.phtml.
+ *   5. Cache / datastore / opcache purge.
  *
- * Rule #79: upg_10138 removed, exactly one upg dir per app.
+ * Rule #79: upg_10139 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10139;
+namespace IPS\gdcatalog\setup\upg_10140;
 
 use function defined;
 use function function_exists;
@@ -56,7 +63,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdcatalog';
-		$version = '1.0.139';
+		$version = '1.0.140';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		/* -------- 1.0.130 schema hoist (idempotent) -------- */
@@ -77,7 +84,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10139 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10139' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10140 addColumn: ' . $e->getMessage(), 'gdcatalog_upg_10140' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Lang seed (accumulated from 1.0.130 + 1.0.132) -------- */
@@ -106,14 +113,66 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10139 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10139' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10140 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10140' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10139 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10139' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10140 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10140' ); } catch ( \Throwable ) {}
+		}
+
+		/* -------- Retroactive whitespace cleanup on gd_catalog -------- */
+		try
+		{
+			if ( \IPS\Db::i()->checkForTable( 'gd_catalog' ) )
+			{
+				$fixed = 0;
+				/* MariaDB / MySQL 5.7+ support REGEXP 'a[[:space:]]{2,}b'
+				 * uniformly via POSIX char classes. Match any row where
+				 * one of the three fields has 2+ consecutive whitespace
+				 * chars (spaces/tabs) — we deliberately ignore NBSP in
+				 * the filter (would require a byte-level scan) since
+				 * ASCII multi-space is the common case and normalizer
+				 * strips NBSP on next update anyway. */
+				$rs = \IPS\Db::i()->select(
+					'upc, title, brand, model',
+					'gd_catalog',
+					"title REGEXP '[[:space:]]{2,}' OR brand REGEXP '[[:space:]]{2,}' OR model REGEXP '[[:space:]]{2,}'"
+				);
+				foreach ( $rs as $row )
+				{
+					$update = [];
+					foreach ( [ 'title', 'brand', 'model' ] as $f )
+					{
+						$orig = (string) ( $row[ $f ] ?? '' );
+						$clean = preg_replace( '/\s+/u', ' ', str_replace( "\xC2\xA0", ' ', $orig ) );
+						$clean = trim( (string) $clean );
+						if ( $clean !== $orig )
+						{
+							$update[ $f ] = $clean;
+						}
+					}
+					if ( !empty( $update ) )
+					{
+						try
+						{
+							\IPS\Db::i()->update( 'gd_catalog', $update, [ 'upc=?', (string) $row['upc'] ] );
+							$fixed++;
+						}
+						catch ( \Throwable $e )
+						{
+							try { \IPS\Log::log( 'upg_10140 cleanup upc=' . $row['upc'] . ': ' . $e->getMessage(), 'gdcatalog_upg_10140' ); } catch ( \Throwable ) {}
+						}
+					}
+				}
+				try { \IPS\Log::log( 'upg_10140 whitespace cleanup: fixed ' . $fixed . ' rows', 'gdcatalog_upg_10140' ); } catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10140 cleanup select: ' . $e->getMessage(), 'gdcatalog_upg_10140' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Template resync (rule #52 + #79) -------- */
@@ -156,13 +215,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10139 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10139' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10140 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10140' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10139 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10139' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10140 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10140' ); } catch ( \Throwable ) {}
 			}
 		}
 

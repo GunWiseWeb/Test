@@ -237,6 +237,28 @@ class TitleParser
 		return null;
 	}
 
+	/**
+	 * v1.0.140: collapse runs of whitespace (spaces, tabs, non-breaking
+	 * spaces, newlines) to a single ASCII space and trim. Used for
+	 * single-line text fields (title, brand, model) that distributors
+	 * often pad to fixed-width columns and concatenate with multi-space
+	 * gaps ("Burris Droptine, Bur 200077   Droptne 4.5-14x42    Bplx Mt").
+	 * NBSP (\xC2\xA0) is handled explicitly since \s in PCRE does not
+	 * match it by default in non-Unicode mode.
+	 *
+	 * Preserves internal punctuation and casing — only whitespace runs
+	 * are collapsed. Do NOT use for multi-line fields like description;
+	 * this would flatten real distributor line breaks.
+	 */
+	public static function normalizeWhitespace( ?string $v ): ?string
+	{
+		if ( $v === null ) { return null; }
+		$v = str_replace( "\xC2\xA0", ' ', $v );
+		$v = preg_replace( '/\s+/u', ' ', $v ) ?? $v;
+		$v = trim( $v );
+		return $v === '' ? null : $v;
+	}
+
 	public static function cleanAction( ?string $v ): ?string
 	{
 		$v = trim( (string) $v );
