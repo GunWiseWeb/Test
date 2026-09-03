@@ -40,28 +40,66 @@ class _feeds extends \IPS\Dispatcher\Controller
 	 * enriched-CSV round-trip works with zero JSON knowledge required.
 	 */
 	protected const MANUAL_UPLOAD_DEFAULT_FIELD_MAPPING = [
+		/* identity */
 		'upc'               => 'upc',
 		'title'             => 'title',
 		'brand'             => 'brand',
 		'model'             => 'model',
+		'mpn'               => 'mpn',
 		'category'          => 'category',
 		'category_id'       => 'category_id',
+		'subcategory'       => 'subcategory',
+		/* common attributes */
 		'caliber'           => 'caliber',
 		'action_type'       => 'action_type',
 		'barrel_length'     => 'barrel_length',
 		'capacity'          => 'capacity',
 		'finish'            => 'finish',
 		'weight_oz'         => 'weight_oz',
+		'weight_lbs'        => 'weight_lbs',
 		'overall_length'    => 'overall_length',
 		'msrp'              => 'msrp',
 		'description'       => 'description',
 		'image_url'         => 'image_url',
 		'additional_images' => 'additional_images',
+		'features'          => 'features',
+		/* flags */
 		'nfa_item'          => 'nfa_item',
 		'requires_ffl'      => 'requires_ffl',
 		'is_ammo'           => 'is_ammo',
+		/* firearm-specific (v1.0.141) */
+		'gun_type'          => 'gun_type',
+		'safety_type'       => 'safety_type',
+		'trigger_type'      => 'trigger_type',
+		'metal_finish'      => 'metal_finish',
+		'frame_finish'      => 'frame_finish',
+		'stock_material'    => 'stock_material',
+		'stock_type'        => 'stock_type',
+		'sight_type'        => 'sight_type',
+		'grips'             => 'grips',
+		'hammer_style'      => 'hammer_style',
+		'receiver_type'     => 'receiver_type',
+		'receiver_desc'     => 'receiver_desc',
+		'frame_material'    => 'frame_material',
+		'slide_material'    => 'slide_material',
+		/* shotgun-specific (v1.0.141) */
+		'gauge'             => 'gauge',
+		'choke_config'      => 'choke_config',
+		'chamber'           => 'chamber',
+		/* ammo-specific (v1.0.141) */
 		'rounds_per_box'    => 'rounds_per_box',
-		'subcategory'       => 'subcategory',
+		'bullet_type'       => 'bullet_type',
+		'bullet_weight'     => 'bullet_weight',
+		'muzzle_velocity'   => 'muzzle_velocity',
+		'muzzle_energy'     => 'muzzle_energy',
+		'boxes_per_case'    => 'boxes_per_case',
+		'casing_material'   => 'casing_material',
+		/* optic-specific (v1.0.141) — user reported these were missing */
+		'magnification'     => 'magnification',
+		'objective_mm'      => 'objective_mm',
+		'reticle'           => 'reticle',
+		'tube_diameter'     => 'tube_diameter',
+		'eye_relief'        => 'eye_relief',
 	];
 
 	public function execute(): void

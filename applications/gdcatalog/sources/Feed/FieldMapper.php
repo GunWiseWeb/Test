@@ -43,14 +43,43 @@ class FieldMapper
 	protected array $reverseMap = [];
 
 	/**
-	 * @brief Canonical fields that are valid gd_catalog columns
+	 * @brief Canonical fields that are valid gd_catalog columns.
+	 *        Documentation only — the actual import-time filter is
+	 *        Importer::catalogColumns() which reads live from
+	 *        schema.json. Kept in sync so downstream references
+	 *        (Review Queue CSV export + manual-upload default
+	 *        field_mapping) can generate correct column sets.
+	 *
+	 *        v1.0.141: expanded with firearm/shotgun/ammo/optic
+	 *        detail columns that were already present in
+	 *        gd_catalog but missing from this list — the AI
+	 *        enrichment round-trip could not fill them because
+	 *        neither the CSV export nor the default field_mapping
+	 *        included them.
 	 */
 	public const VALID_FIELDS = [
-		'upc', 'title', 'brand', 'model', 'category', 'subcategory',
+		/* identity */
+		'upc', 'title', 'brand', 'model', 'mpn',
+		'category', 'subcategory',
+		/* common attributes */
 		'caliber', 'action_type', 'barrel_length', 'capacity', 'finish',
-		'weight_oz', 'overall_length', 'msrp', 'description', 'image_url',
-		'additional_images', 'nfa_item', 'requires_ffl', 'is_ammo',
-		'rounds_per_box',
+		'weight_oz', 'weight_lbs', 'overall_length',
+		'msrp', 'description', 'image_url', 'additional_images', 'features',
+		/* flags */
+		'nfa_item', 'requires_ffl', 'is_ammo',
+		/* firearm-specific */
+		'gun_type', 'safety_type', 'trigger_type',
+		'metal_finish', 'frame_finish',
+		'stock_material', 'stock_type',
+		'sight_type', 'grips', 'hammer_style',
+		'receiver_type', 'receiver_desc', 'frame_material', 'slide_material',
+		/* shotgun-specific */
+		'gauge', 'choke_config', 'chamber',
+		/* ammo-specific */
+		'rounds_per_box', 'bullet_type', 'bullet_weight',
+		'muzzle_velocity', 'muzzle_energy', 'boxes_per_case', 'casing_material',
+		/* optic-specific */
+		'magnification', 'objective_mm', 'reticle', 'tube_diameter', 'eye_relief',
 	];
 
 	/**

@@ -61,12 +61,30 @@ class _reviewqueue extends \IPS\Dispatcher\Controller
 	 * drops any unmapped columns automatically.
 	 */
 	protected const CSV_EXPORT_COLUMNS = [
-		'upc', 'title', 'brand', 'model', 'category', 'category_id',
-		'caliber', 'action_type', 'barrel_length', 'capacity', 'finish',
-		'weight_oz', 'overall_length', 'msrp', 'description', 'image_url',
-		'additional_images', 'nfa_item', 'requires_ffl', 'is_ammo',
-		'rounds_per_box', 'subcategory',
-		/* informational, ignored on re-import */
+		/* identity */
+		'upc', 'title', 'brand', 'model', 'mpn',
+		'category', 'category_id', 'subcategory',
+		/* common attributes */
+		'caliber', 'action_type',
+		'barrel_length', 'capacity', 'finish',
+		'weight_oz', 'weight_lbs', 'overall_length',
+		'msrp', 'description', 'image_url', 'additional_images', 'features',
+		/* flags */
+		'nfa_item', 'requires_ffl', 'is_ammo',
+		/* firearm-specific (v1.0.141) */
+		'gun_type', 'safety_type', 'trigger_type',
+		'metal_finish', 'frame_finish',
+		'stock_material', 'stock_type',
+		'sight_type', 'grips', 'hammer_style',
+		'receiver_type', 'receiver_desc', 'frame_material', 'slide_material',
+		/* shotgun-specific (v1.0.141) */
+		'gauge', 'choke_config', 'chamber',
+		/* ammo-specific (v1.0.141) */
+		'rounds_per_box', 'bullet_type', 'bullet_weight',
+		'muzzle_velocity', 'muzzle_energy', 'boxes_per_case', 'casing_material',
+		/* optic-specific (v1.0.141) — user reported these were missing */
+		'magnification', 'objective_mm', 'reticle', 'tube_diameter', 'eye_relief',
+		/* informational, ignored on re-import (fall outside VALID_FIELDS) */
 		'primary_source', 'record_status', 'completeness_pct', 'missing_fields',
 	];
 
