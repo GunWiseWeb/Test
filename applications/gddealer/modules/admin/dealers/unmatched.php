@@ -37,9 +37,13 @@ class _unmatched extends \IPS\Dispatcher\Controller
 		$perPage      = 50;
 		$offset       = ( $page - 1 ) * $perPage;
 		$reportedOnly = ( (string) ( \IPS\Request::i()->reported ?? '' ) === '1' );
+		/* v1.0.342: show_added=1 toggle — default hides already-added
+		 * rows so the admin sees only work-in-progress. */
+		$showAdded    = ( (string) ( \IPS\Request::i()->show_added ?? '' ) === '1' );
 
-		$rawRows       = UnmatchedUpc::loadAll( $offset, $perPage, $reportedOnly );
+		$rawRows       = UnmatchedUpc::loadAll( $offset, $perPage, $reportedOnly, $showAdded );
 		$reportedCount = UnmatchedUpc::countDealerReported();
+		$addedCount    = UnmatchedUpc::countAdded();
 
 		/* Build a dealer-id -> name lookup so we can display dealer names */
 		$dealerNames = [];
@@ -66,6 +70,18 @@ class _unmatched extends \IPS\Dispatcher\Controller
 				'app=gddealer&module=dealers&controller=unmatched&do=review&upc_id=' . (int) $r['id']
 			);
 
+			$status = (string) ( $r['status'] ?? '' );
+			/* v1.0.342: for rows already promoted to gd_catalog, link
+			 * to gdcatalog's product edit form so the admin can jump
+			 * straight to enriching / promoting to active. */
+			$catalogEditUrl = '';
+			if ( $status === 'added_to_catalog' )
+			{
+				$catalogEditUrl = (string) \IPS\Http\Url::internal(
+					'app=gdcatalog&module=catalog&controller=products&do=edit&upc=' . urlencode( (string) $r['upc'] )
+				);
+			}
+
 			$rows[] = [
 				'id'                 => (int) $r['id'],
 				'upc'                => (string) $r['upc'],
@@ -75,6 +91,9 @@ class _unmatched extends \IPS\Dispatcher\Controller
 				'occurrence_count'   => (int) $r['occurrence_count'],
 				'dealer_reported'    => !empty( $r['dealer_reported_at'] ),
 				'dealer_reported_at' => !empty( $r['dealer_reported_at'] ) ? date( 'M j, Y g:i A', strtotime( (string) $r['dealer_reported_at'] ) ) : '',
+				'status'             => $status,
+				'is_added'           => ( $status === 'added_to_catalog' ),
+				'catalog_edit_url'   => $catalogEditUrl,
 				'exclude_url'        => $excludeUrl,
 				'add_url'            => $addUrl,
 				'review_url'         => $reviewUrl,
@@ -86,15 +105,23 @@ class _unmatched extends \IPS\Dispatcher\Controller
 		{
 			$total = $reportedCount;
 		}
-		else
+		else if ( $showAdded )
 		{
 			try { $total = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_unmatched_upcs', [ 'admin_excluded=?', 0 ] )->first(); } catch ( \Exception ) {}
+		}
+		else
+		{
+			$total = UnmatchedUpc::countPending( false );
 		}
 
 		$pageBase = \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' );
 		if ( $reportedOnly )
 		{
 			$pageBase = $pageBase->setQueryString( 'reported', '1' );
+		}
+		if ( $showAdded )
+		{
+			$pageBase = $pageBase->setQueryString( 'show_added', '1' );
 		}
 
 		$pagination = \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
@@ -104,9 +131,16 @@ class _unmatched extends \IPS\Dispatcher\Controller
 			$perPage
 		);
 
+		/* v1.0.342: URLs for the "Show already added" toggle button
+		 * so template doesn't have to build them. */
+		$showAddedUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' )
+			->setQueryString( 'show_added', '1' );
+		$hideAddedUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' );
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_unmatched_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'admin' )->unmatchedList(
-			$rows, $total, $pagination, $reportedOnly, $reportedCount
+			$rows, $total, $pagination, $reportedOnly, $reportedCount,
+			$showAdded, $addedCount, $showAddedUrl, $hideAddedUrl
 		);
 	}
 

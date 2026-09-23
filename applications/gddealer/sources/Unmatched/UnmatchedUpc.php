@@ -105,12 +105,19 @@ class UnmatchedUpc
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public static function loadAll( int $offset = 0, int $limit = 100, bool $reportedOnly = false ): array
+	public static function loadAll( int $offset = 0, int $limit = 100, bool $reportedOnly = false, bool $includeAdded = false ): array
 	{
 		$where = [ [ 'admin_excluded=?', 0 ] ];
 		if ( $reportedOnly )
 		{
 			$where[] = [ 'dealer_reported_at IS NOT NULL' ];
+		}
+		/* v1.0.342: hide rows that were already promoted to gd_catalog
+		 * by default so the admin sees only work-in-progress. Pass
+		 * $includeAdded=true to see history. */
+		if ( !$includeAdded )
+		{
+			$where[] = [ "status IS NULL OR status != ?", 'added_to_catalog' ];
 		}
 
 		$rows = [];
@@ -132,6 +139,39 @@ class UnmatchedUpc
 		{
 			return (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_unmatched_upcs',
 				[ 'admin_excluded=? AND dealer_reported_at IS NOT NULL', 0 ] )->first();
+		}
+		catch ( \Throwable ) { return 0; }
+	}
+
+	/**
+	 * v1.0.342: count rows that were already promoted to gd_catalog,
+	 * used to label the "Show already added (N)" toggle in the admin
+	 * list.
+	 */
+	public static function countAdded(): int
+	{
+		try
+		{
+			return (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_unmatched_upcs',
+				[ 'admin_excluded=? AND status=?', 0, 'added_to_catalog' ] )->first();
+		}
+		catch ( \Throwable ) { return 0; }
+	}
+
+	/**
+	 * v1.0.342: total pending count (matches loadAll's default filter
+	 * so pagination and header numbers agree).
+	 */
+	public static function countPending( bool $reportedOnly = false ): int
+	{
+		try
+		{
+			$where = [ 'admin_excluded=? AND ( status IS NULL OR status != ? )', 0, 'added_to_catalog' ];
+			if ( $reportedOnly )
+			{
+				$where[0] .= ' AND dealer_reported_at IS NOT NULL';
+			}
+			return (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_unmatched_upcs', $where )->first();
 		}
 		catch ( \Throwable ) { return 0; }
 	}

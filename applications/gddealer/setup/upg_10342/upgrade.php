@@ -1,51 +1,62 @@
 <?php
 /**
- * @brief  GD Dealer Manager — upgrade 1.0.341
- *         Fix Add-to-Catalog schema mismatch + default new items to Review Queue.
+ * @brief  GD Dealer Manager — upgrade 1.0.342
+ *         Unmatched UPCs list: status column, "already added" toggle,
+ *         hide-processed-by-default.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  * Rule #33 (standing session): do NOT call CanonicalTemplates::ensure().
  *
- * WHAT SHIPS IN 1.0.341
- *   Two related fixes for the Unmatched UPCs → Add to Catalog flow:
+ * WHAT SHIPS IN 1.0.342
+ *   Follow-up to 1.0.341. That version fixed the Add-to-Catalog
+ *   bug + routed new items into the Review Queue, but the
+ *   Unmatched UPCs admin list still showed already-added UPCs
+ *   with the same Add-to-Catalog / Review / Exclude buttons —
+ *   admins couldn't visually tell which UPCs still needed work.
  *
- *   1. modules/admin/dealers/unmatched.php::addToCatalog()
- *        The insert was writing created_at + updated_at, which do
- *        NOT exist on gd_catalog (schema uses last_updated).
- *        Every Add-to-Catalog attempt hit:
- *          2GDD/4 Unknown column 'created_at' in 'INSERT INTO'
- *        Fix: replace the two bogus fields with last_updated=$now.
+ *   Changes:
  *
- *   2. Same method now defaults record_status='admin_review' so
- *        newly-added products land in gdcatalog's Review Queue for
- *        a completeness/category verification pass before going
- *        live on the front-end — addressing "unmatched UPCs aren't
- *        showing up in the Review Queue." An admin who wants a
- *        product to publish immediately checks the new
- *        "Publish immediately (skip Review Queue)" box added to
- *        the Add-to-Catalog form.
+ *   1. sources/Unmatched/UnmatchedUpc.php
+ *        loadAll() gains a $includeAdded parameter (default false)
+ *        that filters out rows whose status is 'added_to_catalog'.
+ *        New static countAdded() + countPending() helpers back the
+ *        list header numbers and the toggle-button label.
  *
- *   Template change:
- *     dev/html/admin/dealers/unmatchedUpcReview.phtml gains a
- *     publish_now checkbox above the submit button. Default off
- *     (i.e. new products go to Review Queue).
+ *   2. modules/admin/dealers/unmatched.php::manage()
+ *        Reads show_added=1 query param, passes to loadAll, exposes
+ *        status + is_added + catalog_edit_url on each row, computes
+ *        addedCount / toggle URLs and passes them to the template.
  *
- *   NO schema change. NO extension change. NO lang key change
- *   (the checkbox label is plain string in the template).
+ *   3. dev/html/admin/dealers/unmatchedList.phtml
+ *        New Status column (green "Added to catalog" badge or grey
+ *        "Pending" badge). Rows with is_added=true render on a muted
+ *        grey background. Actions column swaps Review/Add/Exclude
+ *        for View-in-Catalog/Exclude on added rows. New toggle
+ *        button "Show already added (N)" / "Hide already added"
+ *        next to the existing All / Dealer-reported filter buttons.
+ *
+ *   Behaviour: by default admins now see only pending UPCs — the
+ *   ones that still need to be reviewed or added. Toggling "Show
+ *   already added" includes historical rows for reference.
+ *
+ *   NO schema change. NO extension change. NO new lang key. The
+ *   `status` column on gd_unmatched_upcs already existed and was
+ *   already being written by addToCatalog — this version just
+ *   surfaces it in the UI.
  *
  * WHAT THIS UPGRADE DOES
  *   1. Walks dev/html/*.phtml and replaces every row in
- *      core_theme_templates. This is the same pattern upg_10340
- *      used and ensures the updated unmatchedUpcReview template
- *      lands on existing installs.
+ *      core_theme_templates (same pattern upg_10340 / upg_10341
+ *      used). Ensures the updated unmatchedList template lands
+ *      on existing installs.
  *   2. Full datastore / template-store / opcache purge + rotate
- *      set_cache_key so compiled template classes rebuild.
+ *      set_cache_key so compiled classes rebuild.
  *
- * Rule #79: upg_10340 removed, exactly one upg dir per app.
+ * Rule #79: upg_10341 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gddealer\setup\upg_10341;
+namespace IPS\gddealer\setup\upg_10342;
 
 use function defined;
 use function function_exists;
@@ -61,7 +72,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gddealer';
-		$version = '1.0.341';
+		$version = '1.0.342';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -103,13 +114,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10341 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10341' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10342 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10342' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10341 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10341' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10342 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10342' ); } catch ( \Throwable ) {}
 			}
 		}
 
