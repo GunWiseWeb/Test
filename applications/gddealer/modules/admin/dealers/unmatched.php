@@ -37,9 +37,11 @@ class _unmatched extends \IPS\Dispatcher\Controller
 		$perPage      = 50;
 		$offset       = ( $page - 1 ) * $perPage;
 		$reportedOnly = ( (string) ( \IPS\Request::i()->reported ?? '' ) === '1' );
-		/* v1.0.342: show_added=1 toggle — default hides already-added
-		 * rows so the admin sees only work-in-progress. */
-		$showAdded    = ( (string) ( \IPS\Request::i()->show_added ?? '' ) === '1' );
+		/* v1.0.343: default flipped — show added rows so admins can
+		 * see progress at a glance on the same list. hide_added=1
+		 * query param declutters when the list gets long. */
+		$hideAdded = ( (string) ( \IPS\Request::i()->hide_added ?? '' ) === '1' );
+		$showAdded = !$hideAdded;
 
 		$rawRows       = UnmatchedUpc::loadAll( $offset, $perPage, $reportedOnly, $showAdded );
 		$reportedCount = UnmatchedUpc::countDealerReported();
@@ -119,9 +121,9 @@ class _unmatched extends \IPS\Dispatcher\Controller
 		{
 			$pageBase = $pageBase->setQueryString( 'reported', '1' );
 		}
-		if ( $showAdded )
+		if ( $hideAdded )
 		{
-			$pageBase = $pageBase->setQueryString( 'show_added', '1' );
+			$pageBase = $pageBase->setQueryString( 'hide_added', '1' );
 		}
 
 		$pagination = \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
@@ -131,11 +133,12 @@ class _unmatched extends \IPS\Dispatcher\Controller
 			$perPage
 		);
 
-		/* v1.0.342: URLs for the "Show already added" toggle button
-		 * so template doesn't have to build them. */
-		$showAddedUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' )
-			->setQueryString( 'show_added', '1' );
-		$hideAddedUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' );
+		/* v1.0.343: URLs for the "Hide already added" / "Show already added"
+		 * toggle. Default is Show (added rows visible with Pending Review
+		 * badge); Hide declutters. */
+		$hideAddedUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' )
+			->setQueryString( 'hide_added', '1' );
+		$showAddedUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' );
 
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_unmatched_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'admin' )->unmatchedList(
@@ -490,33 +493,60 @@ class _unmatched extends \IPS\Dispatcher\Controller
 			return;
 		}
 
+		/* v1.0.343: fall back to gd_unmatched_upcs.snapshot_json when
+		 * the request has no form field. Previously the direct
+		 * "Add to Catalog" button on the list (which submits no
+		 * form body) created a catalog row with just the UPC and
+		 * everything else empty — Review Queue then showed a
+		 * (no title) row and admins had to re-enter data they
+		 * already had in the dealer's snapshot. Now the snapshot
+		 * is used as the default, and a form submission from the
+		 * Review page overrides those defaults. */
+		$snapshot = [];
+		if ( !empty( $row['snapshot_json'] ) )
+		{
+			try { $snapshot = json_decode( (string) $row['snapshot_json'], true ) ?: []; }
+			catch ( \Throwable ) {}
+		}
+		$val = function ( string $key ) use ( $snapshot ): string
+		{
+			$req = trim( (string) ( \IPS\Request::i()->$key ?? '' ) );
+			if ( $req !== '' ) { return $req; }
+			return trim( (string) ( $snapshot[ $key ] ?? '' ) );
+		};
+		$brandFallback = $val( 'brand' );
+		if ( $brandFallback === '' )
+		{
+			$brandFallback = trim( (string) ( $snapshot['manufacturer'] ?? '' ) );
+		}
+
 		$data = [
 			'upc'            => $upc,
-			'title'          => trim( (string) ( \IPS\Request::i()->title ?? '' ) ),
-			'brand'          => trim( (string) ( \IPS\Request::i()->brand ?? '' ) ),
-			'model'          => trim( (string) ( \IPS\Request::i()->model ?? '' ) ),
-			'mpn'            => trim( (string) ( \IPS\Request::i()->mpn ?? '' ) ),
-			'category_id'    => (int) ( \IPS\Request::i()->category_id ?? 0 ),
-			'caliber'        => trim( (string) ( \IPS\Request::i()->caliber ?? '' ) ) ?: null,
-			'action_type'    => trim( (string) ( \IPS\Request::i()->action_type ?? '' ) ) ?: null,
-			'capacity'       => trim( (string) ( \IPS\Request::i()->capacity ?? '' ) ) ?: null,
-			'barrel_length'  => trim( (string) ( \IPS\Request::i()->barrel_length ?? '' ) ) ?: null,
-			'overall_length' => trim( (string) ( \IPS\Request::i()->overall_length ?? '' ) ) ?: null,
-			'weight_lbs'     => trim( (string) ( \IPS\Request::i()->weight_lbs ?? '' ) ) ?: null,
-			'msrp'           => (float) ( \IPS\Request::i()->msrp ?? 0 ) ?: null,
-			'description'    => trim( (string) ( \IPS\Request::i()->description ?? '' ) ) ?: null,
-			'image_url'      => trim( (string) ( \IPS\Request::i()->image_url ?? '' ) ) ?: null,
-			'product_type'   => mb_substr( trim( (string) ( \IPS\Request::i()->product_type ?? '' ) ), 0, 80 ) ?: null,
-			'material'       => mb_substr( trim( (string) ( \IPS\Request::i()->material ?? '' ) ), 0, 80 ) ?: null,
-			'color'          => mb_substr( trim( (string) ( \IPS\Request::i()->color ?? '' ) ), 0, 60 ) ?: null,
-			'finish'         => mb_substr( trim( (string) ( \IPS\Request::i()->finish ?? '' ) ), 0, 60 ) ?: null,
-			'size'           => mb_substr( trim( (string) ( \IPS\Request::i()->size ?? '' ) ), 0, 60 ) ?: null,
-			'mount_type'     => mb_substr( trim( (string) ( \IPS\Request::i()->mount_type ?? '' ) ), 0, 80 ) ?: null,
-			'fit'            => mb_substr( trim( (string) ( \IPS\Request::i()->fit ?? '' ) ), 0, 150 ) ?: null,
-			'battery_size'   => mb_substr( trim( (string) ( \IPS\Request::i()->battery_size ?? '' ) ), 0, 40 ) ?: null,
-			'nrr'            => mb_substr( trim( (string) ( \IPS\Request::i()->nrr ?? '' ) ), 0, 20 ) ?: null,
-			'lock_type'      => mb_substr( trim( (string) ( \IPS\Request::i()->lock_type ?? '' ) ), 0, 60 ) ?: null,
-			'species'        => mb_substr( trim( (string) ( \IPS\Request::i()->species ?? '' ) ), 0, 80 ) ?: null,
+			'title'          => $val( 'title' ),
+			'brand'          => $brandFallback,
+			'model'          => $val( 'model' ),
+			'mpn'            => $val( 'mpn' ),
+			'category_id'    => (int) ( \IPS\Request::i()->category_id ?? ( $snapshot['category_id'] ?? 0 ) ),
+			'caliber'        => $val( 'caliber' ) ?: null,
+			'action_type'    => $val( 'action_type' ) ?: null,
+			'capacity'       => $val( 'capacity' ) ?: null,
+			'barrel_length'  => $val( 'barrel_length' ) ?: null,
+			'overall_length' => $val( 'overall_length' ) ?: null,
+			'weight_lbs'     => $val( 'weight_lbs' ) ?: null,
+			'msrp'           => ( (float) ( \IPS\Request::i()->msrp ?? ( $snapshot['msrp'] ?? 0 ) ) ) ?: null,
+			'description'    => $val( 'description' ) ?: null,
+			'image_url'      => $val( 'image_url' ) ?: null,
+			'product_type'   => mb_substr( $val( 'product_type' ), 0, 80 ) ?: null,
+			'material'       => mb_substr( $val( 'material' ), 0, 80 ) ?: null,
+			'color'          => mb_substr( $val( 'color' ), 0, 60 ) ?: null,
+			'finish'         => mb_substr( $val( 'finish' ), 0, 60 ) ?: null,
+			'size'           => mb_substr( $val( 'size' ), 0, 60 ) ?: null,
+			'mount_type'     => mb_substr( $val( 'mount_type' ), 0, 80 ) ?: null,
+			'fit'            => mb_substr( $val( 'fit' ), 0, 150 ) ?: null,
+			'battery_size'   => mb_substr( $val( 'battery_size' ), 0, 40 ) ?: null,
+			'nrr'            => mb_substr( $val( 'nrr' ), 0, 20 ) ?: null,
+			'lock_type'      => mb_substr( $val( 'lock_type' ), 0, 60 ) ?: null,
+			'species'        => mb_substr( $val( 'species' ), 0, 80 ) ?: null,
 			'requires_ffl'   => (int) ( \IPS\Request::i()->requires_ffl ?? 0 ),
 			'nfa_item'       => (int) ( \IPS\Request::i()->nfa_item ?? 0 ),
 			'is_ammo'        => (int) ( \IPS\Request::i()->is_ammo ?? 0 ),

@@ -4,16 +4,21 @@
 
 		<div style="padding:12px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
 			<div style="color:#666;font-size:0.9em">
-				{expression="number_format( $total )"} unmatched UPCs{{if $reportedOnly}} (dealer-reported only){{endif}}{{if !$showAdded}} <span style="color:#94a3b8">(pending only — {expression="number_format( $addedCount )"} already added){{else}} <span style="color:#94a3b8">(all statuses){{endif}}</span>
+				{expression="number_format( $total )"} unmatched UPCs{{if $reportedOnly}} (dealer-reported only){{endif}}
+				{{if $showAdded}}
+					<span style="color:#94a3b8">(includes {expression="number_format( $addedCount )"} pending review)</span>
+				{{else}}
+					<span style="color:#94a3b8">(pending only — {expression="number_format( $addedCount )"} in review hidden)</span>
+				{{endif}}
 				&middot; <strong>{expression="number_format( $reportedCount )"}</strong> dealer-reported
 			</div>
 			<div style="display:flex;gap:6px;flex-wrap:wrap">
-				<a href="{url="app=gddealer&module=dealers&controller=unmatched"}" class="ipsButton ipsButton--small {{if !$reportedOnly && !$showAdded}}ipsButton--primary{{else}}ipsButton--secondary{{endif}}">Pending</a>
+				<a href="{url="app=gddealer&module=dealers&controller=unmatched"}" class="ipsButton ipsButton--small {{if !$reportedOnly && $showAdded}}ipsButton--primary{{else}}ipsButton--secondary{{endif}}">All</a>
 				<a href="{url="app=gddealer&module=dealers&controller=unmatched&reported=1"}" class="ipsButton ipsButton--small {{if $reportedOnly}}ipsButton--primary{{else}}ipsButton--secondary{{endif}}">Dealer-reported{{if $reportedCount > 0}} ({expression="number_format( $reportedCount )"}){{endif}}</a>
 				{{if $showAdded}}
-				<a href="{$hideAddedUrl}" class="ipsButton ipsButton--small ipsButton--primary" title="Hide rows already promoted to gd_catalog">✕ Hide already added</a>
+				<a href="{$hideAddedUrl}" class="ipsButton ipsButton--small ipsButton--secondary" title="Hide UPCs already sent to Review Queue">Hide already added ({expression="number_format( $addedCount )"})</a>
 				{{else}}
-				<a href="{$showAddedUrl}" class="ipsButton ipsButton--small ipsButton--secondary" title="Include rows already promoted to gd_catalog">Show already added ({expression="number_format( $addedCount )"})</a>
+				<a href="{$showAddedUrl}" class="ipsButton ipsButton--small ipsButton--primary" title="Show all UPCs including those already sent to Review Queue">Show already added ({expression="number_format( $addedCount )"})</a>
 				{{endif}}
 			</div>
 		</div>
@@ -37,7 +42,7 @@
 					<td><code>{$r['upc']}</code></td>
 					<td>
 						{{if $r['is_added']}}
-						<span class="ipsBadge ipsBadge--positive" title="This UPC was promoted to gd_catalog. Enrich and promote it to active in the gdcatalog Review Queue.">&#10003; Added to catalog</span>
+						<span class="ipsBadge ipsBadge--positive" title="This UPC was sent to gdcatalog's Review Queue. Open it there to finish enriching and Promote it to active.">&#10003; In Review Queue</span>
 						{{else}}
 						<span class="ipsBadge ipsBadge--neutral">Pending</span>
 						{{endif}}
@@ -55,11 +60,11 @@
 					</td>
 					<td>
 						{{if $r['is_added']}}
-						<a href="{$r['catalog_edit_url']}" class="ipsButton ipsButton--small ipsButton--secondary" title="Open this product in the gdcatalog editor">View in Catalog</a>
+						<a href="{$r['catalog_edit_url']}" class="ipsButton ipsButton--small ipsButton--secondary" title="Open this product in gdcatalog's editor to finish enrichment and Promote to active">Pending Review &rarr;</a>
 						<a href="{$r['exclude_url']}" class="ipsButton ipsButton--small ipsButton--neutral" title="Remove this UPC from the unmatched list — the catalog product is unaffected">{lang="gddealer_unmatched_exclude"}</a>
 						{{else}}
 						<a href="{$r['review_url']}" class="ipsButton ipsButton--small ipsButton--primary">{lang="gddealer_unmatched_review"}</a>
-						<a href="{$r['add_url']}" class="ipsButton ipsButton--small ipsButton--positive">{lang="gddealer_unmatched_add_to_catalog"}</a>
+						<a href="{$r['add_url']}" class="ipsButton ipsButton--small ipsButton--positive" title="Send this UPC straight to the Review Queue using the dealer's snapshot data (title, brand, MPN, image, etc.). Use Review to edit first.">{lang="gddealer_unmatched_add_to_catalog"}</a>
 						<a href="{$r['exclude_url']}" class="ipsButton ipsButton--small ipsButton--neutral">{lang="gddealer_unmatched_exclude"}</a>
 						{{endif}}
 					</td>
