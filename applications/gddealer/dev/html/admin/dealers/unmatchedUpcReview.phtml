@@ -183,6 +183,13 @@
 				<textarea name="description" class="ipsInput ipsInput--text" style="width:100%;min-height:80px">{$prefill['description']}</textarea>
 			</div>
 
+			<div style="margin-bottom:16px;padding:10px 12px;background:#f3f4f6;border-radius:4px;border-left:3px solid #6b7280">
+				<label style="cursor:pointer;font-size:0.9em;display:flex;align-items:center;gap:8px">
+					<input type="checkbox" name="publish_now" value="1">
+					<span><strong>Publish immediately (skip Review Queue)</strong> — by default, new products land in gdcatalog's Review Queue as <code>admin_review</code> so an admin can verify completeness and category before they go live on the front-end.</span>
+				</label>
+			</div>
+
 			<div style="display:flex;gap:12px">
 				<button type="submit" class="ipsButton ipsButton--positive">{lang="gddealer_unmatched_add_to_catalog"}</button>
 				<a href="{$backUrl}" class="ipsButton ipsButton--secondary">{lang="gddealer_cancel"}</a>

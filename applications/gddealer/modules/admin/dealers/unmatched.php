@@ -486,10 +486,17 @@ class _unmatched extends \IPS\Dispatcher\Controller
 			'requires_ffl'   => (int) ( \IPS\Request::i()->requires_ffl ?? 0 ),
 			'nfa_item'       => (int) ( \IPS\Request::i()->nfa_item ?? 0 ),
 			'is_ammo'        => (int) ( \IPS\Request::i()->is_ammo ?? 0 ),
-			'record_status'  => 'active',
+			/* v1.0.341: default to admin_review so newly-added products
+			 * land in gdcatalog's Review Queue for a completeness /
+			 * category pass before going live. Admin can override by
+			 * passing publish_now=1 from the form to skip Review Queue. */
+			'record_status'  => ( (int) ( \IPS\Request::i()->publish_now ?? 0 ) === 1 ) ? 'active' : 'admin_review',
 			'primary_source' => 'admin',
-			'created_at'     => $now,
-			'updated_at'     => $now,
+			/* v1.0.341: gd_catalog schema uses `last_updated`, NOT
+			 * `created_at` / `updated_at`. Prior code triggered
+			 * `Unknown column 'created_at' in INSERT INTO` (2GDD/4)
+			 * and blocked every Add-to-Catalog attempt. */
+			'last_updated'   => $now,
 		];
 
 		$data = array_filter( $data, fn($v) => $v !== null && $v !== '' );

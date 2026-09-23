@@ -1,53 +1,51 @@
 <?php
 /**
- * @brief  GD Dealer Manager — upgrade 1.0.340 (re-sync ALL templates from dev/html/ so overview + sidebar icons + 8 other missing templates land).
+ * @brief  GD Dealer Manager — upgrade 1.0.341
+ *         Fix Add-to-Catalog schema mismatch + default new items to Review Queue.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
+ * Rule #33 (standing session): do NOT call CanonicalTemplates::ensure().
  *
- * WHAT SHIPS IN 1.0.340
- *   Prod diagnosis showed:
+ * WHAT SHIPS IN 1.0.341
+ *   Two related fixes for the Unmatched UPCs → Add to Catalog flow:
  *
- *     - gddealer has 49 rows in core_theme_templates but 59
- *       .phtml files in dev/html/ — 10 templates NEVER got
- *       seeded. Includes `overview` which is why the Dealer
- *       Overview page throws template_store_missing.
- *     - dealerSidebar row is 55 bytes shorter than the dev/html
- *       file, so the sidebar renders a stale version missing
- *       icons for newer nav items (Setup Wizard, Feed Validator,
- *       Flagged UPCs, Deals, Coupons, Edit Profile).
+ *   1. modules/admin/dealers/unmatched.php::addToCatalog()
+ *        The insert was writing created_at + updated_at, which do
+ *        NOT exist on gd_catalog (schema uses last_updated).
+ *        Every Add-to-Catalog attempt hit:
+ *          2GDD/4 Unknown column 'created_at' in 'INSERT INTO'
+ *        Fix: replace the two bogus fields with last_updated=$now.
  *
- *   Same class of "dev/html has the current template body but DB
- *   was never re-seeded" issue fixed for gdloadout in v1.0.78 and
- *   gddeals in v1.0.63/64. Fix: walk every .phtml under dev/html/
- *   and \IPS\Db::i()->replace() the row into core_theme_templates
- *   using the same 9-column pattern (matches gddealer's own
- *   overlay files at setup/templates_*.php — no
- *   template_master_key, no template_has_hookpoints).
+ *   2. Same method now defaults record_status='admin_review' so
+ *        newly-added products land in gdcatalog's Review Queue for
+ *        a completeness/category verification pass before going
+ *        live on the front-end — addressing "unmatched UPCs aren't
+ *        showing up in the Review Queue." An admin who wants a
+ *        product to publish immediately checks the new
+ *        "Publish immediately (skip Review Queue)" box added to
+ *        the Add-to-Catalog form.
  *
- *   Rule #33 (standing session): NEVER call
- *   CanonicalTemplates::ensure() — that method is forbidden this
- *   session. This upgrade DOES NOT call it. It uses raw
- *   \IPS\Db::i()->replace() to seed rows directly, same mechanism
- *   the overlay files themselves use. Runs AFTER the existing 128
- *   overlay require chain (in install.php) so dev/html is the
- *   source of truth on any fresh install as well.
+ *   Template change:
+ *     dev/html/admin/dealers/unmatchedUpcReview.phtml gains a
+ *     publish_now checkbox above the submit button. Default off
+ *     (i.e. new products go to Review Queue).
+ *
+ *   NO schema change. NO extension change. NO lang key change
+ *   (the checkbox label is plain string in the template).
  *
  * WHAT THIS UPGRADE DOES
- *   1. Walk applications/gddealer/dev/html/{location}/{group}/
- *      {name}.phtml — extract the <ips:template parameters="..."/>
- *      first line into template_data, strip that line, and
- *      replace() into core_theme_templates with the current body.
+ *   1. Walks dev/html/*.phtml and replaces every row in
+ *      core_theme_templates. This is the same pattern upg_10340
+ *      used and ensures the updated unmatchedUpcReview template
+ *      lands on existing installs.
  *   2. Full datastore / template-store / opcache purge + rotate
- *      set_cache_key so compiled classes rebuild.
+ *      set_cache_key so compiled template classes rebuild.
  *
- * NO schema change. NO lang change. NO CSS change (dealer.css is
- * separate and already registered via the working legacy pipeline).
- *
- * Rule #79: upg_10339 removed, exactly one upg dir per app.
+ * Rule #79: upg_10340 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gddealer\setup\upg_10340;
+namespace IPS\gddealer\setup\upg_10341;
 
 use function defined;
 use function function_exists;
@@ -63,7 +61,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gddealer';
-		$version = '1.0.340';
+		$version = '1.0.341';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -105,13 +103,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10340 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10340' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10341 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10341' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10340 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10340' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10341 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10341' ); } catch ( \Throwable ) {}
 			}
 		}
 
