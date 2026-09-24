@@ -1,4 +1,4 @@
-<ips:template parameters="$rows, $total, $pagination, $reportedOnly, $reportedCount, $showAdded, $addedCount, $showAddedUrl, $hideAddedUrl" />
+<ips:template parameters="$rows, $total, $pagination, $reportedOnly, $reportedCount, $showAdded, $addedCount, $showAddedUrl, $hideAddedUrl, $bulkAddUrl, $bulkExcludeUrl" />
 <div class="ipsBox ipsPull">
 	<div class="ipsBox_body">
 
@@ -23,66 +23,123 @@
 			</div>
 		</div>
 
-		<table class="ipsTable ipsTable_zebra" style="width:100%">
-			<thead>
-				<tr>
-					<th>{lang="gddealer_unmatched_upc"}</th>
-					<th>Status</th>
-					<th>{lang="gddealer_unmatched_dealer"}</th>
-					<th>{lang="gddealer_unmatched_first_seen"}</th>
-					<th>{lang="gddealer_unmatched_last_seen"}</th>
-					<th>{lang="gddealer_unmatched_count"}</th>
-					<th>{lang="gddealer_unmatched_reported"}</th>
-					<th>{lang="gddealer_unmatched_actions"}</th>
-				</tr>
-			</thead>
-			<tbody>
-				{{foreach $rows as $r}}
-				<tr{{if $r['is_added']}} style="background:#f1f5f9;color:#64748b"{{elseif $r['dealer_reported']}} style="background:#fffbeb"{{endif}}>
-					<td><code>{$r['upc']}</code></td>
-					<td>
-						{{if $r['is_added']}}
-						<span class="ipsBadge ipsBadge--positive" title="This UPC was sent to gdcatalog's Review Queue. Open it there to finish enriching and Promote it to active.">&#10003; In Review Queue</span>
+		<form id="gddealerBulkForm" method="post" action="{$bulkAddUrl}" onsubmit="return gddealerBulkConfirm(this);">
+			<div style="padding:8px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+				<label style="cursor:pointer;font-size:0.9em;display:flex;align-items:center;gap:6px">
+					<input type="checkbox" id="gddealerSelectAll" onclick="gddealerToggleAll(this)">
+					<span>Select all pending on this page</span>
+				</label>
+				<span id="gddealerSelCount" style="color:#64748b;font-size:0.85em;margin-left:8px">0 selected</span>
+				<div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+					<label style="cursor:pointer;font-size:0.85em;color:#475569;display:flex;align-items:center;gap:4px" title="By default new products land in the Review Queue as admin_review. Check this to send them straight to active.">
+						<input type="checkbox" name="publish_now" value="1">
+						<span>Publish immediately (skip Review Queue)</span>
+					</label>
+					<button type="submit" formaction="{$bulkAddUrl}" class="ipsButton ipsButton--small ipsButton--positive">Add Selected to Review Queue</button>
+					<button type="submit" formaction="{$bulkExcludeUrl}" class="ipsButton ipsButton--small ipsButton--negative" onclick="return confirm('Exclude the selected UPCs from this list? The gd_catalog is not touched.');">Exclude Selected</button>
+				</div>
+			</div>
+
+			<table class="ipsTable ipsTable_zebra" style="width:100%">
+				<thead>
+					<tr>
+						<th style="width:32px"><input type="checkbox" onclick="gddealerToggleAll(this)" title="Select all pending on this page"></th>
+						<th>{lang="gddealer_unmatched_upc"}</th>
+						<th>Status</th>
+						<th>{lang="gddealer_unmatched_dealer"}</th>
+						<th>{lang="gddealer_unmatched_first_seen"}</th>
+						<th>{lang="gddealer_unmatched_last_seen"}</th>
+						<th>{lang="gddealer_unmatched_count"}</th>
+						<th>{lang="gddealer_unmatched_reported"}</th>
+						<th>{lang="gddealer_unmatched_actions"}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{foreach $rows as $r}}
+					<tr{{if $r['is_added']}} style="background:#f1f5f9;color:#64748b"{{elseif $r['dealer_reported']}} style="background:#fffbeb"{{endif}}>
+						<td>
+							{{if !$r['is_added']}}
+							<input type="checkbox" name="ids[]" value="{$r['id']}" class="gddealerBulkCb" onchange="gddealerUpdateCount()">
+							{{else}}
+							<span style="color:#cbd5e1">&mdash;</span>
+							{{endif}}
+						</td>
+						<td><code>{$r['upc']}</code></td>
+						<td>
+							{{if $r['is_added']}}
+							<span class="ipsBadge ipsBadge--positive" title="This UPC was sent to gdcatalog's Review Queue. Open it there to finish enriching and Promote it to active.">&#10003; In Review Queue</span>
+							{{else}}
+							<span class="ipsBadge ipsBadge--neutral">Pending</span>
+							{{endif}}
+						</td>
+						<td>{$r['dealer_name']}</td>
+						<td>{$r['first_seen']}</td>
+						<td>{$r['last_seen']}</td>
+						<td>{$r['occurrence_count']}</td>
+						<td>
+							{{if $r['dealer_reported']}}
+							<span class="ipsBadge ipsBadge--warning" title="{$r['dealer_reported_at']}">&#9873; Dealer-reported</span>
+							{{else}}
+							<span style="color:#cbd5e1">&mdash;</span>
+							{{endif}}
+						</td>
+						<td>
+							{{if $r['is_added']}}
+							<a href="{$r['catalog_edit_url']}" class="ipsButton ipsButton--small ipsButton--secondary" title="Open this product in gdcatalog's editor to finish enrichment and Promote to active">Pending Review &rarr;</a>
+							<a href="{$r['exclude_url']}" class="ipsButton ipsButton--small ipsButton--neutral" title="Remove this UPC from the unmatched list — the catalog product is unaffected">{lang="gddealer_unmatched_exclude"}</a>
+							{{else}}
+							<a href="{$r['review_url']}" class="ipsButton ipsButton--small ipsButton--primary">{lang="gddealer_unmatched_review"}</a>
+							<a href="{$r['add_url']}" class="ipsButton ipsButton--small ipsButton--positive" title="Send this UPC straight to the Review Queue using the dealer's snapshot data (title, brand, MPN, image, etc.). Use Review to edit first.">{lang="gddealer_unmatched_add_to_catalog"}</a>
+							<a href="{$r['exclude_url']}" class="ipsButton ipsButton--small ipsButton--neutral">{lang="gddealer_unmatched_exclude"}</a>
+							{{endif}}
+						</td>
+					</tr>
+					{{endforeach}}
+					{{if count( $rows ) === 0}}
+					<tr><td colspan="9" style="text-align:center;color:#999;padding:24px">
+						{{if !$showAdded && $addedCount > 0}}
+						No pending unmatched UPCs. <a href="{$showAddedUrl}">Show {expression="number_format( $addedCount )"} already added &raquo;</a>
 						{{else}}
-						<span class="ipsBadge ipsBadge--neutral">Pending</span>
+						No unmatched UPCs.
 						{{endif}}
-					</td>
-					<td>{$r['dealer_name']}</td>
-					<td>{$r['first_seen']}</td>
-					<td>{$r['last_seen']}</td>
-					<td>{$r['occurrence_count']}</td>
-					<td>
-						{{if $r['dealer_reported']}}
-						<span class="ipsBadge ipsBadge--warning" title="{$r['dealer_reported_at']}">&#9873; Dealer-reported</span>
-						{{else}}
-						<span style="color:#cbd5e1">&mdash;</span>
-						{{endif}}
-					</td>
-					<td>
-						{{if $r['is_added']}}
-						<a href="{$r['catalog_edit_url']}" class="ipsButton ipsButton--small ipsButton--secondary" title="Open this product in gdcatalog's editor to finish enrichment and Promote to active">Pending Review &rarr;</a>
-						<a href="{$r['exclude_url']}" class="ipsButton ipsButton--small ipsButton--neutral" title="Remove this UPC from the unmatched list — the catalog product is unaffected">{lang="gddealer_unmatched_exclude"}</a>
-						{{else}}
-						<a href="{$r['review_url']}" class="ipsButton ipsButton--small ipsButton--primary">{lang="gddealer_unmatched_review"}</a>
-						<a href="{$r['add_url']}" class="ipsButton ipsButton--small ipsButton--positive" title="Send this UPC straight to the Review Queue using the dealer's snapshot data (title, brand, MPN, image, etc.). Use Review to edit first.">{lang="gddealer_unmatched_add_to_catalog"}</a>
-						<a href="{$r['exclude_url']}" class="ipsButton ipsButton--small ipsButton--neutral">{lang="gddealer_unmatched_exclude"}</a>
-						{{endif}}
-					</td>
-				</tr>
-				{{endforeach}}
-				{{if count( $rows ) === 0}}
-				<tr><td colspan="8" style="text-align:center;color:#999;padding:24px">
-					{{if !$showAdded && $addedCount > 0}}
-					No pending unmatched UPCs. <a href="{$showAddedUrl}">Show {expression="number_format( $addedCount )"} already added &raquo;</a>
-					{{else}}
-					No unmatched UPCs.
+					</td></tr>
 					{{endif}}
-				</td></tr>
-				{{endif}}
-			</tbody>
-		</table>
+				</tbody>
+			</table>
+		</form>
 
 		<div style="padding:12px 20px">{$pagination|raw}</div>
 
 	</div>
 </div>
+
+<script>
+function gddealerToggleAll( source ) {
+	var form = document.getElementById( 'gddealerBulkForm' );
+	if ( !form ) { return; }
+	var boxes = form.querySelectorAll( 'input.gddealerBulkCb' );
+	for ( var i = 0; i < boxes.length; i++ ) { boxes[ i ].checked = source.checked; }
+	var top = document.getElementById( 'gddealerSelectAll' );
+	if ( top && top !== source ) { top.checked = source.checked; }
+	gddealerUpdateCount();
+}
+function gddealerUpdateCount() {
+	var form = document.getElementById( 'gddealerBulkForm' );
+	if ( !form ) { return; }
+	var boxes = form.querySelectorAll( 'input.gddealerBulkCb:checked' );
+	var span = document.getElementById( 'gddealerSelCount' );
+	if ( span ) { span.textContent = boxes.length + ' selected'; }
+}
+function gddealerBulkConfirm( form ) {
+	var boxes = form.querySelectorAll( 'input.gddealerBulkCb:checked' );
+	if ( boxes.length === 0 ) {
+		alert( 'Select at least one UPC first.' );
+		return false;
+	}
+	var action = ( form.getAttribute( 'action' ) || '' ).indexOf( 'bulkExclude' ) !== -1 ? 'exclude' : 'add';
+	var msg = action === 'exclude'
+		? ( 'Exclude ' + boxes.length + ' UPC(s) from this list? The catalog is not touched.' )
+		: ( 'Send ' + boxes.length + ' UPC(s) to the Review Queue using each dealer\'s snapshot data?' );
+	return confirm( msg );
+}
+</script>

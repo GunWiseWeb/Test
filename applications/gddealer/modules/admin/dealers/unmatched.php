@@ -140,10 +140,21 @@ class _unmatched extends \IPS\Dispatcher\Controller
 			->setQueryString( 'hide_added', '1' );
 		$showAddedUrl = (string) \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' );
 
+		/* v1.0.344: bulk-action endpoints for the "Add Selected" /
+		 * "Exclude Selected" buttons above the table. Both csrf-baked
+		 * because they're POST + redirect. */
+		$bulkAddUrl = (string) \IPS\Http\Url::internal(
+			'app=gddealer&module=dealers&controller=unmatched&do=bulkAdd'
+		)->csrf();
+		$bulkExcludeUrl = (string) \IPS\Http\Url::internal(
+			'app=gddealer&module=dealers&controller=unmatched&do=bulkExclude'
+		)->csrf();
+
 		\IPS\Output::i()->title  = \IPS\Member::loggedIn()->language()->addToStack( 'gddealer_unmatched_title' );
 		\IPS\Output::i()->output = \IPS\Theme::i()->getTemplate( 'dealers', 'gddealer', 'admin' )->unmatchedList(
 			$rows, $total, $pagination, $reportedOnly, $reportedCount,
-			$showAdded, $addedCount, $showAddedUrl, $hideAddedUrl
+			$showAdded, $addedCount, $showAddedUrl, $hideAddedUrl,
+			$bulkAddUrl, $bulkExcludeUrl
 		);
 	}
 
@@ -467,73 +478,247 @@ class _unmatched extends \IPS\Dispatcher\Controller
 		\IPS\Session::i()->csrfCheck();
 		\IPS\Dispatcher::i()->checkAcpPermission( 'gddealer_dealer_manage' );
 
-		$id  = (int) ( \IPS\Request::i()->upc_id ?? \IPS\Request::i()->id ?? 0 );
-		$now = date( 'Y-m-d H:i:s' );
+		$id         = (int) ( \IPS\Request::i()->upc_id ?? \IPS\Request::i()->id ?? 0 );
+		$publishNow = ( (int) ( \IPS\Request::i()->publish_now ?? 0 ) === 1 );
 
-		try {
-			$row = \IPS\Db::i()->select( '*', 'gd_unmatched_upcs', [ 'id=?', $id ] )->first();
-		} catch ( \Throwable ) {
-			\IPS\Output::i()->error( 'node_error', '2GDD/3', 404 );
+		/* v1.0.344: collect every field the Review form might post so
+		 * _promoteToCatalog gets them as overrides. Direct-list-click
+		 * doesn't submit any of these — the helper then falls back to
+		 * the dealer's snapshot data. */
+		$overrides = [];
+		$formFields = [
+			'title', 'brand', 'model', 'mpn', 'category_id', 'caliber',
+			'action_type', 'capacity', 'barrel_length', 'overall_length',
+			'weight_lbs', 'msrp', 'description', 'image_url',
+			'product_type', 'material', 'color', 'finish', 'size',
+			'mount_type', 'fit', 'battery_size', 'nrr', 'lock_type',
+			'species', 'requires_ffl', 'nfa_item', 'is_ammo',
+		];
+		foreach ( $formFields as $k )
+		{
+			$v = \IPS\Request::i()->$k ?? null;
+			if ( $v !== null )
+			{
+				$overrides[ $k ] = $v;
+			}
+		}
+
+		$result = $this->_promoteToCatalog( $id, $publishNow, $overrides );
+
+		$backUrl = \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' );
+		switch ( $result['status'] )
+		{
+			case 'exists':
+				\IPS\Output::i()->redirect( $backUrl, 'gddealer_unmatched_already_exists' );
+				return;
+			case 'notfound':
+				\IPS\Output::i()->error( 'node_error', '2GDD/3', 404 );
+				return;
+			case 'error':
+				\IPS\Output::i()->error( $result['message'], '2GDD/4', 500 );
+				return;
+			default:
+				\IPS\Output::i()->redirect( $backUrl, 'gddealer_unmatched_added_to_catalog' );
+				return;
+		}
+	}
+
+	/**
+	 * v1.0.344 — bulk-add selected Unmatched UPCs to the Review Queue.
+	 *
+	 * Accepts POST `ids[]` (array of gd_unmatched_upcs.id) and an
+	 * optional `publish_now=1` flag. Iterates through the selection
+	 * (capped at 200 per request to avoid PHP timeouts on huge
+	 * feeds), calling _promoteToCatalog on each. Each row uses its
+	 * own snapshot_json for title/brand/model/mpn/image/msrp/
+	 * category_id, so the resulting Review Queue rows carry the
+	 * dealer data without any per-row form input. Redirects back to
+	 * the list with a summary flash: "Added N, already existed M,
+	 * errors K." When the selection exceeds the per-request cap the
+	 * flash notes how many are left so the admin can select the next
+	 * batch and re-run.
+	 *
+	 * CSRF-protected via Session::i()->csrfCheck().
+	 */
+	protected function bulkAdd(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		\IPS\Dispatcher::i()->checkAcpPermission( 'gddealer_dealer_manage' );
+
+		$backUrl = \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' );
+
+		$ids = \IPS\Request::i()->ids ?? [];
+		if ( !is_array( $ids ) || empty( $ids ) )
+		{
+			\IPS\Output::i()->redirect( $backUrl, 'No UPCs selected.' );
 			return;
+		}
+
+		$publishNow = ( (int) ( \IPS\Request::i()->publish_now ?? 0 ) === 1 );
+		$cap        = 200;
+		$total      = count( $ids );
+		$batch      = array_slice( array_map( 'intval', $ids ), 0, $cap );
+
+		$added = 0; $exists = 0; $notFound = 0; $errors = 0;
+		foreach ( $batch as $id )
+		{
+			if ( $id <= 0 ) { continue; }
+			$r = $this->_promoteToCatalog( $id, $publishNow, [] );
+			switch ( $r['status'] )
+			{
+				case 'added':    $added++;    break;
+				case 'exists':   $exists++;   break;
+				case 'notfound': $notFound++; break;
+				default:         $errors++;   break;
+			}
+		}
+
+		$msg = sprintf(
+			'Bulk add: %d sent to Review Queue, %d already in catalog, %d errors%s.',
+			$added, $exists, $errors,
+			$notFound > 0 ? ", $notFound not found" : ''
+		);
+		if ( $total > $cap )
+		{
+			$msg .= sprintf( ' Capped at %d per request; %d remain — select again to continue.', $cap, $total - $cap );
+		}
+
+		\IPS\Output::i()->redirect( $backUrl, $msg );
+	}
+
+	/**
+	 * v1.0.344 — bulk-exclude selected Unmatched UPCs.
+	 *
+	 * Companion to bulkAdd for cleaning junk UPCs off the list in
+	 * one click. Sets admin_excluded=1 on each selected row so the
+	 * default list stops showing them. Does NOT touch gd_catalog.
+	 */
+	protected function bulkExclude(): void
+	{
+		\IPS\Session::i()->csrfCheck();
+		\IPS\Dispatcher::i()->checkAcpPermission( 'gddealer_dealer_manage' );
+
+		$backUrl = \IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' );
+
+		$ids = \IPS\Request::i()->ids ?? [];
+		if ( !is_array( $ids ) || empty( $ids ) )
+		{
+			\IPS\Output::i()->redirect( $backUrl, 'No UPCs selected.' );
+			return;
+		}
+
+		$excluded = 0;
+		foreach ( $ids as $rawId )
+		{
+			$id = (int) $rawId;
+			if ( $id <= 0 ) { continue; }
+			try
+			{
+				\IPS\Db::i()->update( 'gd_unmatched_upcs', [ 'admin_excluded' => 1 ], [ 'id=?', $id ] );
+				$excluded++;
+			}
+			catch ( \Throwable ) {}
+		}
+
+		\IPS\Output::i()->redirect( $backUrl, sprintf( 'Bulk exclude: %d UPC(s) removed from list.', $excluded ) );
+	}
+
+	/**
+	 * v1.0.344 — shared helper for single-add + bulk-add.
+	 *
+	 * Loads gd_unmatched_upcs row by id, checks whether the UPC is
+	 * already in gd_catalog (skip if yes), decodes snapshot_json for
+	 * default field values, applies any `$overrides` from a Review
+	 * form submission, INSERTs the gd_catalog row with
+	 * record_status='admin_review' (or 'active' when $publishNow),
+	 * and updates the gd_unmatched_upcs row to status='added_to_catalog'.
+	 *
+	 * Returns an assoc array {status, upc, message} instead of
+	 * redirecting so callers can aggregate stats across many rows.
+	 *   status = 'added' | 'exists' | 'notfound' | 'error'
+	 */
+	protected function _promoteToCatalog( int $id, bool $publishNow, array $overrides ): array
+	{
+		if ( $id <= 0 )
+		{
+			return [ 'status' => 'notfound', 'upc' => '', 'message' => 'invalid id' ];
+		}
+
+		try
+		{
+			$row = \IPS\Db::i()->select( '*', 'gd_unmatched_upcs', [ 'id=?', $id ] )->first();
+		}
+		catch ( \Throwable )
+		{
+			return [ 'status' => 'notfound', 'upc' => '', 'message' => "id=$id not in gd_unmatched_upcs" ];
 		}
 
 		$upc = (string) $row['upc'];
-
-		$exists = false;
-		try {
-			\IPS\Db::i()->select( 'upc', 'gd_catalog', [ 'upc=?', $upc ] )->first();
-			$exists = true;
-		} catch ( \Throwable ) {}
-
-		if ( $exists ) {
-			\IPS\Output::i()->redirect(
-				\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' ),
-				'gddealer_unmatched_already_exists'
-			);
-			return;
+		if ( $upc === '' )
+		{
+			return [ 'status' => 'error', 'upc' => '', 'message' => 'empty upc on row' ];
 		}
 
-		/* v1.0.343: fall back to gd_unmatched_upcs.snapshot_json when
-		 * the request has no form field. Previously the direct
-		 * "Add to Catalog" button on the list (which submits no
-		 * form body) created a catalog row with just the UPC and
-		 * everything else empty — Review Queue then showed a
-		 * (no title) row and admins had to re-enter data they
-		 * already had in the dealer's snapshot. Now the snapshot
-		 * is used as the default, and a form submission from the
-		 * Review page overrides those defaults. */
+		try
+		{
+			\IPS\Db::i()->select( 'upc', 'gd_catalog', [ 'upc=?', $upc ] )->first();
+			/* Already in catalog — mark the unmatched row so it
+			 * stops showing as Pending in the list, then report
+			 * back as 'exists' so the caller can count it. */
+			try
+			{
+				\IPS\Db::i()->update( 'gd_unmatched_upcs', [
+					'status'    => 'added_to_catalog',
+					'last_seen' => date( 'Y-m-d H:i:s' ),
+				], [ 'id=?', $id ] );
+			}
+			catch ( \Throwable ) {}
+			return [ 'status' => 'exists', 'upc' => $upc, 'message' => '' ];
+		}
+		catch ( \Throwable ) { /* not found = expected, continue */ }
+
 		$snapshot = [];
 		if ( !empty( $row['snapshot_json'] ) )
 		{
 			try { $snapshot = json_decode( (string) $row['snapshot_json'], true ) ?: []; }
 			catch ( \Throwable ) {}
 		}
-		$val = function ( string $key ) use ( $snapshot ): string
+
+		/* Override wins over snapshot, both trimmed, empty means fall through. */
+		$val = static function ( string $key ) use ( $snapshot, $overrides ): string
 		{
-			$req = trim( (string) ( \IPS\Request::i()->$key ?? '' ) );
-			if ( $req !== '' ) { return $req; }
+			if ( isset( $overrides[ $key ] ) )
+			{
+				$v = trim( (string) $overrides[ $key ] );
+				if ( $v !== '' ) { return $v; }
+			}
 			return trim( (string) ( $snapshot[ $key ] ?? '' ) );
 		};
-		$brandFallback = $val( 'brand' );
-		if ( $brandFallback === '' )
+
+		$brand = $val( 'brand' );
+		if ( $brand === '' )
 		{
-			$brandFallback = trim( (string) ( $snapshot['manufacturer'] ?? '' ) );
+			$brand = trim( (string) ( $snapshot['manufacturer'] ?? '' ) );
 		}
 
+		$categoryId = (int) ( $overrides['category_id'] ?? ( $snapshot['category_id'] ?? 0 ) );
+		$msrp       = (float) ( $overrides['msrp'] ?? ( $snapshot['msrp'] ?? 0 ) );
+
+		$now = date( 'Y-m-d H:i:s' );
 		$data = [
 			'upc'            => $upc,
 			'title'          => $val( 'title' ),
-			'brand'          => $brandFallback,
+			'brand'          => $brand,
 			'model'          => $val( 'model' ),
 			'mpn'            => $val( 'mpn' ),
-			'category_id'    => (int) ( \IPS\Request::i()->category_id ?? ( $snapshot['category_id'] ?? 0 ) ),
+			'category_id'    => $categoryId,
 			'caliber'        => $val( 'caliber' ) ?: null,
 			'action_type'    => $val( 'action_type' ) ?: null,
 			'capacity'       => $val( 'capacity' ) ?: null,
 			'barrel_length'  => $val( 'barrel_length' ) ?: null,
 			'overall_length' => $val( 'overall_length' ) ?: null,
 			'weight_lbs'     => $val( 'weight_lbs' ) ?: null,
-			'msrp'           => ( (float) ( \IPS\Request::i()->msrp ?? ( $snapshot['msrp'] ?? 0 ) ) ) ?: null,
+			'msrp'           => $msrp > 0 ? $msrp : null,
 			'description'    => $val( 'description' ) ?: null,
 			'image_url'      => $val( 'image_url' ) ?: null,
 			'product_type'   => mb_substr( $val( 'product_type' ), 0, 80 ) ?: null,
@@ -547,43 +732,42 @@ class _unmatched extends \IPS\Dispatcher\Controller
 			'nrr'            => mb_substr( $val( 'nrr' ), 0, 20 ) ?: null,
 			'lock_type'      => mb_substr( $val( 'lock_type' ), 0, 60 ) ?: null,
 			'species'        => mb_substr( $val( 'species' ), 0, 80 ) ?: null,
-			'requires_ffl'   => (int) ( \IPS\Request::i()->requires_ffl ?? 0 ),
-			'nfa_item'       => (int) ( \IPS\Request::i()->nfa_item ?? 0 ),
-			'is_ammo'        => (int) ( \IPS\Request::i()->is_ammo ?? 0 ),
-			/* v1.0.341: default to admin_review so newly-added products
-			 * land in gdcatalog's Review Queue for a completeness /
-			 * category pass before going live. Admin can override by
-			 * passing publish_now=1 from the form to skip Review Queue. */
-			'record_status'  => ( (int) ( \IPS\Request::i()->publish_now ?? 0 ) === 1 ) ? 'active' : 'admin_review',
+			'requires_ffl'   => (int) ( $overrides['requires_ffl'] ?? ( $snapshot['requires_ffl'] ?? 0 ) ),
+			'nfa_item'       => (int) ( $overrides['nfa_item']     ?? ( $snapshot['nfa_item']     ?? 0 ) ),
+			'is_ammo'        => (int) ( $overrides['is_ammo']      ?? ( $snapshot['is_ammo']      ?? 0 ) ),
+			'record_status'  => $publishNow ? 'active' : 'admin_review',
 			'primary_source' => 'admin',
-			/* v1.0.341: gd_catalog schema uses `last_updated`, NOT
-			 * `created_at` / `updated_at`. Prior code triggered
-			 * `Unknown column 'created_at' in INSERT INTO` (2GDD/4)
-			 * and blocked every Add-to-Catalog attempt. */
 			'last_updated'   => $now,
 		];
 
-		$data = array_filter( $data, fn($v) => $v !== null && $v !== '' );
-		$data['upc'] = $upc;
+		/* Drop empty scalars but always keep upc + control fields the
+		 * schema needs a value for. */
+		$data = array_filter( $data, static fn ( $v ) => $v !== null && $v !== '' );
+		$data['upc']            = $upc;
+		$data['record_status']  = $data['record_status']  ?? ( $publishNow ? 'active' : 'admin_review' );
+		$data['primary_source'] = $data['primary_source'] ?? 'admin';
+		$data['last_updated']   = $data['last_updated']   ?? $now;
 
-		try {
+		try
+		{
 			\IPS\Db::i()->insert( 'gd_catalog', $data );
-		} catch ( \Throwable $e ) {
-			\IPS\Output::i()->error( $e->getMessage(), '2GDD/4', 500 );
-			return;
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'gddealer _promoteToCatalog upc=' . $upc . ': ' . $e->getMessage(), 'gddealer' ); } catch ( \Throwable ) {}
+			return [ 'status' => 'error', 'upc' => $upc, 'message' => $e->getMessage() ];
 		}
 
-		try {
+		try
+		{
 			\IPS\Db::i()->update( 'gd_unmatched_upcs', [
 				'status'    => 'added_to_catalog',
 				'last_seen' => $now,
 			], [ 'id=?', $id ] );
-		} catch ( \Throwable ) {}
+		}
+		catch ( \Throwable ) {}
 
-		\IPS\Output::i()->redirect(
-			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=unmatched' ),
-			'gddealer_unmatched_added_to_catalog'
-		);
+		return [ 'status' => 'added', 'upc' => $upc, 'message' => '' ];
 	}
 }
 
