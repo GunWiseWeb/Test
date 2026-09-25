@@ -906,7 +906,7 @@ class _products extends \IPS\Dispatcher\Controller
 		}
 
 		$form = new \IPS\Helpers\Form;
-		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_upc', $product['upc'], TRUE, [ 'regex' => '/^[0-9]{8,13}$/' ] ) );
+		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_upc', $product['upc'], TRUE, [ 'regex' => '/^[0-9]{8,14}$/' ] ) );
 		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_title', $product['title'], TRUE ) );
 		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_brand', $product['brand'], FALSE ) );
 		$form->add( new \IPS\Helpers\Form\Text( 'gdcatalog_edit_caliber', $product['caliber'] ?? '', FALSE ) );
@@ -1008,7 +1008,14 @@ class _products extends \IPS\Dispatcher\Controller
 			'gdcatalog_product_upc',
 			$product->upc,
 			TRUE,
-			[ 'regex' => '/^[0-9]{8,13}$/' ]
+			/* v1.0.143: allow 14-digit GTIN-14 too, not just 8-13.
+			 * Case-pack ammunition (e.g. Federal Champion 40 S&W
+			 * bulk 400/1 = 50004544689672) legitimately uses
+			 * GTIN-14. The old {8,13} regex rejected them with
+			 * "That value is not allowed" on save. Valid retail
+			 * barcode lengths: UPC-E=8, UPC-A=12, EAN-13=13,
+			 * GTIN-14=14. */
+			[ 'regex' => '/^[0-9]{8,14}$/' ]
 		) );
 
 		/* Editable fields - v1.0.74 expanded with all attribute columns. */
