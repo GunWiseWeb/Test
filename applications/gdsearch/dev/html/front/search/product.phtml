@@ -44,7 +44,10 @@
 .gdsp-sec-h{display:flex;justify-content:space-between;align-items:baseline;padding:16px 20px;border-bottom:1px solid #f1f5f9}
 .gdsp-sec-h strong{font-size:1.02em;font-weight:600;color:#0f172a}
 .gdsp-pad{padding:16px 20px}
-.gdsp-listhead{padding:16px 22px;border-bottom:1px solid #f1f5f9;background:#f8fafc;border-radius:14px 14px 0 0}
+.gdsp-listhead{padding:16px 22px;border-bottom:1px solid #f1f5f9;background:#f8fafc;border-radius:14px 14px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.gdsp-listhead__title{margin:0;font-size:1.05em;font-weight:600;color:#0f172a;display:flex;align-items:center;gap:6px}
+.gdsp-listhead__ffl{margin-left:auto;display:flex;align-items:center}
+.gdsp-listhead__sort{flex-basis:100%}
 .gdsp-sort{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .gdsp-sort a{display:inline-block;padding:5px 12px;border-radius:20px;font-size:.78em;font-weight:600;color:#64748b;text-decoration:none;border:1px solid #e2e8f0;background:#fff;transition:all .15s}
 .gdsp-sort a:hover{border-color:#93c5fd;color:#1e40af;background:#eff6ff}
@@ -324,10 +327,10 @@
 	<div class="gdsp-tabpanel gdsp-tabpanel--active" id="gdsp-tab-prices" role="tabpanel">
 	<div class="gdsp-card" id="gdsp-listings" style="overflow:hidden">
 		<div class="gdsp-listhead">
-			{{if $fflLocatorHtml}}<div style="float:right;margin-left:12px">{$fflLocatorHtml|raw}</div>{{endif}}
-			<h2 style="margin:0;font-size:1.05em;font-weight:600;color:#0f172a">{lang="gdsearch_price_comparison"} <span style="font-weight:400;color:#94a3b8;font-size:0.9em">({expression="count($listings)"} {lang="gdsearch_dealers"})</span></h2>
+			<h2 class="gdsp-listhead__title">{lang="gdsearch_price_comparison"} <span style="font-weight:400;color:#94a3b8;font-size:0.9em">({expression="count($listings)"} {lang="gdsearch_dealers"})</span></h2>
+			{{if $fflLocatorHtml}}<div class="gdsp-listhead__ffl">{$fflLocatorHtml|raw}</div>{{endif}}
 			{{if count($listings) > 1}}
-			<div class="gdsp-sort">
+			<div class="gdsp-sort gdsp-listhead__sort">
 				{{foreach $sortOptions as $sKey => $sLabel}}
 				<a href="{$sortBaseUrl}&amp;offers_sort={$sKey}#gdsp-listings" class="{{if $offersSort === $sKey}}gdsp-sort--active{{endif}}">{$sLabel}</a>
 				{{endforeach}}
