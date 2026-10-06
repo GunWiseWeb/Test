@@ -1,38 +1,43 @@
 <?php
 /**
- * @brief  GD Master Catalog — upgrade 1.0.143
- *         Product edit form: allow 14-digit GTIN-14 UPCs.
+ * @brief  GD Master Catalog — upgrade 1.0.144
+ *         Products admin list: pagination preserves active filters.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHAT SHIPS IN 1.0.143
- *   The product edit form's UPC regex was `^[0-9]{8,13}$` — it
- *   rejected legitimate 14-digit GTIN-14 barcodes with "That
- *   value is not allowed" on save. Case-pack ammunition (e.g.
- *   Federal Champion 40 S&W 180gr FMJ bulk 400/1 loose ==
- *   50004544689672) uses GTIN-14 as its retail code. Admin
- *   couldn't edit those rows at all — every save bounced.
+ * WHAT SHIPS IN 1.0.144
+ *   Admin filters the catalog products list (e.g. Category=Handguns,
+ *   or Status=admin_review, or image_status=missing, or a search
+ *   query q=...), clicks "Next page" — and the pagination link
+ *   drops every filter, jumping to page 2 of the whole unfiltered
+ *   catalog. Every page past 1 of any filtered view was unreachable.
  *
- *   Valid retail barcode lengths that MUST be accepted:
- *     UPC-E = 8, UPC-A = 12, EAN-13 = 13, GTIN-14 = 14.
+ *   Root cause: products.php::manage() built the pagination base URL
+ *   as `app=gdcatalog&module=catalog&controller=products` with no
+ *   query-string parameters appended. The IPS pagination template
+ *   just appends `&page=N` to that bare URL.
  *
- *   Fix: broaden the regex to `^[0-9]{8,14}$` on the edit form.
+ *   Fix: build the base URL via setQueryString() for each active
+ *   filter (q / status / category / image_status / missing_field)
+ *   before passing to the pagination template. Empty filters are
+ *   skipped so unfiltered URLs stay clean.
  *
- *   NO schema change. NO extension change. NO new lang key.
- *   NO importer/adapter/queue behaviour change. Source-file
- *   only — the tarball ships the corrected controller.
+ *   NO schema change. NO extension change. NO new lang key. NO
+ *   template change. Source-file only — the controller change ships
+ *   in the tarball for both fresh install and upgrade.
  *
  * WHAT THIS UPGRADE DOES (idempotent, safe to re-run)
  *   1. Idempotent 1.0.130 schema hoist (mark_imports_as_review).
- *   2. Seeds the four accumulated lang keys.
- *   3. Re-seeds every dev/html/*.phtml (belt-and-suspenders — no
- *      template changed in this version).
- *   4. Cache / datastore / opcache purge.
+ *   2. Idempotent 1.0.142 audit-column hoist on gd_catalog
+ *      (upc_audit_status + 4 companions + idx_upc_audit_status).
+ *   3. Seeds the four accumulated lang keys.
+ *   4. Re-seeds every dev/html/*.phtml (belt and suspenders).
+ *   5. Cache / datastore / opcache purge.
  *
- * Rule #79: upg_10142 removed, exactly one upg dir per app.
+ * Rule #79: upg_10143 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10143;
+namespace IPS\gdcatalog\setup\upg_10144;
 
 use function defined;
 use function function_exists;
@@ -48,7 +53,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdcatalog';
-		$version = '1.0.143';
+		$version = '1.0.144';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		/* -------- 1.0.130 schema hoist (idempotent) -------- */
@@ -69,7 +74,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10143 addColumn mark_imports_as_review: ' . $e->getMessage(), 'gdcatalog_upg_10143' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10144 addColumn mark_imports_as_review: ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- v1.0.142 audit columns on gd_catalog (idempotent) -------- */
@@ -101,10 +106,9 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10143 addColumn ' . $colName . ': ' . $e->getMessage(), 'gdcatalog_upg_10143' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10144 addColumn ' . $colName . ': ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
 					}
 				}
-
 				try
 				{
 					if ( !\IPS\Db::i()->checkForIndex( 'gd_catalog', 'idx_upc_audit_status' ) )
@@ -119,13 +123,13 @@ class _upgrade
 				}
 				catch ( \Throwable $e )
 				{
-					try { \IPS\Log::log( 'upg_10143 addIndex idx_upc_audit_status: ' . $e->getMessage(), 'gdcatalog_upg_10143' ); } catch ( \Throwable ) {}
+					try { \IPS\Log::log( 'upg_10144 addIndex idx_upc_audit_status: ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10143 audit column bootstrap: ' . $e->getMessage(), 'gdcatalog_upg_10143' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10144 audit column bootstrap: ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Lang seed (accumulated from 1.0.130 + 1.0.132) -------- */
@@ -154,14 +158,14 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10143 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10143' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10144 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10143 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10143' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10144 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Template resync (rule #52 + #79) -------- */
@@ -204,13 +208,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10143 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10143' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10144 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10143 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10143' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10144 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
 			}
 		}
 

@@ -298,8 +298,37 @@ class _products extends \IPS\Dispatcher\Controller
 			'app=gdcatalog&module=catalog&controller=products'
 		);
 
+		/* v1.0.144: build pagination base URL that preserves the active
+		 * filters (q / status / category / image_status / missing_field).
+		 * Prior code paginated against the un-filtered base, so clicking
+		 * Next on "Handguns" dropped the filter and jumped to page 2 of
+		 * the whole catalog — making every page past 1 unreachable from
+		 * any filtered view. Each filter is only appended when non-empty
+		 * so the "no filters" URL stays clean. */
+		$paginationBase = \IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products' );
+		if ( (string) $search !== '' )
+		{
+			$paginationBase = $paginationBase->setQueryString( 'q', (string) $search );
+		}
+		if ( (string) $status !== '' )
+		{
+			$paginationBase = $paginationBase->setQueryString( 'status', (string) $status );
+		}
+		if ( $catId > 0 )
+		{
+			$paginationBase = $paginationBase->setQueryString( 'category', (int) $catId );
+		}
+		if ( (string) $imageStatus !== '' )
+		{
+			$paginationBase = $paginationBase->setQueryString( 'image_status', (string) $imageStatus );
+		}
+		if ( (string) $missingField !== '' )
+		{
+			$paginationBase = $paginationBase->setQueryString( 'missing_field', (string) $missingField );
+		}
+
 		$pagination = \IPS\Theme::i()->getTemplate( 'global', 'core', 'global' )->pagination(
-			\IPS\Http\Url::internal( 'app=gdcatalog&module=catalog&controller=products' ),
+			$paginationBase,
 			(int) ceil( $total / $perPage ),
 			$page,
 			$perPage
