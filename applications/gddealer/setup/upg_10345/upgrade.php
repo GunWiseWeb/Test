@@ -1,77 +1,68 @@
 <?php
 /**
- * @brief  GD Dealer Manager — upgrade 1.0.344
- *         Unmatched UPCs: bulk-add + bulk-exclude selected UPCs.
+ * @brief  GD Dealer Manager — upgrade 1.0.345
+ *         Flagged UPCs: AJAX Submit for Review — row updates inline,
+ *         stays visible on the New tab with a "Just submitted" marker.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  * Rule #33 (standing session): do NOT call CanonicalTemplates::ensure().
  *
- * WHAT SHIPS IN 1.0.344
- *   Admin was doing one-click-at-a-time Add-to-Catalog on hundreds
- *   of dealer UPCs. This ships bulk actions on the Unmatched UPCs
- *   admin list: check the pending rows you want, click "Add
- *   Selected to Review Queue" (or "Exclude Selected"), and they're
- *   all processed in one POST.
+ * WHAT SHIPS IN 1.0.345
+ *   On the dealer-side Flagged UPCs page, clicking "Submit for
+ *   Review" previously fired a GET → mutate → redirect to the New
+ *   tab, which then re-filtered the just-submitted row OUT of the
+ *   view. The dealer had no visual confirmation on the New tab —
+ *   they had to switch to the Submitted tab to track what they had
+ *   already done.
  *
- *   Code changes:
+ *   Fix: convert the Submit button to an AJAX action.
  *
- *   - modules/admin/dealers/unmatched.php
- *       NEW protected _promoteToCatalog(int $id, bool $publishNow,
- *       array $overrides): array — shared helper that does the DB
- *       work of promoting one gd_unmatched_upcs row to a gd_catalog
- *       Review Queue row. Returns {status, upc, message} instead of
- *       redirecting so callers can aggregate stats across many rows.
- *       Snapshot fallback (v1.0.343) and admin_review default
- *       (v1.0.341) preserved.
+ *   - modules/front/dealers/dashboard.php::submitDataFlag()
+ *       Detects AJAX requests via \IPS\Request::i()->isAjax().
+ *       On AJAX: returns JSON { status, flag_id, already, new_count }
+ *       so the frontend can swap the row in place and decrement the
+ *       header "N new" badge. On a regular GET (JS disabled, old
+ *       browsers): existing redirect behaviour preserved.
+ *       "Already submitted" treated as success so a double-click
+ *       doesn't flash a false error.
  *
- *       addToCatalog() refactored to collect Review-form overrides
- *       into an array and delegate to _promoteToCatalog. Redirect
- *       behaviour unchanged for single-row callers.
+ *   - dev/html/front/dealers/dataFlags.phtml
+ *       Rows gain id="gddf-row-{id}" + data-gddf-id. Submit button
+ *       gets a data-gddf-submit-url attribute. Status and Actions
+ *       cells get stable class names (.gddf-status-cell /
+ *       .gddf-action-cell) so inline JS can retarget them without
+ *       fragile selectors. Header "N new" badge wrapped so the
+ *       count element can update in place.
  *
- *       NEW protected bulkAdd() — CSRF-protected POST endpoint.
- *       Reads ids[] and optional publish_now=1, iterates through
- *       up to 200 per request (PHP timeout safety on huge feeds),
- *       calls _promoteToCatalog for each, redirects with a summary
- *       flash: "Added N, already in catalog M, errors K." When the
- *       selection exceeds the cap the flash notes how many are left.
+ *       NEW inline JS (no $-prefixed JS vars per rule #46):
+ *         - Delegated click handler on #gddf-container
+ *         - Confirmation prompt matches the prior data-confirm text
+ *         - Busy-flag prevents double-submit
+ *         - On success: status cell badge flips neutral→warning
+ *           "Submitted"; action cell swaps to a green "✓ Just
+ *           submitted" marker; row background pulses light green
+ *           for 1.6s then fades to normal; header new-count badge
+ *           updates (hides when it hits 0)
+ *         - On error: button text restored, alert raised
  *
- *       NEW protected bulkExclude() — companion for cleaning junk
- *       UPCs off the list in one click. Sets admin_excluded=1 on
- *       each selected row. Does NOT touch gd_catalog.
+ *   Dealer stays on the New tab, sees the row transition visually,
+ *   knows which rows they handled THIS session — exactly the UX
+ *   they asked for.
  *
- *   - dev/html/admin/dealers/unmatchedList.phtml
- *       Table wrapped in a form pointing at bulkAdd. NEW checkbox
- *       column at the far left (hidden on already-added rows). NEW
- *       bulk-action toolbar above the table with "Select all
- *       pending on this page", a running "N selected" counter, a
- *       "Publish immediately (skip Review Queue)" toggle, and two
- *       buttons: "Add Selected to Review Queue" (formaction =
- *       bulkAdd, positive) and "Exclude Selected" (formaction =
- *       bulkExclude, negative). Both buttons prompt for confirm
- *       before submitting. Inline JS handles the select-all sync
- *       and count display — no jQuery dependency.
- *
- *       colspan on the empty-state row bumped to 9 to match the
- *       new checkbox column.
- *
- *   Controller passes two new template params: bulkAddUrl (csrf-
- *   baked, POST-and-redirect so it's rule #62 clean) and
- *   bulkExcludeUrl.
- *
- *   NO schema change. NO extension change. NO new lang key.
+ *   NO schema change. NO extension change. NO new lang key. CSS
+ *   handled by inline styles on the elements the JS creates.
  *
  * WHAT THIS UPGRADE DOES
  *   1. Walks dev/html/*.phtml and replaces every row in
  *      core_theme_templates (same pattern as recent upgrades).
- *      Picks up the new unmatchedList body on existing installs.
  *   2. Full datastore / template-store / opcache purge + rotate
  *      set_cache_key so compiled classes rebuild.
  *
- * Rule #79: upg_10343 removed, exactly one upg dir per app.
+ * Rule #79: upg_10344 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gddealer\setup\upg_10344;
+namespace IPS\gddealer\setup\upg_10345;
 
 use function defined;
 use function function_exists;
@@ -87,7 +78,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gddealer';
-		$version = '1.0.344';
+		$version = '1.0.345';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -129,13 +120,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10344 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10344' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10345 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10345' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10344 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10344' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10345 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10345' ); } catch ( \Throwable ) {}
 			}
 		}
 

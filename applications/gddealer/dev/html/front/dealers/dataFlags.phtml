@@ -1,10 +1,10 @@
 <ips:template parameters="$data" />
-<div class="ipsBox" style="background:#fff;border:1px solid var(--i-border-color,#e0e0e0);border-radius:8px">
+<div class="ipsBox" id="gddf-container" style="background:#fff;border:1px solid var(--i-border-color,#e0e0e0);border-radius:8px">
 	<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--i-border-color,#f0f0f0)">
 		<h3 style="margin:0;font-size:1em;font-weight:700">&#x1F6A9; Flagged UPCs
-			{{if $data['new_count'] > 0}}
-			<span class="ipsBadge ipsBadge--negative" style="margin-left:6px">{$data['new_count']} new</span>
-			{{endif}}
+			<span id="gddf-newcount-wrap" {{if $data['new_count'] <= 0}}style="display:none"{{endif}}>
+				<span class="ipsBadge ipsBadge--negative" style="margin-left:6px"><span id="gddf-newcount">{$data['new_count']}</span> new</span>
+			</span>
 		</h3>
 		<div style="display:flex;gap:8px">
 			<a href="?do=dataFlags&flag_status=new" class="ipsButton ipsButton--small {{if $data['status_filter'] === 'new'}}ipsButton--primary{{else}}ipsButton--secondary{{endif}}">New</a>
@@ -31,7 +31,7 @@
 			</thead>
 			<tbody>
 				{{foreach $data['flags'] as $flag}}
-				<tr>
+				<tr id="gddf-row-{$flag['id']}" data-gddf-id="{$flag['id']}">
 					<td>
 						<code style="font-size:0.85em">{$flag['upc']}</code>
 						{{if $flag['catalog_title']}}
@@ -41,7 +41,7 @@
 					<td><span class="ipsBadge ipsBadge--neutral">{$flag['flag_type']}</span></td>
 					<td style="color:#dc2626">{$flag['dealer_value']}</td>
 					<td style="color:#16a34a">{$flag['catalog_value']}</td>
-					<td>
+					<td class="gddf-status-cell">
 						{{if $flag['status'] === 'new'}}
 						<span class="ipsBadge ipsBadge--negative">New</span>
 						{{elseif $flag['status'] === 'submitted'}}
@@ -53,9 +53,9 @@
 						<div style="font-size:0.8em;color:#666;margin-top:2px">Note: {$flag['admin_note']}</div>
 						{{endif}}
 					</td>
-					<td>
+					<td class="gddf-action-cell">
 						{{if $flag['status'] === 'new'}}
-						<a href="{$flag['submit_url']}" class="ipsButton ipsButton--small ipsButton--primary" data-confirm data-confirmMessage="Submit this flag for admin review? This indicates you believe your feed data is correct.">Submit for Review</a>
+						<a href="{$flag['submit_url']}" class="gddf-submit-btn ipsButton ipsButton--small ipsButton--primary" data-gddf-submit-url="{$flag['submit_url']}">Submit for Review</a>
 						{{elseif $flag['status'] === 'submitted'}}
 						<span style="font-size:0.85em;color:#999">Awaiting review</span>
 						{{endif}}
@@ -70,3 +70,70 @@
 		{{endif}}
 	</div>
 </div>
+
+<script>
+(function(){
+	var container = document.getElementById( 'gddf-container' );
+	if ( !container ) { return; }
+	container.addEventListener( 'click', function( ev ) {
+		var btn = ev.target.closest ? ev.target.closest( '.gddf-submit-btn' ) : null;
+		if ( !btn ) { return; }
+		ev.preventDefault();
+		if ( btn.getAttribute( 'data-gddf-busy' ) === '1' ) { return; }
+		if ( !confirm( 'Submit this flag for admin review? This indicates you believe your feed data is correct.' ) ) { return; }
+
+		var url = btn.getAttribute( 'data-gddf-submit-url' ) || btn.getAttribute( 'href' );
+		if ( !url ) { return; }
+		btn.setAttribute( 'data-gddf-busy', '1' );
+		var originalText = btn.textContent;
+		btn.textContent = 'Submitting…';
+		btn.style.opacity = '0.7';
+
+		fetch( url, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+		} )
+		.then( function( r ) { return r.json().catch( function(){ return { status: 'error' }; } ); } )
+		.then( function( json ) {
+			if ( !json || json.status !== 'ok' ) {
+				btn.removeAttribute( 'data-gddf-busy' );
+				btn.textContent = originalText;
+				btn.style.opacity = '';
+				alert( 'Could not submit this flag. Please refresh and try again.' );
+				return;
+			}
+			var row = btn.closest ? btn.closest( 'tr' ) : null;
+			if ( row ) {
+				var statusCell = row.querySelector( '.gddf-status-cell' );
+				if ( statusCell ) {
+					var oldBadge = statusCell.querySelector( '.ipsBadge' );
+					if ( oldBadge ) {
+						oldBadge.className = 'ipsBadge ipsBadge--warning';
+						oldBadge.textContent = 'Submitted';
+					}
+				}
+				var actionCell = row.querySelector( '.gddf-action-cell' );
+				if ( actionCell ) {
+					actionCell.innerHTML = '<span style="font-size:0.85em;color:#16a34a;font-weight:600">&#10003; Just submitted</span>';
+				}
+				row.style.background = '#f0fdf4';
+				row.style.transition = 'background 1.5s ease';
+				setTimeout( function(){ row.style.background = ''; }, 1600 );
+			}
+			if ( typeof json.new_count !== 'undefined' ) {
+				var countEl = document.getElementById( 'gddf-newcount' );
+				var wrap    = document.getElementById( 'gddf-newcount-wrap' );
+				if ( countEl ) { countEl.textContent = String( json.new_count ); }
+				if ( wrap )    { wrap.style.display = ( parseInt( json.new_count, 10 ) > 0 ) ? '' : 'none'; }
+			}
+		} )
+		.catch( function() {
+			btn.removeAttribute( 'data-gddf-busy' );
+			btn.textContent = originalText;
+			btn.style.opacity = '';
+			alert( 'Network error submitting flag. Please try again.' );
+		} );
+	} );
+})();
+</script>

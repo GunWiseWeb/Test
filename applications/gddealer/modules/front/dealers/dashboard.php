@@ -1461,6 +1461,8 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		$dealerId = (int) $this->dealer->dealer_id;
 		$now      = date( 'Y-m-d H:i:s' );
 
+		$ok      = false;
+		$already = false;
 		try {
 			$flag = \IPS\Db::i()->select( '*', 'gd_dealer_data_flags', [ 'id=? AND dealer_id=?', $flagId, $dealerId ] )->first();
 
@@ -1470,8 +1472,43 @@ class _dashboard extends \IPS\Dispatcher\Controller
 					'submitted_at' => $now,
 					'updated_at'   => $now,
 				], [ 'id=?', $flagId ] );
+				$ok = true;
 			}
-		} catch ( \Throwable ) {}
+			else {
+				/* Already submitted/resolved — treat as success so the
+				 * UI doesn't fail a second click. */
+				$ok      = true;
+				$already = true;
+			}
+		} catch ( \Throwable $e ) {
+			/* v1.0.345: on AJAX, surface the failure so the row can
+			 * revert its button state. On a regular GET we fall
+			 * through to the redirect, matching prior behaviour. */
+			if ( \IPS\Request::i()->isAjax() )
+			{
+				\IPS\Output::i()->json( [ 'status' => 'error', 'message' => 'flag_not_found' ], 404 );
+				return;
+			}
+		}
+
+		/* v1.0.345: AJAX-aware response. The dataFlags template now
+		 * submits via fetch() so the row can update inline without a
+		 * page reload — the dealer sees the row flip from New to
+		 * Submitted on the current (New) tab without having to switch
+		 * to the Submitted tab to confirm the click worked. New-count
+		 * decrement is returned so the header badge can update too. */
+		if ( \IPS\Request::i()->isAjax() )
+		{
+			$newCount = 0;
+			try { $newCount = (int) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_data_flags', [ 'dealer_id=? AND status=?', $dealerId, 'new' ] )->first(); } catch ( \Throwable ) {}
+			\IPS\Output::i()->json( [
+				'status'    => $ok ? 'ok' : 'error',
+				'flag_id'   => $flagId,
+				'already'   => $already,
+				'new_count' => $newCount,
+			] );
+			return;
+		}
 
 		\IPS\Output::i()->redirect(
 			\IPS\Http\Url::internal( 'app=gddealer&module=dealers&controller=dashboard&do=dataFlags', 'front', 'dealers_dashboard' )
