@@ -227,6 +227,20 @@ class OpenSearchIndexer
 	 */
 	public function indexProduct( Product $product ): void
 	{
+		/* v1.0.145: if the product is not active (admin_review,
+		 * discontinued, archived, etc.), remove it from the index
+		 * instead of pushing a stale doc. Searcher filters to
+		 * record_status=active, so a non-active doc wouldn't surface
+		 * anyway — but removing it keeps the index small and
+		 * guarantees no stale-doc leak if a search path ever bypasses
+		 * the filter. Transitions in either direction are now
+		 * self-healing: active → admin_review deletes the doc on
+		 * next queue run; admin_review → active re-indexes fresh. */
+		if ( (string) ( $product->record_status ?? 'active' ) !== 'active' )
+		{
+			$this->deleteProduct( (string) $product->upc );
+			return;
+		}
 		$doc = $this->productToDocument( $product );
 		$this->request( 'PUT', '/' . $this->index . '/_doc/' . urlencode( $product->upc ), $doc );
 	}
@@ -282,8 +296,22 @@ class OpenSearchIndexer
 			try
 			{
 				$product = Product::load( $upc );
-				$doc     = $this->productToDocument( $product );
 
+				/* v1.0.145: non-active products are DELETEd from the
+				 * index rather than reindexed. Guarantees any status
+				 * transition (active → admin_review / discontinued)
+				 * cleans up its OpenSearch doc on the next worker
+				 * run, even when the flip happened in a path that
+				 * bypassed save() (direct Db updates, upgrade-time
+				 * backfills, admin SQL fixes). */
+				if ( (string) ( $product->record_status ?? 'active' ) !== 'active' )
+				{
+					$bulkBody .= json_encode( [ 'delete' => [ '_index' => $this->index, '_id' => $upc ] ] ) . "\n";
+					$count++;
+					continue;
+				}
+
+				$doc     = $this->productToDocument( $product );
 				$bulkBody .= json_encode( [ 'index' => [ '_index' => $this->index, '_id' => $upc ] ] ) . "\n";
 				$bulkBody .= json_encode( $doc ) . "\n";
 				$count++;

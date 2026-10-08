@@ -1,43 +1,66 @@
 <?php
 /**
- * @brief  GD Master Catalog — upgrade 1.0.144
- *         Products admin list: pagination preserves active filters.
+ * @brief  GD Master Catalog — upgrade 1.0.145
+ *         OpenSearch: self-heal admin_review / discontinued doc leaks.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  *
- * WHAT SHIPS IN 1.0.144
- *   Admin filters the catalog products list (e.g. Category=Handguns,
- *   or Status=admin_review, or image_status=missing, or a search
- *   query q=...), clicks "Next page" — and the pagination link
- *   drops every filter, jumping to page 2 of the whole unfiltered
- *   catalog. Every page past 1 of any filtered view was unreachable.
+ * WHAT SHIPS IN 1.0.145
+ *   Admin reported: Energizer E95BP4 (UPC 039800136887) was showing
+ *   in the front-end catalog grid, and clicking it hit 2GDS/2
+ *   "could not locate the item" because the product-detail route
+ *   correctly filters record_status='active' but the row is now
+ *   admin_review (v1.0.142's retro-classify flipped it on account
+ *   of an invalid UPC-A checksum).
  *
- *   Root cause: products.php::manage() built the pagination base URL
- *   as `app=gdcatalog&module=catalog&controller=products` with no
- *   query-string parameters appended. The IPS pagination template
- *   just appends `&page=N` to that bare URL.
+ *   Root cause: OpenSearchIndexer::indexProduct() and
+ *   processQueue() blindly re-indexed every product passed in,
+ *   using whatever record_status the row currently had. Combined
+ *   with the fact that v1.0.142's retro-classify did a direct Db
+ *   update WITHOUT queueing a reindex, the OpenSearch doc for
+ *   that UPC still carried record_status='active' from its
+ *   original indexing. Searcher's `record_status=active` filter
+ *   let it through as a search result. Click → product controller
+ *   rejected it → 2GDS/2.
  *
- *   Fix: build the base URL via setQueryString() for each active
- *   filter (q / status / category / image_status / missing_field)
- *   before passing to the pagination template. Empty filters are
- *   skipped so unfiltered URLs stay clean.
+ *   Code fix (self-healing, both directions):
+ *     - OpenSearchIndexer::indexProduct() — if record_status is
+ *       anything other than 'active' (admin_review, discontinued,
+ *       archived), delete the doc from the index instead of
+ *       pushing a stale PUT. active ← non-active transition
+ *       re-indexes fresh as before.
+ *     - OpenSearchIndexer::processQueue() — same guard inside the
+ *       bulk loop. Any UPC flipped to non-active and queued (by
+ *       any path) ends up DELETEd from the index on the next
+ *       worker run.
  *
- *   NO schema change. NO extension change. NO new lang key. NO
- *   template change. Source-file only — the controller change ships
- *   in the tarball for both fresh install and upgrade.
+ *   Guarantees any future flip to admin_review / discontinued
+ *   cleans up its OpenSearch doc even when the status change
+ *   happens via a path that bypasses Product::save() (direct Db
+ *   update, upgrade-time backfill, admin SQL fix).
+ *
+ *   Data fix (one-time, this upgrade):
+ *     - Re-queue every gd_catalog row where record_status != 'active'
+ *       into gd_reindex_queue (idempotent — INSERT IGNORE pattern via
+ *       EXISTS clause). The scheduled OpenSearch worker picks them
+ *       up on its next tick and DELETEs each stale doc from the
+ *       index. After the next worker cycle, no admin_review /
+ *       discontinued UPCs remain in the front-end search index.
+ *
+ *   NO schema change. NO new extension / lang key.
  *
  * WHAT THIS UPGRADE DOES (idempotent, safe to re-run)
  *   1. Idempotent 1.0.130 schema hoist (mark_imports_as_review).
- *   2. Idempotent 1.0.142 audit-column hoist on gd_catalog
- *      (upc_audit_status + 4 companions + idx_upc_audit_status).
- *   3. Seeds the four accumulated lang keys.
- *   4. Re-seeds every dev/html/*.phtml (belt and suspenders).
- *   5. Cache / datastore / opcache purge.
+ *   2. Idempotent 1.0.142 audit-column hoist on gd_catalog.
+ *   3. Re-queue stale non-active rows into gd_reindex_queue.
+ *   4. Seeds the four accumulated lang keys.
+ *   5. Re-seeds every dev/html/*.phtml.
+ *   6. Cache / datastore / opcache purge.
  *
- * Rule #79: upg_10143 removed, exactly one upg dir per app.
+ * Rule #79: upg_10144 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gdcatalog\setup\upg_10144;
+namespace IPS\gdcatalog\setup\upg_10145;
 
 use function defined;
 use function function_exists;
@@ -53,7 +76,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdcatalog';
-		$version = '1.0.144';
+		$version = '1.0.145';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		/* -------- 1.0.130 schema hoist (idempotent) -------- */
@@ -74,7 +97,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10144 addColumn mark_imports_as_review: ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10145 addColumn mark_imports_as_review: ' . $e->getMessage(), 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- v1.0.142 audit columns on gd_catalog (idempotent) -------- */
@@ -106,7 +129,7 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10144 addColumn ' . $colName . ': ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10145 addColumn ' . $colName . ': ' . $e->getMessage(), 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
 					}
 				}
 				try
@@ -123,13 +146,53 @@ class _upgrade
 				}
 				catch ( \Throwable $e )
 				{
-					try { \IPS\Log::log( 'upg_10144 addIndex idx_upc_audit_status: ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
+					try { \IPS\Log::log( 'upg_10145 addIndex idx_upc_audit_status: ' . $e->getMessage(), 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10144 audit column bootstrap: ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10145 audit column bootstrap: ' . $e->getMessage(), 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
+		}
+
+		/* -------- One-time: re-queue every stale non-active row -------- */
+		try
+		{
+			if ( \IPS\Db::i()->checkForTable( 'gd_catalog' )
+				&& \IPS\Db::i()->checkForTable( 'gd_reindex_queue' ) )
+			{
+				$queued = 0;
+				$now = date( 'Y-m-d H:i:s' );
+				/* Only pick rows not already queued, and only those
+				 * whose record_status would make them stale in the
+				 * search index. Use REPLACE INTO for safety but
+				 * batched in Php loop for clarity + per-row catch. */
+				$rs = \IPS\Db::i()->select(
+					'c.upc',
+					[ 'gd_catalog', 'c' ],
+					[ "c.record_status != ? AND NOT EXISTS ( SELECT 1 FROM " . \IPS\Db::i()->prefix . "gd_reindex_queue q WHERE q.upc = c.upc )", 'active' ]
+				);
+				foreach ( $rs as $row )
+				{
+					try
+					{
+						\IPS\Db::i()->replace( 'gd_reindex_queue', [
+							'upc'       => (string) $row['upc'],
+							'queued_at' => $now,
+						] );
+						$queued++;
+					}
+					catch ( \Throwable $e )
+					{
+						try { \IPS\Log::log( 'upg_10145 requeue upc=' . $row['upc'] . ': ' . $e->getMessage(), 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
+					}
+				}
+				try { \IPS\Log::log( 'upg_10145 OpenSearch stale-doc cleanup: queued ' . $queued . ' non-active UPCs for next worker tick', 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10145 requeue outer: ' . $e->getMessage(), 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Lang seed (accumulated from 1.0.130 + 1.0.132) -------- */
@@ -158,14 +221,14 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10144 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10145 lang (' . $key . '): ' . $e->getMessage(), 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10144 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10145 lang loop: ' . $e->getMessage(), 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
 		}
 
 		/* -------- Template resync (rule #52 + #79) -------- */
@@ -208,13 +271,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10144 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10145 tpl (' . $name . '): ' . $e->getMessage(), 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10144 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10144' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10145 tpl loop: ' . $e->getMessage(), 'gdcatalog_upg_10145' ); } catch ( \Throwable ) {}
 			}
 		}
 
