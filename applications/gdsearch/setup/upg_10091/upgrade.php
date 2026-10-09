@@ -1,26 +1,31 @@
 <?php
 /**
- * @brief  gdsearch — upgrade 1.0.90
- *         Product page: vertically center "Find an FFL" button in
- *         the Price Comparison header.
+ * @brief  gdsearch — upgrade 1.0.91
+ *         Product page: mobile fix for "Find an FFL" alignment.
  *
- * The old markup put the FFL button in a `float:right` wrapper
- * which caused it to anchor to the top-right of the header box
- * rather than visually center with the "Price Comparison" title.
- * Switched to flexbox layout: .gdsp-listhead now `display:flex;
- * align-items:center` and the FFL slot has `margin-left:auto`
- * so it pushes to the right while sharing a vertical centerline
- * with the h2. The sort chips moved to a full-width row below
- * via `flex-basis:100%`.
+ * On real mobile (iOS Safari, screenshot from admin shows title
+ * "Price Comparison (0 dealers)" + button not fitting on one
+ * line), the title fills the row and the FFL button wraps to
+ * its own second line. The v1.0.90 CSS kept margin-left:auto
+ * on the FFL — with nothing to its left in the wrapped row it
+ * floats right-aligned alone, reading as misaligned.
  *
- * No controller change. No schema change. No new lang key. No
- * JS change. CSS + markup only, both inlined in product.phtml.
+ * Fix: media query @ max-width: 640px — drop margin-left:auto
+ * and give the FFL flex-basis:100% so it sits flush-left on its
+ * own line under the title, matching the title's left edge.
+ * Also tightens the header padding and gap for narrow screens.
+ *
+ * Desktop + wide tablet behaviour unchanged — above 640px the
+ * title and button still share a vertically-centered row.
+ *
+ * NO controller change. NO schema change. NO new lang key.
+ * CSS-only patch, inlined in product.phtml.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  */
 
-namespace IPS\gdsearch\setup\upg_10090;
+namespace IPS\gdsearch\setup\upg_10091;
 
 use function defined;
 use function function_exists;
@@ -36,7 +41,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gdsearch';
-		$version = '1.0.90';
+		$version = '1.0.91';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -78,13 +83,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10090 tpl (' . $name . '): ' . $e->getMessage(), 'gdsearch_upg_10090' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10091 tpl (' . $name . '): ' . $e->getMessage(), 'gdsearch_upg_10091' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10090 tpl loop: ' . $e->getMessage(), 'gdsearch_upg_10090' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10091 tpl loop: ' . $e->getMessage(), 'gdsearch_upg_10091' ); } catch ( \Throwable ) {}
 			}
 		}
 

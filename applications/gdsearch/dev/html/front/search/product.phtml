@@ -48,6 +48,14 @@
 .gdsp-listhead__title{margin:0;font-size:1.05em;font-weight:600;color:#0f172a;display:flex;align-items:center;gap:6px}
 .gdsp-listhead__ffl{margin-left:auto;display:flex;align-items:center}
 .gdsp-listhead__sort{flex-basis:100%}
+/* v1.0.91: on narrow mobile widths the title fills the row and FFL
+ * wraps to its own line. margin-left:auto then floats it right with
+ * nothing to anchor to, looking misaligned. Below 640px drop
+ * margin-left and align it flush-left under the title. */
+@media (max-width: 640px) {
+	.gdsp-listhead{padding:14px 16px;gap:10px}
+	.gdsp-listhead__ffl{margin-left:0;flex-basis:100%}
+}
 .gdsp-sort{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .gdsp-sort a{display:inline-block;padding:5px 12px;border-radius:20px;font-size:.78em;font-weight:600;color:#64748b;text-decoration:none;border:1px solid #e2e8f0;background:#fff;transition:all .15s}
 .gdsp-sort a:hover{border-color:#93c5fd;color:#1e40af;background:#eff6ff}
