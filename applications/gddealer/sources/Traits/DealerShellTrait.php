@@ -199,18 +199,34 @@ HTML;
 		}
 		catch ( \Exception ) {}
 
+		/* v1.0.346: pill label + color honour isFoundingMember() instead
+		 * of the raw subscription_tier string. An admin bumping a
+		 * founding dealer from "founding" tier to "max" previously
+		 * made the pill text drop from "Founder" to "Max" and the
+		 * color CSS class flip from the founder tone to the max tone
+		 * — even though the dealer was still in the founding member
+		 * group with trial perks active. getBadgeLabel() already
+		 * returns "Founder" when isFoundingMember() is true, and
+		 * we now use the founder color accordingly. */
+		$isFounder   = false;
+		try { $isFounder = $d->isFoundingMember(); } catch ( \Throwable ) {}
+		$pillLabel   = $isFounder ? 'Founder' : ucfirst( $tier );
+		$pillKey     = $isFounder ? 'founding' : $tier;
+		$pillColor   = match( $pillKey ) {
+			'founding'   => (string) ( \IPS\Settings::i()->gddealer_founding_badge_color   ?: '#b45309' ),
+			'pro'        => (string) ( \IPS\Settings::i()->gddealer_pro_badge_color        ?: '#2563eb' ),
+			'enterprise' => (string) ( \IPS\Settings::i()->gddealer_enterprise_badge_color ?: '#7c3aed' ),
+			'max'        => (string) ( \IPS\Settings::i()->gddealer_enterprise_badge_color ?: '#7c3aed' ),
+			default      => (string) ( \IPS\Settings::i()->gddealer_basic_badge_color      ?: '#6b7280' ),
+		};
+
 		return [
 			'dealer_id'             => (int) $d->dealer_id,
 			'dealer_name'           => (string) $d->dealer_name,
 			'dealer_slug'           => (string) ( $d->dealer_slug ?? '' ),
-			'subscription_tier'     => $tier,
-			'tier_label'            => ucfirst( $tier ),
-			'tier_color'            => match( $tier ) {
-				'founding'   => (string) ( \IPS\Settings::i()->gddealer_founding_badge_color   ?: '#b45309' ),
-				'pro'        => (string) ( \IPS\Settings::i()->gddealer_pro_badge_color        ?: '#2563eb' ),
-				'enterprise' => (string) ( \IPS\Settings::i()->gddealer_enterprise_badge_color ?: '#7c3aed' ),
-				default      => (string) ( \IPS\Settings::i()->gddealer_basic_badge_color      ?: '#6b7280' ),
-			},
+			'subscription_tier'     => $pillKey,
+			'tier_label'            => $pillLabel,
+			'tier_color'            => $pillColor,
 			'onboarding_incomplete' => ( (string) ( $d->feed_delivery_mode ?? 'url' ) === 'url' )
                               ? empty( $d->feed_url )
                               : !(bool) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_feed_uploads', [ 'dealer_id=?', (int) $d->dealer_id ] )->first(),

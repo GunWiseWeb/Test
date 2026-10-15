@@ -298,13 +298,24 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 
 	public function getListingCap(): int
 	{
-		if ( $this->foundingPerksActive() )
-		{
-			return static::tierCap( 'enterprise' );
-		}
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
 		if ( $tier === 'founding' ) { return 0; }
-		return static::tierCap( $tier );
+
+		$explicitCap = static::tierCap( $tier );
+
+		/* v1.0.346: founding perks are a FLOOR, not a ceiling. If an
+		 * admin explicitly bumped the dealer to a tier whose cap is
+		 * higher than the enterprise-tier founding baseline, honour
+		 * the higher cap. Prior code pinned the dealer to enterprise
+		 * regardless of their configured tier — bumping a founding
+		 * dealer to Max had no effect on their listing cap. */
+		if ( $this->foundingPerksActive() )
+		{
+			$foundingCap = static::tierCap( 'enterprise' );
+			return max( $foundingCap, $explicitCap );
+		}
+
+		return $explicitCap;
 	}
 
 	public static function tierCap( string $tier ): int

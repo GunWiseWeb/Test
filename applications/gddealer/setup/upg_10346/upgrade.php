@@ -1,68 +1,72 @@
 <?php
 /**
- * @brief  GD Dealer Manager — upgrade 1.0.345
- *         Flagged UPCs: AJAX Submit for Review — row updates inline,
- *         stays visible on the New tab with a "Just submitted" marker.
+ * @brief  GD Dealer Manager — upgrade 1.0.346
+ *         Founding perks are now a FLOOR not a ceiling; Founder pill
+ *         stays styled correctly after a tier bump.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  * Rule #33 (standing session): do NOT call CanonicalTemplates::ensure().
  *
- * WHAT SHIPS IN 1.0.345
- *   On the dealer-side Flagged UPCs page, clicking "Submit for
- *   Review" previously fired a GET → mutate → redirect to the New
- *   tab, which then re-filtered the just-submitted row OUT of the
- *   view. The dealer had no visual confirmation on the New tab —
- *   they had to switch to the Submitted tab to track what they had
- *   already done.
+ * WHAT SHIPS IN 1.0.346
+ *   Admin reported: bumped Defense Depot from "founding" to "max"
+ *   subscription tier (via Manage Dealers + member group change).
+ *   Overview still showed a 10,000 listing cap and the Founder
+ *   pill lost its founder styling.
  *
- *   Fix: convert the Submit button to an AJAX action.
+ *   Prod diagnostic confirmed:
+ *     - subscription_tier = max (saved correctly)
+ *     - member in group 7 (= ACP gddealer_group_founding)
+ *     - trial_expires_at in the future
+ *     - foundingPerksActive() = YES
+ *     - gddealer_cap_enterprise override = 10000
+ *     - gddealer_cap_max = 0 (unlimited)
+ *     - getListingCap() = 10000  ← pinned to enterprise tier
  *
- *   - modules/front/dealers/dashboard.php::submitDataFlag()
- *       Detects AJAX requests via \IPS\Request::i()->isAjax().
- *       On AJAX: returns JSON { status, flag_id, already, new_count }
- *       so the frontend can swap the row in place and decrement the
- *       header "N new" badge. On a regular GET (JS disabled, old
- *       browsers): existing redirect behaviour preserved.
- *       "Already submitted" treated as success so a double-click
- *       doesn't flash a false error.
+ *   Two root causes:
  *
- *   - dev/html/front/dealers/dataFlags.phtml
- *       Rows gain id="gddf-row-{id}" + data-gddf-id. Submit button
- *       gets a data-gddf-submit-url attribute. Status and Actions
- *       cells get stable class names (.gddf-status-cell /
- *       .gddf-action-cell) so inline JS can retarget them without
- *       fragile selectors. Header "N new" badge wrapped so the
- *       count element can update in place.
+ *   1. getListingCap() short-circuited to tierCap('enterprise')
+ *      the moment foundingPerksActive() returned true — ignoring
+ *      any higher tier an admin explicitly configured. Founding
+ *      perks were a CEILING. Admins couldn't bump a founding
+ *      dealer up to Max without first removing their founding
+ *      group membership.
  *
- *       NEW inline JS (no $-prefixed JS vars per rule #46):
- *         - Delegated click handler on #gddf-container
- *         - Confirmation prompt matches the prior data-confirm text
- *         - Busy-flag prevents double-submit
- *         - On success: status cell badge flips neutral→warning
- *           "Submitted"; action cell swaps to a green "✓ Just
- *           submitted" marker; row background pulses light green
- *           for 1.6s then fades to normal; header new-count badge
- *           updates (hides when it hits 0)
- *         - On error: button text restored, alert raised
+ *   2. DealerShellTrait::prepareDealerData() set tier_label and
+ *      tier_color from the raw subscription_tier string. Flipping
+ *      a founding dealer to 'max' tier made the pill text drop
+ *      from "Founder" to "Max" and the color CSS flip from
+ *      founder-amber to max-purple, even though the dealer was
+ *      still an active founding member.
  *
- *   Dealer stays on the New tab, sees the row transition visually,
- *   knows which rows they handled THIS session — exactly the UX
- *   they asked for.
+ *   Fix:
  *
- *   NO schema change. NO extension change. NO new lang key. CSS
- *   handled by inline styles on the elements the JS creates.
+ *   - sources/Dealer/Dealer.php::getListingCap()
+ *       Founding perks are now a FLOOR, not a ceiling. The method
+ *       returns max( enterprise-cap, explicit-tier-cap ). A
+ *       founding dealer on Max tier gets the Max cap (unlimited
+ *       by default); a founding dealer still on 'founding' tier
+ *       gets 0 (preserved for expired-founder-no-paid-tier case).
  *
- * WHAT THIS UPGRADE DOES
- *   1. Walks dev/html/*.phtml and replaces every row in
- *      core_theme_templates (same pattern as recent upgrades).
- *   2. Full datastore / template-store / opcache purge + rotate
- *      set_cache_key so compiled classes rebuild.
+ *   - sources/Traits/DealerShellTrait.php::prepareDealerData()
+ *       Pill label uses $d->getBadgeLabel() so "Founder" sticks
+ *       when isFoundingMember() is true, regardless of configured
+ *       tier. Pill color uses the founder color for founding
+ *       members. The data array's subscription_tier key is set
+ *       to the pill-display key ('founding' when isFounder, else
+ *       the real tier) because overview.phtml uses it as a CSS
+ *       class modifier (gdTierBadge--{tier}) — DB tier is
+ *       unchanged.
  *
- * Rule #79: upg_10344 removed, exactly one upg dir per app.
+ *   NO schema change. NO extension change. NO new lang key.
+ *   Source-only — tarball ships the fix for both fresh install
+ *   and upgrade. The dev/html template resync is included for
+ *   belt-and-suspenders.
+ *
+ * Rule #79: upg_10345 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gddealer\setup\upg_10345;
+namespace IPS\gddealer\setup\upg_10346;
 
 use function defined;
 use function function_exists;
@@ -78,7 +82,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gddealer';
-		$version = '1.0.345';
+		$version = '1.0.346';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -120,13 +124,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10345 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10345' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10346 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10346' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10345 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10345' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10346 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10346' ); } catch ( \Throwable ) {}
 			}
 		}
 
