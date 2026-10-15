@@ -199,26 +199,30 @@ HTML;
 		}
 		catch ( \Exception ) {}
 
-		/* v1.0.346: pill label + color honour isFoundingMember() instead
-		 * of the raw subscription_tier string. An admin bumping a
-		 * founding dealer from "founding" tier to "max" previously
-		 * made the pill text drop from "Founder" to "Max" and the
-		 * color CSS class flip from the founder tone to the max tone
-		 * — even though the dealer was still in the founding member
-		 * group with trial perks active. getBadgeLabel() already
-		 * returns "Founder" when isFoundingMember() is true, and
-		 * we now use the founder color accordingly. */
-		$isFounder   = false;
+		/* v1.0.351: pill label + CSS key always show the actual PAID
+		 * tier when one is picked (basic/pro/enterprise/max). Founder
+		 * recognition flows through the new 'is_founder' flag so
+		 * templates can render a secondary Founder badge next to the
+		 * plan badge — same pattern as the Subscription page's hero.
+		 * Classic trial founders who haven't picked a paid tier yet
+		 * still see 'Founder' as the primary pill. v1.0.346 made the
+		 * pill always say "Founder" for founders — that was correct
+		 * for recognition but hid the paid tier the admin selected,
+		 * making the Overview page inconsistent with the Subscription
+		 * page which does show the paid tier. */
+		$isFounder     = false;
 		try { $isFounder = $d->isFoundingMember(); } catch ( \Throwable ) {}
-		$pillLabel   = $isFounder ? 'Founder' : ucfirst( $tier );
-		$pillKey     = $isFounder ? 'founding' : $tier;
-		$pillColor   = match( $pillKey ) {
+		$hasPaidTier   = in_array( $tier, [ 'basic', 'pro', 'enterprise', 'max' ], true );
+		$pillLabel     = $hasPaidTier ? ucfirst( $tier ) : 'Founder';
+		$pillKey       = $hasPaidTier ? $tier : 'founding';
+		$pillColor     = match( $pillKey ) {
 			'founding'   => (string) ( \IPS\Settings::i()->gddealer_founding_badge_color   ?: '#b45309' ),
 			'pro'        => (string) ( \IPS\Settings::i()->gddealer_pro_badge_color        ?: '#2563eb' ),
 			'enterprise' => (string) ( \IPS\Settings::i()->gddealer_enterprise_badge_color ?: '#7c3aed' ),
 			'max'        => (string) ( \IPS\Settings::i()->gddealer_enterprise_badge_color ?: '#7c3aed' ),
 			default      => (string) ( \IPS\Settings::i()->gddealer_basic_badge_color      ?: '#6b7280' ),
 		};
+		$founderColor  = (string) ( \IPS\Settings::i()->gddealer_founding_badge_color ?: '#b45309' );
 
 		return [
 			'dealer_id'             => (int) $d->dealer_id,
@@ -227,6 +231,8 @@ HTML;
 			'subscription_tier'     => $pillKey,
 			'tier_label'            => $pillLabel,
 			'tier_color'            => $pillColor,
+			'is_founder'            => $isFounder,
+			'founder_color'         => $founderColor,
 			'onboarding_incomplete' => ( (string) ( $d->feed_delivery_mode ?? 'url' ) === 'url' )
                               ? empty( $d->feed_url )
                               : !(bool) \IPS\Db::i()->select( 'COUNT(*)', 'gd_dealer_feed_uploads', [ 'dealer_id=?', (int) $d->dealer_id ] )->first(),

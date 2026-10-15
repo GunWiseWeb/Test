@@ -29,6 +29,9 @@
             <div class="gdIdentity__name">
                 <h2>{$data['dealer']['dealer_name']}</h2>
                 <span class="gdTierBadge gdTierBadge--{$data['dealer']['subscription_tier']}">{$data['dealer']['tier_label']} dealer</span>
+                {{if $data['dealer']['is_founder'] and $data['dealer']['subscription_tier'] !== 'founding'}}
+                <span class="gdTierBadge gdTierBadge--founding" title="Founder badge is permanent — see Subscription tab for trial details">Founder</span>
+                {{endif}}
             </div>
             <p class="gdIdentity__url">gunrack.deals/dealers/{$data['dealer']['dealer_slug']}
                 <button type="button" class="gdBtn gdBtn--secondary" style="margin-left:8px;padding:2px 10px;font-size:11px;vertical-align:middle" data-gd-regenerate-slug data-preview-url="{$data['regenerate_preview_url']}" data-confirm-url="{$data['regenerate_confirm_url']}">Regenerate</button>

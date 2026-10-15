@@ -28,6 +28,9 @@
 					<h1>{$data['dealer']['dealer_name']}</h1>
 					{{if $data['dealer']['verified']}}<span class="ipsBadge ipsBadge--positive"><i class="fa-solid fa-shield-halved"></i> FFL Verified</span>{{endif}}
 					<span class="ipsBadge gdProfile2__tierBadge" style="{expression="'background:' . $data['dealer']['tier_color']"}">{$data['dealer']['tier_label']}</span>
+					{{if $data['dealer']['is_founder'] and $data['dealer']['subscription_tier'] !== 'founding'}}
+					<span class="ipsBadge gdProfile2__tierBadge" style="{expression="'background:' . $data['dealer']['founder_color']"}">Founder</span>
+					{{endif}}
 				</div>
 				<p class="ipsCoverPhoto__desc">{{if $data['dealer']['address_city_state']}}<i class="fa-solid fa-location-dot"></i> {$data['dealer']['address_city_state']} &middot; {{endif}}<span style="{expression="'color:' . ($data['stats']['rating_color'] ?? '#1E40AF')"}">{$data['stats']['avg_overall']} &#9733; ({expression="number_format($data['stats']['total'])"})</span> &middot; {$data['dealer']['listing_count']} listings</p>
 			</div>
