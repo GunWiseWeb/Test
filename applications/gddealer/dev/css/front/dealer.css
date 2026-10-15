@@ -460,7 +460,7 @@
 .gdTierBadge--basic     { background: var(--gd-tier-basic-bg);     color: var(--gd-tier-basic); }
 .gdTierBadge--pro       { background: var(--gd-tier-pro-bg);       color: var(--gd-tier-pro); }
 .gdTierBadge--enterprise{ background: var(--gd-tier-enterprise-bg);color: var(--gd-tier-enterprise); }
-.gdTierBadge--max       { background: var(--gd-tier-enterprise-bg);color: var(--gd-tier-enterprise); }
+.gdTierBadge--max       { background: #7C3AED; color: #FFFFFF; }
 
 /* Hide IPS mobile footer bar inside dealer app only */
 .gdDealerApp + .ipsMobileFooter,
@@ -2408,7 +2408,7 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 .gdTierBadge--basic      { background: var(--gd-border-subtle); color: var(--gd-text-muted); }
 .gdTierBadge--pro        { background: var(--gd-brand-light);   color: var(--gd-brand); }
 .gdTierBadge--enterprise { background: #FEF3C7;                 color: #854D0E; }
-.gdTierBadge--max        { background: #EDE9FE;                 color: #5B21B6; }
+.gdTierBadge--max        { background: #7C3AED;                 color: #FFFFFF; }
 
 /* Contact card */
 .gdContactCard {

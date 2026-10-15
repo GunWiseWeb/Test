@@ -1,64 +1,46 @@
 <?php
 /**
- * @brief  GD Dealer Manager — upgrade 1.0.348
- *         Subscription page shows actual paid tier + secondary Founder badge.
+ * @brief  GD Dealer Manager — upgrade 1.0.349
+ *         Max tier pill: use a bold solid purple so it's clearly
+ *         visible against the white hero card.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  * Rule #33 (standing session): do NOT call CanonicalTemplates::ensure().
  * Rule #60 — re-import dev/css + recompile dealer.css after any CSS edit.
  *
- * WHAT SHIPS IN 1.0.348
- *   Admin reported: on the Subscription page, the "Current Plan"
- *   showed "Founder" even after Defense Depot was bumped to Max
- *   tier. Monthly cost showed $399 (Max's price) but the plan
- *   name said Founder — misleading, since Founder is a permanent
- *   recognition badge, not a plan.
+ * WHAT SHIPS IN 1.0.349
+ *   Admin screenshot showed the "MAX" pill rendering with no visible
+ *   background against the white Subscription hero. v1.0.348 CSS gave
+ *   it background #EDE9FE (pale lavender) which is nearly identical to
+ *   the surrounding white card — the base .gdTierBadge rules
+ *   (uppercase + padding + border-radius) applied correctly, but the
+ *   fill was essentially invisible. Admin reasonably read it as
+ *   "the pill didn't work".
  *
- *   Fix: on the Subscription page, show the actual paid tier
- *   (Basic / Pro / Enterprise / Max) they picked, with the
- *   Founder badge as a SECONDARY indicator next to it. Fall back
- *   to "Founder" as the primary plan name only when the dealer
- *   literally hasn't picked a paid tier yet (subscription_tier =
- *   'founding'). The amber trial banner at the bottom of the
- *   page still fires via $sub['is_founding'] so founders see the
- *   trial countdown and "badge is permanent" reassurance.
+ *   Fix: bump .gdTierBadge--max to solid #7C3AED (purple-600) with
+ *   white text. Reads as a premium top-tier badge, clearly
+ *   distinct from the amber FOUNDER badge sitting next to it on
+ *   founder-trial accounts. Updated in both CSS blocks (lines
+ *   ~462 variable-form and ~2411 explicit-hex-form) so neither
+ *   cascade wins with the old pale color.
  *
- *   Code:
- *     - modules/front/dealers/dashboard.php::subscription()
- *       $dashboardTierLabel = ucfirst( actual_tier ) when a paid
- *       tier is picked; 'Founder' only when stuck on 'founding'.
- *       $dashboardTierKey + $activePlanKey use the actual tier
- *       too, so the plans[].sync_label lookup resolves correctly
- *       (Max → "Enterprise-tier sync" etc.) and so the hero's
- *       gdPlanHero--{tier} CSS class picks up the right styling.
- *
- *     - dev/html/front/dealers/subscription.phtml
- *       Hero name row renders a secondary "Founder" badge
- *       whenever $sub['is_founding'] is true AND the primary
- *       tier isn't 'founding'. Classic trial founders (tier =
- *       founding) keep a single "Founder" badge as before.
- *
- *     - dev/css/front/dealer.css
- *       NEW .gdTierBadge--max (purple, matches max tier color).
- *       NEW .gdPlanHero--max::before (purple → amber gradient).
- *       Both tiers previously had no CSS so the Max badge/hero
- *       rendered unstyled.
- *
- *   NO schema change. NO extension change. NO new lang key.
+ *   NO schema change. NO template change. NO controller change.
+ *   NO new lang key. CSS-only.
  *
  * WHAT THIS UPGRADE DOES
- *   1. Walks dev/html/*.phtml and replaces every row in
- *      core_theme_templates (same pattern as recent upgrades).
- *   2. Re-imports dev/css into core_theme_css and recompiles
- *      dealer.css to a served URL (rule #60).
+ *   1. Re-imports dev/css into core_theme_css and recompiles
+ *      dealer.css to served URLs (rule #60).
+ *   2. Walks dev/html/*.phtml and replaces every row in
+ *      core_theme_templates (standard belt-and-suspenders).
  *   3. Full datastore / template-store / opcache purge + rotate
- *      set_cache_key so compiled classes rebuild.
+ *      set_cache_key so compiled classes rebuild AND the browser
+ *      busts its dealer.css cache.
  *
- * Rule #79: upg_10347 removed, exactly one upg dir per app.
+ * Rule #79: upg_10348 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gddealer\setup\upg_10348;
+namespace IPS\gddealer\setup\upg_10349;
 
 use function defined;
 use function function_exists;
@@ -74,11 +56,10 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gddealer';
-		$version = '1.0.348';
+		$version = '1.0.349';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
-		/* v1.0.348: rule #60 — re-import dev/css and recompile
-		 * dealer.css after the CSS additions in this version. */
+		/* Rule #60 — re-import dev/css + recompile dealer.css. */
 		try
 		{
 			if ( class_exists( '\\IPS\\Theme\\Dev\\Theme' ) )
@@ -88,7 +69,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10348 importDevCss: ' . $e->getMessage(), 'gddealer_upg_10348' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10349 importDevCss: ' . $e->getMessage(), 'gddealer_upg_10349' ); } catch ( \Throwable ) {}
 		}
 		try
 		{
@@ -106,7 +87,7 @@ class _upgrade
 		}
 		catch ( \Throwable $e )
 		{
-			try { \IPS\Log::log( 'upg_10348 compileCss: ' . $e->getMessage(), 'gddealer_upg_10348' ); } catch ( \Throwable ) {}
+			try { \IPS\Log::log( 'upg_10349 compileCss: ' . $e->getMessage(), 'gddealer_upg_10349' ); } catch ( \Throwable ) {}
 		}
 
 		if ( is_dir( $root ) )
@@ -148,17 +129,16 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10348 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10348' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10349 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10349' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10348 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10348' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10349 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10349' ); } catch ( \Throwable ) {}
 			}
 		}
 
-		/* Cache / datastore / opcache purge + rotate set_cache_key. */
 		try { \IPS\Db::i()->delete( 'core_cache' ); }                                                                catch ( \Throwable ) {}
 		try { \IPS\Db::i()->delete( 'core_store', [ "store_key LIKE 'theme_%' OR store_key LIKE 'template_%'" ] ); } catch ( \Throwable ) {}
 		foreach ( glob( \IPS\ROOT_PATH . '/datastore/template_*' ) ?: [] as $x ) { @unlink( $x ); }
