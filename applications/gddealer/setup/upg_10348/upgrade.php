@@ -1,51 +1,64 @@
 <?php
 /**
- * @brief  GD Dealer Manager — upgrade 1.0.347
- *         Fix getListingCap() ordering regression from v1.0.346.
+ * @brief  GD Dealer Manager — upgrade 1.0.348
+ *         Subscription page shows actual paid tier + secondary Founder badge.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  * Rule #33 (standing session): do NOT call CanonicalTemplates::ensure().
+ * Rule #60 — re-import dev/css + recompile dealer.css after any CSS edit.
  *
- * WHAT SHIPS IN 1.0.347
- *   v1.0.346 reworked getListingCap() to make founding perks a
- *   FLOOR instead of a ceiling. In doing so I moved the
- *   `$tier === 'founding'` short-circuit ABOVE the perks branch:
+ * WHAT SHIPS IN 1.0.348
+ *   Admin reported: on the Subscription page, the "Current Plan"
+ *   showed "Founder" even after Defense Depot was bumped to Max
+ *   tier. Monthly cost showed $399 (Max's price) but the plan
+ *   name said Founder — misleading, since Founder is a permanent
+ *   recognition badge, not a plan.
  *
- *     if ( $tier === 'founding' ) { return 0; }
- *     if ( $this->foundingPerksActive() ) { return max(...); }
+ *   Fix: on the Subscription page, show the actual paid tier
+ *   (Basic / Pro / Enterprise / Max) they picked, with the
+ *   Founder badge as a SECONDARY indicator next to it. Fall back
+ *   to "Founder" as the primary plan name only when the dealer
+ *   literally hasn't picked a paid tier yet (subscription_tier =
+ *   'founding'). The amber trial banner at the bottom of the
+ *   page still fires via $sub['is_founding'] so founders see the
+ *   trial countdown and "badge is permanent" reassurance.
  *
- *   That broke classic founding-tier dealers who are STILL on
- *   subscription_tier='founding' and still in their trial window
- *   — they now get a 0 cap (no service) instead of the enterprise
- *   cap they used to get. Only dealers whose admin had already
- *   bumped them to a paid tier (e.g. Defense Depot → max) saw
- *   the intended fix in v1.0.346.
+ *   Code:
+ *     - modules/front/dealers/dashboard.php::subscription()
+ *       $dashboardTierLabel = ucfirst( actual_tier ) when a paid
+ *       tier is picked; 'Founder' only when stuck on 'founding'.
+ *       $dashboardTierKey + $activePlanKey use the actual tier
+ *       too, so the plans[].sync_label lookup resolves correctly
+ *       (Max → "Enterprise-tier sync" etc.) and so the hero's
+ *       gdPlanHero--{tier} CSS class picks up the right styling.
  *
- *   Fix: reorder. Compute explicit cap first (0 for 'founding'
- *   tier because it's not a paid tier), then run the perks check.
- *   max(enterprise_cap, 0) = enterprise_cap, so trial founders
- *   get the enterprise cap back; max(enterprise_cap, max_cap)
- *   stays max_cap for admin-bumped founders. Expired founders
- *   on 'founding' tier still return 0 (no paid service), which
- *   is the intended fallback.
+ *     - dev/html/front/dealers/subscription.phtml
+ *       Hero name row renders a secondary "Founder" badge
+ *       whenever $sub['is_founding'] is true AND the primary
+ *       tier isn't 'founding'. Classic trial founders (tier =
+ *       founding) keep a single "Founder" badge as before.
  *
- *   Also: nothing in the codebase strips the founder group from
- *   a dealer on tier change — only permanentDelete() and
- *   transferOwnership() remove it, both legitimate. The pill
- *   fix in v1.0.346 already makes "Founder" stick for anyone
- *   still in that group, regardless of their paid tier. This
- *   version does not touch group assignment.
+ *     - dev/css/front/dealer.css
+ *       NEW .gdTierBadge--max (purple, matches max tier color).
+ *       NEW .gdPlanHero--max::before (purple → amber gradient).
+ *       Both tiers previously had no CSS so the Max badge/hero
+ *       rendered unstyled.
  *
  *   NO schema change. NO extension change. NO new lang key.
- *   Source-only — tarball ships the fix for both fresh install
- *   and upgrade. dev/html template resync is still included for
- *   belt-and-suspenders.
  *
- * Rule #79: upg_10346 removed, exactly one upg dir per app.
+ * WHAT THIS UPGRADE DOES
+ *   1. Walks dev/html/*.phtml and replaces every row in
+ *      core_theme_templates (same pattern as recent upgrades).
+ *   2. Re-imports dev/css into core_theme_css and recompiles
+ *      dealer.css to a served URL (rule #60).
+ *   3. Full datastore / template-store / opcache purge + rotate
+ *      set_cache_key so compiled classes rebuild.
+ *
+ * Rule #79: upg_10347 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gddealer\setup\upg_10347;
+namespace IPS\gddealer\setup\upg_10348;
 
 use function defined;
 use function function_exists;
@@ -61,8 +74,40 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gddealer';
-		$version = '1.0.347';
+		$version = '1.0.348';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
+
+		/* v1.0.348: rule #60 — re-import dev/css and recompile
+		 * dealer.css after the CSS additions in this version. */
+		try
+		{
+			if ( class_exists( '\\IPS\\Theme\\Dev\\Theme' ) )
+			{
+				\IPS\Theme\Dev\Theme::importDevCss( 'gddealer', 0 );
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10348 importDevCss: ' . $e->getMessage(), 'gddealer_upg_10348' ); } catch ( \Throwable ) {}
+		}
+		try
+		{
+			foreach ( \IPS\Theme::themes() as $theme )
+			{
+				try
+				{
+					if ( method_exists( $theme, 'compileCss' ) )
+					{
+						$theme->compileCss( 'gddealer', 'front', '.', 'dealer.css' );
+					}
+				}
+				catch ( \Throwable ) {}
+			}
+		}
+		catch ( \Throwable $e )
+		{
+			try { \IPS\Log::log( 'upg_10348 compileCss: ' . $e->getMessage(), 'gddealer_upg_10348' ); } catch ( \Throwable ) {}
+		}
 
 		if ( is_dir( $root ) )
 		{
@@ -103,13 +148,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10347 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10347' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10348 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10348' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10347 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10347' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10348 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10348' ); } catch ( \Throwable ) {}
 			}
 		}
 

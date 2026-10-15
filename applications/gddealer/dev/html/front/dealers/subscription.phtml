@@ -13,6 +13,9 @@
             <div class="gdPlanHero__nameRow">
                 <span class="gdPlanHero__name">{$sub['tier_label']}</span>
                 <span class="gdTierBadge gdTierBadge--{$sub['tier']}">{$sub['tier_label']}</span>
+                {{if $sub['is_founding'] and $sub['tier'] !== 'founding'}}
+                <span class="gdTierBadge gdTierBadge--founding" title="Founder badge is permanent — see the trial notice below for details">Founder</span>
+                {{endif}}
             </div>
             <div class="gdPlanHero__meta">
                 {{if $sub['tier'] === 'founding'}}Founding partner &middot; all features unlocked

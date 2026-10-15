@@ -2025,8 +2025,20 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		}
 
 		$dashboardIsFoundingMember = $dealer->isFoundingMember();
-		$dashboardTierLabel        = $dashboardIsFoundingMember ? 'Founder' : ucfirst( (string) $dealer->subscription_tier );
-		$dashboardTierKey          = $dashboardIsFoundingMember ? 'founding' : (string) $dealer->subscription_tier;
+		/* v1.0.348: Subscription page should show the actual PAID tier
+		 * the dealer picked (Basic/Pro/Enterprise/Max), not "Founder".
+		 * Founder is a permanent badge (surfaced via $sub['is_founding']
+		 * and the trial banner), not a plan. Only fall back to "Founder"
+		 * when the dealer is literally still on subscription_tier='founding'
+		 * — i.e. no paid tier has been chosen yet. Prior code overrode the
+		 * display tier to "Founder" for every founding member, which hid
+		 * the fact that an admin had bumped them to Max and made the
+		 * monthly-cost figure look inconsistent (showed $399 but called
+		 * the plan "Founder"). */
+		$actualTier         = (string) $dealer->subscription_tier;
+		$hasPaidTier        = in_array( $actualTier, [ 'basic', 'pro', 'enterprise', 'max' ], true );
+		$dashboardTierLabel = $hasPaidTier ? ucfirst( $actualTier ) : 'Founder';
+		$dashboardTierKey   = $hasPaidTier ? $actualTier : 'founding';
 
 		/* v1.0.175: load all plan data + populate sync_label from active plan.
 		 * Falls back gracefully if plans helper unavailable (defensive). */
@@ -2035,7 +2047,7 @@ class _dashboard extends \IPS\Dispatcher\Controller
 		try
 		{
 			$plans = \IPS\gddealer\modules\admin\dealers\plans::getAllPlans();
-			$activePlanKey = $dashboardIsFoundingMember ? 'founding' : (string) $dealer->subscription_tier;
+			$activePlanKey = $hasPaidTier ? $actualTier : 'founding';
 			if ( isset( $plans[ $activePlanKey ]['sync_label'] ) )
 			{
 				$syncLabel = (string) $plans[ $activePlanKey ]['sync_label'];

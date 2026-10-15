@@ -460,6 +460,7 @@
 .gdTierBadge--basic     { background: var(--gd-tier-basic-bg);     color: var(--gd-tier-basic); }
 .gdTierBadge--pro       { background: var(--gd-tier-pro-bg);       color: var(--gd-tier-pro); }
 .gdTierBadge--enterprise{ background: var(--gd-tier-enterprise-bg);color: var(--gd-tier-enterprise); }
+.gdTierBadge--max       { background: var(--gd-tier-enterprise-bg);color: var(--gd-tier-enterprise); }
 
 /* Hide IPS mobile footer bar inside dealer app only */
 .gdDealerApp + .ipsMobileFooter,
@@ -2407,6 +2408,7 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 .gdTierBadge--basic      { background: var(--gd-border-subtle); color: var(--gd-text-muted); }
 .gdTierBadge--pro        { background: var(--gd-brand-light);   color: var(--gd-brand); }
 .gdTierBadge--enterprise { background: #FEF3C7;                 color: #854D0E; }
+.gdTierBadge--max        { background: #EDE9FE;                 color: #5B21B6; }
 
 /* Contact card */
 .gdContactCard {
@@ -2596,6 +2598,7 @@ body:has(.gdDealerApp) .ipsMobileFooter { display: none !important; }
 .gdPlanHero--basic::before      { background: #64748B; }
 .gdPlanHero--pro::before        { background: var(--gd-brand); }
 .gdPlanHero--enterprise::before { background: #B45309; }
+.gdPlanHero--max::before        { background: linear-gradient(90deg, #7C3AED, #B45309); }
 .gdPlanHero--founding::before   { background: linear-gradient(90deg, #F59E0B, #EC4899); }
 
 .gdPlanHero__head {
