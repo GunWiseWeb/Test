@@ -299,16 +299,21 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	public function getListingCap(): int
 	{
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
-		if ( $tier === 'founding' ) { return 0; }
 
-		$explicitCap = static::tierCap( $tier );
+		/* The 'founding' tier itself has no paid cap — explicit cap
+		 * is 0. A founder on an active trial still gets the
+		 * enterprise cap via the floor branch below; a founder
+		 * whose trial has expired without buying a paid tier gets
+		 * 0 (deliberate: no service until they purchase). */
+		$explicitCap = ( $tier === 'founding' ) ? 0 : static::tierCap( $tier );
 
 		/* v1.0.346: founding perks are a FLOOR, not a ceiling. If an
 		 * admin explicitly bumped the dealer to a tier whose cap is
 		 * higher than the enterprise-tier founding baseline, honour
-		 * the higher cap. Prior code pinned the dealer to enterprise
-		 * regardless of their configured tier — bumping a founding
-		 * dealer to Max had no effect on their listing cap. */
+		 * the higher cap. v1.0.347: fixed ordering — the previous
+		 * version returned 0 immediately for tier='founding',
+		 * breaking classic founding-tier dealers (they lost their
+		 * enterprise cap). Now the perks check runs first. */
 		if ( $this->foundingPerksActive() )
 		{
 			$foundingCap = static::tierCap( 'enterprise' );

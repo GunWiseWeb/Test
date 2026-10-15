@@ -1,72 +1,51 @@
 <?php
 /**
- * @brief  GD Dealer Manager — upgrade 1.0.346
- *         Founding perks are now a FLOOR not a ceiling; Founder pill
- *         stays styled correctly after a tier bump.
+ * @brief  GD Dealer Manager — upgrade 1.0.347
+ *         Fix getListingCap() ordering regression from v1.0.346.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  * Rule #33 (standing session): do NOT call CanonicalTemplates::ensure().
  *
- * WHAT SHIPS IN 1.0.346
- *   Admin reported: bumped Defense Depot from "founding" to "max"
- *   subscription tier (via Manage Dealers + member group change).
- *   Overview still showed a 10,000 listing cap and the Founder
- *   pill lost its founder styling.
+ * WHAT SHIPS IN 1.0.347
+ *   v1.0.346 reworked getListingCap() to make founding perks a
+ *   FLOOR instead of a ceiling. In doing so I moved the
+ *   `$tier === 'founding'` short-circuit ABOVE the perks branch:
  *
- *   Prod diagnostic confirmed:
- *     - subscription_tier = max (saved correctly)
- *     - member in group 7 (= ACP gddealer_group_founding)
- *     - trial_expires_at in the future
- *     - foundingPerksActive() = YES
- *     - gddealer_cap_enterprise override = 10000
- *     - gddealer_cap_max = 0 (unlimited)
- *     - getListingCap() = 10000  ← pinned to enterprise tier
+ *     if ( $tier === 'founding' ) { return 0; }
+ *     if ( $this->foundingPerksActive() ) { return max(...); }
  *
- *   Two root causes:
+ *   That broke classic founding-tier dealers who are STILL on
+ *   subscription_tier='founding' and still in their trial window
+ *   — they now get a 0 cap (no service) instead of the enterprise
+ *   cap they used to get. Only dealers whose admin had already
+ *   bumped them to a paid tier (e.g. Defense Depot → max) saw
+ *   the intended fix in v1.0.346.
  *
- *   1. getListingCap() short-circuited to tierCap('enterprise')
- *      the moment foundingPerksActive() returned true — ignoring
- *      any higher tier an admin explicitly configured. Founding
- *      perks were a CEILING. Admins couldn't bump a founding
- *      dealer up to Max without first removing their founding
- *      group membership.
+ *   Fix: reorder. Compute explicit cap first (0 for 'founding'
+ *   tier because it's not a paid tier), then run the perks check.
+ *   max(enterprise_cap, 0) = enterprise_cap, so trial founders
+ *   get the enterprise cap back; max(enterprise_cap, max_cap)
+ *   stays max_cap for admin-bumped founders. Expired founders
+ *   on 'founding' tier still return 0 (no paid service), which
+ *   is the intended fallback.
  *
- *   2. DealerShellTrait::prepareDealerData() set tier_label and
- *      tier_color from the raw subscription_tier string. Flipping
- *      a founding dealer to 'max' tier made the pill text drop
- *      from "Founder" to "Max" and the color CSS flip from
- *      founder-amber to max-purple, even though the dealer was
- *      still an active founding member.
- *
- *   Fix:
- *
- *   - sources/Dealer/Dealer.php::getListingCap()
- *       Founding perks are now a FLOOR, not a ceiling. The method
- *       returns max( enterprise-cap, explicit-tier-cap ). A
- *       founding dealer on Max tier gets the Max cap (unlimited
- *       by default); a founding dealer still on 'founding' tier
- *       gets 0 (preserved for expired-founder-no-paid-tier case).
- *
- *   - sources/Traits/DealerShellTrait.php::prepareDealerData()
- *       Pill label uses $d->getBadgeLabel() so "Founder" sticks
- *       when isFoundingMember() is true, regardless of configured
- *       tier. Pill color uses the founder color for founding
- *       members. The data array's subscription_tier key is set
- *       to the pill-display key ('founding' when isFounder, else
- *       the real tier) because overview.phtml uses it as a CSS
- *       class modifier (gdTierBadge--{tier}) — DB tier is
- *       unchanged.
+ *   Also: nothing in the codebase strips the founder group from
+ *   a dealer on tier change — only permanentDelete() and
+ *   transferOwnership() remove it, both legitimate. The pill
+ *   fix in v1.0.346 already makes "Founder" stick for anyone
+ *   still in that group, regardless of their paid tier. This
+ *   version does not touch group assignment.
  *
  *   NO schema change. NO extension change. NO new lang key.
  *   Source-only — tarball ships the fix for both fresh install
- *   and upgrade. The dev/html template resync is included for
+ *   and upgrade. dev/html template resync is still included for
  *   belt-and-suspenders.
  *
- * Rule #79: upg_10345 removed, exactly one upg dir per app.
+ * Rule #79: upg_10346 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gddealer\setup\upg_10346;
+namespace IPS\gddealer\setup\upg_10347;
 
 use function defined;
 use function function_exists;
@@ -82,7 +61,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gddealer';
-		$version = '1.0.346';
+		$version = '1.0.347';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -124,13 +103,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10346 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10346' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10347 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10347' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10346 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10346' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10347 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10347' ); } catch ( \Throwable ) {}
 			}
 		}
 
