@@ -1,56 +1,54 @@
 <?php
 /**
- * @brief  GD Dealer Manager — upgrade 1.0.351
- *         Overview + public profile pills: show actual paid tier +
- *         secondary Founder badge (matches Subscription page UX).
+ * @brief  GD Dealer Manager — upgrade 1.0.352
+ *         Listing cap + import schedule follow the chosen paid tier,
+ *         not the enterprise founding floor.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  * Rule #33 (standing session): do NOT call CanonicalTemplates::ensure().
  *
- * WHAT SHIPS IN 1.0.351
- *   Admin reported: Subscription page showed "Basic" + "FOUNDER"
- *   correctly (v1.0.348), but the Overview page still showed just
- *   "FOUNDER DEALER" — stale compared to what the Subscription
- *   page said. Public dealer profile had the same pattern.
+ * WHAT SHIPS IN 1.0.352
+ *   Admin reported: after flipping Defense Depot from Max to Pro,
+ *   the Overview page still showed a 10,000 listing cap. v1.0.347's
+ *   getListingCap() used max(enterprise_cap, chosen_tier_cap) for
+ *   any founder, so Pro's 5,000 was overridden by the 10,000
+ *   enterprise floor during the founding trial.
  *
- *   v1.0.346 had made DealerShellTrait::prepareDealerData() return
- *   tier_label = 'Founder' for any founding member — correct for
- *   permanence, but it hid the paid tier the admin picked and
- *   made the Overview inconsistent with the Subscription page
- *   (which already shows the paid tier + a secondary Founder
- *   badge per v1.0.348).
+ *   Clarified intent (from the admin): Founder is a permanent
+ *   recognition badge only. Cap and sync frequency should always
+ *   follow the chosen paid tier. The founder-trial "perks floor"
+ *   doesn't apply to dealers who have picked a real paid tier.
  *
  *   Fix:
  *
- *   - sources/Traits/DealerShellTrait.php::prepareDealerData()
- *     tier_label = ucfirst( actual_tier ) when a paid tier is
- *     picked (basic/pro/enterprise/max); 'Founder' only when
- *     subscription_tier is literally 'founding'. tier_color
- *     drops its founding override. Two NEW fields in the returned
- *     data: is_founder (bool from isFoundingMember()) and
- *     founder_color (settings.gddealer_founding_badge_color).
- *     Templates can now render the Founder badge separately when
- *     is_founder is true.
+ *     - sources/Dealer/Dealer.php::getListingCap()
+ *       Dropped the max(enterprise_cap, chosen_tier_cap) floor.
+ *       Paid tiers always return their own cap. Only the
+ *       subscription_tier='founding' placeholder (classic trial
+ *       founder with no paid tier yet) still gets the enterprise
+ *       cap while trial active, 0 after it expires (no paid plan
+ *       = no service).
  *
- *   - dev/html/front/dealers/overview.phtml
- *     Primary pill shows the plan tier as before. Secondary
- *     Founder pill rendered when is_founder=true AND the primary
- *     isn't already 'founding' (classic trial founders keep a
- *     single Founder pill). Matches the Subscription page hero.
+ *     - sources/Dealer/Dealer.php::getEffectiveImportSchedule()
+ *       Same model. Paid tier controls sync frequency; the
+ *       founding tier placeholder gets enterprise sync during
+ *       trial, 'none' after.
  *
- *   - dev/html/front/dealers/dealerProfile.phtml
- *     Same treatment on the public dealer profile — tier badge
- *     stays the primary, Founder badge sits next to it.
+ *     - dev/html/front/dealers/subscription.phtml
+ *       Trial notice banner updated. For founders on a paid tier
+ *       (basic/pro/enterprise/max), the banner now reads
+ *       "Founding member — you're not billed on your <Tier> plan
+ *       until <date>. Your Founder badge is permanent." For
+ *       founders still on the 'founding' tier placeholder it
+ *       keeps the "enterprise-level sync and listings until <date>"
+ *       language, which is still accurate for that case.
+ *       isFoundingMember() checks (which drive the Founder badge
+ *       on Overview + public profile + subscription page) are
+ *       UNCHANGED — the badge is still permanent regardless of
+ *       tier choice.
  *
- *   dealerSidebar and dealerShell render tier_label in small
- *   compact spots where a secondary badge would clutter. They
- *   now show the paid tier text (e.g. "Basic dealer") which is
- *   more accurate; the Founder recognition surfaces prominently
- *   on the Overview, Subscription, and public profile.
- *
- *   NO schema change. NO extension change. NO new lang key. NO
- *   CSS change (gdTierBadge--founding already defined).
+ *   NO schema change. NO extension change. NO new lang key.
  *
  * WHAT THIS UPGRADE DOES
  *   1. Walks dev/html/*.phtml and replaces every row in
@@ -58,10 +56,10 @@
  *   2. Full datastore / template-store / opcache purge + rotate
  *      set_cache_key so compiled template classes rebuild.
  *
- * Rule #79: upg_10350 removed, exactly one upg dir per app.
+ * Rule #79: upg_10351 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gddealer\setup\upg_10351;
+namespace IPS\gddealer\setup\upg_10352;
 
 use function defined;
 use function function_exists;
@@ -77,7 +75,7 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gddealer';
-		$version = '1.0.351';
+		$version = '1.0.352';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
 
 		if ( is_dir( $root ) )
@@ -119,13 +117,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10351 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10351' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10352 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10352' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10351 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10351' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10352 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10352' ); } catch ( \Throwable ) {}
 			}
 		}
 

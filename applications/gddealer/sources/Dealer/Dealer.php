@@ -83,13 +83,18 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 
 	public function getEffectiveImportSchedule(): string
 	{
-		if ( $this->foundingPerksActive() )
-		{
-			return self::$tierSchedules['enterprise'];
-		}
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
-		// expired founder, no paid tier — no service until they purchase
-		if ( $tier === 'founding' ) { return 'none'; }
+
+		/* v1.0.352: same model as getListingCap — paid tier controls
+		 * the sync frequency. Founder is a permanent badge, not a
+		 * perk gate. Only the 'founding' tier placeholder (no paid
+		 * tier picked yet) gets enterprise-level sync during trial;
+		 * post-trial that falls back to 'none' (no paid service). */
+		if ( $tier === 'founding' )
+		{
+			return $this->foundingPerksActive() ? self::$tierSchedules['enterprise'] : 'none';
+		}
+
 		return self::$tierSchedules[ $tier ] ?? '24hr';
 	}
 
@@ -314,27 +319,25 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	{
 		$tier = (string) ( $this->subscription_tier ?? 'basic' );
 
-		/* The 'founding' tier itself has no paid cap — explicit cap
-		 * is 0. A founder on an active trial still gets the
-		 * enterprise cap via the floor branch below; a founder
-		 * whose trial has expired without buying a paid tier gets
-		 * 0 (deliberate: no service until they purchase). */
-		$explicitCap = ( $tier === 'founding' ) ? 0 : static::tierCap( $tier );
-
-		/* v1.0.346: founding perks are a FLOOR, not a ceiling. If an
-		 * admin explicitly bumped the dealer to a tier whose cap is
-		 * higher than the enterprise-tier founding baseline, honour
-		 * the higher cap. v1.0.347: fixed ordering — the previous
-		 * version returned 0 immediately for tier='founding',
-		 * breaking classic founding-tier dealers (they lost their
-		 * enterprise cap). Now the perks check runs first. */
-		if ( $this->foundingPerksActive() )
+		/* v1.0.352: cap always follows the chosen paid tier. Founder
+		 * recognition is a permanent badge, not a cap floor — the user
+		 * explicitly flagged "it doesn't update the listing cap on the
+		 * overview page for pro and basic tiers" when a founder was
+		 * bumped to Pro. v1.0.347's max(enterprise_floor, tier_cap)
+		 * logic was overriding Pro/Basic caps with the 10k enterprise
+		 * floor. Dropping it.
+		 *
+		 * The one exception: subscription_tier='founding' is a trial
+		 * placeholder, NOT a paid tier. Those dealers get enterprise
+		 * cap while trial active, 0 once it expires (no paid plan =
+		 * no service). Any dealer on a real paid tier (basic/pro/
+		 * enterprise/max) always gets that tier's cap, trial or not. */
+		if ( $tier === 'founding' )
 		{
-			$foundingCap = static::tierCap( 'enterprise' );
-			return max( $foundingCap, $explicitCap );
+			return $this->foundingPerksActive() ? static::tierCap( 'enterprise' ) : 0;
 		}
 
-		return $explicitCap;
+		return static::tierCap( $tier );
 	}
 
 	public static function tierCap( string $tier ): int
