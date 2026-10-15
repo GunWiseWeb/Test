@@ -1,46 +1,78 @@
 <?php
 /**
- * @brief  GD Dealer Manager — upgrade 1.0.349
- *         Max tier pill: use a bold solid purple so it's clearly
- *         visible against the white hero card.
+ * @brief  GD Dealer Manager — upgrade 1.0.350
+ *         Admin tier edit now syncs member groups + paid tier wins
+ *         over founding in syncTierFromGroups.
  *
  * Rule #79 — exactly ONE upg_* dir per app. Self-contained.
  * Rule #27 — dual class wrapper, guard header.
  * Rule #33 (standing session): do NOT call CanonicalTemplates::ensure().
- * Rule #60 — re-import dev/css + recompile dealer.css after any CSS edit.
  *
- * WHAT SHIPS IN 1.0.349
- *   Admin screenshot showed the "MAX" pill rendering with no visible
- *   background against the white Subscription hero. v1.0.348 CSS gave
- *   it background #EDE9FE (pale lavender) which is nearly identical to
- *   the surrounding white card — the base .gdTierBadge rules
- *   (uppercase + padding + border-radius) applied correctly, but the
- *   fill was essentially invisible. Admin reasonably read it as
- *   "the pill didn't work".
+ * WHAT SHIPS IN 1.0.350
+ *   Admin reported: changing Defense Depot from Max → Pro/Basic via
+ *   the admin Dealers edit form made the pill flip to "Enterprise"
+ *   instead of the selected tier. Root cause had two layers:
  *
- *   Fix: bump .gdTierBadge--max to solid #7C3AED (purple-600) with
- *   white text. Reads as a premium top-tier badge, clearly
- *   distinct from the amber FOUNDER badge sitting next to it on
- *   founder-trial accounts. Updated in both CSS blocks (lines
- *   ~462 variable-form and ~2411 explicit-hex-form) so neither
- *   cascade wins with the old pale color.
+ *   1. The admin edit flow saved subscription_tier to the DB but
+ *      never updated the member's groups. The dealer kept accumulated
+ *      tier groups (max, enterprise, ...) in mgroup_others from
+ *      prior tier changes.
  *
- *   NO schema change. NO template change. NO controller change.
- *   NO new lang key. CSS-only.
+ *   2. The gddealer listener onProfileUpdate fires on any later
+ *      member group change and calls Dealer::syncTierFromGroups(),
+ *      which iterated $tierPrecedence [founding, max, enterprise,
+ *      pro, basic] and returned the first-matching group — so a
+ *      dealer with stale max/enterprise groups left in mgroup_others
+ *      got pinned to whichever was highest, overriding the admin's
+ *      new Pro/Basic choice.
  *
- * WHAT THIS UPGRADE DOES
- *   1. Re-imports dev/css into core_theme_css and recompiles
- *      dealer.css to served URLs (rule #60).
- *   2. Walks dev/html/*.phtml and replaces every row in
- *      core_theme_templates (standard belt-and-suspenders).
- *   3. Full datastore / template-store / opcache purge + rotate
- *      set_cache_key so compiled classes rebuild AND the browser
- *      busts its dealer.css cache.
+ *      It ALSO contained an isFoundingMember() override that pinned
+ *      tier='founding' for anyone in the founding group, hiding the
+ *      actual paid tier they chose.
  *
- * Rule #79: upg_10348 removed, exactly one upg dir per app.
+ *   Fixes:
+ *
+ *     - sources/Dealer/Dealer.php::tierForGroups()
+ *       Resolves the highest matching PAID tier first (max,
+ *       enterprise, pro, basic). Falls back to 'founding' only when
+ *       no paid-tier group is present (classic trial founder with
+ *       no paid tier picked yet). Founder recognition flows through
+ *       isFoundingMember() and the Founder pill independently —
+ *       it's a badge, not a plan state.
+ *
+ *     - sources/Dealer/Dealer.php::syncTierFromGroups()
+ *       Removed the "if isFoundingMember then force tier='founding'"
+ *       override. A founder who picked a paid tier keeps that paid
+ *       tier in the DB.
+ *
+ *     - modules/admin/dealers/dealers.php::removeDealersGroup()
+ *       Added 'max' to the tier list (was missing — Max groups were
+ *       never stripped). NEW $keepFounding parameter defaulting to
+ *       false — the destructive callers (permanentDelete,
+ *       transferOwnership) keep their nuke-everything behaviour.
+ *
+ *     - modules/admin/dealers/dealers.php (admin edit save)
+ *       After $dealer->save(), load the member, call
+ *       removeDealersGroup(member, keepFounding=true) to strip stale
+ *       paid-tier groups, then assignDealersGroup(member, newTier)
+ *       to add the group matching the admin's choice. Founding group
+ *       is never stripped by this path — Founder recognition stays
+ *       permanent per v1.0.346. Later listener-driven
+ *       syncTierFromGroups now agrees with the admin's choice
+ *       because the stale groups are gone.
+ *
+ *   NO schema change. NO extension change. NO new lang key.
+ *   NO template change. Source-only.
+ *
+ *   Post-deploy for Defense Depot specifically: re-save the tier
+ *   via admin Dealers → edit → set tier → save. That triggers the
+ *   group cleanup for this one dealer. New admin tier changes
+ *   going forward self-maintain.
+ *
+ * Rule #79: upg_10349 removed, exactly one upg dir per app.
  */
 
-namespace IPS\gddealer\setup\upg_10349;
+namespace IPS\gddealer\setup\upg_10350;
 
 use function defined;
 use function function_exists;
@@ -56,39 +88,8 @@ class _upgrade
 	public function step1(): bool
 	{
 		$app     = 'gddealer';
-		$version = '1.0.349';
+		$version = '1.0.350';
 		$root    = \IPS\ROOT_PATH . '/applications/' . $app . '/dev/html';
-
-		/* Rule #60 — re-import dev/css + recompile dealer.css. */
-		try
-		{
-			if ( class_exists( '\\IPS\\Theme\\Dev\\Theme' ) )
-			{
-				\IPS\Theme\Dev\Theme::importDevCss( 'gddealer', 0 );
-			}
-		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10349 importDevCss: ' . $e->getMessage(), 'gddealer_upg_10349' ); } catch ( \Throwable ) {}
-		}
-		try
-		{
-			foreach ( \IPS\Theme::themes() as $theme )
-			{
-				try
-				{
-					if ( method_exists( $theme, 'compileCss' ) )
-					{
-						$theme->compileCss( 'gddealer', 'front', '.', 'dealer.css' );
-					}
-				}
-				catch ( \Throwable ) {}
-			}
-		}
-		catch ( \Throwable $e )
-		{
-			try { \IPS\Log::log( 'upg_10349 compileCss: ' . $e->getMessage(), 'gddealer_upg_10349' ); } catch ( \Throwable ) {}
-		}
 
 		if ( is_dir( $root ) )
 		{
@@ -129,13 +130,13 @@ class _upgrade
 					}
 					catch ( \Throwable $e )
 					{
-						try { \IPS\Log::log( 'upg_10349 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10349' ); } catch ( \Throwable ) {}
+						try { \IPS\Log::log( 'upg_10350 tpl (' . $name . '): ' . $e->getMessage(), 'gddealer_upg_10350' ); } catch ( \Throwable ) {}
 					}
 				}
 			}
 			catch ( \Throwable $e )
 			{
-				try { \IPS\Log::log( 'upg_10349 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10349' ); } catch ( \Throwable ) {}
+				try { \IPS\Log::log( 'upg_10350 tpl loop: ' . $e->getMessage(), 'gddealer_upg_10350' ); } catch ( \Throwable ) {}
 			}
 		}
 

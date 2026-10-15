@@ -360,6 +360,28 @@ class _dealers extends \IPS\Dispatcher\Controller
 
 			$dealer->save();
 
+			/* v1.0.350: sync paid-tier member groups to the newly-saved
+			 * subscription_tier. Without this, mgroup_others accumulates
+			 * stale tier groups (max/enterprise/pro/basic) across tier
+			 * changes, and the listener onProfileUpdate → syncTierFromGroups
+			 * resolves the HIGHEST-precedence stale group and overwrites
+			 * the admin's choice on the next request. Strip old paid tier
+			 * groups (keep founding — Founder recognition is permanent per
+			 * v1.0.346), then add the one group matching the new tier. */
+			try
+			{
+				$member = \IPS\Member::load( (int) $dealer->dealer_id );
+				if ( $member->member_id )
+				{
+					$this->removeDealersGroup( $member, true );
+					$this->assignDealersGroup( $member, (string) $dealer->subscription_tier );
+				}
+			}
+			catch ( \Throwable $e )
+			{
+				try { \IPS\Log::log( $e, 'gddealer_tier_group_sync' ); } catch ( \Throwable ) {}
+			}
+
 			try { $dealer->enforceListingCap(); } catch ( \Throwable $e ) { try { \IPS\Log::log( $e, 'gddealer_cap_enforce' ); } catch ( \Throwable ) {} }
 
 			\IPS\Output::i()->redirect(
@@ -628,9 +650,17 @@ class _dealers extends \IPS\Dispatcher\Controller
 		}
 	}
 
-	protected function removeDealersGroup( \IPS\Member $member ): void
+	protected function removeDealersGroup( \IPS\Member $member, bool $keepFounding = false ): void
 	{
-		$allTiers = [ 'basic', 'pro', 'founding', 'enterprise' ];
+		/* v1.0.350: include 'max' in the tier list — it was missing,
+		 * so Max groups were never stripped. $keepFounding=true leaves
+		 * the founding group alone (admin tier edits never remove
+		 * founder recognition — rule from v1.0.346). The destructive
+		 * callers (permanentDelete, transferOwnership) still pass the
+		 * default false so they fully clear the member. */
+		$allTiers = $keepFounding
+			? [ 'basic', 'pro', 'enterprise', 'max' ]
+			: [ 'basic', 'pro', 'founding', 'enterprise', 'max' ];
 		$current  = $member->mgroup_others ? explode( ',', (string) $member->mgroup_others ) : [];
 		$current  = array_filter( array_map( 'intval', $current ) );
 		$changed  = false;

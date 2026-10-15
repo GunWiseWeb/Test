@@ -131,13 +131,27 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 	public static function tierForGroups( array $groupIds ): string
 	{
 		$groupIds = array_map( 'intval', $groupIds );
-		foreach ( static::$tierPrecedence as $tier )
+		/* v1.0.350: paid tiers take precedence over founding. A dealer
+		 * in both the founding group AND a paid-tier group was
+		 * previously flipped to 'founding' tier here, hiding the paid
+		 * tier they chose and preventing admin tier edits from
+		 * sticking. Founder recognition flows through isFoundingMember()
+		 * and the pill — it's not a plan state. Iterate paid tiers in
+		 * precedence order first; fall back to founding only when no
+		 * paid-tier group is present (classic trial founder). */
+		$paidTiers = [ self::TIER_MAX, self::TIER_ENTERPRISE, self::TIER_PRO, self::TIER_BASIC ];
+		foreach ( $paidTiers as $tier )
 		{
 			$gid = static::groupIdForTier( $tier );
 			if ( $gid > 0 && \in_array( $gid, $groupIds, true ) )
 			{
 				return $tier;
 			}
+		}
+		$foundingGid = static::groupIdForTier( self::TIER_FOUNDING );
+		if ( $foundingGid > 0 && \in_array( $foundingGid, $groupIds, true ) )
+		{
+			return self::TIER_FOUNDING;
 		}
 		return self::TIER_BASIC;
 	}
@@ -160,14 +174,14 @@ class _Dealer extends \IPS\Patterns\ActiveRecord
 
 		$tier = static::tierForGroups( $groupIds );
 
+		/* v1.0.350: removed the "if isFoundingMember then force
+		 * subscription_tier='founding'" override. A founder who picked
+		 * a paid tier should KEEP that paid tier in the DB — the
+		 * Founder badge/pill is driven independently by
+		 * isFoundingMember() checks across the codebase. */
 		try
 		{
 			$dealer = static::load( (int) $member->member_id );
-
-			if ( $dealer->isFoundingMember() )
-			{
-				$tier = self::TIER_FOUNDING;
-			}
 
 			if ( (string) $dealer->subscription_tier !== $tier )
 			{
